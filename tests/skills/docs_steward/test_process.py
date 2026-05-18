@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import os.path
+import sys
 import tempfile
 import unittest
 
@@ -62,6 +63,11 @@ class SubprocessRunnerConstructorTests(unittest.TestCase):
         runner = SubprocessRunner(extra_path_dirs=())
         self.assertEqual(runner._env["PATH"], os.environ.get("PATH", ""))  # noqa: SLF001
 
+    @unittest.skipIf(
+        sys.platform == "win32",
+        "shutil.which on Windows requires a PATHEXT extension (.exe/.bat/.cmd); "
+        "shebang-based fake binaries are POSIX-only",
+    )
     def test_which_uses_augmented_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             # Create a fake executable in the extra dir.
