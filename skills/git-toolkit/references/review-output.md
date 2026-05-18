@@ -51,6 +51,8 @@ Keys:
 - `details` — rule-specific structured data; the fields vary per rule but `excerpt` is reserved for a verbatim quote.
 - `fix` — short imperative describing the corrective action; never includes an apply command (those go in human output only).
 
+The schema is also published as JSON Schema at `review-output.schema.json` (Draft 2020-12). Consumers can validate NDJSON streams with any standards-compliant validator (`ajv-cli`, `check-jsonschema`, etc.). The schema enforces: `scope=commit` requires `sha`; `scope=branch/range/pr` requires `ref`; `FAIL` and `MOSTLY-PASS` results require a `fix` string.
+
 ## Verdict line
 
 At the end of the report (both human and NDJSON), emit a single-line verdict:
