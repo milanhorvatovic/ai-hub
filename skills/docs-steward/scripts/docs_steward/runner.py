@@ -217,8 +217,13 @@ def run_fix_cycle(
         # Audit error — surface and bail; format would compound the failure.
         return pre_events, pre_exit
 
-    if not pre_findings:
-        # Already clean — skip format, emit zero delta.
+    if pre_exit == 0 and not pre_findings:
+        # Already clean — skip format, emit zero delta. The `pre_exit == 0`
+        # guard is load-bearing: a formatter that exited 1 but whose output
+        # the line-parser did not turn into FINDING events (custom output
+        # shape, parser regression) would otherwise collapse to delta=0,0,0
+        # and exit 0 here — silently masking the failed audit. Forwarding
+        # pre_exit instead preserves the failure signal.
         pre_events.append(
             Event(
                 EventType.DELTA,
@@ -227,6 +232,12 @@ def run_fix_cycle(
             )
         )
         return pre_events, 0
+
+    if not pre_findings:
+        # pre_exit == 1 with empty parsed findings — propagate the failure;
+        # the formatter said something is wrong but the line-parser produced
+        # nothing actionable. Skipping format avoids compounding the issue.
+        return pre_events, pre_exit
 
     fmt_events, fmt_exit = run_tool(
         Mode.FORMAT, baseline, unwrap, runner, root, files=files, quiet=quiet

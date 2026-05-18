@@ -344,6 +344,28 @@ class RunFixCycleTests(unittest.TestCase):
         self.assertEqual(deltas[0].detail["still_open"], 0)  # type: ignore[index]
         self.assertEqual(deltas[0].detail["new"], 0)  # type: ignore[index]
 
+    def test_pre_exit_1_with_unparseable_output_propagates_exit_1(self) -> None:
+        # Regression: a formatter that exits 1 but emits output the line
+        # parser turns into zero FINDING events (custom shape / parser
+        # gap) would previously collapse to DELTA 0,0,0 + exit 0 because
+        # the "already clean" branch fired purely on `not pre_findings`.
+        # Now the clean branch additionally requires `pre_exit == 0`, so
+        # the failure signal survives.
+        audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md")
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={
+                # exit 1 with stdout that the preamble filter eats whole
+                # (a banner-shaped line that _emit_output_lines drops);
+                # _finding_keys -> empty set, but pre_exit is 1.
+                audit_cmd: ProcessResult(1, "Checking formatting...\n", ""),
+            },
+        )
+        events, code = run_fix_cycle(runner, ROOT, ".prettierrc", False, quiet=True)
+        self.assertEqual(code, 1)
+        # No DELTA event since we did NOT enter the "clean" branch.
+        self.assertEqual([e for e in events if e.event == EventType.DELTA], [])
+
     def test_audit_error_short_circuits(self) -> None:
         audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md")
         runner = FakeProcessRunner(
