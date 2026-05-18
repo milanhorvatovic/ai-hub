@@ -103,20 +103,23 @@ EOF' git rebase -i <base>
 
 For every `reword` action, include the proposed message body inline so the user can paste it into the editor when prompted.
 
-### 6. Force-push warning (when commits are pushed and reviewed)
+### 6. Force-Push Impact block (when commits are pushed)
+
+Use the shared format from `../../capabilities/commit-message/capability.md` Step 5 — three impact buckets (none / mild / high) keyed on whether the commit is local-only, pushed-without-anchors, or pushed-with-review-anchors. Surface anchored review threads by URL when impact is `high`.
 
 ```
-WARN: N commit(s) in this range exist on origin/<branch>.
+Force-Push Impact: <none / mild / high>
+  Pushed commits:        <N of M>
+  Review anchors at risk: <K> (list URLs if K > 0)
+  Required to publish:    <none / git push --force-with-lease / git push --force-with-lease + reviewer coordination>
 
-Rewriting them requires `git push --force-with-lease origin <branch>`, which:
-  - disrupts any reviewer with the branch checked out locally
-  - may lose review threads tied to specific commit SHAs
-  - breaks bisecting tools and CI caches keyed on commit hashes
+Rewriting commits on origin/<branch> may:
+  - disrupt any reviewer with the branch checked out locally
+  - lose review threads tied to specific commit SHAs (anchors detailed above)
+  - break bisecting tools and CI caches keyed on commit hashes
 
-Coordinate with reviewers before applying. The skill will not run force-push.
+The skill will not run force-push; user must opt in explicitly.
 ```
-
-If no reviews yet (draft PR or unreviewed) → softer warning (only the first bullet).
 
 ## Anti-patterns
 

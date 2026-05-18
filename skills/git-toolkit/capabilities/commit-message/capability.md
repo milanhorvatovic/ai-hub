@@ -211,17 +211,24 @@ For older commits:
 
 ### 5. Handling pushed commits
 
-If the range overlaps with commits already pushed to a remote tracking branch:
+If the range overlaps with commits already pushed to a remote tracking branch, emit a **Force-Push Impact** block before showing any proposal. Classify the target into one of three buckets:
+
+- **Never pushed** — local-only commit. Standard `git commit --amend` or `git rebase` works; no force-push needed; impact = none.
+- **Pushed, no review anchors** — commit is on a remote tracking branch but has no PR comments anchored to specific SHAs (no PR yet, or no review comments yet). Force-push needed to publish the rewrite; collaborators with the branch checked out need `git pull --rebase`; impact = mild.
+- **Pushed and review-anchored** — PR exists with at least one review comment anchored to a commit-specific SHA (`gh pr view --json reviews,comments`). Force-push needed AND review anchors will become dangling — reviewers cannot navigate to the original code they commented on. Impact = high; surface every anchored thread by URL so the user can decide whether the cosmetic gain justifies the loss.
+
+Output template:
 
 ```
-WARN: <N> commit(s) in the reviewed range have been pushed to origin/<branch>.
-Rewriting them requires a force-push, which can disrupt collaborators and lose
-review threads. Proposed fixes are advisory only — apply only after coordinating
-with reviewers, or accept the existing messages and add a follow-up commit
-that explains the fix.
+Force-Push Impact: <none / mild / high>
+  Pushed commits:        <N of M>
+  Review anchors at risk: <K> (list URLs if K > 0)
+  Required to publish:    <none / git push --force-with-lease / git push --force-with-lease + reviewer coordination>
 ```
 
-Do NOT include `git push --force` in any suggested command. The user must opt in to that risk explicitly.
+If impact is `high`, also surface the canonical rule from `../../references/format-conventions.md`: "never rewrite a pre-existing commit body for a 1–2 column overshoot alone." The user must opt in explicitly; the proposal does not include the force-push command unless they confirm.
+
+Do NOT include `git push --force` (without `--with-lease`) in any suggested command. `--force-with-lease` refuses if the remote moved; bare `--force` overwrites unconditionally.
 
 ## Edge cases
 
