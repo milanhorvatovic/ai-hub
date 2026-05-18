@@ -44,10 +44,11 @@ class NeedsGfmTests(unittest.TestCase):
         self.assertFalse(needs_gfm("[link](https://example.com)"))
 
     def test_inline_code_with_pipes_does_not_trigger_table(self) -> None:
-        # Inline code containing pipes shouldn't false-positive as a table,
-        # but the simple regex catches it. Document the limitation.
-        # (Conservative: PLUGIN_MISSING is INFO; false positives are acceptable.)
-        self.assertFalse(needs_gfm("Some `inline code`."))
+        # The table regex anchors at `^\s*\|`, so pipes living inside inline
+        # code that does not start the line are not mistaken for table
+        # delimiters. The fixture must actually contain a `|` inside backticks
+        # to exercise this case — without one the test passes trivially.
+        self.assertFalse(needs_gfm("Run `cat | grep foo` to filter output."))
 
 
 # ============================================================
