@@ -1,0 +1,43 @@
+name: docs-steward
+
+on:
+  pull_request:
+    paths:
+      - "skills/docs-steward/**"
+      - "tests/skills/docs_steward/**"
+      - "pyproject.toml"
+      - ".github/workflows/docs-steward.yml"
+  push:
+    branches: [main]
+    paths:
+      - "skills/docs-steward/**"
+      - "tests/skills/docs_steward/**"
+      - "pyproject.toml"
+      - ".github/workflows/docs-steward.yml"
+
+concurrency:
+  group: docs-steward-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: pytest (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Run docs-steward tests
+        run: pytest tests/skills/docs_steward/ -q
