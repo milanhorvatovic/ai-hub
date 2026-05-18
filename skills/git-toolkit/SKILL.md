@@ -89,7 +89,10 @@ Grouped by scope so capabilities can pull only what their side needs.
 
 | File | Specifies |
 |---|---|
-| `references/format-conventions.md` | Commit subject, commit body, PR title, PR description, release-notes format rules — single source of truth |
+| `references/format-conventions.md` | Index file — Precedence (which source overrides which), Fresh-repo and Non-English fallbacks, Tone, and pointers to the slice files below |
+| `references/format-subject.md` | Commit-subject and PR-title rules: imperative mood, length cap, conventional-commits syntax, required/forbidden elements, anti-examples |
+| `references/format-body.md` | Commit-body rules: flowing-paragraph default, hard-wrap opt-in, body required/optional/none decision tree, body contents required/forbidden, anti-examples |
+| `references/format-pr.md` | PR-description rules: structure templates, sections to consider, interaction with merge mode, PR-specific anti-patterns |
 | `references/trailer-semantics.md` | Where each trailer type lives (commit vs body), what tooling reads it, how merge mode changes that — including harness-pressure conflict resolution |
 | `references/secret-patterns.md` | Pre-publication scan catalog |
 | `references/review-output.md` | Canonical markdown + NDJSON output schema for REVIEW-mode reports across capabilities |
