@@ -16,7 +16,7 @@ from __future__ import annotations
 from .events import Event, EventType
 from .plugins import probe_mdformat_plugins
 from .process import ProcessRunner
-from .tools import SUPPORTED_TOOLS, Tool
+from .tools import REGISTRY, SUPPORTED_TOOLS, Tool
 
 
 _MISSING_HINT = (
@@ -37,19 +37,35 @@ def capture_version(runner: ProcessRunner, tool: Tool) -> str:
 
 
 def probe_tools(runner: ProcessRunner) -> tuple[list[Event], int]:
+    """Inventory every supported tool on PATH.
+
+    The MISSING / exit-3 decision is driven by formatter availability only
+    (the tools in `REGISTRY`); yamllint is complementary — it lints YAML
+    blocks via the `audit-frontmatter` pipeline and never participates in
+    markdown formatter selection. An `AVAILABLE` event is still emitted
+    for yamllint when present, but its presence does not by itself satisfy
+    "any formatter on PATH" for the markdown audit pipeline.
+    """
     events: list[Event] = []
+    formatter_available = False
     mdformat_available = False
+    formatter_tools = set(REGISTRY.keys())
     for tool in SUPPORTED_TOOLS:
         if runner.which(tool.value):
             events.append(
                 Event(EventType.AVAILABLE, tool.value, capture_version(runner, tool))
             )
+            if tool in formatter_tools:
+                formatter_available = True
             if tool == Tool.MDFORMAT:
                 mdformat_available = True
     if mdformat_available:
         # Append plugin-availability events for any known mdformat plugin
         # detected via `pip show <package>`.
         events.extend(probe_mdformat_plugins(runner))
-    if not any(e.event == EventType.AVAILABLE for e in events):
-        return [Event(EventType.MISSING, "all", _MISSING_HINT)], 3
+    if not formatter_available:
+        # Preserve any AVAILABLE events (e.g. yamllint) so callers can still
+        # see what complementary tools exist while exiting 3 for the
+        # markdown formatter contract.
+        return events + [Event(EventType.MISSING, "all", _MISSING_HINT)], 3
     return events, 0

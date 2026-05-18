@@ -79,6 +79,35 @@ class ProbeToolsTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual([e.tool for e in events], ["markdownlint-cli2", "prettier"])
 
+    def test_yamllint_only_still_exits_3(self) -> None:
+        # yamllint is complementary — its presence alone does not satisfy
+        # the "any markdown formatter on PATH" contract. The probe still
+        # surfaces the AVAILABLE event so callers can see yamllint is there,
+        # then emits MISSING + exit 3 because no formatter is.
+        runner = FakeProcessRunner(
+            paths={"yamllint": "/x/yamllint"},
+            results={("yamllint", "--version"): ProcessResult(0, "yamllint 1.35.1\n", "")},
+        )
+        events, code = probe_tools(runner)
+        self.assertEqual(code, 3)
+        self.assertEqual(
+            [(e.event, e.tool) for e in events],
+            [(EventType.AVAILABLE, "yamllint"), (EventType.MISSING, "all")],
+        )
+
+    def test_formatter_plus_yamllint_exits_0(self) -> None:
+        # Formatter on PATH satisfies the contract regardless of yamllint.
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier", "yamllint": "/x/yamllint"},
+            results={
+                ("prettier", "--version"): ProcessResult(0, "3.2.5\n", ""),
+                ("yamllint", "--version"): ProcessResult(0, "yamllint 1.35.1\n", ""),
+            },
+        )
+        events, code = probe_tools(runner)
+        self.assertEqual(code, 0)
+        self.assertEqual([e.tool for e in events], ["prettier", "yamllint"])
+
 
 if __name__ == "__main__":
     unittest.main()
