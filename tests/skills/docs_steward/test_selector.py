@@ -61,6 +61,27 @@ class SelectToolTests(unittest.TestCase):
     def test_fallback_order_is_non_empty(self) -> None:
         self.assertGreater(len(FALLBACK_ORDER), 0)
 
+    def test_absolute_baseline_path_matches_family_preference(self) -> None:
+        # Regression: --baseline /repo/.prettierrc should select Prettier
+        # via the prefix table, not silently fall through to FALLBACK_ORDER
+        # and pick markdownlint-cli2 just because it was on PATH first.
+        runner = _runner_with(Tool.MARKDOWNLINT_CLI2, Tool.PRETTIER)
+        self.assertEqual(
+            select_tool("/repo/.prettierrc", runner), Tool.PRETTIER,
+        )
+
+    def test_subdir_baseline_path_matches_family_preference(self) -> None:
+        runner = _runner_with(Tool.MARKDOWNLINT_CLI2, Tool.PRETTIER)
+        self.assertEqual(
+            select_tool("config/.prettierrc.json", runner), Tool.PRETTIER,
+        )
+
+    def test_absolute_markdownlint_baseline_picks_markdownlint(self) -> None:
+        runner = _runner_with(Tool.MARKDOWNLINT_CLI2, Tool.PRETTIER)
+        self.assertEqual(
+            select_tool("/repo/.markdownlint.yaml", runner), Tool.MARKDOWNLINT_CLI2,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

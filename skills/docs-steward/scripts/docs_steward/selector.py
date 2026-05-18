@@ -13,6 +13,8 @@ which optimizes for "what should the user install first?" — see priority.py.
 
 from __future__ import annotations
 
+import os.path
+
 from .process import ProcessRunner
 from .tools import Tool
 
@@ -38,9 +40,19 @@ FALLBACK_ORDER: tuple[Tool, ...] = (
 
 def select_tool(baseline: str, runner: ProcessRunner) -> Tool | None:
     """Pick the tool to run for `baseline`. Returns None when no usable tool
-    is on PATH for any preference + fallback path."""
+    is on PATH for any preference + fallback path.
+
+    Matching is done on the baseline's basename so an explicit
+    `--baseline /repo/.prettierrc` (or `config/.prettierrc`) honours the
+    same family preference as the auto-detected bare `.prettierrc`.
+    Without the basename normalization, an absolute or subdirectory path
+    fails the `startswith` check and silently falls through to
+    `FALLBACK_ORDER`, picking whichever formatter happens to be on PATH
+    first — frequently a different family than the user asked for.
+    """
+    basename = os.path.basename(baseline)
     for prefix, preferred in _BASELINE_PREFERENCES:
-        if baseline.startswith(prefix):
+        if basename.startswith(prefix):
             for tool in preferred:
                 if runner.which(tool.value):
                     return tool
