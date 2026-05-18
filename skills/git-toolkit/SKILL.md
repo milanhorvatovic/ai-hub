@@ -90,14 +90,17 @@ Grouped by scope so capabilities can pull only what their side needs.
 | File | Specifies |
 |---|---|
 | `references/format-conventions.md` | Commit subject, commit body, PR title, PR description, release-notes format rules — single source of truth |
-| `references/trailer-semantics.md` | Where each trailer type lives (commit vs body), what tooling reads it, how merge mode changes that |
+| `references/trailer-semantics.md` | Where each trailer type lives (commit vs body), what tooling reads it, how merge mode changes that — including harness-pressure conflict resolution |
 | `references/secret-patterns.md` | Pre-publication scan catalog |
+| `references/review-output.md` | Canonical markdown + NDJSON output schema for REVIEW-mode reports across capabilities |
+| `references/harness-safety-nets.md` | Operations routinely blocked by agent-harness classifiers, with the proposal phrasing that gives reviewers and classifiers enough context |
 
 ### Git-side only
 
 | File | Specifies |
 |---|---|
 | `references/git-gh-quirks.md` (git portions) | Force-push reconciliation, two-dot vs three-dot diff, `git fetch` graceful degrade |
+| `references/mass-rewrite.md` | Tool choice (filter-repo vs filter-branch vs rebase --exec), per-branch sequencing for stacked branches, idempotency, post-flight verification, recovery from backup tags |
 
 ### GitHub-side only
 
