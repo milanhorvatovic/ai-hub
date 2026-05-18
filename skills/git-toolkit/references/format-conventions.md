@@ -98,6 +98,44 @@ Format: `<type>(<scope>)<!>: <description>`
 - **No marketing language** — "we are excited to announce", "this awesome change", "amazing improvement". Drop it.
 - **Trailers** go at the end after a blank line. See `trailer-semantics.md`.
 
+### Flowing vs hard-wrap: side-by-side example
+
+Same body content, two styles. The flowing version is the default for fresh repos; the hard-wrap version is correct when the repo's last ~20 commits demonstrably use it.
+
+**Flowing (default)** — each paragraph is one line; reader's tools soft-wrap.
+
+```
+Reorganize .gitignore by area with section headers
+
+Same content as before, regrouped under explicit area headers so a reader can find rules by context rather than scanning a flat list. Splits Python into runtime / virtual envs / test+lint / packaging, and pulls the JetBrains and VS Code commented blocks into a dedicated Editor section.
+
+Lists keep one item per line, no internal wrap:
+- Python — runtime artifacts
+- Python — virtual environments
+- Python — test, coverage, type-check, lint
+- Editor / IDE local state
+```
+
+**Hard-wrap at ~72 columns** — paragraphs broken to fit terminal width.
+
+```
+Reorganize .gitignore by area with section headers
+
+Same content as before, regrouped under explicit area headers so a
+reader can find rules by context rather than scanning a flat list.
+Splits Python into runtime / virtual envs / test+lint / packaging,
+and pulls the JetBrains and VS Code commented blocks into a dedicated
+Editor section.
+
+Lists keep one item per line, no internal wrap:
+- Python — runtime artifacts
+- Python — virtual environments
+- Python — test, coverage, type-check, lint
+- Editor / IDE local state
+```
+
+The list items are identical in both — one item per line is independent of paragraph wrap style. Only the prose paragraphs differ.
+
 ### Body structure (loose)
 
 ```
