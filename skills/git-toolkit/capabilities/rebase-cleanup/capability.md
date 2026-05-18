@@ -29,6 +29,10 @@ Proposes an interactive-rebase plan to clean up a branch's commit history.
 
 Classifications in Step 2 and any REVIEW-shaped findings emitted along the way must use the kebab-case rule ids from `../../references/commit-smells.md` (especially `status-marker`, `generic-verb`, `vague-noun`, `repeated-fix`, `manual-revert`, `mixed-scope`). Detection patterns for the catalog's rules drive the classifier; the catalog stays the single source of "things to flag".
 
+### 0b. Rule selectivity (optional `rules:` filter)
+
+Same selectivity mechanism as `commit-message/capability.md` Step 0b: a comma-separated `rules:` argument scopes classification to a subset of catalog rule ids (e.g. `rules: status-marker,repeated-fix,mixed-scope`). The cleanup plan only proposes actions for commits matching the active rules. Surface the active subset in the plan preamble so the reader knows which classifications were skipped. Useful when a team has agreed that some smells are out of scope for branch-cleanup work.
+
 ### 1. Gather commits and bodies
 
 ```

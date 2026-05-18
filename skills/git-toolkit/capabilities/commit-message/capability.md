@@ -140,6 +140,12 @@ Always show the full proposed message AND the apply command. Never run `git comm
 
 REVIEW findings must use the kebab-case rule ids from `../../references/commit-smells.md` (e.g., `generic-verb`, `vague-noun`, `status-marker`, `issue-in-subject`, `trailing-period`, `past-tense-verb`, `overlong-subject`, `restated-subject`, `listed-files`, `auto-trailer`, `marketing-language`). The catalog is the authoritative source for detection patterns, fixes, and before/after examples. The schema in `../../references/review-output.schema.json` enforces the kebab-case pattern; findings that invent ad-hoc ids will fail schema validation.
 
+### 0b. Rule selectivity (optional `rules:` filter)
+
+By default every catalog rule runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case rule ids, e.g. `rules: subject-length,trailing-period,overlong-subject` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in catalog") but do not halt the run. The output preamble lists the active subset so the reader knows what was *not* checked: `Active rule subset: subject-length, trailing-period, overlong-subject (3 of 24 catalog rules)`.
+
+Useful in CI contexts where a repo has accepted some smells as out-of-scope but wants to enforce others on every PR. The NDJSON output shape from `../../references/review-output.md` is unchanged — findings still carry their `rule` id; the only change is which rules contribute.
+
 ### 1. Resolve target commit(s)
 
 | User said | Range |
