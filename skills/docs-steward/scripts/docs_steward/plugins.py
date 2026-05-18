@@ -99,10 +99,10 @@ def _resolve_mdformat_interpreter(runner: ProcessRunner) -> str | None:
         return None
     if not first_line.startswith(b"#!"):
         return None
-    try:
-        line = first_line[2:].decode("utf-8", errors="replace").strip()
-    except UnicodeDecodeError:
-        return None
+    # errors="replace" cannot raise UnicodeDecodeError; a stray non-UTF-8
+    # byte degrades to U+FFFD and `line.split()` still produces something
+    # the parts[] checks can reject downstream.
+    line = first_line[2:].decode("utf-8", errors="replace").strip()
     parts = line.split()
     if not parts:
         return None
