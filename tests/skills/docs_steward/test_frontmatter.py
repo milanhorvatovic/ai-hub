@@ -108,6 +108,45 @@ class FrontmatterExtractionTests(unittest.TestCase):
         self.assertTrue(block.anchor.startswith("yaml fence:"))
         self.assertIn("…", block.anchor)
 
+    def test_fence_open_accepts_info_string_after_language_tag(self) -> None:
+        # CommonMark allows info-string content after the language tag (e.g.
+        # title= / linenums= attributes used by various renderers). The
+        # parser must still recognize the block as yaml and audit it.
+        text = '```yaml linenums="1" title="example"\nkey: value\n```\n'
+        blocks = extract_blocks(text)
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].kind, "fenced")
+        self.assertIn("key: value", blocks[0].yaml_text)
+
+    def test_fence_open_accepts_yml_alias_with_info_string(self) -> None:
+        text = "```yml {.docs collapsed}\nkey: value\n```\n"
+        blocks = extract_blocks(text)
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].kind, "fenced")
+
+    def test_closing_fence_may_be_longer_than_opener(self) -> None:
+        # CommonMark allows the closing fence to use more backticks (or
+        # tildes) than the opener — e.g. a yaml block opened with ``` and
+        # closed with ````. Treating that as unterminated silently drops
+        # the block from the audit.
+        text = "```yaml\nkey: value\n````\nbody\n"
+        blocks = extract_blocks(text)
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].kind, "fenced")
+        self.assertEqual(blocks[0].yaml_text, "key: value")
+
+    def test_closing_fence_must_match_opener_character(self) -> None:
+        # A block opened with backticks may NOT be closed with tildes.
+        # This stays unterminated and is silently skipped.
+        text = "```yaml\nkey: value\n~~~\nstill inside fence\n"
+        self.assertEqual(extract_blocks(text), [])
+
+    def test_closing_fence_too_short_is_unterminated(self) -> None:
+        # An opener with `````` cannot be closed by ```` (CommonMark requires
+        # the closer to be at least as long as the opener).
+        text = "````yaml\nkey: value\n```\nstill inside\n"
+        self.assertEqual(extract_blocks(text), [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -26,8 +26,18 @@ from typing import Literal
 BlockKind = Literal["frontmatter", "fenced"]
 
 _FRONTMATTER_BOUNDARY = re.compile(r"^(?:---|\.\.\.)\s*$")
-_FENCE_OPEN = re.compile(r"^(```+|~~~+)\s*(ya?ml)\s*$", re.IGNORECASE)
-_FENCE_CLOSE_TPL = "^{fence}\\s*$"
+# Opening fence: 3+ backticks or tildes, optional whitespace, ya?ml language
+# tag, then either EOL or whitespace followed by an info-string (e.g.
+# ``` ```yaml linenums="1" ``` or ``` ```yaml title="example" ```). CommonMark
+# allows arbitrary info-string content after the language tag; the previous
+# `\s*$` anchor rejected any non-whitespace and silently skipped those blocks.
+_FENCE_OPEN = re.compile(r"^(`{3,}|~{3,})\s*(ya?ml)(?:\s+.*)?\s*$", re.IGNORECASE)
+# Closing fence: same character as opener, length >= opener's length, then
+# only whitespace until EOL. CommonMark explicitly permits the closer to be
+# longer than the opener; the previous `re.escape(open_match.group(1))`
+# anchor required exact length and silently skipped any block where the
+# closer was longer (treating it as unterminated).
+_FENCE_CLOSE_TPL = "^{fence_char}{{{fence_len},}}\\s*$"
 
 
 @dataclass(frozen=True)
@@ -70,8 +80,13 @@ def _extract_fenced(lines: list[str], offset: int) -> list[FrontmatterBlock]:
         if not open_match:
             i += 1
             continue
-        fence = re.escape(open_match.group(1))
-        close_re = re.compile(_FENCE_CLOSE_TPL.format(fence=fence))
+        fence = open_match.group(1)
+        close_re = re.compile(
+            _FENCE_CLOSE_TPL.format(
+                fence_char=re.escape(fence[0]),
+                fence_len=len(fence),
+            )
+        )
         # Scan forward for closing fence; bail if EOF reached (malformed block).
         end_idx = i + 1
         while end_idx < len(lines) and not close_re.match(lines[end_idx]):
