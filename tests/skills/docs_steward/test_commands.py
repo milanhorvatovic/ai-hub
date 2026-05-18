@@ -13,7 +13,7 @@ class BuildCommandTests(unittest.TestCase):
     def test_prettier_audit_no_flags(self) -> None:
         self.assertEqual(
             build_command(Tool.PRETTIER, Mode.AUDIT),
-            ["prettier", "--check", "--parser", "markdown", "**/*.md"],
+            ["prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown"],
         )
 
     def test_prettier_format_with_unwrap(self) -> None:
@@ -26,6 +26,7 @@ class BuildCommandTests(unittest.TestCase):
                 "--parser",
                 "markdown",
                 "**/*.md",
+            "**/*.markdown",
             ],
         )
 
@@ -43,6 +44,7 @@ class BuildCommandTests(unittest.TestCase):
                 "--parser",
                 "markdown",
                 "**/*.md",
+            "**/*.markdown",
             ],
         )
 

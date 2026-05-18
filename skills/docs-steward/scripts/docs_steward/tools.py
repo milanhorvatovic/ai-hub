@@ -45,10 +45,20 @@ class CommandTemplate:
     unwrap_flag: str | None = None
 
 
+# Both `.md` and `.markdown` extensions are in scope per SKILL.md
+# section "Supported file types". Tools whose default invocation accepts
+# an explicit glob list (markdownlint-cli2 / markdownlint / prettier /
+# remark) get both extensions enumerated so `.markdown` files are not
+# silently skipped on the default-glob path. mdformat (`.` recursive)
+# and dprint (`dprint.json` includes) defer to their own config and so
+# do not enumerate extensions here.
 _MARKDOWNLINT_CLI2_GLOBS = (
-    "**/*.md", "#node_modules", "#.git", "#dist", "#build", "#.venv",
+    "**/*.md", "**/*.markdown",
+    "#node_modules", "#.git", "#dist", "#build", "#.venv",
 )
-_MARKDOWNLINT_GLOB = ("--ignore-path", ".gitignore", "**/*.md")
+_MARKDOWNLINT_GLOB = (
+    "--ignore-path", ".gitignore", "**/*.md", "**/*.markdown",
+)
 
 
 REGISTRY: dict[Tool, CommandTemplate] = {
@@ -63,8 +73,8 @@ REGISTRY: dict[Tool, CommandTemplate] = {
         config_flag=("--config",),
     ),
     Tool.PRETTIER: CommandTemplate(
-        audit=("prettier", "--check", "--parser", "markdown", "**/*.md"),
-        fmt=("prettier", "--write", "--parser", "markdown", "**/*.md"),
+        audit=("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown"),
+        fmt=("prettier", "--write", "--parser", "markdown", "**/*.md", "**/*.markdown"),
         config_flag=("--config",),
         unwrap_flag="--prose-wrap=never",
     ),
@@ -78,8 +88,8 @@ REGISTRY: dict[Tool, CommandTemplate] = {
         fmt=("dprint", "fmt"),
     ),
     Tool.REMARK: CommandTemplate(
-        audit=("remark", "--quiet", "--frail", "**/*.md"),
-        fmt=("remark", "--output", "**/*.md"),
+        audit=("remark", "--quiet", "--frail", "**/*.md", "**/*.markdown"),
+        fmt=("remark", "--output", "**/*.md", "**/*.markdown"),
     ),
 }
 
