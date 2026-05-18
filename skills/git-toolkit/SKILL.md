@@ -55,23 +55,72 @@ Shared references at this skill's root hold the canonical format spec, trailer r
 
 ## Capability routing
 
+Grouped by lifecycle phase so the right capability surfaces by intent, not by alphabetic position. A flat alphabetic table follows at the end as a lookup fallback.
+
+### Starting work
+
 | Capability | Trigger | Path |
 |---|---|---|
 | branch-name | [git-side] Propose a git branch name for new work, from staged changes or a user description, respecting repo prefix conventions (`fix/`, `feature/`, etc.) | capabilities/branch-name/capability.md |
 | worktree-setup | [git-side] Propose a `git worktree add` command in the sibling `worktrees/` directory for parallel work on a feature or fix branch | capabilities/worktree-setup/capability.md |
+
+### Authoring commits
+
+| Capability | Trigger | Path |
+|---|---|---|
 | commit-message | [git-side, optional `gh` enrichment] Write a new commit subject + body for currently-staged changes; or review one existing commit / a range for format compliance and propose fixes | capabilities/commit-message/capability.md |
 | commit-fixup | [git-side] Detect which prior commit the currently-staged changes belong to and propose `git commit --fixup <sha>` plus the follow-up rebase command | capabilities/commit-fixup/capability.md |
 | commit-amend-message | [git-side] Amend only the message of HEAD (not the diff); validate against format conventions; warn on pushed commits | capabilities/commit-amend-message/capability.md |
-| commit-body-reflow | [git-side, optional `gh` enrichment] Transform many commit bodies at once between flowing-paragraph and hard-wrap styles across a range or set of stacked branches; preserves subjects and trailers byte-for-byte | capabilities/commit-body-reflow/capability.md |
+
+### Tidying history before review
+
+| Capability | Trigger | Path |
+|---|---|---|
 | rebase-cleanup | [git-side, optional `gh` enrichment] Analyze a branch's commits and propose an interactive-rebase plan (squash / fixup / reword / drop / reorder) to clean up history before review or merge | capabilities/rebase-cleanup/capability.md |
+| commit-body-reflow | [git-side, optional `gh` enrichment] Transform many commit bodies at once between flowing-paragraph and hard-wrap styles across a range or set of stacked branches; preserves subjects and trailers byte-for-byte | capabilities/commit-body-reflow/capability.md |
+
+### Opening and shaping a PR
+
+| Capability | Trigger | Path |
+|---|---|---|
 | pr-description-write | [GitHub-side] Author a PR body from scratch — when the PR has no description, has only `WIP` / one-liner, or carries an unfilled template | capabilities/pr-description-write/capability.md |
 | pr-description-sync | [GitHub-side] Validate that an existing PR body still matches the branch's actual changes; classify divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE`; propose a fix | capabilities/pr-description-sync/capability.md |
 | pr-link-issues | [GitHub-side] Auto-detect issues the PR addresses (from branch, commits, body), verify the diff resolves them, propose `Closes` / `Refs` keywords to add to the PR body | capabilities/pr-link-issues/capability.md |
+
+### Working through review
+
+| Capability | Trigger | Path |
+|---|---|---|
 | pr-checks-summary | [GitHub-side] Inspect failed CI checks, fetch logs, classify failure types (test / lint / build / deploy / security), propose likely fixes and reproduce-locally commands | capabilities/pr-checks-summary/capability.md |
 | pr-conversation-resolve | [GitHub-side] List unresolved review threads, match each against recent commits, propose responses (with optional resolve commands); never auto-post | capabilities/pr-conversation-resolve/capability.md |
+
+### Merging and releasing
+
+| Capability | Trigger | Path |
+|---|---|---|
 | merge-readiness | [GitHub-side] Pre-merge gate check — CI status, approvals, mergeability, unresolved threads, no WIP commits, description-in-sync. Outputs READY / NOT-READY with per-gate detail | capabilities/merge-readiness/capability.md |
 | merge-execute | [GitHub-side] Output the canonical `gh pr merge` command per repo merge policy (squash / rebase / merge), with the right `--delete-branch` and `--auto` flags | capabilities/merge-execute/capability.md |
 | release-notes | [GitHub-side] Draft release notes for a new version by aggregating commits + merged PRs since the previous tag, grouped by conventional-commits type, with contributor credit | capabilities/release-notes/capability.md |
+
+### Alphabetic index (fallback)
+
+| Capability | Path |
+|---|---|
+| branch-name | capabilities/branch-name/capability.md |
+| commit-amend-message | capabilities/commit-amend-message/capability.md |
+| commit-body-reflow | capabilities/commit-body-reflow/capability.md |
+| commit-fixup | capabilities/commit-fixup/capability.md |
+| commit-message | capabilities/commit-message/capability.md |
+| merge-execute | capabilities/merge-execute/capability.md |
+| merge-readiness | capabilities/merge-readiness/capability.md |
+| pr-checks-summary | capabilities/pr-checks-summary/capability.md |
+| pr-conversation-resolve | capabilities/pr-conversation-resolve/capability.md |
+| pr-description-sync | capabilities/pr-description-sync/capability.md |
+| pr-description-write | capabilities/pr-description-write/capability.md |
+| pr-link-issues | capabilities/pr-link-issues/capability.md |
+| rebase-cleanup | capabilities/rebase-cleanup/capability.md |
+| release-notes | capabilities/release-notes/capability.md |
+| worktree-setup | capabilities/worktree-setup/capability.md |
 
 **Scope legend:**
 
