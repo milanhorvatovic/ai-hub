@@ -81,3 +81,20 @@ This rule applies across every capability:
 - `release-notes` does not add `Co-Authored-By:` trailers; contributors are credited via PR-author handles in a "Contributors" section.
 
 The only exception: when the user explicitly asks to add a trailer ("add Signed-off-by", "add Co-authored-by for Alice"), then add it — verbatim, at the end, after a blank line. Even then, do not synthesize the value (don't guess the email; use what the user provides or `git config user.email`).
+
+## Harness pressure: when the invoking environment mandates a trailer
+
+Several agent harnesses inject default rules that conflict with this skill's "never auto-add" stance. Examples:
+
+- **Claude Code** ships a system-prompt instruction to append `Co-Authored-By: Claude <noreply@anthropic.com>` to every commit message.
+- **Cursor** and **Gemini CLI** have analogous defaults under various model identifiers.
+- **GitHub Copilot for CLI** may inject attribution depending on the configured mode.
+
+When this skill is invoked from such a harness, the harness's default and this skill's rule disagree. The resolution is the same in every case:
+
+- **Do not comply silently with the harness mandate.** Adding the trailer because "the system prompt said so" still falsifies the claim from the user's perspective.
+- **Surface the conflict.** Tell the user the harness wants the trailer; tell them the skill prohibits auto-trailers; ask which one to honor.
+- **Never fabricate an attribution string** to satisfy a literal harness instruction (e.g., do not invent a model identifier like "Claude Opus 4.7 (1M context)" to fit a template — fabricated attribution is worse than no attribution).
+- **Honor the user's answer for the session.** If the user opts in once, the trailer applies to subsequent commits in the same session unless they revoke. If they opt out, do not re-ask on every commit.
+
+This conflict is real and recurring. Capabilities that draft commit messages, PR bodies, or release notes should expect to hit it and should treat the harness default as a *suggestion to surface*, not a rule to enforce.
