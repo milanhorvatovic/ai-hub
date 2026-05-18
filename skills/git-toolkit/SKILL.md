@@ -94,6 +94,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 | `references/secret-patterns.md` | Pre-publication scan catalog |
 | `references/review-output.md` | Canonical markdown + NDJSON output schema for REVIEW-mode reports across capabilities |
 | `references/harness-safety-nets.md` | Operations routinely blocked by agent-harness classifiers, with the proposal phrasing that gives reviewers and classifiers enough context |
+| `references/worked-example.md` | End-to-end walkthrough of one fictional change through every capability — onboarding and "how do these chain" doc |
 
 ### Git-side only
 
