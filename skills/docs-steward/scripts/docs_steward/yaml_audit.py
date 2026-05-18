@@ -116,19 +116,26 @@ def audit_frontmatter(
 
     blocks_scanned = 0
     max_rc = 0
-    file_errors: list[Event] = []
+    any_file_error = False
 
     for file_path in files:
         try:
             text = fs.read_text(file_path)
         except OSError as exc:
-            file_errors.append(
+            # Emit per-file ERROR inline so consumers reading the event
+            # stream in order see the failure adjacent to (or before) the
+            # FINDING events from later files. Deferring with a post-loop
+            # extend put all error events at the bottom, after findings
+            # from files that the loop processed successfully later — a
+            # surprise for ordering-sensitive consumers.
+            events.append(
                 Event(
                     EventType.ERROR,
                     _TOOL.value,
                     {"file": file_path, "reason": f"{type(exc).__name__}: {exc}"},
                 )
             )
+            any_file_error = True
             continue
         for block in extract_blocks(text):
             blocks_scanned += 1
@@ -136,14 +143,12 @@ def audit_frontmatter(
             events.extend(block_events)
             max_rc = max(max_rc, rc)
 
-    events.extend(file_errors)
-
     if max_rc >= 2:
         events.append(Event(EventType.ERROR, _TOOL.value, {"exit": max_rc}))
         return events, 2
 
     finding_count = sum(1 for e in events if e.event == EventType.FINDING)
-    if finding_count == 0 and not file_errors:
+    if finding_count == 0 and not any_file_error:
         events.append(
             Event(
                 EventType.CLEAN,

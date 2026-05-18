@@ -79,6 +79,38 @@ class AuditFrontmatterTests(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertIn("missing.md", errors[0].detail["file"])  # type: ignore[index]
 
+    def test_unreadable_file_error_appears_inline_with_processing_order(self) -> None:
+        # Regression: a previous version of the audit loop deferred file
+        # errors and appended them after the per-block loop finished, so
+        # ERROR events for unreadable files showed up at the bottom of the
+        # stream even when those files came first in the input order.
+        # Now each ERROR is emitted inline, so the event stream order
+        # matches the file-processing order.
+        fs = FakeFileSystem(files={
+            "/repo/b.md": "---\ndocument-no-newline: value\nkey: value\n---\n",
+        })
+        runner = _runner_with_yamllint({
+            _BASE_ARGV: ProcessResult(
+                1, "stdin:1:1: [warning] missing document start \"---\" (document-start)\n", ""
+            ),
+        })
+        events, code = audit_frontmatter(
+            runner, fs, ["/repo/missing-first.md", "/repo/b.md"]
+        )
+        self.assertEqual(code, 1)
+        # SELECTED + BUNDLED_CONFIG are preamble; after them, file
+        # processing should emit the missing-first.md ERROR before the
+        # /repo/b.md FINDING, matching the input file order.
+        preamble = {EventType.SELECTED, EventType.BUNDLED_CONFIG}
+        per_file = [e for e in events if e.event not in preamble]
+        self.assertEqual(per_file[0].event, EventType.ERROR)
+        self.assertIn(
+            "missing-first.md",
+            per_file[0].detail["file"],  # type: ignore[index]
+        )
+        self.assertEqual(per_file[1].event, EventType.FINDING)
+        self.assertIn("/repo/b.md", per_file[1].detail)  # type: ignore[operator]
+
     def test_tool_error_exit_geq_2_emits_error_event_and_exit_2(self) -> None:
         fs = FakeFileSystem(files={"/repo/x.md": "---\nkey: value\n---\n"})
         runner = _runner_with_yamllint(
