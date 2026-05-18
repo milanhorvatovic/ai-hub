@@ -15,7 +15,7 @@ command -v dprint             >/dev/null 2>&1 && echo dprint
 command -v remark             >/dev/null 2>&1 && echo remark
 ```
 
-When the **baseline** is one config (e.g. `.markdownlint.json`) but the corresponding tool is missing while a different tool (e.g. `prettier`) is present, do **not** silently switch tools — the absent tool's rules would not be applied. Surface the gap as INFO: `Style baseline declares <config>; tool <name> not on PATH. Install with: <hint>. Falling back to hand-rolled edits.` Then proceed with hand-rolled edits.
+When the **baseline** matches a config family (e.g. `.markdownlint.json`) but none of that family's preferred tools is on PATH, `selector.select_tool` falls back to the next available tool in `FALLBACK_ORDER` (`markdownlint-cli2` → `markdownlint` → `prettier` → `mdformat` → `dprint` → `remark`) and runs the first one it finds. The `selected` NDJSON event records the engine that actually ran so consumers can see when the chosen formatter diverges from the baseline-declared family. Only when none of the fallback tools is on PATH does the skill emit `MISSING` and exit 3. There is no implicit hand-rolled-edits path; tool selection always resolves to either a formatter on PATH or `MISSING`.
 
 ## Per-tool commands
 
@@ -118,9 +118,9 @@ Complementary tool — not a markdown formatter. Used by `audit-frontmatter` to 
 - yamllint reads from stdin (`-`) — no glob argument; the skill pipes each extracted block separately so each finding lands against the correct file + anchor.
 - **Install hints**: `pipx install yamllint` (preferred — isolated); `uv tool install yamllint` (fast); `pip install --user yamllint` (user-site); `brew install yamllint` (macOS); `sudo apt install yamllint` / `sudo dnf install yamllint` (Linux distro packages); `mise use -g pipx:yamllint` (mise via pipx backend). Pure-Python; no Node required.
 
-## Hand-rolled fallback
+## No-tool behavior
 
-When no probed tool is on `PATH` and no baseline-matching tool exists, the skill applies fixes via the harness `Edit` tool against the raw file contents. The fixes covered by the hand-rolled path are the universal subset (5.D.1) only — formatters extend the auto-fix surface; absence of a formatter does not block the universal fixes.
+When no formatter at all is on `PATH` (every tool in `FALLBACK_ORDER` is absent), `selector.select_tool` returns `None` and `runner.run_tool` emits a single `MISSING` event with the install hint and exits 3. The skill does not synthesize a hand-rolled fix path — addressing the missing toolchain is the caller's responsibility (typically by running `recommend-tools.py` to surface install commands).
 
 ## Exit-code handling pattern
 
@@ -130,7 +130,7 @@ The skill must distinguish the three classes for every tool:
 |---|---|
 | **Clean** (exit 0 in audit) | No findings; skip the file in the report. |
 | **Findings** (exit 1 in audit) | Parse stdout; emit one finding per reported issue. Reuse the tool's rule code when present, else synthesize `MD000-<tool>` so the report still has a `<RULE>` slot. |
-| **Tool error** (exit ≥ 2, or unexpected stderr) | Emit one WARN per failing tool: `Formatter <name> exited <code>: <stderr first line>. Hand-rolled fallback applied.` Then fall back. |
+| **Tool error** (exit ≥ 2, or unexpected stderr) | Append the tool's stdout/stderr as event-stream lines, then emit a single `ERROR` event with `{"exit": N}` and exit 2. There is no implicit hand-rolled-edits fallback after a tool error — addressing the failing tool is on the caller. |
 
 ## Caveats
 
