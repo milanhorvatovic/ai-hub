@@ -25,6 +25,7 @@ This capability uses only `git` operations (`filter-branch`, `filter-repo`, `reb
 | "flow these commit bodies" / "convert to flowing paragraphs" / "remove the hard-wrap" | **FLOW** |
 | "hard-wrap at 72" / "wrap these bodies at 80" / "switch to hard-wrap" | **WRAP** (need: column limit) |
 | "fix the wrap style across this branch" | Ask: which direction (flow or wrap), and what column if wrap. |
+| "preview the reflow", "dry-run", "show me what would change", "diff only" | **DRY-RUN** modifier — applied on top of FLOW or WRAP, emits before/after for every commit in scope but never touches refs |
 
 ## Input guards
 
@@ -56,9 +57,40 @@ Scope:
 
 Read 3–5 representative commit bodies. Show the user the **first commit's** body as it is now, then as it would look after the transformation. Wait for confirmation.
 
-For FLOW mode, the after-image is the same content with paragraphs joined per `../../references/format-conventions.md` flowing rules: paragraphs become single lines, blank lines preserved, lists keep one item per line.
+For FLOW mode, the after-image is the same content with paragraphs joined per `../../references/format-body.md` flowing rules: paragraphs become single lines, blank lines preserved, lists keep one item per line.
 
-For WRAP mode, the after-image is the same content rewrapped to the requested column limit, measured in display columns (not bytes) per `../../references/format-conventions.md`. Lists are not rewrapped.
+For WRAP mode, the after-image is the same content rewrapped to the requested column limit, measured in display columns (not bytes) per `../../references/format-body.md`. Lists are not rewrapped.
+
+### 2b. DRY-RUN (when the user asked for preview only)
+
+When the DRY-RUN modifier is set (either by user trigger or by `--dry-run` in a CLI invocation), emit the before/after diff for **every** commit in scope — not just the sample — and stop after Step 7 (verdict) without invoking the rewrite tool in Step 5 or publishing in Step 8.
+
+Output shape:
+
+```
+Dry-run preview of <FLOW / WRAP@N> across <N> commits on <branch>:
+
+--- <sha1> "<subject1>" ---
+BEFORE:
+  <body as-is>
+AFTER:
+  <body after transformation>
+
+--- <sha2> "<subject2>" ---
+BEFORE: ...
+AFTER:  ...
+
+(... repeated per commit ...)
+
+Summary:
+  Commits with changes:    <K of N>
+  Commits already in style: <N - K>
+  Artifacts detected:      <list, see references/mass-rewrite.md idempotency check>
+
+This was a dry run. To apply, re-invoke without the dry-run modifier.
+```
+
+Dry-run mode skips the Force-Push Impact block (Step 1's pushed-state check) since no force-push will happen, but still emits the Scope block so the user sees which branches would be affected by the real run.
 
 ### 3. Choose tool
 
