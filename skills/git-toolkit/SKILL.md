@@ -15,7 +15,7 @@ description: >
   review or merging.
 allowed-tools: Bash Read Write Grep
 metadata:
-  version: "1.0.1"
+  version: "1.1.0"
 ---
 
 # git-toolkit
@@ -62,6 +62,7 @@ Shared references at this skill's root hold the canonical format spec, trailer r
 | commit-message | [git-side, optional `gh` enrichment] Write a new commit subject + body for currently-staged changes; or review one existing commit / a range for format compliance and propose fixes | capabilities/commit-message/capability.md |
 | commit-fixup | [git-side] Detect which prior commit the currently-staged changes belong to and propose `git commit --fixup <sha>` plus the follow-up rebase command | capabilities/commit-fixup/capability.md |
 | commit-amend-message | [git-side] Amend only the message of HEAD (not the diff); validate against format conventions; warn on pushed commits | capabilities/commit-amend-message/capability.md |
+| commit-body-reflow | [git-side, optional `gh` enrichment] Transform many commit bodies at once between flowing-paragraph and hard-wrap styles across a range or set of stacked branches; preserves subjects and trailers byte-for-byte | capabilities/commit-body-reflow/capability.md |
 | rebase-cleanup | [git-side, optional `gh` enrichment] Analyze a branch's commits and propose an interactive-rebase plan (squash / fixup / reword / drop / reorder) to clean up history before review or merge | capabilities/rebase-cleanup/capability.md |
 | pr-description-write | [GitHub-side] Author a PR body from scratch — when the PR has no description, has only `WIP` / one-liner, or carries an unfilled template | capabilities/pr-description-write/capability.md |
 | pr-description-sync | [GitHub-side] Validate that an existing PR body still matches the branch's actual changes; classify divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE`; propose a fix | capabilities/pr-description-sync/capability.md |
