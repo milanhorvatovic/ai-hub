@@ -53,6 +53,24 @@ class DetectBaselineTests(unittest.TestCase):
         self.assertGreater(len(BASELINE_CANDIDATES), 0)
         self.assertEqual(len(BASELINE_CANDIDATES), len(set(BASELINE_CANDIDATES)))
 
+    def test_editorconfig_precedes_dprint_json(self) -> None:
+        # Per SKILL.md step 3: editorconfig is candidate 4, dprint.json is
+        # candidate 5. Pin the order so a regression that swapped them
+        # (which would silently pick dprint when both files exist) fails
+        # this test instead of shipping with the wrong precedence.
+        idx_editorconfig = BASELINE_CANDIDATES.index(".editorconfig")
+        idx_dprint = BASELINE_CANDIDATES.index("dprint.json")
+        self.assertLess(idx_editorconfig, idx_dprint)
+
+    def test_editorconfig_wins_over_dprint_when_both_present(self) -> None:
+        fs = FakeFileSystem(
+            files={
+                os.path.join(ROOT, ".editorconfig"): "",
+                os.path.join(ROOT, "dprint.json"): "",
+            }
+        )
+        self.assertEqual(detect_baseline(fs, ROOT), ".editorconfig")
+
 
 if __name__ == "__main__":
     unittest.main()

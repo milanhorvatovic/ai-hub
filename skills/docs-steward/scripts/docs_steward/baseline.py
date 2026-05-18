@@ -47,8 +47,8 @@ BASELINE_CANDIDATES: tuple[str, ...] = (
     ".remarkrc.js",
     ".remarkrc.cjs",
     ".remarkrc.mjs",
-    "dprint.json",
     ".editorconfig",
+    "dprint.json",
 )
 
 
