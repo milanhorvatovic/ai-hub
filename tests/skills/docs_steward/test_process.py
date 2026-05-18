@@ -59,7 +59,11 @@ class SubprocessRunnerRunErrorHandlingTests(unittest.TestCase):
         result = runner.run(["/nonexistent/path/to/binary"])
         self.assertEqual(result.returncode, 127)
         self.assertEqual(result.stdout, "")
-        self.assertIn("/nonexistent", result.stderr)
+        # Stderr carries the FileNotFoundError string; exact wording is
+        # OS-dependent (POSIX shows the path; Windows shows
+        # "[WinError 2] The system cannot find the file specified"
+        # without the path). Just assert something was captured.
+        self.assertTrue(result.stderr)
 
     @unittest.skipIf(
         sys.platform == "win32",
