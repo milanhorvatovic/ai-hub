@@ -95,6 +95,38 @@ class SubprocessRunnerRunErrorHandlingTests(unittest.TestCase):
             self.assertTrue(result.stderr)
 
 
+class SubprocessRunnerUtf8DecodeTests(unittest.TestCase):
+    """`run()` must decode child stdout/stderr as UTF-8 regardless of the
+    platform default — Windows CI is cp1252, and prettier / yamllint
+    routinely emit smart quotes, ellipses, and em-dashes that would
+    otherwise raise UnicodeDecodeError on Windows."""
+
+    def test_runs_command_emitting_utf8_smart_quotes(self) -> None:
+        # POSIX `printf` emits the UTF-8 bytes for `…` (E2 80 A6) and
+        # `“`/`”`. With `text=True` + platform-default encoding this
+        # would crash on cp1252; with `encoding="utf-8"` it round-trips.
+        runner = SubprocessRunner(extra_path_dirs=())
+        result = runner.run(
+            ["printf", "%s", "smart “quotes” and ellipsis …"]
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("“quotes”", result.stdout)
+        self.assertIn("…", result.stdout)
+
+    def test_non_utf8_byte_replaced_rather_than_raised(self) -> None:
+        # A bare 0xff is not valid UTF-8; `errors="replace"` swaps in
+        # U+FFFD instead of raising UnicodeDecodeError. Use python -c
+        # so the byte reaches subprocess stdout untranslated regardless
+        # of shell quoting / printf %b behaviour.
+        import sys as _sys
+        runner = SubprocessRunner(extra_path_dirs=())
+        result = runner.run(
+            [_sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'\\xff')"],
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("�", result.stdout)
+
+
 class SubprocessRunnerConstructorTests(unittest.TestCase):
     def test_augments_path_with_existing_extras(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

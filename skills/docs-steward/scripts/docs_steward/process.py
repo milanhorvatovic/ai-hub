@@ -114,6 +114,15 @@ class SubprocessRunner:
                 input=stdin,
                 capture_output=True,
                 text=True,
+                # Force UTF-8 decode rather than the platform default. Windows
+                # CI runs default to cp1252, which raises UnicodeDecodeError
+                # on prettier's `…` ellipsis, smart quotes from yamllint
+                # messages, em-dashes in finding text, and any unicode path
+                # bytes. Every supported formatter emits UTF-8; errors are
+                # `replace`-substituted so a stray non-UTF-8 byte degrades to
+                # a placeholder character instead of crashing the runner.
+                encoding="utf-8",
+                errors="replace",
                 check=False,
                 env=self._env,
             )
