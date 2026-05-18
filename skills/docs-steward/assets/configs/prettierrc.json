@@ -1,0 +1,11 @@
+{
+  "overrides": [
+    {
+      "files": ["*.md", "*.markdown"],
+      "options": {
+        "proseWrap": "never",
+        "tabWidth": 2
+      }
+    }
+  ]
+}
