@@ -72,8 +72,56 @@ pip-delete-this-directory.txt
 # Editor / IDE local state
 # ===========================================================================
 
+# Vim / emacs / sed -i backups and swap files — show up across contributor
+# editors; never belong in the repo.
+*~
+*.swp
+*.swo
+.#*
+\#*\#
+
 # JetBrains — for a nuclear option uncomment to ignore the entire .idea folder.
 # .idea/
 
 # VS Code — uncomment to ignore the entire .vscode folder.
 # .vscode/
+
+# ===========================================================================
+# OS / Filesystem metadata
+# ===========================================================================
+
+# macOS Finder — primary dev env is macOS; these slipped into the first
+# skill copies and had to be filtered on import.
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+
+# Windows Explorer
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===========================================================================
+# Node.js — npx-invoked formatters used by some skills
+# ---------------------------------------------------------------------------
+# Several skills (e.g. docs-steward) shell out to npx-installed formatters
+# such as markdownlint-cli2, prettier, and remark. Local installs leave
+# node_modules and tool logs behind that must not be committed.
+# ===========================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ===========================================================================
+# Local-only env overrides / secrets
+# ---------------------------------------------------------------------------
+# Catch machine-specific overrides even when committed defaults exist.
+# Anything ending in .local is treated as never-commit.
+# ===========================================================================
+.env.local
+*.local
