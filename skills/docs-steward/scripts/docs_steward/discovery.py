@@ -43,11 +43,19 @@ def _try_git_ls_files(runner: ProcessRunner, root: str) -> list[str] | None:
     `git add`-ed yet, contradicting the skill's promise to inspect every
     markdown file under root that `.gitignore` doesn't exclude.
     """
+    # The `--` separator is load-bearing: without it, a markdown file named
+    # `--all.md` would be parsed as a (nonsensical) flag by `git ls-files`
+    # rather than treated as a pathspec; with it, every following argument
+    # is unambiguously a pathspec. `:(glob)**/*.md` / `:(glob)**/*.markdown`
+    # uses git's explicit glob magic so recursion is independent of the
+    # caller's GIT_GLOB_PATHSPECS / core.wildmatch config (the bare `*.md`
+    # pathspec behaves differently across git versions and shells).
     result = runner.run(
         [
             "git", "ls-files",
             "--cached", "--others", "--exclude-standard",
-            "*.md", "*.markdown",
+            "--",
+            ":(glob)**/*.md", ":(glob)**/*.markdown",
         ],
         cwd=root,
     )

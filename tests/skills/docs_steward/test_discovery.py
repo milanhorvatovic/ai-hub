@@ -16,7 +16,7 @@ class GitLsFilesPathTests(unittest.TestCase):
     def test_uses_git_ls_files_when_available(self) -> None:
         runner = FakeProcessRunner(
             results={
-                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "*.md", "*.markdown"): ProcessResult(
+                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(
                     0, "README.md\ndocs/intro.md\n", ""
                 ),
             }
@@ -30,7 +30,7 @@ class GitLsFilesPathTests(unittest.TestCase):
     def test_git_returns_empty_when_no_markdown(self) -> None:
         runner = FakeProcessRunner(
             results={
-                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "*.md", "*.markdown"): ProcessResult(0, "", ""),
+                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(0, "", ""),
             }
         )
         self.assertEqual(list_markdown_files(runner, "/repo"), [])
@@ -41,7 +41,7 @@ class GitLsFilesPathTests(unittest.TestCase):
         # Without --others, freshly created files would be silently skipped.
         runner = FakeProcessRunner(
             results={
-                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "*.md", "*.markdown"): ProcessResult(
+                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(
                     0, "README.md\nNEW_UNTRACKED.md\n", ""
                 ),
             }
@@ -58,7 +58,7 @@ class GitLsFilesPathTests(unittest.TestCase):
         # first-seen order and reports each path exactly once.
         runner = FakeProcessRunner(
             results={
-                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "*.md", "*.markdown"): ProcessResult(
+                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(
                     0, "README.md\ndocs/intro.md\nREADME.md\n", ""
                 ),
             }
@@ -83,7 +83,7 @@ class WalkFallbackTests(unittest.TestCase):
 
             runner = FakeProcessRunner(
                 results={
-                    ("git", "ls-files", "--cached", "--others", "--exclude-standard", "*.md", "*.markdown"): ProcessResult(
+                    ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(
                         128, "", "not a git repository"
                     ),
                 }
@@ -103,7 +103,7 @@ class WalkFallbackTests(unittest.TestCase):
 
             runner = FakeProcessRunner(
                 results={
-                    ("git", "ls-files", "--cached", "--others", "--exclude-standard", "*.md", "*.markdown"): ProcessResult(128, "", ""),
+                    ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(128, "", ""),
                 }
             )
             files = list_markdown_files(runner, tmp)
