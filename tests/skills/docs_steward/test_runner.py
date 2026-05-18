@@ -164,8 +164,12 @@ class RunToolTests(unittest.TestCase):
 class PerFileTargetingTests(unittest.TestCase):
     def test_explicit_files_replace_glob_in_cmd(self) -> None:
         # When files= is passed, the glob "**/*.md" + #node_modules etc. are
-        # dropped and replaced with the explicit list.
-        cmd = ("prettier", "--check", "--parser", "markdown", "docs/intro.md", "README.md")
+        # dropped, a POSIX `--` separator is appended, and the explicit list
+        # follows so paths starting with `-` aren't parsed as flags.
+        cmd = (
+            "prettier", "--check", "--parser", "markdown",
+            "--", "docs/intro.md", "README.md",
+        )
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={cmd: ProcessResult(0, "", "")},
@@ -177,6 +181,28 @@ class PerFileTargetingTests(unittest.TestCase):
         self.assertEqual(code, 0)
         selected = [e for e in events if e.event == EventType.SELECTED][0]
         self.assertEqual(selected.detail["files_scoped"], 2)  # type: ignore[index]
+        # The -- separator must be in the rendered command string.
+        self.assertIn(" -- ", selected.detail["cmd"])  # type: ignore[index]
+
+    def test_dash_prefixed_filename_passes_after_separator(self) -> None:
+        # Regression: a file called --draft.md must be sent as a positional
+        # arg, not parsed as an (unknown) flag by the formatter. The --
+        # separator inserted by _scope_command makes this safe.
+        cmd = (
+            "prettier", "--check", "--parser", "markdown",
+            "--", "--draft.md",
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(0, "", "")},
+        )
+        events, code = run_tool(
+            Mode.AUDIT, ".prettierrc", False, runner, ROOT,
+            files=["--draft.md"],
+        )
+        self.assertEqual(code, 0)
+        selected = [e for e in events if e.event == EventType.SELECTED][0]
+        self.assertIn("-- --draft.md", selected.detail["cmd"])  # type: ignore[index]
 
     def test_no_files_keeps_default_glob(self) -> None:
         cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md")
@@ -193,7 +219,7 @@ class PerFileTargetingTests(unittest.TestCase):
         # markdownlint-cli2 default cmd includes #node_modules etc. — should
         # all be dropped when explicit files are provided. baseline is the
         # repo's .markdownlint.json so no bundled --config is added.
-        cmd = ("markdownlint-cli2", "/repo/foo.md")
+        cmd = ("markdownlint-cli2", "--", "/repo/foo.md")
         runner = FakeProcessRunner(
             paths={"markdownlint-cli2": "/x/markdownlint-cli2"},
             results={cmd: ProcessResult(0, "", "")},

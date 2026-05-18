@@ -87,7 +87,7 @@ class CliEndToEndTests(unittest.TestCase):
 
     def test_md_audit_accepts_positional_files(self) -> None:
         # Per-file targeting (#1) via positional args.
-        cmd = ("prettier", "--check", "--parser", "markdown", "docs/intro.md")
+        cmd = ("prettier", "--check", "--parser", "markdown", "--", "docs/intro.md")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
             results={
@@ -151,7 +151,7 @@ class CliEndToEndTests(unittest.TestCase):
             with open(md_path, "w", encoding="utf-8") as fh:
                 fh.write("| col | col |\n|---|---|\n| a | b |\n")
 
-            audit_cmd = ("mdformat", "--check", md_path)
+            audit_cmd = ("mdformat", "--check", "--", md_path)
             runner = FakeProcessRunner(
                 paths={"mdformat": "/x/mdformat", "git": "/x/git"},
                 results={
@@ -182,8 +182,9 @@ class CliEndToEndTests(unittest.TestCase):
             with open(md_path, "w", encoding="utf-8") as fh:
                 fh.write("| col | col |\n|---|---|\n| a | b |\n")
 
-            # The formatter receives the relative path verbatim (cwd=root).
-            audit_cmd = ("mdformat", "--check", "table.md")
+            # The formatter receives the relative path verbatim (cwd=root)
+            # after the POSIX `--` separator inserted by _scope_command.
+            audit_cmd = ("mdformat", "--check", "--", "table.md")
             runner = FakeProcessRunner(
                 paths={"mdformat": "/x/mdformat", "git": "/x/git"},
                 results={

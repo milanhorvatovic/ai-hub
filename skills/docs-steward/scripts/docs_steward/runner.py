@@ -92,6 +92,11 @@ def _scope_command(
     that contains `**` or ends with `.md` is treated as a glob and dropped;
     explicit files are appended after. Negative-glob args (`#node_modules`)
     are also dropped when scoping (they're meaningless on an explicit list).
+
+    A POSIX `--` separator is inserted between the kept flags and the
+    explicit files so that a path beginning with `-` / `--` (e.g.
+    `./--draft.md`) is treated as a positional file rather than a flag by
+    the underlying formatter.
     """
     if files is None:
         return cmd
@@ -100,6 +105,7 @@ def _scope_command(
         if arg.startswith("#") or "**" in arg or arg.endswith(".md") or arg.endswith(".markdown") or arg == ".":
             continue
         keep.append(arg)
+    keep.append("--")
     keep.extend(files)
     return keep
 
