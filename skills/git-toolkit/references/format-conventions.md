@@ -14,6 +14,14 @@ Repo conventions override these defaults. Check in order:
 
 If multiple sources conflict, the order above wins.
 
+### Fresh-repo fallback
+
+When none of the precedence sources are present and `git log --pretty=format:'%s'` shows fewer than ~5 prior commits, there is no observable convention. The capability should:
+
+- Use the defaults below silently — do not pause to ask the user; that adds friction without value.
+- **Surface the assumption in the capability output.** Include a one-line "Inferred conventions" block in the proposal so the user can correct it before applying. Example: `Inferred conventions: no commit-lint config detected, only 1 prior commit — using defaults (plain imperative subject, flowing paragraphs, no conventional-commits prefix).`
+- Treat the first 3–5 user-accepted commits in such a repo as the emergent convention; once the sample grows, switch to detect-from-history mode.
+
 ## Commit subject line
 
 - **Imperative mood** — "Add X" / "Fix Y" / "Refactor Z", not "Added X", "Adds Y", "Fixed Z". The convention is "If applied, this commit will ___".
