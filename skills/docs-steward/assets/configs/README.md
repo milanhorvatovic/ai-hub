@@ -1,6 +1,6 @@
 # Bundled fallback configs
 
-These files are formatter configs the skill uses **only when the target repo declares none of its own**. Repo config always wins — `detect-baseline.sh` returns whatever the repo declares first; only when the result is `universal-subset` does `lib/bundled-config.sh` substitute a file from this directory.
+These files are formatter configs the skill uses **only when the target repo declares none of its own**. Repo config always wins — `docs_steward.baseline.detect_baseline` returns whatever the repo declares first; only when the result is `universal-subset` does `docs_steward.bundled_config.bundled_config_for` substitute a file from this directory.
 
 ## What is shipped
 
@@ -35,8 +35,8 @@ All defaults track the user's `feedback_no_hard_wrap.md` preference: line-width 
 
 Two ways:
 
-1. **Add a config to your repo.** `detect-baseline.sh` will pick it up; the bundled fallback is skipped.
-2. **Pass `--baseline FILE` to `audit.sh` / `format.sh`.** Forces a specific config path; bypasses both auto-detection and bundled fallback.
+1. **Add a config to your repo.** `docs_steward.baseline.detect_baseline` will pick it up; the bundled fallback is skipped.
+2. **Pass `--baseline FILE` to `scripts/md-audit.py` / `scripts/md-format.py` / `scripts/md-fix.py`.** Forces a specific config path; bypasses both auto-detection and bundled fallback. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag for the bundled yamllint override.
 
 ## Editing these files
 
