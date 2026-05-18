@@ -41,11 +41,17 @@ Subcommands: `probe`, `recommend-tools`, `md-audit`, `md-format`, `md-fix`, `md-
 
 ## Running tests
 
+The test suite lives at the repo root under `tests/skills/docs_steward/` and is driven by `pytest` (pinned in `requirements-test.txt`). From the repo root:
+
 ```sh
-cd scripts && python3 -m unittest discover -s tests -t .
+pip install -r requirements-test.txt
+pytest tests/skills/docs_steward/            # docs-steward suite only
+pytest                                       # full repo suite
 
 # optional coverage (requires the `coverage` package):
-cd scripts && coverage run --source=docs_steward -m unittest discover -s tests -t . && coverage report -m
+coverage run --source=skills/docs-steward/scripts/docs_steward -m pytest tests/skills/docs_steward/ && coverage report -m
 ```
 
-Expected: 106+ tests pass in under 20ms; coverage ≥95% on the orchestration codebase.
+`tests/skills/docs_steward/conftest.py` injects `skills/docs-steward/scripts/` onto `sys.path` so the suite imports `docs_steward` without packaging. CI runs the same `pytest` invocation across {ubuntu-latest, windows-latest} × {3.12, 3.13} — see `.github/workflows/tests.yml`.
+
+Expected: 140+ tests pass in well under a second; coverage ≥95% on the orchestration codebase.
