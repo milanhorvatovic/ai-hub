@@ -264,7 +264,14 @@ def run_fix_cycle(
     return all_events, post_exit
 
 
-_LINE_COL_PATTERN = re.compile(r":\d+(?::\d+)?(?:-\d+:\d+)?")
+# Strip ONLY the leading `<path>.{md,markdown}:LINE[:COL][-LINE:COL]` prefix —
+# anchored at start of line so a URL with a port (`https://host:8080/foo`)
+# embedded later in the message text isn't mistaken for a line/column number
+# and stripped. The captured path is preserved via backreference \1.
+_LINE_COL_PATTERN = re.compile(
+    r"^(\S+?\.(?:md|markdown)):\d+(?::\d+)?(?:-\d+:\d+)?",
+    re.IGNORECASE,
+)
 _QUOTED_FRAGMENT_PATTERN = re.compile(r'\s*"[^"]*"\s*$')
 
 
@@ -283,8 +290,13 @@ def _normalize_finding_key(detail: str) -> str:
     - markdownlint: `path:LINE:COL MD### ...`
     - remark:       `path:LINE:COL-LINE:COL warning ...`
     - prettier / mdformat / dprint emit `path` only — already stable.
+
+    The pattern is anchored to the start of the line and requires the
+    leading path to end with `.md` / `.markdown`, so a URL with a port
+    (e.g. `https://host:8080/foo`) embedded in the finding text is not
+    mistaken for `:LINE:COL` and silently rewritten.
     """
-    normalized = _LINE_COL_PATTERN.sub("", detail)
+    normalized = _LINE_COL_PATTERN.sub(r"\1", detail)
     normalized = _QUOTED_FRAGMENT_PATTERN.sub("", normalized).strip()
     return normalized
 

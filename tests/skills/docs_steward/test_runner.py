@@ -453,6 +453,27 @@ class NormalizeFindingKeyTests(unittest.TestCase):
         key = "foo.md MD040 fenced-code-language"
         self.assertEqual(_normalize_finding_key(key), key)
 
+    def test_preserves_embedded_url_with_port(self) -> None:
+        # Regression: an earlier unanchored pattern stripped `:8080` from a
+        # URL embedded in finding text (e.g. a remark message referencing
+        # https://host:8080/path). The anchored pattern leaves embedded
+        # URLs alone and only touches the leading path:LINE:COL prefix.
+        original = "foo.md:42 warning Visit https://host:8080/help final-newline remark-lint"
+        self.assertEqual(
+            _normalize_finding_key(original),
+            "foo.md warning Visit https://host:8080/help final-newline remark-lint",
+        )
+
+    def test_does_not_strip_colons_from_path_with_no_extension(self) -> None:
+        # A line whose leading path doesn't end with .md/.markdown should not
+        # be matched at all — the pattern requires the markdown extension to
+        # avoid touching unrelated colon-bearing identifiers (URLs, time
+        # stamps, package coordinates).
+        self.assertEqual(
+            _normalize_finding_key("https://host:8080/foo bar baz"),
+            "https://host:8080/foo bar baz",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
