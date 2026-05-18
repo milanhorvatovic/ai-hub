@@ -71,6 +71,24 @@ class DetectBaselineTests(unittest.TestCase):
         )
         self.assertEqual(detect_baseline(fs, ROOT), ".editorconfig")
 
+    def test_mdformat_toml_detected(self) -> None:
+        fs = FakeFileSystem(files={os.path.join(ROOT, ".mdformat.toml"): ""})
+        self.assertEqual(detect_baseline(fs, ROOT), ".mdformat.toml")
+
+    def test_mdformat_precedes_editorconfig_and_dprint(self) -> None:
+        # Per SKILL.md section 3: mdformat is candidate 4, editorconfig 5,
+        # dprint 6. When all three are present, .mdformat.toml wins so the
+        # selector preference table can route to mdformat instead of
+        # falling through to a different formatter on PATH.
+        fs = FakeFileSystem(
+            files={
+                os.path.join(ROOT, ".mdformat.toml"): "",
+                os.path.join(ROOT, ".editorconfig"): "",
+                os.path.join(ROOT, "dprint.json"): "",
+            }
+        )
+        self.assertEqual(detect_baseline(fs, ROOT), ".mdformat.toml")
+
 
 if __name__ == "__main__":
     unittest.main()

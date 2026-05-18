@@ -5,9 +5,10 @@ declaration order and returns the first existing config filename, or
 `UNIVERSAL_SUBSET` when none match. `override` short-circuits detection;
 it is passed through verbatim so the caller can force any path.
 
-The candidate list mirrors SKILL.md section 4 step ordering — markdownlint
-configs first, then prettier, then remark, editorconfig, dprint. Adding a
-candidate is a one-line edit here; downstream modules iterate this list.
+The candidate list mirrors SKILL.md section 3 step ordering — markdownlint
+configs first, then prettier, then remark, mdformat, editorconfig, dprint.
+Adding a candidate is a one-line edit here; downstream modules iterate
+this list.
 """
 
 from __future__ import annotations
@@ -47,6 +48,7 @@ BASELINE_CANDIDATES: tuple[str, ...] = (
     ".remarkrc.js",
     ".remarkrc.cjs",
     ".remarkrc.mjs",
+    ".mdformat.toml",
     ".editorconfig",
     "dprint.json",
 )

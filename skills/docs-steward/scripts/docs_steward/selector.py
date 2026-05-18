@@ -24,6 +24,7 @@ _BASELINE_PREFERENCES: tuple[tuple[str, tuple[Tool, ...]], ...] = (
     (".prettierrc", (Tool.PRETTIER,)),
     ("prettier.config.", (Tool.PRETTIER,)),
     (".remarkrc", (Tool.REMARK,)),
+    (".mdformat.toml", (Tool.MDFORMAT,)),
     ("dprint.json", (Tool.DPRINT,)),
 )
 

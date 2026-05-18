@@ -83,9 +83,10 @@ Candidates probed in order:
 1. markdownlint family: `.markdownlint.json`, `.markdownlint.jsonc`, `.markdownlint.yaml`, `.markdownlint.yml`, `.markdownlint-cli2.{jsonc,yaml}`
 2. prettier family: `.prettierrc`, `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}`, `prettier.config.{js,cjs,mjs}`
 3. remark family: `.remarkrc`, `.remarkrc.{json,yaml,yml,js,cjs,mjs}`
-4. `.editorconfig`
-5. `dprint.json`
-6. Nothing found → `universal-subset` sentinel; bundled fallback configs apply (4.D).
+4. mdformat: `.mdformat.toml`
+5. `.editorconfig`
+6. `dprint.json`
+7. Nothing found → `universal-subset` sentinel; bundled fallback configs apply (4.D).
 
 When two configs in the precedence are both present (e.g. `.markdownlint.json` and `.prettierrc`), the first-found wins; the second is not detected or read.
 

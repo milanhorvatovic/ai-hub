@@ -46,6 +46,13 @@ class SelectToolTests(unittest.TestCase):
         runner = _runner_with(Tool.DPRINT)
         self.assertEqual(select_tool("dprint.json", runner), Tool.DPRINT)
 
+    def test_mdformat_baseline_picks_mdformat(self) -> None:
+        # `.mdformat.toml` baseline must route to mdformat; otherwise
+        # selection falls through to FALLBACK_ORDER and a different
+        # formatter on PATH (e.g. prettier) would silently take over.
+        runner = _runner_with(Tool.MDFORMAT, Tool.PRETTIER)
+        self.assertEqual(select_tool(".mdformat.toml", runner), Tool.MDFORMAT)
+
     def test_universal_subset_uses_fallback_order(self) -> None:
         runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2)
         # FALLBACK_ORDER starts with MARKDOWNLINT_CLI2, so it wins when both available.
