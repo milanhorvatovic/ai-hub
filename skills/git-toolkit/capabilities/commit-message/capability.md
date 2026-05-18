@@ -31,7 +31,7 @@ Writes a new commit message or reviews existing ones for format compliance.
 Before any work:
 
 - **gh auth** — only needed in REVIEW mode if checking against PR context (`gh pr view`). For pure git-level work, gh is not needed.
-- **Bot guard** — REVIEW mode: skip commits whose `git log --format='%ae'` author email matches `*[bot]@users.noreply.github.com`, `*@bots.noreply.github.com`, or any known bot pattern (dependabot, renovate, github-actions). Their format is bot-controlled.
+- **Bot guard** — REVIEW mode: skip commits whose `git log --format='%ae'` author email or PR-side `author.login` matches a pattern in `../../references/bot-signatures.md`. Their format is bot-controlled and any rewrite will be overwritten on the bot's next run.
 - **Already-pushed-and-reviewed guard** — REVIEW mode: if a commit is on a branch that's been reviewed (PR has at least one review), warn before proposing `--amend` or rebase — rewriting reviewed history loses the review thread.
 - **First-time contributor heuristic** — both modes: count the author's prior commits with `git log --pretty=format:'%ae' -200 | grep -c <author-email>`. If the count is < 3, prepend `(first-time contributor heuristic — proposal expanded with extra explanation)` to the output preamble and bias the draft toward an explicit body even when the body decision tree would otherwise return "no body needed". Newcomers benefit from the verbose explanation; long-time contributors usually don't need it. The heuristic is informational — it never blocks a proposal.
 

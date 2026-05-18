@@ -51,7 +51,7 @@ Shared references at this skill's root hold the canonical format spec, trailer r
 - **Never auto-publish.** Commit-message rewrites, PR description edits, branch creates, rebases, release publishes — all require user confirmation. Show the proposal and the exact apply command; let the user run it.
 - **Never auto-add trailers.** `Co-Authored-By:`, `Signed-off-by:`, `Reviewed-by:`, and any other attribution trailer is added only when the user explicitly requests it. The skill never adds trailers programmatically — including to commit messages, PR bodies, release notes, or rebase-cleanup rewrites. See `references/trailer-semantics.md`. Trailers are CLAIMS (legal attestations, factual contributions, social endorsements); adding one without user consent falsifies the claim.
 - **Pre-publication secret scan.** Any text that will become a commit, PR body, or release note runs through `references/secret-patterns.md` first.
-- **Bot exemption.** Bot-authored commits and PRs (`dependabot[bot]`, `renovate[bot]`, `github-actions[bot]`) are skipped at capability input guards — their format is fixed by the bot and will be overwritten on the next run.
+- **Bot exemption.** Bot-authored commits and PRs are skipped at capability input guards — their format is fixed by the bot and will be overwritten on the next run. The catalog of bot author patterns (Dependabot, Renovate, GitHub Actions, Copilot, Snyk, pre-commit.ci, and more) lives in `references/bot-signatures.md` so capabilities reference one source instead of duplicating patterns inline.
 
 ## Capability routing
 
@@ -148,6 +148,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 | `references/harness-safety-nets.md` | Operations routinely blocked by agent-harness classifiers, with the proposal phrasing that gives reviewers and classifiers enough context |
 | `references/worked-example.md` | End-to-end walkthrough of one fictional change through every capability — onboarding and "how do these chain" doc |
 | `references/commit-smells.md` | Catalog of subject / body / PR-body anti-patterns with kebab-case rule ids, detection patterns, fixes, and before/after examples — feeds REVIEW-mode findings |
+| `references/bot-signatures.md` | Catalog of bot author email + login patterns (Dependabot, Renovate, GitHub Actions, Copilot, Snyk, pre-commit.ci, etc.) plus self-hosted and non-GitHub forge variants — single source for capability bot guards |
 
 ### Git-side only
 

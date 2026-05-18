@@ -34,7 +34,7 @@ Guards:
 
 - **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. On non-GitHub remotes (GitLab / Codeberg / Bitbucket), follow the degrade path in `forge-adapters.md` — refuse cleanly if no portable equivalent exists.
 - **State** — if `state ∈ {MERGED, CLOSED}` → refuse.
-- **Bot author** — if `author.login` is a known bot → skip.
+- **Bot author** — if `author.login` matches a login pattern in `../../references/bot-signatures.md` → skip; bot-authored PRs do not get human-written bodies from this capability.
 - **gh auth** — on failure, tell the user to run `gh auth login`.
 - **First-time contributor heuristic** — count the PR author's prior merged contributions: `gh pr list --author <author.login> --state merged --json number --jq 'length'`. If < 3, prepend `(first-time contributor heuristic — proposal expanded with extra context in Why and Test plan sections)` to the proposal preamble and bias the draft toward an explicit Why section even when the change looks self-explanatory. Newcomers benefit from the verbose explanation; long-time contributors usually don't need it. The heuristic is informational — it never blocks a proposal.
 

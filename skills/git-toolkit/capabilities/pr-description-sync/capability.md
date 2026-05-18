@@ -38,7 +38,7 @@ Guards before any work:
 
 - **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. On non-GitHub remotes (GitLab / Codeberg / Bitbucket), follow the degrade path in `forge-adapters.md` — refuse cleanly if no portable equivalent exists.
 - **State guard** — if `state ∈ {MERGED, CLOSED}` → refuse; do not propose edits to a closed PR.
-- **Bot guard** — if `author.login` matches `dependabot[bot]`, `renovate[bot]`, `github-actions[bot]`, or any other automated author → skip.
+- **Bot guard** — if `author.login` matches a login pattern in `../../references/bot-signatures.md` (dependabot, renovate, github-actions, copilot, snyk, pre-commit-ci, etc.) → skip; bot-authored PR bodies are managed by the bot itself.
 - **gh auth** — on auth failure from any `gh` call, stop and tell the user to run `gh auth login`.
 
 ## Workflow

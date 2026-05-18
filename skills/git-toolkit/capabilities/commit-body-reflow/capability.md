@@ -32,7 +32,7 @@ This capability uses only `git` operations (`filter-branch`, `filter-repo`, `reb
 - Must be inside a git repo, working tree clean.
 - Range must contain ≥2 commits; for a single commit, redirect to `commit-amend-message`.
 - Identify all branches whose commits fall within the rewrite scope. Surface as a **Scope** block before any plan.
-- **Bot guard** — per the router rule, skip bot-authored commits. The transformation script must detect `*[bot]@users.noreply.github.com` and emit the message unchanged.
+- **Bot guard** — per the router rule, skip bot-authored commits. The transformation script must match `git log -1 --pretty=format:'%ae' <sha>` against the patterns catalogued in `../../references/bot-signatures.md` and emit the message unchanged for matches.
 - **Pushed-state check** — emit the Force-Push Impact block (commit-message Step 5) for each affected branch before showing the plan.
 
 ## Workflow
