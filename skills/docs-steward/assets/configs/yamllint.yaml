@@ -3,10 +3,12 @@
 # yamllint config of its own. Aligned to the no-hard-wrap preference: line
 # length is the preview tool's concern, not the source file's.
 #
-# Rule rationale per line below. Override by placing a .yamllint / .yamllint.yaml
-# in the repo root; detect_baseline does not currently include yamllint configs
-# in the precedence chain (see references/formatter-tools.md for the scope
-# yamllint occupies).
+# Rule rationale per line below. There is no auto-detection of repo-level
+# yamllint configs — docs_steward.baseline.detect_baseline only looks at the
+# markdown / formatter precedence chain, not at .yamllint / .yamllint.yaml.
+# To override this file, pass `--yamllint-config <path>` to
+# scripts/md-audit-frontmatter.py; placing a .yamllint in the repo root has
+# no effect on the md-audit-frontmatter pipeline.
 
 extends: default
 
