@@ -111,6 +111,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 | `references/issue-references.md` | `Closes/Fixes/Resolves` vs `Refs/See/Related`; GitHub auto-close behavior; cross-repo refs |
 | `references/pr-template-detection.md` | Template path resolution + unfilled-detection threshold |
 | `references/git-gh-quirks.md` (gh portions) | Fork PRs, stacked-PR base resolution via `gh pr view`, `gh` auth failure handling |
+| `references/forge-adapters.md` | Concept and CLI mapping from GitHub to GitLab (`glab`), Codeberg/Forgejo (`tea`), and Bitbucket Cloud (curl); detection + graceful degrade for non-GitHub remotes |
 
 `git-gh-quirks.md` straddles intentionally — both sides need parts of it, but each side reads the section it cares about.
 
