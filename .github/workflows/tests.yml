@@ -7,6 +7,7 @@ on:
       - "tests/**"
       - "pyproject.toml"
       - "requirements-test.txt"
+      - ".python-version"
       - ".github/workflows/tests.yml"
   push:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - "tests/**"
       - "pyproject.toml"
       - "requirements-test.txt"
+      - ".python-version"
       - ".github/workflows/tests.yml"
 
 concurrency:
