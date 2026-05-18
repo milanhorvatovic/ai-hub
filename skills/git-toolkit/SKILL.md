@@ -98,6 +98,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 | `references/review-output.md` | Canonical markdown + NDJSON output schema for REVIEW-mode reports across capabilities |
 | `references/harness-safety-nets.md` | Operations routinely blocked by agent-harness classifiers, with the proposal phrasing that gives reviewers and classifiers enough context |
 | `references/worked-example.md` | End-to-end walkthrough of one fictional change through every capability — onboarding and "how do these chain" doc |
+| `references/commit-smells.md` | Catalog of subject / body / PR-body anti-patterns with kebab-case rule ids, detection patterns, fixes, and before/after examples — feeds REVIEW-mode findings |
 
 ### Git-side only
 
