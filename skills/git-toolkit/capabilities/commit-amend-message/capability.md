@@ -37,7 +37,7 @@ Two modes:
 
 **Mode A: user supplied a new message** — use it as-is. Validate format only (see Step 3).
 
-**Mode B: user asked to "fix" / "improve" without supplying text** — apply `../../references/format-conventions.md` rules to the existing message:
+**Mode B: user asked to "fix" / "improve" without supplying text** — apply the rules from `../../references/format-subject.md` (for the subject) and `../../references/format-body.md` (for the body) to the existing message:
 - If subject is too long, too generic, or past-tense → propose a rewritten subject.
 - If body has a missing `BREAKING CHANGE:` footer for `!`-marked commits → propose adding it.
 - If body has restatement of subject in past tense → propose removing.
@@ -45,7 +45,7 @@ Two modes:
 
 ### 3. Validate against format conventions
 
-Apply checks from `../../references/format-conventions.md`:
+Apply checks from `../../references/format-subject.md` and `../../references/format-body.md`:
 
 | Check | Severity |
 |---|---|

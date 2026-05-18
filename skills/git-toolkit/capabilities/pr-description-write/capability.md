@@ -66,7 +66,7 @@ Per `../../references/pr-template-detection.md`, resolve all candidate template 
 
 - Single template (most repos) → use it.
 - Multi-template directory → ask the user which one (the user may have intended a `feature.md` vs `bugfix.md`).
-- No template → use the generic structure from `../../references/format-conventions.md` (Summary / Changes / Test plan / Notes).
+- No template → use the generic structure from `../../references/format-pr.md` (Summary / Changes / Test plan / Notes).
 
 Preserve the template's section headings VERBATIM. Carry over instructional HTML comments if they help the user verify; otherwise strip them.
 
@@ -85,7 +85,7 @@ Per section:
 
 ### 6. Apply format rules
 
-Per `../../references/format-conventions.md`:
+Per `../../references/format-pr.md`:
 
 - For `sm == "PR_BODY"`: flat prose, ≤72-char first line, no headings (see `../../references/merge-policy.md` template).
 - For non-squash-`PR_BODY`: markdown structure per template.

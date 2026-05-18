@@ -41,7 +41,7 @@ git show --no-patch --format='%h%n%s%n%n%b%n---' <sha>
 
 | Pattern | Suggested action |
 |---|---|
-| Subject contains `WIP`, `wip`, `[WIP]`, `TODO`, `XXX`, `temp` | `reword` (propose new subject per `../../references/format-conventions.md`) |
+| Subject contains `WIP`, `wip`, `[WIP]`, `TODO`, `XXX`, `temp` | `reword` (propose new subject per `../../references/format-subject.md`) |
 | Subject prefix `fixup!` / `squash!` | `fixup` / `squash` into the named target commit (git auto-handles when `--autosquash` is set) |
 | Subject is "Address review comments", "Apply review feedback", "PR fixes", or similar generic | `squash` into the most-related prior commit; reword the result to describe WHAT was fixed |
 | Subject is `Fix typo`, `Format`, `Run prettier`, `Lint fix` after a real commit on the same files | `fixup` into the prior commit |
@@ -57,7 +57,7 @@ git show --no-patch --format='%h%n%s%n%n%b%n---' <sha>
 
 ### 4. Apply format rules to proposals
 
-For every `reword` and `squash` (which generates a new combined message), draft the new message per `../../references/format-conventions.md`:
+For every `reword` and `squash` (which generates a new combined message), draft the new message per `../../references/format-subject.md` (subject) and `../../references/format-body.md` (body):
 
 - Imperative mood, ≤72-char subject
 - Conventional-commits prefix if the repo uses them
@@ -125,7 +125,7 @@ The skill will not run force-push; user must opt in explicitly.
 
 - Don't run `git rebase -i` automatically — propose the plan; let the user run it.
 - Don't suggest squashing commits that are individually reviewable or individually revertable. Multiple small commits is sometimes the right structure (especially for bisecting).
-- Don't reword without proposing the new subject per `../../references/format-conventions.md` — leaving the user to fill in is a non-answer.
+- Don't reword without proposing the new subject per `../../references/format-subject.md` — leaving the user to fill in is a non-answer.
 - **Don't add `Co-Authored-By:` or any other trailers when squashing.** Only preserve trailers that were already present in the original commits, byte-for-byte.
 - Don't include `git push --force` or `--force-with-lease` in any suggested command — the user must opt into the force-push risk.
 - Don't propose changes to merge commits unless the user explicitly asks.

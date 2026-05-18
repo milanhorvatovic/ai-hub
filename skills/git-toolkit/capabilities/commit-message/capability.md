@@ -70,7 +70,7 @@ Never invent a scope the repo hasn't used before unless the user explicitly asks
 
 ### 3. Draft subject
 
-Apply rules from `../../references/format-conventions.md`:
+Apply rules from `../../references/format-subject.md`:
 
 - Imperative mood: "Add" / "Fix" / "Refactor", not "Added" / "Fixes" (as verb).
 - ≤72 chars total INCLUDING the conventional-commits prefix.
@@ -93,7 +93,7 @@ A body is NOT needed when:
 - The change is small and self-explanatory.
 - The repo's convention is subject-only commits (check past `git log --format='%h%n%s%n%n%b' -20` — if most have empty bodies, this is the convention).
 
-Body format per `../../references/format-conventions.md`: blank line after subject, wrapped at 72 chars unless overridden, explains WHY, includes trailers at the end.
+Body format per `../../references/format-body.md`: blank line after subject, flowing paragraphs by default with hard-wrap opt-in per repo, explains WHY, includes trailers at the end.
 
 ### 5. Add trailers (only on user request)
 
@@ -226,7 +226,7 @@ Force-Push Impact: <none / mild / high>
   Required to publish:    <none / git push --force-with-lease / git push --force-with-lease + reviewer coordination>
 ```
 
-If impact is `high`, also surface the canonical rule from `../../references/format-conventions.md`: "never rewrite a pre-existing commit body for a 1–2 column overshoot alone." The user must opt in explicitly; the proposal does not include the force-push command unless they confirm.
+If impact is `high`, also surface the canonical rule from `../../references/format-body.md`: "never rewrite a pre-existing commit body for a 1–2 column overshoot alone." The user must opt in explicitly; the proposal does not include the force-push command unless they confirm.
 
 Do NOT include `git push --force` (without `--with-lease`) in any suggested command. `--force-with-lease` refuses if the remote moved; bare `--force` overwrites unconditionally.
 
