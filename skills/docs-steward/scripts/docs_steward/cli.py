@@ -18,6 +18,7 @@ Subcommand → service map:
 from __future__ import annotations
 
 import argparse
+import os.path
 import sys
 from collections.abc import Iterable, Sequence
 from typing import Callable
@@ -220,7 +221,7 @@ def _maybe_plugin_missing_events(
         return []
     installed = detect_installed_plugin_labels(runner)
     target_files = files if files is not None else tuple(list_markdown_files(runner, root))
-    return emit_plugin_missing(target_files, fs.read_text, installed)
+    return emit_plugin_missing(_resolve_against_root(target_files, root), fs.read_text, installed)
 
 
 def _dispatch_audit_frontmatter(
@@ -231,7 +232,9 @@ def _dispatch_audit_frontmatter(
     files = _files_or_none(args)
     if files is None:
         files = list_markdown_files(runner, root)
-    return audit_frontmatter(runner, fs, files, config_path=args.yamllint_config)
+    return audit_frontmatter(
+        runner, fs, _resolve_against_root(files, root), config_path=args.yamllint_config,
+    )
 
 
 def _files_or_none(args: argparse.Namespace) -> Sequence[str] | None:
@@ -241,6 +244,21 @@ def _files_or_none(args: argparse.Namespace) -> Sequence[str] | None:
     if files is None or len(files) == 0:
         return None
     return tuple(files)
+
+
+def _resolve_against_root(files: Sequence[str], root: str) -> tuple[str, ...]:
+    """Resolve any relative path in `files` against `root` so downstream
+    file reads (FileSystem.read_text, audit_frontmatter, emit_plugin_missing)
+    resolve to the same file the formatter sees when it runs with cwd=root.
+
+    Absolute paths pass through unchanged; relative paths are joined with
+    `root` via os.path.join (native separator on the host — Python file
+    APIs accept either separator on Windows). Idempotent for paths produced
+    by discovery.list_markdown_files (which already returns absolute, POSIX
+    -joined paths)."""
+    return tuple(
+        path if os.path.isabs(path) else os.path.join(root, path) for path in files
+    )
 
 
 _DISPATCH: dict[str, Callable[[argparse.Namespace, ProcessRunner], tuple[list[Event], int]]] = {

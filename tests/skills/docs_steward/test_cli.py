@@ -7,7 +7,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-from docs_steward.cli import main
+from docs_steward.cli import _resolve_against_root, main
 from docs_steward.process import ProcessResult
 
 from .fakes import FakeProcessRunner
@@ -164,6 +164,40 @@ class CliEndToEndTests(unittest.TestCase):
             self.assertEqual(plugin_missing[0]["detail"]["plugin"], "gfm")
             self.assertEqual(plugin_missing[0]["detail"]["file"], md_path)
 
+    def test_md_audit_plugin_missing_resolves_relative_files_against_root(self) -> None:
+        # Same setup as the previous test, but the positional file argument
+        # is relative ("table.md") and the process CWD is intentionally
+        # unrelated. Without resolution the read would fail and no
+        # plugin-missing event would be emitted; with resolution the read
+        # hits <root>/table.md and the event fires.
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = os.path.join(tmp, "table.md")
+            with open(md_path, "w", encoding="utf-8") as fh:
+                fh.write("| col | col |\n|---|---|\n| a | b |\n")
+
+            # The formatter receives the relative path verbatim (cwd=root).
+            audit_cmd = ("mdformat", "--check", "table.md")
+            runner = FakeProcessRunner(
+                paths={"mdformat": "/x/mdformat", "git": "/x/git"},
+                results={
+                    ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, tmp + "\n", ""),
+                    audit_cmd: ProcessResult(0, "", ""),
+                },
+            )
+            code, events = self._run(
+                runner, ["md-audit", "--baseline", "universal-subset", "table.md"],
+            )
+            self.assertEqual(code, 0)
+            plugin_missing = [e for e in events if e["event"] == "plugin-missing"]
+            self.assertEqual(len(plugin_missing), 1)
+            self.assertEqual(plugin_missing[0]["detail"]["plugin"], "gfm")
+            # Event records the resolved (absolute) path so consumers can
+            # locate the file regardless of where the CLI was invoked from.
+            self.assertEqual(plugin_missing[0]["detail"]["file"], md_path)
+
     def test_md_audit_skips_plugin_check_when_tool_is_not_mdformat(self) -> None:
         # prettier selected → no plugin-missing event regardless of file content.
         cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md")
@@ -196,6 +230,28 @@ class CliEndToEndTests(unittest.TestCase):
         self.assertEqual(
             deltas[0]["detail"], {"resolved": 0, "still_open": 0, "new": 0},
         )
+
+
+class ResolveAgainstRootTests(unittest.TestCase):
+    def test_absolute_paths_pass_through(self) -> None:
+        resolved = _resolve_against_root(("/repo/a.md", "/repo/b.md"), "/somewhere/else")
+        self.assertEqual(resolved, ("/repo/a.md", "/repo/b.md"))
+
+    def test_relative_paths_joined_to_root(self) -> None:
+        import os
+        resolved = _resolve_against_root(("docs/a.md", "b.md"), "/repo")
+        self.assertEqual(
+            resolved,
+            (os.path.join("/repo", "docs/a.md"), os.path.join("/repo", "b.md")),
+        )
+
+    def test_mixed_paths(self) -> None:
+        import os
+        resolved = _resolve_against_root(("/abs/a.md", "rel/b.md"), "/repo")
+        self.assertEqual(resolved, ("/abs/a.md", os.path.join("/repo", "rel/b.md")))
+
+    def test_empty_files_returns_empty_tuple(self) -> None:
+        self.assertEqual(_resolve_against_root((), "/repo"), ())
 
 
 if __name__ == "__main__":
