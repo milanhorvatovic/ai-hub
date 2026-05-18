@@ -41,6 +41,34 @@ Command:
 
 The user (and any classifier reading the conversation) can now decide with full context.
 
+## Known harnesses
+
+The same operation may be blocked by one harness and pass on another, and the mitigation phrasing differs slightly per harness. A non-exhaustive catalog:
+
+| Harness | Classifier / safety surface | Trailer default | Notes |
+|---|---|---|---|
+| Claude Code | "auto mode classifier"; per-command permission prompts; settings.json hooks | `Co-Authored-By: Claude <noreply@anthropic.com>` | Most aggressive on mass-rewrite, force-push, and fabricated-attribution. Surfacing intent/impact/recovery before the command typically unblocks. |
+| Cursor | YOLO-mode toggle + per-action confirmation | varies by model | Less surface area than Claude Code; force-push to non-main usually passes without prompt. |
+| Gemini CLI | sandbox modes + tool allowlist | `Co-Authored-By: Gemini` (configurable) | Sandbox blocks file writes outside cwd; mass-rewrite needs explicit cwd inclusion. |
+| GitHub Copilot for CLI | command preview + accept | none by default | Treats every shell invocation as confirm-once; mass operations need batched explicit confirmations. |
+| GitHub Copilot Workspace | session-level intent tracking | none | More forgiving on history rewrites within a single "task" boundary. |
+| OpenAI Codex (CLI) | per-step confirmation | none by default | Force-push and `git reset --hard` require explicit step approval each time. |
+| z.ai GLM CLI | tool-use approval per call | none | Behavior similar to Codex; no aggregate classifier. |
+| Kimi (Moonshot) CLI | per-call confirmation | none | Same as above. |
+| opencode | provider-agnostic; routes to backing model + applies that model's defaults | inherits from backing provider | Force-push and mass-rewrite policies depend on which provider is wired in. |
+| Aider | git-aware; auto-commits with its own attribution unless disabled | `Aider <author>` style trailer by default | The auto-commit behavior conflicts with this skill's "propose, don't execute" stance; user typically needs to disable auto-commit. |
+
+## Detecting which harness invoked you
+
+A capability can adjust its mitigation phrasing if it knows which harness is in play. Signals (in order of reliability):
+
+- **Environment variables**: `CLAUDE_CONFIG_DIR` (Claude Code), `CURSOR_*` (Cursor), `GEMINI_API_KEY` plus `gemini`-cli process tree (Gemini CLI), `OPENCODE_PROFILE` (opencode), `CODEX_HOME` (OpenAI Codex CLI). Read with `os.environ.get(...)`; absent values mean the harness probably isn't running.
+- **Process tree**: `ps -o comm= -p $PPID` walks up; common names include `claude`, `cursor-agent`, `gemini`, `codex`, `kimi`, `opencode`, `aider`.
+- **Filesystem hints**: `.claude/` directory in cwd (Claude Code project config), `.cursor/` (Cursor workspace), `.aider*` files (Aider session state).
+- **User-agent in API calls** when the harness exposes one to subprocesses (rare; most don't).
+
+When unknown, default to the most defensive phrasing (full intent / impact / recovery framing on every flagged operation). False positives are cheap; false negatives — proposing a bare destructive command to a strict classifier — cost the whole turn.
+
 ## What this skill does NOT do
 
 - The skill does not attempt to bypass classifier denials. If a classifier blocks a proposal, the capability surfaces the block, explains why, and lets the user re-authorize, run the command themselves, or add a permission rule to their harness settings.
