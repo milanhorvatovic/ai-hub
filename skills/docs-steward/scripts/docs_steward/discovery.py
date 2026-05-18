@@ -41,7 +41,7 @@ def _try_git_ls_files(runner: ProcessRunner, root: str) -> list[str] | None:
     if result.returncode != 0:
         return None
     rels = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    return [os.path.join(root, rel) for rel in rels]
+    return [_posix_join(root, rel) for rel in rels]
 
 
 def _walk(root: str) -> list[str]:
@@ -52,5 +52,15 @@ def _walk(root: str) -> list[str]:
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
         for name in filenames:
             if name.endswith(_MARKDOWN_EXTENSIONS):
-                found.append(os.path.join(dirpath, name))
+                found.append(_posix_join(dirpath, name))
     return found
+
+
+def _posix_join(root: str, rel: str) -> str:
+    """Join with forward slashes so output is consistent across platforms.
+    `git ls-files` returns POSIX-style paths, and downstream formatter
+    binaries accept forward slashes on Windows too — keeping one separator
+    in NDJSON output avoids mixed `/repo\\README.md` artifacts on Windows."""
+    root_posix = root.replace("\\", "/").rstrip("/")
+    rel_posix = rel.replace("\\", "/").lstrip("/")
+    return f"{root_posix}/{rel_posix}"
