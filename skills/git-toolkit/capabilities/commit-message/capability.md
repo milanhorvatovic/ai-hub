@@ -230,6 +230,22 @@ If impact is `high`, also surface the canonical rule from `../../references/form
 
 Do NOT include `git push --force` (without `--with-lease`) in any suggested command. `--force-with-lease` refuses if the remote moved; bare `--force` overwrites unconditionally.
 
+### 6. Personal-style memory hook
+
+When the user corrects a proposed message in a way that reveals a *personal* style preference distinct from the repo's defaults — for example, rewriting a hard-wrapped body to flowing paragraphs in a repo where the convention sample was too small to detect either way — note the correction and consider proposing a user-scoped memory record:
+
+```
+Style preference detected: <one-line summary, e.g. "user prefers flowing-paragraph commit bodies over hard-wrap at 72">
+
+This looks like a personal preference rather than a repo-specific rule (the
+repo has no convention file and the prior commit sample is < 5). Save as a
+memory entry so future capabilities start with the same default? [y/n]
+```
+
+Save only on `y`. The memory record should be at the personal/user scope, not the project scope, since the preference applies across repos the user works on. The save format follows whatever memory mechanism the invoking harness provides; this capability does not pick a format.
+
+Skip this hook when the correction reflects a repo rule (e.g., user pointed at a CONTRIBUTING.md section the capability missed). In that case the fix is to re-read the convention source, not to write a personal memory.
+
 ## Edge cases
 
 - **Initial commit** — no `HEAD~1` exists; use `git show --root HEAD` for diff context. Subject conventions still apply.
