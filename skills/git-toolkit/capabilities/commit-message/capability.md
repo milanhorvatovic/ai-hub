@@ -136,6 +136,10 @@ Always show the full proposed message AND the apply command. Never run `git comm
 
 ## REVIEW mode workflow
 
+### 0. Rule catalog
+
+REVIEW findings must use the kebab-case rule ids from `../../references/commit-smells.md` (e.g., `generic-verb`, `vague-noun`, `status-marker`, `issue-in-subject`, `trailing-period`, `past-tense-verb`, `overlong-subject`, `restated-subject`, `listed-files`, `auto-trailer`, `marketing-language`). The catalog is the authoritative source for detection patterns, fixes, and before/after examples. The schema in `../../references/review-output.schema.json` enforces the kebab-case pattern; findings that invent ad-hoc ids will fail schema validation.
+
 ### 1. Resolve target commit(s)
 
 | User said | Range |

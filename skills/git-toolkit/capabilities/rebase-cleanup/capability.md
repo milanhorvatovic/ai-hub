@@ -25,6 +25,10 @@ Proposes an interactive-rebase plan to clean up a branch's commit history.
 
 ## Workflow
 
+### 0. Rule catalog
+
+Classifications in Step 2 and any REVIEW-shaped findings emitted along the way must use the kebab-case rule ids from `../../references/commit-smells.md` (especially `status-marker`, `generic-verb`, `vague-noun`, `repeated-fix`, `manual-revert`, `mixed-scope`). Detection patterns for the catalog's rules drive the classifier; the catalog stays the single source of "things to flag".
+
 ### 1. Gather commits and bodies
 
 ```

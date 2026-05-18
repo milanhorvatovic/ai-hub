@@ -24,6 +24,10 @@ Checks all the gates that should be green before merging, and reports go/no-go.
 
 ## Workflow
 
+### 0. Rule catalog
+
+Gate-shaped findings emitted alongside the READY / NOT-READY verdict (e.g., when a stale-description or unfilled-template smell blocks readiness) use the kebab-case rule ids from `../../references/commit-smells.md` so the report can be parsed alongside other capabilities' REVIEW output. Gates themselves (CI status, approvals, mergeability) are not catalog rules and stay named as they are.
+
 ### 1. Fetch PR metadata
 
 ```
