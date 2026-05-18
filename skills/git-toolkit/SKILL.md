@@ -15,7 +15,7 @@ description: >
   review or merging.
 allowed-tools: Bash Read Write Grep
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # git-toolkit

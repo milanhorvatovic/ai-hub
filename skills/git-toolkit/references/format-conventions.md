@@ -80,7 +80,11 @@ Format: `<type>(<scope>)<!>: <description>`
 ## Commit body
 
 - **Blank line after subject.** Required. Many tools (including GitHub's UI) merge subject and body if missing.
-- **Wrapped at 72 chars** unless the repo overrides (e.g. `.gitconfig` `core.commentChar` with non-default wrap). Wrapping is for the reader of `git log` in a terminal; long-form prose is fine if the repo doesn't enforce.
+- **Body prose flows as paragraphs by default.** Each paragraph is a single line in the source — sentences flow together within the paragraph, blank lines separate paragraphs. Let the reader's tools (terminal, `git log`, GitHub, IDEs) soft-wrap on display. This avoids visually-broken fragments and keeps the body editable without manual reflow when text changes.
+  - **Multiple paragraphs are encouraged** when the body covers distinct intents (motivation, what changed, follow-ups). Group sentences by topic; let each topic be its own paragraph.
+  - **Lists**: one item per line, no internal wrap. Long items stay long; readers' tools fold them.
+  - **Hard-wrap at ~72 columns is opt-in per repo, not the default.** Detect via the last ~20 commits — if `git log --pretty=format:'%b' -20 | head -100` consistently shows lines wrapped near 70–72, the repo prefers hard-wrap and you should match it. Otherwise default to flowing paragraphs.
+  - **When the repo demonstrably uses hard-wrap**: measure in display columns (not UTF-8 bytes — an em-dash, smart quote, or accented letter is one column on screen even though it costs multiple bytes; `awk length` and `wc -c` report bytes and will overstate); treat 72 as a soft cap (1–3 column overshoot OK when the alternative is awkward fragmentation); never substitute display characters (em-dash → hyphen, smart quotes → ASCII, accented → unaccented) just to fit the cap (semantic regression); never rewrite a pre-existing commit body for a 1–2 column overshoot alone (the history-rewrite cost outweighs the cosmetic gain).
 - **Explains WHY, not WHAT** in most cases — the diff shows what. The body explains motivation, alternatives considered, constraints discovered, trade-offs.
 - **Links to context** — issue numbers (see `issue-references.md`), design docs, ADRs, prior PRs.
 - **No marketing language** — "we are excited to announce", "this awesome change", "amazing improvement". Drop it.
