@@ -99,10 +99,16 @@ pip-delete-this-directory.txt
 .Spotlight-V100
 .Trashes
 
-# Windows Explorer
+# Windows Explorer — thumbnail caches (incl. encrypted + Vista variant),
+# folder config (case-insensitive), per-drive Recycle Bin from shared
+# SMB/OneDrive mounts, and Cygwin/WSL crash dumps.
 Thumbs.db
+Thumbs.db:encryptable
 ehthumbs.db
-Desktop.ini
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.stackdump
 
 # ===========================================================================
 # Node.js — npx-invoked formatters used by some skills
