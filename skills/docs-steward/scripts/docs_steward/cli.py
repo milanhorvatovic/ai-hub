@@ -232,8 +232,9 @@ def _dispatch_audit_frontmatter(
     files = _files_or_none(args)
     if files is None:
         files = list_markdown_files(runner, root)
+    yamllint_config = _resolve_config_against_root(args.yamllint_config, root)
     return audit_frontmatter(
-        runner, fs, _resolve_against_root(files, root), config_path=args.yamllint_config,
+        runner, fs, _resolve_against_root(files, root), config_path=yamllint_config,
     )
 
 
@@ -259,6 +260,15 @@ def _resolve_against_root(files: Sequence[str], root: str) -> tuple[str, ...]:
     return tuple(
         path if os.path.isabs(path) else os.path.join(root, path) for path in files
     )
+
+
+def _resolve_config_against_root(config: str | None, root: str) -> str | None:
+    """Same resolution rule as `_resolve_against_root`, applied to a single
+    optional config path (e.g. `--yamllint-config .yamllint`). None passes
+    through so the caller can still signal "use the bundled fallback"."""
+    if config is None:
+        return None
+    return config if os.path.isabs(config) else os.path.join(root, config)
 
 
 _DISPATCH: dict[str, Callable[[argparse.Namespace, ProcessRunner], tuple[list[Event], int]]] = {

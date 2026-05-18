@@ -7,7 +7,11 @@ import json
 import unittest
 from unittest.mock import patch
 
-from docs_steward.cli import _resolve_against_root, main
+from docs_steward.cli import (
+    _resolve_against_root,
+    _resolve_config_against_root,
+    main,
+)
 from docs_steward.process import ProcessResult
 
 from .fakes import FakeProcessRunner
@@ -252,6 +256,34 @@ class ResolveAgainstRootTests(unittest.TestCase):
 
     def test_empty_files_returns_empty_tuple(self) -> None:
         self.assertEqual(_resolve_against_root((), "/repo"), ())
+
+
+class ResolveConfigAgainstRootTests(unittest.TestCase):
+    def test_none_passes_through(self) -> None:
+        # None signals "use the bundled fallback" — must NOT be rewritten
+        # to a path under root, or audit_frontmatter would receive a fake
+        # path instead of routing through bundled_config_for().
+        self.assertIsNone(_resolve_config_against_root(None, "/repo"))
+
+    def test_absolute_path_passes_through(self) -> None:
+        self.assertEqual(
+            _resolve_config_against_root("/etc/yamllint.yaml", "/repo"),
+            "/etc/yamllint.yaml",
+        )
+
+    def test_relative_path_joined_to_root(self) -> None:
+        import os
+        self.assertEqual(
+            _resolve_config_against_root(".yamllint", "/repo"),
+            os.path.join("/repo", ".yamllint"),
+        )
+
+    def test_relative_path_with_subdir_joined_to_root(self) -> None:
+        import os
+        self.assertEqual(
+            _resolve_config_against_root("config/.yamllint.yaml", "/repo"),
+            os.path.join("/repo", "config/.yamllint.yaml"),
+        )
 
 
 if __name__ == "__main__":
