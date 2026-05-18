@@ -48,20 +48,99 @@ _GFM_AUTOLINK = re.compile(r"(?<!\]\()https?://\S+(?![^\[]*\])")
 
 
 def probe_mdformat_plugins(runner: ProcessRunner) -> list[Event]:
-    """For each known mdformat plugin in `KNOWN_PLUGINS`, run `pip show
-    <package>` (falling back to `pip3` when `pip` is absent). Emit
-    PLUGIN_AVAILABLE per hit with the version parsed from `pip show`'s
-    `Version:` line. mdformat plugins do not ship standalone binaries, so
-    `pip show` is the single probe strategy — no `<plugin> --version`
-    invocation is attempted. Returns an empty list when neither `pip` nor
-    `pip3` is on PATH (no plugins reliably detectable).
+    """Detect installed mdformat plugins via the Python interpreter that
+    actually backs the `mdformat` binary, not via the first `pip` / `pip3`
+    on PATH.
 
-    Returns events only — caller decides whether/how to surface them.
+    mdformat is commonly installed via pipx, `uv tool`, or a dedicated
+    venv, which place mdformat (and its plugins) in an isolated environment
+    where the system `pip` cannot see them. Calling `pip show <package>`
+    against an unrelated interpreter produced both false-negative
+    PLUGIN_AVAILABLE events (the plugin IS installed where mdformat lives)
+    and false-positive PLUGIN_MISSING events later in the pipeline.
+
+    Strategy:
+    1. Resolve the `mdformat` binary on PATH via `runner.which`.
+    2. Read its shebang to extract the interpreter path (handles the
+       `/usr/bin/env <interp>` form by returning the trailing argument so
+       subprocess resolves it via PATH).
+    3. For each plugin in `KNOWN_PLUGINS`, invoke that interpreter with
+       `python -c "import importlib.metadata as m; print(m.version(...))"`
+       to read the installed version. Non-zero exit means the plugin is
+       absent in this environment (no event emitted).
+
+    Falls back to the legacy `pip` / `pip3` strategy when the shebang
+    cannot be read (e.g. on Windows where mdformat is launched via a
+    PEP-397 / pipx-managed `.exe` shim rather than a shebang script).
+    Returns an empty list when neither strategy can run.
     """
+    interpreter = _resolve_mdformat_interpreter(runner)
+    if interpreter is not None:
+        return _probe_via_interpreter(runner, interpreter)
+    return _probe_via_pip_fallback(runner)
+
+
+def _resolve_mdformat_interpreter(runner: ProcessRunner) -> str | None:
+    """Return the path / executable name of the Python interpreter that
+    runs mdformat, by reading the binary's shebang. Returns None when
+    mdformat is absent, the file is not a shebang script (Windows .exe
+    launcher / compiled binary), or the shebang is malformed."""
+    mdformat_path = runner.which("mdformat")
+    if mdformat_path is None:
+        return None
+    try:
+        with open(mdformat_path, "rb") as handle:
+            first_line = handle.readline(1024)
+    except OSError:
+        return None
+    if not first_line.startswith(b"#!"):
+        return None
+    try:
+        line = first_line[2:].decode("utf-8", errors="replace").strip()
+    except UnicodeDecodeError:
+        return None
+    parts = line.split()
+    if not parts:
+        return None
+    head = parts[0]
+    # `/usr/bin/env python3` style — return the trailing argument so the
+    # subprocess can resolve it via PATH itself.
+    if head.endswith("env") and len(parts) > 1:
+        return parts[1]
+    return head
+
+
+def _probe_via_interpreter(runner: ProcessRunner, interpreter: str) -> list[Event]:
+    events: list[Event] = []
+    for package, label in KNOWN_PLUGINS:
+        result = runner.run(
+            [
+                interpreter, "-c",
+                f"import importlib.metadata as m; print(m.version({package!r}))",
+            ]
+        )
+        if result.returncode != 0:
+            continue
+        version = result.stdout.strip()
+        if version:
+            events.append(
+                Event(
+                    EventType.PLUGIN_AVAILABLE,
+                    "mdformat",
+                    {"plugin": label, "package": package, "version": version},
+                )
+            )
+    return events
+
+
+def _probe_via_pip_fallback(runner: ProcessRunner) -> list[Event]:
+    """Last-resort probe used when the mdformat shebang is unavailable
+    (e.g. Windows .exe shims). Inherits the original ambient-pip drift
+    — its results are only meaningful when mdformat and pip resolve to
+    the same Python."""
     events: list[Event] = []
     pip = runner.which("pip") or runner.which("pip3")
     if pip is None:
-        # No pip available — cannot probe Python packages reliably.
         return events
     for package, label in KNOWN_PLUGINS:
         result = runner.run([pip, "show", package])

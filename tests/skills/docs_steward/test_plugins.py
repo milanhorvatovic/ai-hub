@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import unittest
 
+import os
+import tempfile
+
 from docs_steward.events import EventType
 from docs_steward.plugins import (
     KNOWN_PLUGINS,
+    _probe_via_interpreter,
+    _resolve_mdformat_interpreter,
     detect_installed_plugin_labels,
     emit_plugin_missing,
     needs_gfm,
@@ -102,6 +107,132 @@ class ProbeMdformatPluginsTests(unittest.TestCase):
         )
         # Should run probes (returns empty events list since none found).
         self.assertEqual(probe_mdformat_plugins(runner), [])
+
+    def test_prefers_mdformat_interpreter_over_pip(self) -> None:
+        # When mdformat is on PATH and its shebang resolves to a real
+        # interpreter, the probe MUST use that interpreter (not the
+        # ambient pip — that's the whole bug fix).
+        with tempfile.TemporaryDirectory() as tmp:
+            mdformat_path = os.path.join(tmp, "mdformat")
+            with open(mdformat_path, "w", encoding="utf-8") as fh:
+                fh.write("#!/opt/pipx/venvs/mdformat/bin/python3\n# launcher\n")
+            os.chmod(mdformat_path, 0o755)
+
+            interpreter = "/opt/pipx/venvs/mdformat/bin/python3"
+            # All KNOWN_PLUGINS probed via the interpreter; mdformat-gfm hits.
+            results = {
+                (
+                    interpreter, "-c",
+                    f"import importlib.metadata as m; print(m.version({pkg!r}))",
+                ): ProcessResult(
+                    0, "0.3.5\n" if pkg == "mdformat-gfm" else "", ""
+                ) if pkg == "mdformat-gfm" else ProcessResult(1, "", "")
+                for pkg, _ in KNOWN_PLUGINS
+            }
+            # NB: also provide a pip path that would emit DIFFERENT results so
+            # we can prove the probe IGNORED pip when the shebang strategy worked.
+            results[("/usr/bin/pip", "show", "mdformat-gfm")] = ProcessResult(
+                1, "", ""
+            )
+            runner = FakeProcessRunner(
+                paths={"mdformat": mdformat_path, "pip": "/usr/bin/pip"},
+                results=results,
+            )
+            events = probe_mdformat_plugins(runner)
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0].detail["plugin"], "gfm")  # type: ignore[index]
+            self.assertEqual(events[0].detail["version"], "0.3.5")  # type: ignore[index]
+
+    def test_falls_back_to_pip_when_mdformat_shebang_missing(self) -> None:
+        # mdformat is on PATH but the file is a compiled launcher with no
+        # shebang (Windows .exe shim convention). Probe falls back to pip.
+        with tempfile.TemporaryDirectory() as tmp:
+            mdformat_path = os.path.join(tmp, "mdformat-launcher.bin")
+            with open(mdformat_path, "wb") as fh:
+                fh.write(b"\x7fELF\x02\x01\x01\x00")  # not a shebang
+            runner = FakeProcessRunner(
+                paths={"mdformat": mdformat_path, "pip": "/usr/bin/pip"},
+                results={
+                    ("/usr/bin/pip", "show", "mdformat-gfm"): ProcessResult(
+                        0, "Version: 0.3.5\n", ""
+                    ),
+                    ("/usr/bin/pip", "show", "mdformat-tables"): ProcessResult(1, "", ""),
+                    ("/usr/bin/pip", "show", "mdformat-frontmatter"): ProcessResult(1, "", ""),
+                    ("/usr/bin/pip", "show", "mdformat-footnote"): ProcessResult(1, "", ""),
+                    ("/usr/bin/pip", "show", "mdformat-toc"): ProcessResult(1, "", ""),
+                },
+            )
+            events = probe_mdformat_plugins(runner)
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0].detail["plugin"], "gfm")  # type: ignore[index]
+
+
+class ResolveMdformatInterpreterTests(unittest.TestCase):
+    def test_returns_none_when_mdformat_absent(self) -> None:
+        self.assertIsNone(_resolve_mdformat_interpreter(FakeProcessRunner()))
+
+    def test_reads_direct_shebang(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mdformat")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("#!/opt/foo/bin/python3.11\n# body\n")
+            runner = FakeProcessRunner(paths={"mdformat": path})
+            self.assertEqual(
+                _resolve_mdformat_interpreter(runner), "/opt/foo/bin/python3.11"
+            )
+
+    def test_unwraps_env_shebang(self) -> None:
+        # `/usr/bin/env python3` -> return "python3" so subprocess resolves via PATH.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mdformat")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("#!/usr/bin/env python3 -s\n")
+            runner = FakeProcessRunner(paths={"mdformat": path})
+            self.assertEqual(_resolve_mdformat_interpreter(runner), "python3")
+
+    def test_returns_none_for_non_shebang_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mdformat")
+            with open(path, "wb") as fh:
+                fh.write(b"\x7fELF binary")
+            runner = FakeProcessRunner(paths={"mdformat": path})
+            self.assertIsNone(_resolve_mdformat_interpreter(runner))
+
+    def test_returns_none_when_file_unreadable(self) -> None:
+        # Path resolved by `which` but the file isn't on disk -> OSError -> None.
+        runner = FakeProcessRunner(paths={"mdformat": "/no/such/path/mdformat"})
+        self.assertIsNone(_resolve_mdformat_interpreter(runner))
+
+
+class ProbeViaInterpreterTests(unittest.TestCase):
+    def test_emits_event_per_installed_plugin(self) -> None:
+        interpreter = "/opt/venv/bin/python3"
+        results = {
+            (
+                interpreter, "-c",
+                f"import importlib.metadata as m; print(m.version({pkg!r}))",
+            ): ProcessResult(0, "1.2.3\n", "") if pkg == "mdformat-gfm"
+            else ProcessResult(1, "", "")
+            for pkg, _ in KNOWN_PLUGINS
+        }
+        runner = FakeProcessRunner(results=results)
+        events = _probe_via_interpreter(runner, interpreter)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0].detail["plugin"], "gfm")  # type: ignore[index]
+        self.assertEqual(events[0].detail["version"], "1.2.3")  # type: ignore[index]
+        self.assertEqual(events[0].detail["package"], "mdformat-gfm")  # type: ignore[index]
+
+    def test_returns_empty_when_no_plugins_installed(self) -> None:
+        interpreter = "/opt/venv/bin/python3"
+        results = {
+            (
+                interpreter, "-c",
+                f"import importlib.metadata as m; print(m.version({pkg!r}))",
+            ): ProcessResult(1, "", "")
+            for pkg, _ in KNOWN_PLUGINS
+        }
+        runner = FakeProcessRunner(results=results)
+        self.assertEqual(_probe_via_interpreter(runner, interpreter), [])
 
 
 # ============================================================
