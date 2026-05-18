@@ -253,10 +253,35 @@ def run_fix_cycle(
     return all_events, post_exit
 
 
+_LINE_COL_PATTERN = re.compile(r":\d+(?::\d+)?(?:-\d+:\d+)?")
+_QUOTED_FRAGMENT_PATTERN = re.compile(r'\s*"[^"]*"\s*$')
+
+
+def _normalize_finding_key(detail: str) -> str:
+    """Strip line/column numbers and any trailing quoted-fragment excerpt
+    from a finding line so an unfixed finding produces the same key
+    before and after a format pass shifts its line position.
+
+    Without normalization, an md-fix pre/post audit would compute
+    `still_open = pre & post` against raw strings like
+    `README.md:42:3 MD040 ...` vs `README.md:38:3 MD040 ...` (same
+    finding, different line after reflow) and count the same finding
+    as one `resolved` + one `new` instead of one `still_open`.
+
+    Handles the three line-position shapes the supported formatters emit:
+    - markdownlint: `path:LINE:COL MD### ...`
+    - remark:       `path:LINE:COL-LINE:COL warning ...`
+    - prettier / mdformat / dprint emit `path` only — already stable.
+    """
+    normalized = _LINE_COL_PATTERN.sub("", detail)
+    normalized = _QUOTED_FRAGMENT_PATTERN.sub("", normalized).strip()
+    return normalized
+
+
 def _finding_keys(events: Sequence[Event]) -> set[str]:
-    """Set of finding-line strings (used to compute fix-cycle deltas)."""
+    """Set of normalized finding keys (used to compute fix-cycle deltas)."""
     return {
-        str(e.detail)
+        _normalize_finding_key(e.detail)
         for e in events
         if e.event == EventType.FINDING and isinstance(e.detail, str)
     }

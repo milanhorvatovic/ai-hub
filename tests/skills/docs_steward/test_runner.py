@@ -8,7 +8,7 @@ from docs_steward.baseline import UNIVERSAL_SUBSET
 from docs_steward.events import EventType
 from docs_steward.modes import Mode
 from docs_steward.process import ProcessResult
-from docs_steward.runner import run_fix_cycle, run_tool
+from docs_steward.runner import _normalize_finding_key, run_fix_cycle, run_tool
 from docs_steward.tools import Tool
 
 from .fakes import FakeProcessRunner
@@ -354,6 +354,82 @@ class RunFixCycleTests(unittest.TestCase):
         self.assertEqual(code, 2)
         # No DELTA event since we bailed early.
         self.assertEqual([e for e in events if e.event == EventType.DELTA], [])
+
+    def test_delta_counts_unfixed_finding_as_still_open_after_line_shift(self) -> None:
+        # Regression: when format pass shifts line numbers, an unfixed
+        # finding's raw output line changes (e.g. README.md:42:3 MD040 ...
+        # becomes README.md:38:3 MD040 ...). Before normalization,
+        # set-difference treated these as two different findings — one
+        # resolved + one new — instead of one still_open. The delta must
+        # use line-agnostic keys so unfixed findings count as still_open.
+        audit_cmd = ("markdownlint-cli2",
+                     "**/*.md", "#node_modules", "#.git",
+                     "#dist", "#build", "#.venv")
+        fmt_cmd = ("markdownlint-cli2", "--fix",
+                   "**/*.md", "#node_modules", "#.git",
+                   "#dist", "#build", "#.venv")
+        pre_out = 'README.md:42:3 MD040 fenced-code-language-required "```"\n'
+        post_out = 'README.md:38:3 MD040 fenced-code-language-required "```"\n'
+
+        call_count = {"audit": 0}
+
+        class StatefulRunner(FakeProcessRunner):
+            def run(self, args, cwd=None, stdin=None):  # type: ignore[override]
+                key = tuple(args)
+                if key == audit_cmd:
+                    call_count["audit"] += 1
+                    if call_count["audit"] == 1:
+                        return ProcessResult(1, pre_out, "")
+                    return ProcessResult(1, post_out, "")
+                if key == fmt_cmd:
+                    return ProcessResult(0, "README.md 7ms\n", "")
+                return ProcessResult(0, "", "")
+
+        runner = StatefulRunner(paths={"markdownlint-cli2": "/x/mdl2"})
+        events, code = run_fix_cycle(runner, ROOT, ".markdownlint.json", False)
+        # post-audit still has a finding -> exit 1
+        self.assertEqual(code, 1)
+        deltas = [e for e in events if e.event == EventType.DELTA]
+        self.assertEqual(len(deltas), 1)
+        self.assertEqual(deltas[0].detail["resolved"], 0)  # type: ignore[index]
+        self.assertEqual(deltas[0].detail["still_open"], 1)  # type: ignore[index]
+        self.assertEqual(deltas[0].detail["new"], 0)  # type: ignore[index]
+
+
+class NormalizeFindingKeyTests(unittest.TestCase):
+    def test_strips_line_and_col_from_markdownlint_shape(self) -> None:
+        self.assertEqual(
+            _normalize_finding_key('README.md:42:3 MD040 fenced-code-language "```"'),
+            "README.md MD040 fenced-code-language",
+        )
+
+    def test_strips_line_only_form(self) -> None:
+        self.assertEqual(
+            _normalize_finding_key("foo.md:42 MD009 trailing-whitespace"),
+            "foo.md MD009 trailing-whitespace",
+        )
+
+    def test_strips_remark_range_form(self) -> None:
+        self.assertEqual(
+            _normalize_finding_key(
+                "foo.md:42:3-42:10 warning Missing newline final-newline remark-lint"
+            ),
+            "foo.md warning Missing newline final-newline remark-lint",
+        )
+
+    def test_filename_only_passes_through(self) -> None:
+        # Prettier / mdformat / dprint emit just a filename — already stable.
+        self.assertEqual(_normalize_finding_key("foo.md"), "foo.md")
+
+    def test_strips_trailing_quoted_fragment(self) -> None:
+        self.assertEqual(
+            _normalize_finding_key('foo.md MD040 fenced-code-language "```diff"'),
+            "foo.md MD040 fenced-code-language",
+        )
+
+    def test_idempotent_for_already_normalized_keys(self) -> None:
+        key = "foo.md MD040 fenced-code-language"
+        self.assertEqual(_normalize_finding_key(key), key)
 
 
 if __name__ == "__main__":
