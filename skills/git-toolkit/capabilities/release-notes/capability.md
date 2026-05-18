@@ -23,6 +23,7 @@ Resolve the range:
 
 Guards:
 
+- **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. GitLab and Codeberg/Forgejo have native Releases concepts (`glab release create`, `tea release create`); Bitbucket Cloud does not — refuse cleanly on Bitbucket rather than emulating Releases via downloads.
 - 0 commits in range → stop with "nothing since <tag>."
 - `gh` not authenticated → degrade to commit-only mode (no PR enrichment, no contributor handles); warn the user.
 - Repo has no remote → commit-only mode.

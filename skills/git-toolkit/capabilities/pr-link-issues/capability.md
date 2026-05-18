@@ -16,6 +16,7 @@ Detects issue refs the PR should declare, verifies the diff resolves them, propo
 
 ## Input guards
 
+- **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. On non-GitHub remotes (GitLab / Codeberg / Bitbucket), follow the degrade path in `forge-adapters.md` — refuse cleanly if no portable equivalent exists.
 - Resolve PR (user-supplied OR `gh pr list --head <branch>`).
 - `state == OPEN` — refuse on merged/closed.
 - `gh` auth required.

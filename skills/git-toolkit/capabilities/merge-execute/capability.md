@@ -16,6 +16,7 @@ Outputs the canonical `gh pr merge` command. Tiny capability — read repo polic
 
 ## Input guards
 
+- **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. On non-GitHub remotes (GitLab `glab mr merge`, Codeberg `tea pr merge`, Bitbucket curl), follow the degrade path in `forge-adapters.md` — merge-mode terminology differs (squash/rebase/merge on GitHub; `merge_method` setting on GitLab; "merge style" on Forgejo).
 - Resolve target PR (number from user OR `gh pr list --head <branch>`).
 - `state == OPEN` and not draft → otherwise refuse.
 - `gh` auth required.

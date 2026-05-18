@@ -16,6 +16,7 @@ Interprets failed CI checks and proposes likely fixes; doesn't just list status.
 
 ## Input guards
 
+- **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. This capability parses GitHub Actions log shape that has no portable equivalent on other forges — refuse cleanly on non-GitHub remotes rather than producing a degraded GitHub-shaped output.
 - Resolve PR (user-supplied OR `gh pr list --head <branch>`).
 - `gh` auth required.
 - If no checks are configured: stop with "no CI checks configured for this repo".

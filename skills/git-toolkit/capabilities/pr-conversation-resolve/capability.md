@@ -16,6 +16,7 @@ Lists unresolved review threads, proposes responses, surfaces commands. Doesn't 
 
 ## Input guards
 
+- **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. On non-GitHub remotes (GitLab / Codeberg / Bitbucket), follow the degrade path in `forge-adapters.md`; thread-state semantics differ subtly across forges and may not round-trip exactly.
 - Resolve PR (user-supplied OR `gh pr list --head <branch>`).
 - `state == OPEN` and not closed — otherwise threads are moot.
 - `gh` auth required.
