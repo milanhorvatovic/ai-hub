@@ -48,8 +48,13 @@ _GFM_AUTOLINK = re.compile(r"(?<!\]\()https?://\S+(?![^\[]*\])")
 
 
 def probe_mdformat_plugins(runner: ProcessRunner) -> list[Event]:
-    """For each known mdformat plugin, run `<plugin> --version` (the plugin
-    binary if it ships one, else `pip show`). Emit PLUGIN_AVAILABLE per hit.
+    """For each known mdformat plugin in `KNOWN_PLUGINS`, run `pip show
+    <package>` (falling back to `pip3` when `pip` is absent). Emit
+    PLUGIN_AVAILABLE per hit with the version parsed from `pip show`'s
+    `Version:` line. mdformat plugins do not ship standalone binaries, so
+    `pip show` is the single probe strategy — no `<plugin> --version`
+    invocation is attempted. Returns an empty list when neither `pip` nor
+    `pip3` is on PATH (no plugins reliably detectable).
 
     Returns events only — caller decides whether/how to surface them.
     """

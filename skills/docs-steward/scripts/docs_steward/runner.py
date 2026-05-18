@@ -196,12 +196,16 @@ def run_fix_cycle(
 ) -> tuple[list[Event], int]:
     """One-shot loopback: audit → format → re-audit → emit DELTA.
 
-    Always runs audit twice (pre + post format). The DELTA event reports
-    resolved / still_open / new finding counts by file+line identity. When
-    pre-audit is clean, format is skipped and DELTA reports zeros.
+    Runs audit at least once. When the pre-audit is already clean (no
+    FINDING events), the format and re-audit phases are skipped entirely
+    and a zeroed DELTA is emitted. Otherwise audit is invoked twice — once
+    before format and once after — and the DELTA event reports resolved /
+    still_open / new finding counts by file+line identity. If the pre-audit
+    or the format phase errors out (exit ≥ 2), the cycle bails early and
+    the post-audit is not run.
 
-    Exit code reflects the post-audit state: 0 clean after fix, 1 findings
-    still present, 2 formatter/audit error encountered in any phase.
+    Exit code reflects the latest completed phase: 0 clean after fix (or
+    clean pre-audit), 1 findings still present, 2 formatter/audit error.
     """
     pre_events, pre_exit = run_tool(
         Mode.AUDIT, baseline, unwrap, runner, root, files=files, quiet=quiet
