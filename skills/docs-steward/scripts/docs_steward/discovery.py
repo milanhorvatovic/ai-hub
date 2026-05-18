@@ -34,14 +34,35 @@ def list_markdown_files(runner: ProcessRunner, root: str) -> list[str]:
 
 def _try_git_ls_files(runner: ProcessRunner, root: str) -> list[str] | None:
     """Attempt `git ls-files`; return None when git is absent or the cwd is
-    not a git repository (caller should fall back to filesystem walk)."""
+    not a git repository (caller should fall back to filesystem walk).
+
+    The listing intentionally includes both tracked AND
+    untracked-but-not-ignored markdown files via `--cached --others
+    --exclude-standard`. A bare `git ls-files *.md *.markdown` would
+    silently drop newly created markdown files that have not been
+    `git add`-ed yet, contradicting the skill's promise to inspect every
+    markdown file under root that `.gitignore` doesn't exclude.
+    """
     result = runner.run(
-        ["git", "ls-files", "*.md", "*.markdown"], cwd=root
+        [
+            "git", "ls-files",
+            "--cached", "--others", "--exclude-standard",
+            "*.md", "*.markdown",
+        ],
+        cwd=root,
     )
     if result.returncode != 0:
         return None
     rels = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    return [_posix_join(root, rel) for rel in rels]
+    # Deduplicate: --cached and --others can both surface the same path
+    # in certain index states; preserve first-seen order.
+    seen: set[str] = set()
+    unique_rels: list[str] = []
+    for rel in rels:
+        if rel not in seen:
+            seen.add(rel)
+            unique_rels.append(rel)
+    return [_posix_join(root, rel) for rel in unique_rels]
 
 
 def _walk(root: str) -> list[str]:
