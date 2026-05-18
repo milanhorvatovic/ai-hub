@@ -13,8 +13,12 @@ that returns True when the text contains syntax requiring `mdformat-gfm`.
 Used by:
 - `probe.probe_tools`: emits PLUGIN_AVAILABLE events when mdformat is on PATH
   and any known plugin is detected.
-- `runner.run_tool`: when mdformat is selected and a target file contains GFM
-  syntax but `mdformat-gfm` is not installed, emits a PLUGIN_MISSING event.
+- `cli._maybe_plugin_missing_events`: when mdformat is selected and a target
+  file contains GFM syntax but `mdformat-gfm` is not installed, emits a
+  PLUGIN_MISSING event before the formatter runs (so consumers see the
+  warning ahead of the audit findings). `runner.run_tool` itself does not
+  perform plugin detection; the check is hoisted to the CLI dispatcher so
+  it can pass the resolved target files in.
 """
 
 from __future__ import annotations

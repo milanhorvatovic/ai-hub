@@ -21,8 +21,11 @@ class EventType(str, Enum):
     - SELECTED: detail is a dict {"baseline", "mode", "unwrap", "config_source", "cmd"}.
     - FINDING / CHANGED / WOULD_CHANGE: detail is a string (one line of formatter output).
     - ERROR: detail is a dict {"exit": int, "hint"?: str} or a string.
-    - PLUGIN_AVAILABLE: detail is a dict {"tool": str, "plugin": str, "version": str}.
-    - PLUGIN_MISSING: detail is a dict {"tool", "plugin", "file"?, "reason"}.
+    - PLUGIN_AVAILABLE: event.tool is "mdformat"; detail is a dict
+      {"plugin": str, "package": str, "version": str}. (The `tool` field
+      lives on the Event itself, not inside `detail`.)
+    - PLUGIN_MISSING: event.tool is "mdformat"; detail is a dict
+      {"plugin": str, "package": str, "file": str, "reason": str}.
     - DELTA: detail is a dict {"resolved": int, "still_open": int, "new": int}.
 
     Full per-event schema lives in references/ndjson-schema.md.
