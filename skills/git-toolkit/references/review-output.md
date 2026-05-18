@@ -53,6 +53,8 @@ Keys:
 
 The schema is also published as JSON Schema at `review-output.schema.json` (Draft 2020-12). Consumers can validate NDJSON streams with any standards-compliant validator (`ajv-cli`, `check-jsonschema`, etc.). The schema enforces: `scope=commit` requires `sha`; `scope=branch/range/pr` requires `ref`; `FAIL` and `MOSTLY-PASS` results require a `fix` string.
 
+A worked example stream lives at `review-output.example.ndjson` — 15 findings covering PASS / MOSTLY-PASS / FAIL / N/A across commit / branch / pr / range scopes, including aggregate PASS counts, single-commit FAIL findings with `fix` imperatives, a PR-body MOSTLY-PASS with an excerpt, and a final verdict aggregate. Tests can use this file as a schema-validation fixture; new consumers can read it to see the schema applied to realistic findings rather than reading the schema in isolation.
+
 ## Verdict line
 
 At the end of the report (both human and NDJSON), emit a single-line verdict:
