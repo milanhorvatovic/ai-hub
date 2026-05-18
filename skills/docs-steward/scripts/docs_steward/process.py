@@ -118,13 +118,25 @@ class SubprocessRunner:
                 env=self._env,
             )
         except FileNotFoundError as exc:
-            # `which()` resolved a path that does not exist or is not executable
-            # (stale shim, broken symlink, race between `which` and `run`).
-            # Surface as a synthetic "command not found" result instead of
-            # propagating — caller-side error handling already covers non-zero
-            # exits, and the alternative is callers wrapping every run() in
-            # try/except.
+            # `which()` resolved a path that does not exist (stale shim,
+            # broken symlink, race between `which` and `run`). Surface as
+            # POSIX "command not found" — caller-side error handling
+            # already covers non-zero exits, and the alternative is
+            # callers wrapping every run() in try/except.
             return ProcessResult(returncode=127, stdout="", stderr=str(exc))
+        except PermissionError as exc:
+            # Binary exists but is not executable (chmod -x, mounted with
+            # noexec, ACL-denied). POSIX shells exit 126 in this case.
+            return ProcessResult(returncode=126, stdout="", stderr=str(exc))
+        except OSError as exc:
+            # Catch-all for the remaining exec-time OS errors (ENOEXEC,
+            # ENOTDIR mid-path, ELOOP, ENAMETOOLONG, etc.). Same rationale
+            # as the two narrower handlers above — propagating would force
+            # every caller to wrap run() in a try/except and would crash
+            # the CLI on a non-fatal toolchain hiccup. 126 is the closest
+            # POSIX shell convention for "command exists but cannot be
+            # executed."
+            return ProcessResult(returncode=126, stdout="", stderr=str(exc))
         return ProcessResult(
             returncode=completed.returncode,
             stdout=completed.stdout or "",

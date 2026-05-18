@@ -49,6 +49,48 @@ class AugmentPathTests(unittest.TestCase):
             self.assertIn(home_bin, result.split(os.pathsep))
 
 
+class SubprocessRunnerRunErrorHandlingTests(unittest.TestCase):
+    """`run()` must convert OS-level exec failures into ProcessResult objects;
+    propagating them would force every caller to wrap run() in try/except and
+    crash the CLI on hiccups the orchestration layer can already handle."""
+
+    def test_missing_binary_returns_127(self) -> None:
+        runner = SubprocessRunner(extra_path_dirs=())
+        result = runner.run(["/nonexistent/path/to/binary"])
+        self.assertEqual(result.returncode, 127)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("/nonexistent", result.stderr)
+
+    @unittest.skipIf(
+        sys.platform == "win32",
+        "POSIX-only: chmod -x doesn't render a file unexecutable on Windows.",
+    )
+    def test_non_executable_binary_returns_126(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "no-exec")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("#!/bin/sh\necho ok\n")
+            os.chmod(path, 0o644)  # readable, NOT executable
+            runner = SubprocessRunner(extra_path_dirs=())
+            result = runner.run([path])
+            self.assertEqual(result.returncode, 126)
+            self.assertEqual(result.stdout, "")
+            # PermissionError vs IsADirectoryError both arrive here; tolerant.
+            self.assertTrue(result.stderr)
+
+    @unittest.skipIf(
+        sys.platform == "win32",
+        "POSIX-only: passing a directory as an executable raises OSError on POSIX.",
+    )
+    def test_directory_as_binary_returns_126(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = SubprocessRunner(extra_path_dirs=())
+            result = runner.run([tmp])
+            self.assertEqual(result.returncode, 126)
+            self.assertEqual(result.stdout, "")
+            self.assertTrue(result.stderr)
+
+
 class SubprocessRunnerConstructorTests(unittest.TestCase):
     def test_augments_path_with_existing_extras(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
