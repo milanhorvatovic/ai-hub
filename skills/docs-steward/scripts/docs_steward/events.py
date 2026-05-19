@@ -28,9 +28,14 @@ class EventType(str, Enum):
       Consumers should branch on `detail["mode"]`.
     - FINDING / CHANGED / WOULD_CHANGE: detail is a string (one line of formatter output).
     - ERROR: detail is pipeline-specific. Two shapes are emitted:
-      (a) {"exit": int, "hint"?: str} — formatter or yamllint returned
-          a non-zero exit (typically >= 2) that we surface as an
-          invocation error. The skill aggregate exit code is 2.
+      (a) {"exit": int, "stderr"?: str} — formatter or yamllint
+          returned a non-zero exit (typically >= 2; negative values
+          surface signal-killed children, e.g. -15 for SIGTERM) that
+          we surface as an invocation error. The `stderr` field
+          carries the failing-run diagnostic verbatim
+          (whitespace-stripped) when the tool produced any; the field
+          is OMITTED when stderr was empty, so consumers can branch
+          on `"stderr" in detail`. The skill aggregate exit code is 2.
       (b) {"file": str, "reason": str} — `md-audit-frontmatter` could
           not read a target file (deleted between discovery and audit,
           encoding error, permission denied). Emitted inline per file;

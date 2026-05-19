@@ -207,7 +207,13 @@ class AuditFrontmatterTests(unittest.TestCase):
         self.assertEqual(code, 2)
         errors = [e for e in events if e.event == EventType.ERROR]
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].detail, {"exit": 2})
+        # ERROR detail now carries the yamllint stderr text so the
+        # consumer sees the actual diagnostic ('yamllint config error')
+        # alongside the {exit: 2} signal. Round 9 attached stderr to
+        # the invocation-failure path.
+        self.assertEqual(
+            errors[0].detail, {"exit": 2, "stderr": "yamllint config error"},
+        )
 
     def test_yamllint_strict_warning_exit_2_with_findings_maps_to_exit_1(self) -> None:
         # yamllint -s returns 2 whenever any warning-level finding fires.

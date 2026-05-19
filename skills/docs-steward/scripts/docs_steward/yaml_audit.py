@@ -76,10 +76,13 @@ def _audit_one_block(
     file_path: str,
     block: FrontmatterBlock,
     argv: Sequence[str],
-) -> tuple[list[Event], int, int]:
+) -> tuple[list[Event], int, int, str]:
     """Run yamllint on a single block; return (events, returncode,
-    matched_count) where matched_count is the number of output lines
-    that parsed as proper yamllint parsable findings (vs fallback)."""
+    matched_count, stderr_text). matched_count is the number of output
+    lines that parsed as proper yamllint parsable findings (vs
+    fallback). stderr_text is returned alongside so the caller can
+    attach it to the ERROR event when the run actually failed —
+    successful runs ignore it (round-8g restriction)."""
     result = runner.run(list(argv), stdin=block.yaml_text)
     events: list[Event] = []
     matched_count = 0
@@ -89,7 +92,7 @@ def _audit_one_block(
     # noise into fallback FINDING events with raw text as detail.
     # Restrict the parse to stdout and let the rc-based invocation-
     # failure path (audit_frontmatter's matched_count==0 + rc>=2 check)
-    # surface true failures via the {exit: N} ERROR event.
+    # surface true failures via the {exit: N, stderr: ...} ERROR event.
     output = result.stdout.strip()
     for line in output.splitlines():
         stripped = line.rstrip("\r").strip()
@@ -99,7 +102,7 @@ def _audit_one_block(
         if matched:
             matched_count += 1
         events.append(Event(EventType.FINDING, _TOOL.value, finding))
-    return events, result.returncode, matched_count
+    return events, result.returncode, matched_count, result.stderr
 
 
 def audit_frontmatter(
@@ -149,6 +152,7 @@ def audit_frontmatter(
 
     blocks_scanned = 0
     invocation_failure_rc = 0
+    invocation_failure_stderr = ""
     any_file_error = False
 
     for file_path in files:
@@ -179,7 +183,7 @@ def audit_frontmatter(
             continue
         for block in extract_blocks(text):
             blocks_scanned += 1
-            block_events, rc, matched_count = _audit_one_block(
+            block_events, rc, matched_count, stderr_text = _audit_one_block(
                 runner, file_path, block, argv,
             )
             events.extend(block_events)
@@ -192,12 +196,16 @@ def audit_frontmatter(
                 # avoids classifying every warning-only audit as exit 2 +
                 # ERROR; only true invocation failures (config error,
                 # python traceback, missing schema) take this path.
-                invocation_failure_rc = max(invocation_failure_rc, rc)
+                if rc > invocation_failure_rc:
+                    invocation_failure_rc = rc
+                    invocation_failure_stderr = stderr_text
 
     if invocation_failure_rc >= 2:
-        events.append(
-            Event(EventType.ERROR, _TOOL.value, {"exit": invocation_failure_rc}),
-        )
+        detail: dict[str, object] = {"exit": invocation_failure_rc}
+        stderr_trimmed = invocation_failure_stderr.strip()
+        if stderr_trimmed:
+            detail["stderr"] = stderr_trimmed
+        events.append(Event(EventType.ERROR, _TOOL.value, detail))
         return events, 2
 
     if any_file_error:

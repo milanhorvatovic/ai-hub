@@ -19,7 +19,7 @@ Consumers should parse one line at a time and dispatch by `event`. Schema is sta
 | `changed` | tool name | string (one line of formatter output) | `md-format.py` write mode: per-file change line |
 | `would-change` | tool name | string (one line of formatter check output) | `md-format.py --dry-run`: per-file would-change line |
 | `clean` | tool name | string (human message) | When the chosen tool returns exit 0 with no findings/changes |
-| `error` | tool name | `{"exit": int}` (tool returned non-zero), `{"file": str, "reason": str}` (per-file unreadable), or string | When the chosen tool returns exit ≥ 2 (config error, plugin missing, etc.) OR — for `md-audit-frontmatter` — a target file fails to read (deleted between discovery and audit, encoding error, permission denied); see `error` variants below |
+| `error` | tool name | `{"exit": int, "stderr"?: str}` (tool returned non-zero; `stderr` carries the failing-run diagnostic when present), `{"file": str, "reason": str}` (per-file unreadable), or string | When the chosen tool returns exit ≥ 2 (config error, plugin missing, etc.) OR — for `md-audit-frontmatter` — a target file fails to read (deleted between discovery and audit, encoding error, permission denied); see `error` variants below |
 | `plugin-available` | `"mdformat"` | `{"plugin": str, "package": str, "version": str}` | `probe.py`: each detected mdformat plugin (mdformat-gfm, mdformat-tables, etc.) |
 | `plugin-missing` | `"mdformat"` | `{"plugin": str, "package": str, "file": str, "reason": str}` | When mdformat is selected and a target file contains syntax requiring an absent plugin (today: GFM detection for `mdformat-gfm`) |
 | `delta` | `"fix-cycle"` | `{"resolved": int, "still_open": int, "new": int}` | `md-fix.py`: single summary at the end of the audit → format → re-audit loop |
@@ -72,13 +72,17 @@ Two variants. Consumers should branch on `isinstance(detail, dict) and "file" in
 
 #### Exit-code variant
 
-Emitted once per pipeline when the chosen formatter exits ≥ 2 (config error, plugin missing, etc.):
+Emitted once per pipeline when the chosen formatter exits ≥ 2 (config error, plugin missing, etc.) or returns a negative `returncode` (signal-killed: `-SIGTERM` → -15, `-SIGKILL` → -9). The `stderr` field carries the failing-run diagnostic verbatim (whitespace-stripped) when the tool produced any; the field is omitted entirely when stderr was empty, so a consumer can branch on `"stderr" in detail`.
+
+```json
+{"event": "error", "tool": "prettier", "detail": {"exit": 2, "stderr": "Invalid configuration: unknown option 'tabWdith'"}}
+```
 
 ```json
 {"event": "error", "tool": "prettier", "detail": {"exit": 2}}
 ```
 
-The tool's actual stderr is emitted as preceding `finding` / `changed` events (not folded into the error detail).
+Successful runs filter stderr out of the event stream (banner / deprecation noise would otherwise become spurious `finding` / `changed` events under FORMAT mode). The exit-code variant is the only path that attaches stderr; AUDIT mode still concatenates stderr into the `finding` stream because some tools emit real findings there.
 
 #### Per-file unreadable variant
 

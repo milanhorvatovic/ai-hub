@@ -78,7 +78,10 @@ class RunToolTests(unittest.TestCase):
         self.assertEqual(code, 2)
         errors = [e for e in events if e.event == EventType.ERROR]
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].detail, {"exit": -15})
+        # ERROR detail carries the returncode and the stderr text from
+        # the killed child so consumers see what the formatter said
+        # before exit. Round 9 attached stderr to the failure path.
+        self.assertEqual(errors[0].detail, {"exit": -15, "stderr": "killed"})
 
     def test_tool_error_exit_geq_2_emits_error_event_and_exit_2(self) -> None:
         cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
@@ -90,6 +93,22 @@ class RunToolTests(unittest.TestCase):
         self.assertEqual(code, 2)
         errors = [e for e in events if e.event == EventType.ERROR]
         self.assertEqual(len(errors), 1)
+        # ERROR detail surfaces stderr so the consumer sees the actual
+        # diagnostic ('config error') and not just `{exit: 2}`.
+        self.assertEqual(errors[0].detail, {"exit": 2, "stderr": "config error"})
+
+    def test_tool_error_with_empty_stderr_omits_stderr_field(self) -> None:
+        # When the failing run produced no stderr, the ERROR detail
+        # stays compact — no `stderr: ""` noise. Consumers branching
+        # on `'stderr' in detail` see only the meaningful case.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(2, "", "")},
+        )
+        events, code = run_tool(Mode.AUDIT, ".prettierrc", False, runner, ROOT)
+        self.assertEqual(code, 2)
+        errors = [e for e in events if e.event == EventType.ERROR]
         self.assertEqual(errors[0].detail, {"exit": 2})
 
     def test_format_mode_stderr_noise_does_not_suppress_clean(self) -> None:

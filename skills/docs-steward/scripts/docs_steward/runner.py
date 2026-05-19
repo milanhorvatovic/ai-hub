@@ -279,7 +279,20 @@ def run_tool(
     # FINDING / CHANGED events instead of being labelled as the failure
     # they are.
     if result.returncode >= 2 or result.returncode < 0:
-        events.append(Event(EventType.ERROR, tool.value, {"exit": result.returncode}))
+        # Attach the tool's stderr to the ERROR detail when the run
+        # failed. Successful runs filter stderr out of the event stream
+        # (round 8g) to avoid leaking deprecation warnings / banner
+        # noise as spurious CHANGED events, but the FAILURE path needs
+        # those bytes — a `prettier --write` config-error, an mdformat
+        # plugin crash, a Python traceback from yamllint all surface on
+        # stderr with empty stdout, so a bare {"exit": N} ERROR gave
+        # consumers no actionable signal. stderr is included verbatim
+        # (with surrounding whitespace stripped) when present.
+        detail: dict[str, object] = {"exit": result.returncode}
+        stderr_text = result.stderr.strip()
+        if stderr_text:
+            detail["stderr"] = stderr_text
+        events.append(Event(EventType.ERROR, tool.value, detail))
         return events, 2
     return events, 1
 
