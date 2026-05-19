@@ -174,8 +174,18 @@ def audit_frontmatter(
         )
         return events, 2
 
+    if any_file_error:
+        # Per-file read errors mean the audit could not complete against
+        # every requested file (file deleted between discovery and audit,
+        # encoding error, permission). Map to exit 2 even when real
+        # findings also surfaced — exit 1 would advertise the run as
+        # "audit found problems, fix them" and silently drop the
+        # setup-error signal the module docstring promises maps to 2.
+        # Findings still ride along in the event stream.
+        return events, 2
+
     finding_count = sum(1 for e in events if e.event == EventType.FINDING)
-    if finding_count == 0 and not any_file_error:
+    if finding_count == 0:
         events.append(
             Event(
                 EventType.CLEAN,
@@ -184,11 +194,4 @@ def audit_frontmatter(
             )
         )
         return events, 0
-    if finding_count == 0 and any_file_error:
-        # No real findings — only per-file read failures (file deleted,
-        # encoding errors, permission). Exit 1 would advertise "findings
-        # present" to a CI consumer; exit 2 (invocation/setup error)
-        # tells the truth: yamllint was healthy but the audit couldn't
-        # complete against every requested file.
-        return events, 2
     return events, 1

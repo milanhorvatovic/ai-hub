@@ -81,9 +81,12 @@ class AuditFrontmatterTests(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertIn("missing.md", errors[0].detail["file"])  # type: ignore[index]
 
-    def test_unreadable_file_plus_real_findings_returns_exit_1(self) -> None:
-        # When file errors AND lint findings coexist, exit 1 still wins —
-        # the findings are the real signal, the file error is supplemental.
+    def test_unreadable_file_plus_real_findings_still_returns_exit_2(self) -> None:
+        # Any per-file read error short-circuits to exit 2, regardless of
+        # whether real findings also surfaced. The docstring promises
+        # exit 2 maps to "a target file was unreadable"; exit 1 would
+        # silently drop that signal for a CI consumer who routes the
+        # codes differently. Findings ride along in the event stream.
         fs = FakeFileSystem(files={"/repo/dirty.md": "---\nkey: value\n---\n"})
         runner = _runner_with_yamllint({
             _BASE_ARGV: ProcessResult(
@@ -95,7 +98,7 @@ class AuditFrontmatterTests(unittest.TestCase):
         events, code = audit_frontmatter(
             runner, fs, ["/repo/missing.md", "/repo/dirty.md"],
         )
-        self.assertEqual(code, 1)
+        self.assertEqual(code, 2)
         findings = [e for e in events if e.event == EventType.FINDING]
         self.assertEqual(len(findings), 1)
         errors = [
@@ -123,7 +126,10 @@ class AuditFrontmatterTests(unittest.TestCase):
         events, code = audit_frontmatter(
             runner, fs, ["/repo/missing-first.md", "/repo/b.md"]
         )
-        self.assertEqual(code, 1)
+        # Per round-6 docstring reconciliation: any file error short-
+        # circuits to exit 2 even when findings also surface. The point
+        # of this test is the ORDERING of the events, not the exit code.
+        self.assertEqual(code, 2)
         # SELECTED + BUNDLED_CONFIG are preamble; after them, file
         # processing should emit the missing-first.md ERROR before the
         # /repo/b.md FINDING, matching the input file order.
