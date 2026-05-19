@@ -23,16 +23,24 @@ import pytest
 
 def _collect_relative_links(md_path: Path) -> list[tuple[str, int]]:
     """Return (relative-link, 1-based-line-number) for every backtick-quoted
-    path that looks like a reference into the skill tree.
+    relative `.md` path into the skill tree.
 
-    Catches forms like `references/foo.md`, `../../references/foo.md`,
-    `capabilities/foo/capability.md`.
+    Matches skill-internal relative links ending in `.md`, in either form:
+    a `../`-prefixed traversal (so intra-capability sibling links like
+    `../pr-conversation-resolve/capability.md` are validated alongside
+    `../../references/foo.md`), or a `references/` / `capabilities/` prefix
+    (as used from SKILL.md). Repo-root path mentions like
+    `.github/copilot-instructions.md` and bare prose mentions like
+    `format-conventions.md` are intentionally excluded — they are not
+    skill-relative links.
     """
     text = md_path.read_text(encoding="utf-8")
     out: list[tuple[str, int]] = []
     for lineno, line in enumerate(text.splitlines(), start=1):
         for m in re.finditer(
-            r"`((?:\.\./)*(?:references|capabilities)/[A-Za-z0-9_./-]+)`", line
+            r"`((?:(?:\.\./)+[A-Za-z0-9_./-]+"
+            r"|(?:references|capabilities)/[A-Za-z0-9_./-]+)\.md)`",
+            line,
         ):
             out.append((m.group(1), lineno))
     return out
