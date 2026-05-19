@@ -24,7 +24,7 @@ Used by:
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from .events import Event, EventType
 from .process import ProcessRunner
@@ -197,7 +197,7 @@ def detect_installed_plugin_labels(runner: ProcessRunner) -> set[str]:
 
 
 def emit_plugin_missing(
-    files: Sequence[str], read_text: "Callable[[str], str]",  # noqa: F821 — fwd ref
+    files: Sequence[str], read_text: Callable[[str], str],
     installed_labels: set[str],
 ) -> list[Event]:
     """For each file whose content requires a plugin not in `installed_labels`,
