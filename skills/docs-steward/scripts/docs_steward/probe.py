@@ -69,8 +69,12 @@ def probe_tools(runner: ProcessRunner) -> tuple[list[Event], int]:
             if tool == Tool.MDFORMAT:
                 mdformat_available = True
     if mdformat_available:
-        # Append plugin-availability events for any known mdformat plugin
-        # detected via `pip show <package>`.
+        # Append plugin-availability events for any known mdformat plugin.
+        # probe_mdformat_plugins prefers the python interpreter resolved
+        # from mdformat's shebang (via importlib.metadata) so pipx / uv
+        # tool isolated installs are detected correctly; it falls back to
+        # `pip show <package>` (pip / pip3 on PATH) only when the shebang
+        # isn't readable (Windows .exe launchers, compiled wrappers).
         events.extend(probe_mdformat_plugins(runner))
     if not formatter_available:
         # Preserve any AVAILABLE events (e.g. yamllint) so callers can still
