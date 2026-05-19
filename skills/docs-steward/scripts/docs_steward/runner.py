@@ -85,6 +85,18 @@ def _emit_output_lines(
     return events
 
 
+# argv flags that take a value as the next token. _scope_command must
+# NOT drop the value half even when that value happens to match the
+# glob-arg heuristic (e.g. `--config notes.md` would otherwise leave
+# `--config` orphaned and the formatter would consume the next flag
+# as the config path).
+_VALUE_BEARING_FLAGS: frozenset[str] = frozenset({
+    "--config",
+    "-c",
+    "--ignore-path",
+})
+
+
 def _scope_command(
     cmd: list[str], files: Sequence[str] | None
 ) -> list[str]:
@@ -100,6 +112,12 @@ def _scope_command(
     explicit files are appended after. Negative-glob args (`#node_modules`)
     are also dropped when scoping (they're meaningless on an explicit list).
 
+    Value halves of preceding value-bearing flags (`--config <path>`,
+    `-c <path>`, `--ignore-path <path>`) are NEVER dropped, even when the
+    value matches the glob-arg heuristic — a `--config notes.md` argv
+    pair must survive scoping intact or the formatter ends up consuming
+    the next flag as its config path.
+
     A POSIX `--` separator is inserted between the kept flags and the
     explicit files so that a path beginning with `-` / `--` (e.g.
     `./--draft.md`) is treated as a positional file rather than a flag by
@@ -109,10 +127,20 @@ def _scope_command(
     if files is None:
         return cmd
     keep: list[str] = []
+    prev: str | None = None
     for arg in cmd:
-        if arg.startswith("#") or "**" in arg or arg.endswith(".md") or arg.endswith(".markdown") or arg == ".":
+        glob_like = (
+            arg.startswith("#")
+            or "**" in arg
+            or arg.endswith(".md")
+            or arg.endswith(".markdown")
+            or arg == "."
+        )
+        if glob_like and prev not in _VALUE_BEARING_FLAGS:
+            prev = arg
             continue
         keep.append(arg)
+        prev = arg
     keep.append("--")
     keep.extend(files)
     return keep

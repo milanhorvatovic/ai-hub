@@ -251,6 +251,35 @@ class PerFileTargetingTests(unittest.TestCase):
         # The -- separator must be in the rendered command string.
         self.assertIn(" -- ", selected.detail["cmd"])  # type: ignore[index]
 
+    def test_scope_command_preserves_value_of_preceding_config_flag(self) -> None:
+        # Regression: _scope_command's glob-arg heuristic dropped any token
+        # ending in `.md` / `.markdown`. A `--config notes.md` value pair
+        # would lose its value half, leaving the formatter to consume the
+        # next flag as the config path. The dropper now skips tokens that
+        # follow a value-bearing flag (`--config`, `-c`, `--ignore-path`).
+        # Use a hypothetical baseline that yields a .md config path:
+        # --baseline /repo/notes.md doesn't normally route through the
+        # family table, so we trigger the value-half scenario by faking
+        # the build_command output via baseline_belongs_to_tool match —
+        # use the existing _scope_command directly with a synthesized cmd.
+        from docs_steward.runner import _scope_command
+        cmd = [
+            "markdownlint",
+            "--config", "/repo/special.markdown",
+            "--ignore-path", "tooling/.gitignore.md",
+            "**/*.md",
+            "**/*.markdown",
+        ]
+        scoped = _scope_command(cmd, ["/repo/docs/intro.md"])
+        # Value halves survive even though both end in .markdown / .md:
+        self.assertIn("/repo/special.markdown", scoped)
+        self.assertIn("tooling/.gitignore.md", scoped)
+        # The glob args after the value pairs are still dropped:
+        self.assertNotIn("**/*.md", scoped)
+        self.assertNotIn("**/*.markdown", scoped)
+        # And the explicit file is appended after `--`:
+        self.assertEqual(scoped[-2:], ["--", "/repo/docs/intro.md"])
+
     def test_dash_prefixed_filename_passes_after_separator(self) -> None:
         # Regression: a file called --draft.md must be sent as a positional
         # arg, not parsed as an (unknown) flag by the formatter. The --
