@@ -73,7 +73,7 @@ Gate checks:
 | State                 | ✓ PASS  | OPEN |
 | CI checks             | ✗ FAIL  | 2 failing: `test (3.11)`, `lint` |
 | Mergeable             | ✓ PASS  | CLEAN |
-| Approvals             | ⚠ WARN  | REVIEW_REQUIRED (1 of 2 approvals) |
+| Approvals             | ✗ FAIL  | REVIEW_REQUIRED (1 of 2 approvals) |
 | No unresolved threads | ⚠ WARN  | 3 open threads in src/auth/refresh.py |
 | No WIP commits        | ✓ PASS  | |
 | Description in sync   | ⚠ WARN  | MINOR-UPDATE: "added retry logic" claim is partial |
