@@ -1,9 +1,13 @@
 """Inventory available formatters.
 
-`probe_tools(runner)` returns `(events, exit_code)`. One `AVAILABLE` event per
-tool on PATH (with version captured from `--version`); a single `MISSING`
-event when none were found. Exit code follows the contract: 0 when any tool
-is available, 3 when none.
+`probe_tools(runner)` returns `(events, exit_code)`. One `AVAILABLE` event
+per supported tool on PATH (with version captured from `--version`); a
+single `MISSING` event when no markdown FORMATTER is found. Exit code
+follows the formatter-only contract: 0 when any tool in `REGISTRY` is
+available, 3 when none. `yamllint` is complementary — its presence is
+surfaced as `AVAILABLE` but does NOT satisfy the formatter contract,
+so a host with only yamllint on PATH still exits 3 with the MISSING
+event alongside the yamllint AVAILABLE entry.
 
 `_capture_version` lives here because the same shape applies to
 `recommend_installs` — both modules call it to populate `installed` /
@@ -21,7 +25,10 @@ from .tools import REGISTRY, SUPPORTED_TOOLS, Tool
 
 _MISSING_HINT = (
     "No supported formatter on PATH. Install one of: "
-    "markdownlint-cli2, prettier, mdformat, dprint, remark-cli."
+    "markdownlint-cli2 (preferred markdownlint family), markdownlint-cli "
+    "(legacy markdownlint family, same rule configs), prettier, mdformat, "
+    "dprint, remark-cli. Run `recommend-tools.py` for platform-specific "
+    "install commands."
 )
 
 
