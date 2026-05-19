@@ -92,7 +92,7 @@ Uniform across all entry shims:
 |---|---|
 | 0 | Clean (no findings or no changes needed) |
 | 1 | Findings present, files changed, or fix-cycle left findings unresolved |
-| 2 | Formatter invocation error (returncode ≥ 2) |
+| 2 | Formatter invocation error (returncode ≥ 2), OR — for `md-audit-frontmatter` — every file requested for audit was unreadable (per-file ERROR events emit inline) |
 | 3 | No usable tool on PATH |
 
 Exception: `recommend-tools.py` uses exit 0 when the top-priority tool is installed, 1 when at least one priority tool is missing.

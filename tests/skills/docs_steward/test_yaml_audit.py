@@ -68,16 +68,42 @@ class AuditFrontmatterTests(unittest.TestCase):
         self.assertIn("[warning]", findings[0].detail)  # type: ignore[operator]
         self.assertIn("document-start", findings[0].detail)  # type: ignore[operator]
 
-    def test_unreadable_file_emits_error_but_continues(self) -> None:
+    def test_unreadable_file_with_no_findings_returns_exit_2(self) -> None:
         fs = FakeFileSystem(files={"/repo/ok.md": "---\nkey: value\n---\n"})
         # `/repo/missing.md` is not in fs → read_text raises → recorded as ERROR.
+        # /repo/ok.md audits clean, so no FINDING events; the audit must
+        # exit 2 (setup/invocation error) rather than 1 (lint findings)
+        # because exit 1 would falsely advertise "findings present" to CI.
         runner = _runner_with_yamllint({_BASE_ARGV: ProcessResult(0, "", "")})
         events, code = audit_frontmatter(runner, fs, ["/repo/missing.md", "/repo/ok.md"])
-        # Exit 1 because of the unreadable file; CLEAN suppressed.
-        self.assertEqual(code, 1)
+        self.assertEqual(code, 2)
         errors = [e for e in events if e.event == EventType.ERROR]
         self.assertEqual(len(errors), 1)
         self.assertIn("missing.md", errors[0].detail["file"])  # type: ignore[index]
+
+    def test_unreadable_file_plus_real_findings_returns_exit_1(self) -> None:
+        # When file errors AND lint findings coexist, exit 1 still wins —
+        # the findings are the real signal, the file error is supplemental.
+        fs = FakeFileSystem(files={"/repo/dirty.md": "---\nkey: value\n---\n"})
+        runner = _runner_with_yamllint({
+            _BASE_ARGV: ProcessResult(
+                1,
+                "stdin:1:1: [warning] missing document start \"---\" (document-start)\n",
+                "",
+            ),
+        })
+        events, code = audit_frontmatter(
+            runner, fs, ["/repo/missing.md", "/repo/dirty.md"],
+        )
+        self.assertEqual(code, 1)
+        findings = [e for e in events if e.event == EventType.FINDING]
+        self.assertEqual(len(findings), 1)
+        errors = [
+            e for e in events
+            if e.event == EventType.ERROR
+            and isinstance(e.detail, dict) and "file" in e.detail
+        ]
+        self.assertEqual(len(errors), 1)
 
     def test_unreadable_file_error_appears_inline_with_processing_order(self) -> None:
         # Regression: a previous version of the audit loop deferred file

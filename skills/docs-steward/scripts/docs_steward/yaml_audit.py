@@ -7,9 +7,11 @@ and emits NDJSON events. Returns `(events, exit_code)` per the standard
 service contract.
 
 Exit-code semantics mirror the markdown audit pipeline:
-    0  no findings (every block clean)
-    1  at least one finding emitted
-    2  yamllint invocation error
+    0  no findings (every block clean) and no file errors
+    1  at least one yamllint finding emitted
+    2  yamllint invocation error OR a target file was unreadable
+       (per-file ERROR events emit inline; aggregate maps to exit 2
+       so consumers don't misread it as "lint findings exist")
     3  yamllint not on PATH
 
 yamllint output format ("parsable"): `stdin:LINE:COL: [LEVEL] message (rule)`.
@@ -182,4 +184,11 @@ def audit_frontmatter(
             )
         )
         return events, 0
+    if finding_count == 0 and any_file_error:
+        # No real findings — only per-file read failures (file deleted,
+        # encoding errors, permission). Exit 1 would advertise "findings
+        # present" to a CI consumer; exit 2 (invocation/setup error)
+        # tells the truth: yamllint was healthy but the audit couldn't
+        # complete against every requested file.
+        return events, 2
     return events, 1
