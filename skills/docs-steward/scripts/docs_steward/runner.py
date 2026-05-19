@@ -271,6 +271,15 @@ def run_fix_cycle(
     post_events, post_exit = run_tool(
         Mode.AUDIT, baseline, unwrap, runner, root, files=files, quiet=quiet
     )
+    if post_exit >= 2:
+        # Post-audit errored before producing FINDING events. Computing a
+        # DELTA at this point would difference `pre_findings` against an
+        # empty `post_findings` set and misreport every pre-finding as
+        # "resolved" — the audit didn't say they were fixed, the parser
+        # just had nothing to compare against. Mirror the pre-audit /
+        # format-phase error guards: surface the events without DELTA and
+        # forward the failure exit code.
+        return pre_events + fmt_events + post_events, post_exit
     post_findings = _finding_keys(post_events)
 
     resolved = len(pre_findings - post_findings)

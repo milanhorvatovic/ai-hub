@@ -460,6 +460,49 @@ class RunFixCycleTests(unittest.TestCase):
         # No DELTA event since we did NOT enter the "clean" branch.
         self.assertEqual([e for e in events if e.event == EventType.DELTA], [])
 
+    def test_post_audit_error_short_circuits_without_delta(self) -> None:
+        # Regression: if the POST-format audit errored (exit >= 2),
+        # post_findings was an empty set so pre - empty turned every
+        # pre-finding into a "resolved" entry in the DELTA — falsely
+        # claiming the format pass fixed everything when the audit just
+        # crashed. Now the post_exit >= 2 branch short-circuits before
+        # the DELTA event is built, so consumers see exit 2 and no DELTA.
+        audit_cmd = (
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown",
+            "**/*.md", "**/*.markdown",
+        )
+        fmt_cmd = (
+            "prettier", "--config", "/repo/.prettierrc",
+            "--write", "--parser", "markdown",
+            "**/*.md", "**/*.markdown",
+        )
+
+        call_count = {"audit": 0}
+
+        class StatefulRunner(FakeProcessRunner):
+            def run(self, args, cwd=None, stdin=None):  # type: ignore[override]
+                key = tuple(args)
+                if key == audit_cmd:
+                    call_count["audit"] += 1
+                    if call_count["audit"] == 1:
+                        return ProcessResult(1, "foo.md\n", "")
+                    # Post-audit fails (e.g. config error introduced by
+                    # format pass; or a sibling tool crashed).
+                    return ProcessResult(2, "", "prettier internal error")
+                if key == fmt_cmd:
+                    return ProcessResult(0, "foo.md 7ms\n", "")
+                return ProcessResult(0, "", "")
+
+        runner = StatefulRunner(paths={"prettier": "/x/prettier"})
+        events, code = run_fix_cycle(runner, ROOT, ".prettierrc", False)
+        self.assertEqual(code, 2)
+        # No DELTA event emitted on post-audit error.
+        self.assertEqual([e for e in events if e.event == EventType.DELTA], [])
+        # The post-audit ERROR event is still surfaced for the caller.
+        post_errors = [e for e in events if e.event == EventType.ERROR]
+        self.assertTrue(post_errors)
+
     def test_audit_error_short_circuits(self) -> None:
         audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
