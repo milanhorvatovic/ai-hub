@@ -135,13 +135,20 @@ def audit_frontmatter(
     for file_path in files:
         try:
             text = fs.read_text(file_path)
-        except OSError as exc:
+        except (OSError, UnicodeDecodeError) as exc:
             # Emit per-file ERROR inline so consumers reading the event
             # stream in order see the failure adjacent to (or before) the
             # FINDING events from later files. Deferring with a post-loop
             # extend put all error events at the bottom, after findings
             # from files that the loop processed successfully later — a
             # surprise for ordering-sensitive consumers.
+            #
+            # UnicodeDecodeError (a ValueError subclass, not OSError) fires
+            # when a target file is not valid UTF-8. The schema docs
+            # advertise per-file ERROR coverage for "encoding error", so
+            # this catch keeps that contract — without it the exception
+            # would propagate past audit_frontmatter and crash the CLI
+            # instead of emitting the documented per-file ERROR.
             events.append(
                 Event(
                     EventType.ERROR,

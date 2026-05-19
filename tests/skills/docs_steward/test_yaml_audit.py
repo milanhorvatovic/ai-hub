@@ -68,6 +68,38 @@ class AuditFrontmatterTests(unittest.TestCase):
         self.assertIn("[warning]", findings[0].detail)  # type: ignore[operator]
         self.assertIn("document-start", findings[0].detail)  # type: ignore[operator]
 
+    def test_non_utf8_file_emits_per_file_error_does_not_crash(self) -> None:
+        # The schema (events.py + ndjson-schema.md) advertises per-file
+        # ERROR coverage for "encoding error". The implementation must
+        # catch UnicodeDecodeError (subclass of ValueError, not OSError)
+        # alongside OSError or the documented contract breaks: the
+        # exception would propagate past audit_frontmatter and crash the
+        # CLI instead of becoming a per-file ERROR event.
+
+        class _EncodingErrorFs(FakeFileSystem):
+            def read_text(self, path: str) -> str:
+                if path == "/repo/badenc.md":
+                    raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid")
+                return super().read_text(path)
+
+        fs = _EncodingErrorFs(files={"/repo/clean.md": "---\nkey: value\n---\n"})
+        runner = _runner_with_yamllint({_BASE_ARGV: ProcessResult(0, "", "")})
+        events, code = audit_frontmatter(
+            runner, fs, ["/repo/badenc.md", "/repo/clean.md"],
+        )
+        # Per-file UnicodeDecodeError -> exit 2 (file error short-circuit).
+        self.assertEqual(code, 2)
+        errors = [
+            e for e in events
+            if e.event == EventType.ERROR
+            and isinstance(e.detail, dict) and "file" in e.detail
+        ]
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].detail["file"], "/repo/badenc.md")  # type: ignore[index]
+        # Reason string captures the UnicodeDecodeError type so consumers
+        # can distinguish encoding errors from OSError variants.
+        self.assertIn("UnicodeDecodeError", errors[0].detail["reason"])  # type: ignore[index]
+
     def test_unreadable_file_with_no_findings_returns_exit_2(self) -> None:
         fs = FakeFileSystem(files={"/repo/ok.md": "---\nkey: value\n---\n"})
         # `/repo/missing.md` is not in fs → read_text raises → recorded as ERROR.
