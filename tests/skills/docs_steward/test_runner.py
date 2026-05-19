@@ -97,6 +97,40 @@ class RunToolTests(unittest.TestCase):
         # diagnostic ('config error') and not just `{exit: 2}`.
         self.assertEqual(errors[0].detail, {"exit": 2, "stderr": "config error"})
 
+    def test_tool_error_path_surfaces_stdout_as_findings(self) -> None:
+        # Round 21a — round 10 had short-circuited the error path to
+        # ERROR-only emission, but tools that write diagnostics to
+        # STDOUT (rather than stderr) lost actionable signal. The
+        # current ordering parses stdout as FINDING / CHANGED events
+        # FIRST, then emits ERROR with stderr (not stdout) in detail.
+        # No duplication because stderr is intentionally NOT folded
+        # back into the FINDING stream on the error path.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={
+                cmd: ProcessResult(
+                    2,
+                    "stdout-diagnostic.md:1 MD040 missing-language\n",
+                    "Error: Invalid configuration\n",
+                ),
+            },
+        )
+        events, code = run_tool(Mode.AUDIT, ".prettierrc", False, runner, ROOT)
+        self.assertEqual(code, 2)
+        findings = [e for e in events if e.event == EventType.FINDING]
+        # stdout diagnostic surfaced as a FINDING:
+        self.assertEqual(len(findings), 1)
+        self.assertIn("stdout-diagnostic.md", findings[0].detail)  # type: ignore[operator]
+        # ERROR still carries stderr in detail; no FINDING for the
+        # stderr line (otherwise consumers see the diagnostic twice).
+        errors = [e for e in events if e.event == EventType.ERROR]
+        self.assertEqual(len(errors), 1)
+        self.assertIn("Invalid configuration", errors[0].detail["stderr"])  # type: ignore[index]
+        self.assertFalse(
+            any("Invalid configuration" in (f.detail or "") for f in findings),  # type: ignore[operator]
+        )
+
     def test_tool_error_path_does_not_duplicate_stderr_as_findings(self) -> None:
         # Regression: the failure path used to parse stdout+stderr into
         # FINDING events FIRST, then emit ERROR with the same stderr in

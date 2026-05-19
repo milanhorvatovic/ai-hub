@@ -260,17 +260,33 @@ def run_tool(
         events.append(Event(EventType.CLEAN, tool.value, f"{mode.value} passed"))
         return events, 0
 
-    # Error-path decision comes BEFORE the FINDING/CHANGED parse so
-    # stderr from a failing run is surfaced ONCE — via the ERROR event's
-    # detail — rather than duplicated as FINDING/CHANGED events. The
-    # earlier ordering parsed stdout+stderr into FINDING events first,
-    # then appended an ERROR with the same stderr in detail; consumers
-    # therefore saw the same diagnostic twice on AUDIT-mode failures.
-    # Treating a signal-killed formatter (negative returncode) as a
-    # returncode-1 run would also let stray stdout/stderr bytes render
-    # as FINDING/CHANGED events instead of being labelled as the
-    # failure they are.
-    if result.returncode >= 2 or result.returncode < 0:
+    # Parse the tool's stdout into FINDING / CHANGED / WOULD_CHANGE
+    # events. Choice of stream by mode + rc:
+    #   - AUDIT, rc == 1: stdout + stderr — some tools emit real
+    #     findings on stderr (markdownlint-cli2 exit-1 banner, remark
+    #     --frail messages).
+    #   - AUDIT, rc >= 2 or rc < 0: stdout only. stderr is attached to
+    #     the ERROR event below; including it in the FINDING stream too
+    #     would duplicate the diagnostic.
+    #   - FORMAT, any rc: stdout only. stderr in FORMAT is banner /
+    #     deprecation noise (round 8g).
+    # SKILL.md's contract says the tool's output should be surfaced as
+    # events before any ERROR — keeping the parse here (rather than
+    # short-circuiting on rc >= 2) preserves stdout diagnostics for
+    # consumers, while the duplication that round 10 hoisted past is
+    # avoided by NOT concatenating stderr on the error path.
+    is_error_rc = result.returncode >= 2 or result.returncode < 0
+    if effective_mode == Mode.FORMAT or is_error_rc:
+        output_for_events = result.stdout
+    else:
+        output_for_events = result.stdout + result.stderr
+    events.extend(
+        _emit_output_lines(
+            output_for_events, tool.value, mode, quiet=quiet, dry_run=dry_run
+        )
+    )
+
+    if is_error_rc:
         # Attach the tool's stderr to the ERROR detail when the run
         # failed. Successful runs filter stderr out of the event stream
         # (round 8g) to avoid leaking deprecation warnings / banner
@@ -286,21 +302,6 @@ def run_tool(
             detail["stderr"] = stderr_text
         events.append(Event(EventType.ERROR, tool.value, detail))
         return events, 2
-
-    # Non-error path (returncode 1): real findings or changes. Parse
-    # stdout+stderr in AUDIT mode (some tools put real findings on
-    # stderr — markdownlint-cli2 exit-1 banner, remark --frail
-    # messages); stdout only in FORMAT mode (stderr is banner noise).
-    output_for_events = (
-        result.stdout
-        if effective_mode == Mode.FORMAT
-        else result.stdout + result.stderr
-    )
-    events.extend(
-        _emit_output_lines(
-            output_for_events, tool.value, mode, quiet=quiet, dry_run=dry_run
-        )
-    )
     return events, 1
 
 
