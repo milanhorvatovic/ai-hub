@@ -25,7 +25,13 @@ from typing import Literal
 
 BlockKind = Literal["frontmatter", "fenced"]
 
-_FRONTMATTER_BOUNDARY = re.compile(r"^(?:---|\.\.\.)\s*$")
+# YAML 1.2 (and CommonMark frontmatter convention) distinguish the two
+# document delimiters: `---` opens a YAML document, `...` closes one.
+# A file that begins with `...` is therefore NOT frontmatter — treating
+# it as such would lint ordinary prose under yamllint and silently skip
+# any fenced YAML blocks before the next `---` / `...` boundary.
+_FRONTMATTER_OPEN = re.compile(r"^---\s*$")
+_FRONTMATTER_CLOSE = re.compile(r"^(?:---|\.\.\.)\s*$")
 # Opening fence: 0-3 leading spaces (CommonMark permits indented fences),
 # 3+ backticks or tildes, optional whitespace, ya?ml language tag, then
 # either EOL or whitespace followed by an info-string (e.g.
@@ -62,11 +68,16 @@ class FrontmatterBlock:
 
 def _extract_frontmatter(lines: list[str]) -> tuple[FrontmatterBlock | None, int]:
     """Return (block, lines_consumed). Lines consumed includes both delimiters.
-    Block is None when the file does not open with frontmatter."""
-    if not lines or not _FRONTMATTER_BOUNDARY.match(lines[0]):
+    Block is None when the file does not open with frontmatter.
+
+    Only `---` opens a frontmatter block — `...` is the YAML document-end
+    marker and may close one but never starts one. Either marker may
+    terminate an opened block.
+    """
+    if not lines or not _FRONTMATTER_OPEN.match(lines[0]):
         return None, 0
     for end_idx in range(1, len(lines)):
-        if _FRONTMATTER_BOUNDARY.match(lines[end_idx]):
+        if _FRONTMATTER_CLOSE.match(lines[end_idx]):
             yaml_text = "\n".join(lines[1:end_idx])
             return FrontmatterBlock("frontmatter", yaml_text, "frontmatter"), end_idx + 1
     # Unterminated frontmatter — not a frontmatter block; do not consume.

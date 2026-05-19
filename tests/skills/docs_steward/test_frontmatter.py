@@ -28,6 +28,32 @@ class FrontmatterExtractionTests(unittest.TestCase):
         self.assertEqual(len(blocks), 1)
         self.assertEqual(blocks[0].kind, "frontmatter")
 
+    def test_dot_dot_dot_opener_is_not_frontmatter(self) -> None:
+        # YAML 1.2: `---` opens a document, `...` ends one. A file that
+        # begins with `...` is NOT frontmatter — auditing it as YAML
+        # would lint ordinary prose under yamllint and silently skip any
+        # fenced YAML before the next boundary.
+        text = "...\nname: foo\n---\nactual body\n"
+        self.assertEqual(extract_blocks(text), [])
+
+    def test_dot_dot_dot_opener_does_not_swallow_later_fenced_yaml(self) -> None:
+        # The misclassified `...`-opened block must not consume the rest of
+        # the file: a well-formed fenced yaml block after it must still
+        # be returned.
+        text = (
+            "...\n"
+            "looks_like: yaml but isn't\n"
+            "...\n"
+            "intervening prose\n"
+            "```yaml\n"
+            "real: block\n"
+            "```\n"
+        )
+        blocks = extract_blocks(text)
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].kind, "fenced")
+        self.assertIn("real: block", blocks[0].yaml_text)
+
     def test_unterminated_frontmatter_is_skipped(self) -> None:
         text = "---\nname: foo\n# no closer\n"
         self.assertEqual(extract_blocks(text), [])
