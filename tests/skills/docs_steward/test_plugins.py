@@ -190,6 +190,29 @@ class ResolveMdformatInterpreterTests(unittest.TestCase):
             runner = FakeProcessRunner(paths={"mdformat": path})
             self.assertEqual(_resolve_mdformat_interpreter(runner), "python3")
 
+    def test_unwraps_env_dash_S_shebang(self) -> None:
+        # `/usr/bin/env -S python3 ...` — env's split-args flag. The first
+        # non-flag token is the interpreter; the leading `-S` (and any
+        # other flags between `env` and the interpreter name) must be
+        # skipped, not returned as the executable.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mdformat")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("#!/usr/bin/env -S python3 -u\n")
+            runner = FakeProcessRunner(paths={"mdformat": path})
+            self.assertEqual(_resolve_mdformat_interpreter(runner), "python3")
+
+    def test_env_shebang_with_only_flags_returns_none(self) -> None:
+        # Pathological: `env -S` and nothing else. No interpreter to
+        # extract; must fall through to the pip fallback rather than
+        # try to exec `-S` as a binary.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mdformat")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("#!/usr/bin/env -S\n")
+            runner = FakeProcessRunner(paths={"mdformat": path})
+            self.assertIsNone(_resolve_mdformat_interpreter(runner))
+
     def test_returns_none_for_non_shebang_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "mdformat")

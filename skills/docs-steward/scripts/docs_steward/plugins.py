@@ -107,10 +107,16 @@ def _resolve_mdformat_interpreter(runner: ProcessRunner) -> str | None:
     if not parts:
         return None
     head = parts[0]
-    # `/usr/bin/env python3` style — return the trailing argument so the
-    # subprocess can resolve it via PATH itself.
-    if head.endswith("env") and len(parts) > 1:
-        return parts[1]
+    # `/usr/bin/env python3` style — return the first non-flag argument
+    # after `env` so the subprocess can resolve it via PATH itself. Modern
+    # shebangs use `env -S <flags> <interp>` (the -S "split" flag lets
+    # multiple args pass through); naive parts[1] would return the
+    # literal `-S` and the subsequent interpreter probe would fail.
+    if head.endswith("env"):
+        for arg in parts[1:]:
+            if not arg.startswith("-"):
+                return arg
+        return None
     return head
 
 
