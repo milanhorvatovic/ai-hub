@@ -141,6 +141,33 @@ class FrontmatterExtractionTests(unittest.TestCase):
         text = "```yaml\nkey: value\n~~~\nstill inside fence\n"
         self.assertEqual(extract_blocks(text), [])
 
+    def test_fence_open_with_one_space_indent(self) -> None:
+        # CommonMark allows 0-3 spaces of indentation before a fence.
+        text = " ```yaml\nkey: value\n ```\nbody\n"
+        blocks = extract_blocks(text)
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].kind, "fenced")
+        self.assertIn("key: value", blocks[0].yaml_text)
+
+    def test_fence_open_with_three_space_indent(self) -> None:
+        text = "   ```yaml\nkey: value\n```\n"
+        blocks = extract_blocks(text)
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].kind, "fenced")
+
+    def test_fence_open_with_four_space_indent_is_not_a_fence(self) -> None:
+        # 4-space indent makes this a CommonMark indented code block,
+        # NOT a fenced code block. Must NOT be parsed as a yaml fence.
+        text = "    ```yaml\nkey: value\n```\n"
+        self.assertEqual(extract_blocks(text), [])
+
+    def test_closing_fence_may_have_different_indent_than_opener(self) -> None:
+        # Closing fence indent (0-3 spaces) is independent of opener indent.
+        text = " ```yaml\nkey: value\n   ```\nbody\n"
+        blocks = extract_blocks(text)
+        self.assertEqual(len(blocks), 1)
+        self.assertIn("key: value", blocks[0].yaml_text)
+
     def test_unterminated_fence_does_not_drop_later_well_formed_fences(self) -> None:
         # Regression: when an earlier yaml opener never closed before EOF
         # the scanner used to `break` and silently drop every well-formed

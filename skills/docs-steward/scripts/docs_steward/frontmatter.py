@@ -26,18 +26,22 @@ from typing import Literal
 BlockKind = Literal["frontmatter", "fenced"]
 
 _FRONTMATTER_BOUNDARY = re.compile(r"^(?:---|\.\.\.)\s*$")
-# Opening fence: 3+ backticks or tildes, optional whitespace, ya?ml language
-# tag, then either EOL or whitespace followed by an info-string (e.g.
+# Opening fence: 0-3 leading spaces (CommonMark permits indented fences),
+# 3+ backticks or tildes, optional whitespace, ya?ml language tag, then
+# either EOL or whitespace followed by an info-string (e.g.
 # ``` ```yaml linenums="1" ``` or ``` ```yaml title="example" ```). CommonMark
 # allows arbitrary info-string content after the language tag; the previous
 # `\s*$` anchor rejected any non-whitespace and silently skipped those blocks.
-_FENCE_OPEN = re.compile(r"^(`{3,}|~{3,})\s*(ya?ml)(?:\s+.*)?\s*$", re.IGNORECASE)
-# Closing fence: same character as opener, length >= opener's length, then
-# only whitespace until EOL. CommonMark explicitly permits the closer to be
-# longer than the opener; the previous `re.escape(open_match.group(1))`
+_FENCE_OPEN = re.compile(
+    r"^ {0,3}(`{3,}|~{3,})\s*(ya?ml)(?:\s+.*)?\s*$", re.IGNORECASE,
+)
+# Closing fence: 0-3 leading spaces (independent of the opener's indent
+# per CommonMark), same character as opener, length >= opener's length,
+# then only whitespace until EOL. CommonMark explicitly permits the closer
+# to be longer than the opener; the previous `re.escape(open_match.group(1))`
 # anchor required exact length and silently skipped any block where the
 # closer was longer (treating it as unterminated).
-_FENCE_CLOSE_TPL = "^{fence_char}{{{fence_len},}}\\s*$"
+_FENCE_CLOSE_TPL = "^ {{0,3}}{fence_char}{{{fence_len},}}\\s*$"
 
 
 @dataclass(frozen=True)
