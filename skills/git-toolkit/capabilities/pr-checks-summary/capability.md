@@ -26,7 +26,7 @@ Interprets failed CI checks and proposes likely fixes; doesn't just list status.
 ### 1. Fetch check status
 
 ```
-gh pr checks <num> --json name,status,conclusion,detailsUrl,startedAt,completedAt,workflow,bucket
+gh pr checks <num> --json name,state,link,startedAt,completedAt,workflow,bucket
 ```
 
 Or the richer GraphQL query for run-level detail:
@@ -37,10 +37,13 @@ gh api repos/{o}/{r}/commits/{headRefOid}/check-runs --paginate
 
 ### 2. Bucket by status
 
-- **PASS** — `conclusion == SUCCESS` or `conclusion == SKIPPED` (skipped is benign)
-- **PENDING** — `status ∈ {QUEUED, IN_PROGRESS}` (in-flight, not failed)
-- **FAIL** — `conclusion ∈ {FAILURE, CANCELLED, TIMED_OUT, ACTION_REQUIRED}`
-- **NEUTRAL** — `conclusion == NEUTRAL` (passes but with caveats)
+`bucket` is `gh`'s own rollup of each check's `state` — switch on it directly
+(or on the raw `state` for finer detail):
+
+- **PASS** — `bucket == "pass"` (`state ∈ {SUCCESS, NEUTRAL}` — NEUTRAL passes with caveats)
+- **PENDING** — `bucket == "pending"` (`state ∈ {QUEUED, IN_PROGRESS, WAITING, REQUESTED, PENDING}` — in-flight, not failed)
+- **FAIL** — `bucket == "fail"` (`state ∈ {FAILURE, CANCELLED, TIMED_OUT, ACTION_REQUIRED, ERROR, STARTUP_FAILURE}`)
+- **SKIPPED** — `bucket == "skipping"` (`state == SKIPPED` — benign)
 
 ### 3. For each FAIL, fetch logs
 
