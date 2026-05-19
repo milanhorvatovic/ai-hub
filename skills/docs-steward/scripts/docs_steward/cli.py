@@ -233,16 +233,50 @@ def _dispatch_audit_frontmatter(
     files = _files_or_none(args)
     if files is None:
         files = list_markdown_files(runner, root)
-    # Resolve `--yamllint-config` against the invocation cwd (where the
-    # user actually ran the CLI), matching the positional-files behaviour
-    # in `_files_or_none`. The earlier root-relative form was surprising:
-    # `cd subdir && md-audit-frontmatter.py --yamllint-config ./local.yaml`
-    # targeted <root>/local.yaml rather than <subdir>/local.yaml, the
-    # opposite of how positional file args resolve.
-    yamllint_config = _resolve_config_against_cwd(args.yamllint_config)
+    # Yamllint config precedence, highest first:
+    #   1. `--yamllint-config <path>` — explicit user override, resolved
+    #      against the invocation cwd (matches positional-file semantics
+    #      in `_files_or_none`).
+    #   2. Auto-discovered repo-root `.yamllint` / `.yamllint.yaml` /
+    #      `.yamllint.yml` — mirrors yamllint's own standalone lookup
+    #      so a repo that declares one of these drives the audit instead
+    #      of the bundled fallback. Aligns md-audit-frontmatter with the
+    #      markdown formatters: bundled configs are a fallback for repos
+    #      that declare none, not an override that buries repo intent.
+    #   3. None — routes `yaml_audit.audit_frontmatter` to the bundled
+    #      `assets/configs/yamllint.yaml`.
+    if args.yamllint_config is not None:
+        yamllint_config = _resolve_config_against_cwd(args.yamllint_config)
+    else:
+        yamllint_config = _discover_repo_yamllint_config(fs, root)
     return audit_frontmatter(
         runner, fs, _resolve_against_root(files, root), config_path=yamllint_config,
     )
+
+
+YAMLLINT_REPO_CANDIDATES: tuple[str, ...] = (
+    ".yamllint",
+    ".yamllint.yaml",
+    ".yamllint.yml",
+)
+"""Filenames yamllint itself probes at the repo root when invoked
+without `-c`. Order taken from the yamllint docs (`.yamllint` first,
+then `.yamllint.yaml`, then `.yamllint.yml`). Kept as a module-level
+constant so tests can assert the order without re-deriving it."""
+
+
+def _discover_repo_yamllint_config(fs: FileSystem, root: str) -> str | None:
+    """Return the absolute POSIX path of the first repo-root yamllint
+    config that exists, or None when the repo declares none (caller
+    falls back to the bundled config). The probe order mirrors yamllint's
+    own standalone lookup so md-audit-frontmatter does not silently
+    diverge from how a user running yamllint directly would resolve
+    config."""
+    for candidate in YAMLLINT_REPO_CANDIDATES:
+        path = _posix_join(root, candidate)
+        if fs.exists(path):
+            return path
+    return None
 
 
 def _files_or_none(args: argparse.Namespace) -> Sequence[str] | None:

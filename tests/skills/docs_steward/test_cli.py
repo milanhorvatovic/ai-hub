@@ -8,6 +8,8 @@ import unittest
 from unittest.mock import patch
 
 from docs_steward.cli import (
+    YAMLLINT_REPO_CANDIDATES,
+    _discover_repo_yamllint_config,
     _resolve_against_root,
     _resolve_config_against_cwd,
     _resolve_config_against_root,
@@ -15,7 +17,7 @@ from docs_steward.cli import (
 )
 from docs_steward.process import ProcessResult
 
-from .fakes import FakeProcessRunner
+from .fakes import FakeFileSystem, FakeProcessRunner
 
 
 class CliEndToEndTests(unittest.TestCase):
@@ -381,6 +383,143 @@ class ResolveConfigAgainstCwdTests(unittest.TestCase):
             _resolve_config_against_root("config/.yamllint.yaml", "/repo"),
             "/repo/config/.yamllint.yaml",
         )
+
+
+class DiscoverRepoYamllintConfigTests(unittest.TestCase):
+    """Auto-discovery of repo-root yamllint config (round 22). When the
+    caller did not pass `--yamllint-config`, the CLI now probes the
+    same filenames yamllint itself probes at the repo root, so a repo
+    that ships `.yamllint` is honoured instead of buried by the bundled
+    fallback. None means "fall back to the bundled config" — that
+    contract is what `yaml_audit.audit_frontmatter` already documents."""
+
+    def test_candidate_order_matches_yamllint(self) -> None:
+        # Mirror yamllint's standalone lookup so reading our docs and
+        # reading yamllint's docs land on the same answer.
+        self.assertEqual(
+            YAMLLINT_REPO_CANDIDATES,
+            (".yamllint", ".yamllint.yaml", ".yamllint.yml"),
+        )
+
+    def test_no_config_returns_none(self) -> None:
+        fs = FakeFileSystem(files={})
+        self.assertIsNone(_discover_repo_yamllint_config(fs, "/repo"))
+
+    def test_dotyamllint_wins(self) -> None:
+        fs = FakeFileSystem(files={"/repo/.yamllint": "rules: {}\n"})
+        self.assertEqual(
+            _discover_repo_yamllint_config(fs, "/repo"), "/repo/.yamllint"
+        )
+
+    def test_dotyamllint_yaml_picked_up(self) -> None:
+        fs = FakeFileSystem(files={"/repo/.yamllint.yaml": "rules: {}\n"})
+        self.assertEqual(
+            _discover_repo_yamllint_config(fs, "/repo"),
+            "/repo/.yamllint.yaml",
+        )
+
+    def test_dotyamllint_yml_picked_up(self) -> None:
+        fs = FakeFileSystem(files={"/repo/.yamllint.yml": "rules: {}\n"})
+        self.assertEqual(
+            _discover_repo_yamllint_config(fs, "/repo"), "/repo/.yamllint.yml"
+        )
+
+    def test_dotyamllint_outranks_yaml_and_yml(self) -> None:
+        # Two siblings on disk: the one yamllint would pick first wins.
+        fs = FakeFileSystem(
+            files={
+                "/repo/.yamllint": "a: 1\n",
+                "/repo/.yamllint.yaml": "b: 2\n",
+                "/repo/.yamllint.yml": "c: 3\n",
+            }
+        )
+        self.assertEqual(
+            _discover_repo_yamllint_config(fs, "/repo"), "/repo/.yamllint"
+        )
+
+    def test_uses_posix_join_under_root(self) -> None:
+        # Round-8a path handling: the helper must build POSIX paths so
+        # NDJSON output and downstream command lines never mix
+        # separators on Windows. Forward slashes regardless of host.
+        fs = FakeFileSystem(files={"C:/repo/.yamllint.yaml": "rules: {}\n"})
+        self.assertEqual(
+            _discover_repo_yamllint_config(fs, "C:/repo"),
+            "C:/repo/.yamllint.yaml",
+        )
+
+
+class DispatchAuditFrontmatterTests(unittest.TestCase):
+    """End-to-end: md-audit-frontmatter routes through cli.main and
+    must honour the new precedence (explicit override > auto-discovery
+    > bundled fallback). Patch `audit_frontmatter` and `repo_root` to
+    capture which `config_path` the dispatcher actually forwards;
+    `repo_root` is patched because the test repo is the project
+    checkout, not a synthetic root, and we want to assert against a
+    stable string."""
+
+    def _run(
+        self,
+        argv: list[str],
+        *,
+        root: str = "/repo",
+        files_on_disk: dict[str, str] | None = None,
+    ) -> str | None:
+        captured: dict[str, str | None] = {"config_path": "<unset>"}
+
+        def fake_audit_frontmatter(runner, fs, files, config_path=None):
+            captured["config_path"] = config_path
+            return ([], 0)
+
+        def fake_list_markdown_files(runner, root_arg):
+            return ()
+
+        def fake_os_filesystem():
+            return FakeFileSystem(files=files_on_disk or {})
+
+        with patch(
+            "docs_steward.cli.SubprocessRunner",
+            return_value=FakeProcessRunner(),
+        ), patch(
+            "docs_steward.cli.repo_root", return_value=root,
+        ), patch(
+            "docs_steward.cli.list_markdown_files",
+            side_effect=fake_list_markdown_files,
+        ), patch(
+            "docs_steward.cli.OsFileSystem", side_effect=fake_os_filesystem,
+        ), patch(
+            "docs_steward.cli.audit_frontmatter",
+            side_effect=fake_audit_frontmatter,
+        ), patch("sys.stdout", io.StringIO()):
+            main(argv)
+        self.assertNotEqual(
+            captured["config_path"], "<unset>",
+            msg="audit_frontmatter was never called",
+        )
+        return captured["config_path"]
+
+    def test_explicit_yamllint_config_wins_over_repo_config(self) -> None:
+        with patch("docs_steward.cli.os.getcwd", return_value="/repo"):
+            forwarded = self._run(
+                ["md-audit-frontmatter", "--yamllint-config", "/etc/strict.yaml"],
+                files_on_disk={"/repo/.yamllint": "rules: {}\n"},
+            )
+        self.assertEqual(forwarded, "/etc/strict.yaml")
+
+    def test_repo_yamllint_discovered_when_no_override(self) -> None:
+        forwarded = self._run(
+            ["md-audit-frontmatter"],
+            files_on_disk={"/repo/.yamllint.yaml": "rules: {}\n"},
+        )
+        self.assertEqual(forwarded, "/repo/.yamllint.yaml")
+
+    def test_no_override_and_no_repo_config_routes_to_bundled(self) -> None:
+        # None signals to yaml_audit.audit_frontmatter "use the bundled
+        # fallback". Round-21a's contract: that None passthrough is the
+        # only way the bundled config gets activated for frontmatter.
+        forwarded = self._run(
+            ["md-audit-frontmatter"], files_on_disk={},
+        )
+        self.assertIsNone(forwarded)
 
 
 if __name__ == "__main__":
