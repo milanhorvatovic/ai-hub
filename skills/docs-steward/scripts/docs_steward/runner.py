@@ -30,7 +30,7 @@ from .selector import baseline_belongs_to_tool, select_tool
 
 _NO_TOOL_HINT = (
     "No usable formatter on PATH. Style baseline: {baseline}. "
-    "See references/formatter-tools.md."
+    "Run `recommend-tools.py` for platform-specific install commands."
 )
 
 
