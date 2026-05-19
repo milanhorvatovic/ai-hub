@@ -76,7 +76,7 @@ If not in a git repo → fall back to the current working directory and note the
 
 ### 3. Determine the style baseline
 
-`baseline.detect_baseline` checks the repo root for the **presence** of a config file (no parsing, no field extraction — purely `os.path.isfile`). The first match wins; the path is recorded in the `selected` NDJSON event's `baseline` field and passed verbatim to the chosen formatter, which is responsible for parsing it.
+`baseline.detect_baseline` checks the repo root for the **presence** of a config file (no parsing, no field extraction — purely `os.path.isfile`). The first match wins; the relative path is recorded in the `selected` NDJSON event's `baseline` field, then — when the baseline belongs to the chosen tool's family (e.g. `.prettierrc` → prettier, `.markdownlint.json` → markdownlint) — it is resolved against the repo root and forwarded to the formatter via its `--config <path>` flag. The `selected` event's `cmd` field therefore shows the absolute resolved path while `baseline` keeps the user-visible relative name. Tools whose `CommandTemplate.config_flag` is `None` (mdformat / dprint / remark) discover their config from `cwd=root` directly; for those families the `--config` flag is omitted from `cmd`.
 
 Candidates probed in order:
 
