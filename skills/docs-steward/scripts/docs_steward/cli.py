@@ -29,6 +29,7 @@ from .emit import serialize
 from .events import Event
 from .fs import FileSystem, OsFileSystem
 from .modes import Mode
+from .paths import is_absolute, posix_join, to_posix
 from .plugins import detect_installed_plugin_labels, emit_plugin_missing
 from .probe import probe_tools
 from .process import ProcessRunner, SubprocessRunner
@@ -262,47 +263,11 @@ def _files_or_none(args: argparse.Namespace) -> Sequence[str] | None:
     )
 
 
-def _is_absolute(path: str) -> bool:
-    """Cross-platform absolute-path check. Treats both leading-slash form
-    (`/etc/foo`) and Windows drive-letter form (`C:\\foo`, `C:/foo`) as
-    absolute. `os.path.isabs` would say `/etc/foo` is NOT absolute on
-    Windows (no drive), which is fine for native Windows code but
-    inappropriate here — the orchestrator regularly receives POSIX-style
-    paths from git ls-files and from users running under WSL / Git Bash."""
-    if not path:
-        return False
-    if path[0] in ("/", "\\"):
-        return True
-    if len(path) >= 2 and path[1] == ":":
-        # Windows drive-letter form: C:\foo or C:/foo.
-        return True
-    return False
-
-
-def _to_posix(path: str) -> str:
-    """Normalize a path's separators to forward slashes. Applied to both
-    absolute paths (which previously passed through unchanged) and
-    relative-join results so every path the orchestrator emits — in
-    NDJSON event payloads, in `selected.detail.cmd`, in formatter argv —
-    is uniformly POSIX-style regardless of host. A Windows user typing
-    `--baseline C:\\repo\\.prettierrc` therefore lands on the same
-    `C:/repo/.prettierrc` shape that discovery / _posix_join produce."""
-    return path.replace("\\", "/")
-
-
-def _posix_join(root: str, rel: str) -> str:
-    """Join `rel` against `root` with forward slashes, regardless of host.
-
-    The Python file APIs (open, os.stat) accept either separator on Windows,
-    so the choice is mostly cosmetic for the read step — but discovery
-    already emits POSIX-joined paths and downstream formatters (Prettier,
-    markdownlint, mdformat) accept forward slashes on Windows. Normalizing
-    to one separator keeps NDJSON output and command lines consistent
-    across platforms and avoids `os.path.join("/repo", ".prettierrc")`
-    producing `/repo\\.prettierrc` on Windows CI."""
-    root_norm = _to_posix(root).rstrip("/")
-    rel_norm = _to_posix(rel).lstrip("/")
-    return f"{root_norm}/{rel_norm}"
+# Local aliases for the shared path helpers so internal cli.py call sites
+# don't need to rename. See `paths.py` for the canonical implementations.
+_is_absolute = is_absolute
+_to_posix = to_posix
+_posix_join = posix_join
 
 
 def _resolve_against_root(files: Sequence[str], root: str) -> tuple[str, ...]:

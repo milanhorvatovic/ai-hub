@@ -24,6 +24,7 @@ from .bundled_config import bundled_config_for
 from .commands import build_command
 from .events import Event, EventType
 from .modes import Mode
+from .paths import is_absolute, posix_join
 from .process import ProcessRunner
 from .selector import baseline_belongs_to_tool, select_tool
 
@@ -207,20 +208,16 @@ def run_tool(
         # Forward-slash join (regardless of host) keeps the command line
         # consistent on Windows where os.path.join would otherwise insert
         # backslashes that diverge from discovery's POSIX-normalized paths.
-        # Treat both POSIX-leading-slash and Windows-drive-letter as absolute
-        # so a baseline like /etc/.prettierrc passes through on Windows too
-        # (native os.path.isabs would say False there). Absolute paths are
-        # also normalized so a Windows --baseline C:\repo\.prettierrc lands
-        # in selected.detail.cmd as C:/repo/.prettierrc.
-        is_abs = baseline.startswith(("/", "\\")) or (
-            len(baseline) >= 2 and baseline[1] == ":"
-        )
-        if is_abs:
+        # is_absolute treats both POSIX-leading-slash and Windows drive-
+        # letter form (`C:\` / `C:/`) as absolute; absolute paths are
+        # normalized to forward slashes so a Windows --baseline
+        # C:\repo\.prettierrc lands in selected.detail.cmd as
+        # C:/repo/.prettierrc. The helper is shared with cli.py to keep
+        # the absolute / relative decision uniform across modules.
+        if is_absolute(baseline):
             config_path = baseline.replace("\\", "/")
         else:
-            root_norm = root.replace("\\", "/").rstrip("/")
-            rel_norm = baseline.replace("\\", "/").lstrip("/")
-            config_path = f"{root_norm}/{rel_norm}"
+            config_path = posix_join(root, baseline)
         # config_source stays "repo" — the path came from the repo / caller,
         # not a bundled fallback or tool default.
     # else: baseline matched a different tool's family (or .editorconfig);

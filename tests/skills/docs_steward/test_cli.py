@@ -278,6 +278,25 @@ class ResolveAgainstRootTests(unittest.TestCase):
         )
         self.assertEqual(resolved, ("C:/repo/file.md", "D:/already/forward.md"))
 
+    def test_posix_filename_with_colon_is_relative_not_absolute(self) -> None:
+        # Regression: `_is_absolute` previously treated any string with
+        # ':' at index 1 as a Windows drive-letter path. POSIX filenames
+        # with a colon ('a:b.md', 'a:.editorconfig') were misclassified
+        # as absolute, skipping the cwd-join and leaving the formatter
+        # unable to locate them. The drive-letter check now requires
+        # path[0] alpha + len>=3 + path[2] in ('/','\\\\').
+        resolved = _resolve_against_root(("a:b.md", "x:.editorconfig"), "/repo")
+        # Both should be joined to root, not pass through as absolute.
+        self.assertEqual(resolved, ("/repo/a:b.md", "/repo/x:.editorconfig"))
+
+    def test_drive_letter_form_requires_separator_after_colon(self) -> None:
+        # `C:foo.md` (no separator after colon) is the cmd.exe-style
+        # drive-relative path — uncommon, and not what _is_absolute
+        # is meant to recognize. The tightened check requires a real
+        # path separator at index 2.
+        resolved = _resolve_against_root(("C:foo.md",), "/repo")
+        self.assertEqual(resolved, ("/repo/C:foo.md",))
+
     def test_relative_paths_joined_to_root(self) -> None:
         # Forward-slash join regardless of host (production uses _posix_join
         # so the command line lands the same way on Linux, macOS, and
