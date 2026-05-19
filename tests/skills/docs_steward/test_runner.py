@@ -586,6 +586,41 @@ class QuietFlagTests(unittest.TestCase):
         self.assertEqual(len(findings), 3)
         self.assertTrue(all("MD0" in f for f in findings))
 
+    def test_quiet_does_not_drop_finding_with_space_in_path(self) -> None:
+        # Regression for round-21b. POSIX paths can contain spaces; a
+        # markdown file literally named `prettier 3.md` (or any path
+        # whose first segment begins `prettier ` followed by a digit)
+        # used to be eaten by the version-banner filter because the
+        # regex anchored only the `\s+v?\d` prefix and not the end of
+        # the line. The tightened pattern requires a full semver-shaped
+        # token followed by end-of-line, so a finding like
+        # `prettier 3.md:1 MD040 ...` survives. Real banners
+        # (`prettier 3.2.5`, `mdformat 0.7.17`) still get dropped.
+        cmd = (
+            "prettier", "--config", "/repo/.prettierrc", "--check",
+            "--parser", "markdown", "**/*.md", "**/*.markdown",
+        )
+        output = (
+            "prettier 3.2.5\n"
+            "prettier 3.md:1 MD040 fenced-code-language\n"
+            "remark 4.md:5 MD040 fenced-code-language\n"
+            "yamllint 2.md:9 MD009 trailing-whitespace\n"
+            "mdformat 0.7.17\n"
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(1, output, "")},
+        )
+        events, _ = run_tool(
+            Mode.AUDIT, ".prettierrc", False, runner, ROOT, quiet=True,
+        )
+        findings = [e.detail for e in events if e.event == EventType.FINDING]
+        self.assertEqual(len(findings), 3)
+        self.assertTrue(all("MD0" in f for f in findings))
+        # The two version banners must NOT appear as findings.
+        self.assertFalse(any(f == "prettier 3.2.5" for f in findings))
+        self.assertFalse(any(f == "mdformat 0.7.17" for f in findings))
+
 
 # ============================================================
 # --dry-run for md-format (#8)

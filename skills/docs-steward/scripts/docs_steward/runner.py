@@ -44,8 +44,15 @@ _NO_TOOL_HINT = (
 # tool name + path delimiter (e.g. `prettier-v3.md:1 MD040 ...` or
 # `remark-v1.md:5 MD040 ...`).
 _PREAMBLE_PATTERNS: tuple[re.Pattern[str], ...] = (
+    # Version banner: tool name + whitespace + optional `v` + dotted
+    # numeric version + end-of-line. Anchoring `\s*$` after the
+    # version-shaped token rejects finding lines whose path begins
+    # with `<tool> <digit>` (e.g. `prettier 3.md:1 MD040 ...` — paths
+    # can contain spaces, see round-8a regression). The version-shape
+    # pattern accepts `prettier 3`, `prettier 3.2`, `prettier 3.2.5`,
+    # `prettier v3.2.5` — every form the supported tools actually emit.
     re.compile(
-        r"^(markdownlint(?:-cli2)?|prettier|mdformat|dprint|remark|yamllint)\s+v?\d",
+        r"^(markdownlint(?:-cli2)?|prettier|mdformat|dprint|remark|yamllint)\s+v?\d+(?:\.\d+)*\s*$",
     ),
     re.compile(r"^Finding:\s"),                       # markdownlint-cli2 banner
     re.compile(r"^Linting:\s"),                       # markdownlint-cli2 banner
