@@ -4,21 +4,21 @@ Load this whenever a capability is about to display or write text that will beco
 
 ## Pattern catalog
 
-| Pattern name | Regex | Catches |
-|---|---|---|
-| `github_token` | `gh[pousr]_[A-Za-z0-9]{36,}` | GitHub PAT (`ghp_`), OAuth (`gho_`), user-server (`ghu_`), server-server (`ghs_`), refresh (`ghr_`) |
-| `aws_access_key` | `AKIA[0-9A-Z]{16}` | AWS access key IDs |
-| `aws_secret_key` | `(?i)aws[_-]?secret[_-]?access[_-]?key["'\s:=]+[A-Za-z0-9/+=]{40}` | AWS secret access keys (heuristic — full keys are unconstrained chars but typically near labelled context) |
-| `slack_token` | `xox[bpoars]-[A-Za-z0-9-]+` | Slack bot/user/OAuth/app/refresh/scim tokens |
-| `google_api_key` | `AIza[0-9A-Za-z\-_]{35}` | Google API keys |
-| `stripe_key` | `(?:sk\|rk\|pk)_(?:live\|test)_[A-Za-z0-9]{24,}` | Stripe secret / restricted / publishable keys |
-| `private_key` | `-----BEGIN[ A-Z]* PRIVATE KEY-----` | PEM-encoded RSA / EC / OpenSSH / PGP private keys |
-| `jwt` | `eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+` | JWTs (header.payload.signature). Often non-sensitive (public tokens) but worth flagging — frequently embed user IDs and scopes. |
-| `connection_string` | `(?:postgres(?:ql)?\|mysql\|mongodb(?:\+srv)?\|redis\|amqp(?:s)?)://[^/\s]*:[^@\s]+@` | Database/queue connection strings with embedded credentials |
-| `bearer_token` | `(?i)(?:authorization\|auth)["':\s=]+bearer\s+[A-Za-z0-9._\-+/=]{20,}` | HTTP Authorization headers with bearer tokens |
-| `azure_storage` | `DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{88}` | Azure Storage connection strings |
-| `npm_token` | `npm_[A-Za-z0-9]{36}` | npm publish tokens |
-| `pypi_token` | `pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{50,}` | PyPI API tokens |
+Listed rather than tabulated on purpose: alternation pipes (`|`) must stay literal in the raw source. A markdown table would force `\|` escaping, and a reader that consumes the raw file (not the rendered HTML) would treat `\|` as a literal pipe — breaking the alternation in engines like Python `re`. Each entry is `name` — `regex` — what it catches.
+
+- `github_token` — `gh[pousr]_[A-Za-z0-9]{36,}` — GitHub PAT (`ghp_`), OAuth (`gho_`), user-server (`ghu_`), server-server (`ghs_`), refresh (`ghr_`)
+- `aws_access_key` — `AKIA[0-9A-Z]{16}` — AWS access key IDs
+- `aws_secret_key` — `(?i)aws[_-]?secret[_-]?access[_-]?key["'\s:=]+[A-Za-z0-9/+=]{40}` — AWS secret access keys (heuristic — full keys are unconstrained chars but typically near labelled context)
+- `slack_token` — `xox[bpoars]-[A-Za-z0-9-]+` — Slack bot/user/OAuth/app/refresh/scim tokens
+- `google_api_key` — `AIza[0-9A-Za-z\-_]{35}` — Google API keys
+- `stripe_key` — `(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{24,}` — Stripe secret / restricted / publishable keys
+- `private_key` — `-----BEGIN[ A-Z]* PRIVATE KEY-----` — PEM-encoded RSA / EC / OpenSSH / PGP private keys
+- `jwt` — `eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+` — JWTs (header.payload.signature). Often non-sensitive (public tokens) but worth flagging — frequently embed user IDs and scopes.
+- `connection_string` — `(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp(?:s)?)://[^/\s]*:[^@\s]+@` — Database/queue connection strings with embedded credentials
+- `bearer_token` — `(?i)(?:authorization|auth)["':\s=]+bearer\s+[A-Za-z0-9._\-+/=]{20,}` — HTTP Authorization headers with bearer tokens
+- `azure_storage` — `DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{88}` — Azure Storage connection strings
+- `npm_token` — `npm_[A-Za-z0-9]{36}` — npm publish tokens
+- `pypi_token` — `pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{50,}` — PyPI API tokens
 
 ## Generic high-entropy candidates
 
