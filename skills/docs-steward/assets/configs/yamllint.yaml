@@ -1,0 +1,63 @@
+# Bundled fallback yamllint config — applied to YAML frontmatter + fenced YAML
+# blocks extracted from markdown files when the audited repo declares no
+# yamllint config of its own. Aligned to the no-hard-wrap preference: line
+# length is the preview tool's concern, not the source file's.
+#
+# Resolution precedence used by scripts/md-audit-frontmatter.py:
+#   1. `--yamllint-config <path>` — explicit override, beats everything.
+#   2. Auto-discovered .yamllint / .yamllint.yaml / .yamllint.yml at the
+#      repo root — order mirrors yamllint's own standalone lookup, so a
+#      repo-declared file drives the audit.
+#   3. This file — the bundled fallback only applies when both of the
+#      above are absent.
+#
+# docs_steward.baseline.detect_baseline still owns the markdown / formatter
+# precedence chain (.markdownlint*, .prettierrc*, .remarkrc*, .mdformat.toml,
+# dprint.json, .editorconfig); yamllint discovery is handled separately by
+# docs_steward.cli._discover_repo_yamllint_config because yamllint is
+# orthogonal to the markdown formatter selection.
+
+extends: default
+
+rules:
+  # No line-length cap on YAML — preview / editor wrap is fine.
+  line-length: disable
+
+  # Document-start `---` cannot be checked on blocks extracted from markdown
+  # frontmatter: extract_blocks strips the boundary markers before piping to
+  # yamllint, so the rule would fire on every clean frontmatter block as a
+  # false positive. Disabled here for the audit-frontmatter pipeline; users
+  # who lint standalone .yaml files should rely on yamllint's own defaults
+  # by passing a custom --yamllint-config.
+  document-start: disable
+
+  # Same extraction artifact — extract_blocks emits joined yaml_text without
+  # a trailing newline, so this rule would always fire. Disabled for the
+  # audit-frontmatter pipeline.
+  new-line-at-end-of-file: disable
+
+  # Truthy values: catch `yes`/`no`/`on`/`off` outside booleans (silent bugs
+  # in scripts that consume the YAML); allow `true`/`false` (canonical YAML 1.2).
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
+
+  # Comments — require at least one space after `#`, but skip the indentation
+  # rule (frontmatter blocks often have inconsistent comment indentation).
+  comments:
+    min-spaces-from-content: 1
+    require-starting-space: true
+  comments-indentation: disable
+
+  # Indentation — 2-space sequence and mapping indent; surface inconsistency
+  # as warning (errors for indentation breaks would be too aggressive on the
+  # variety of frontmatter styles in the wild).
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+    level: warning
+
+  # Key-duplicates is a real bug indicator; keep as error.
+  key-duplicates:
+    level: error
