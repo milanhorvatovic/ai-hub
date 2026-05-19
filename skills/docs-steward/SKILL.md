@@ -88,9 +88,11 @@ Candidates probed in order:
 2. prettier family: `.prettierrc`, `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}`, `prettier.config.{js,cjs,mjs}`
 3. remark family: `.remarkrc`, `.remarkrc.{json,yaml,yml,js,cjs,mjs}`
 4. mdformat: `.mdformat.toml`
-5. `.editorconfig`
-6. `dprint.json`
+5. `dprint.json`
+6. `.editorconfig`
 7. Nothing found → `universal-subset` sentinel; bundled fallback configs apply (4.D).
+
+`dprint.json` ranks above `.editorconfig` so a repo declaring both is matched against the formatter-specific config (which routes to `Tool.DPRINT` in `selector._BASELINE_PREFERENCES`) rather than the cross-tool style hint, which has no preferred-tool entry and would otherwise trigger a `FALLBACK_ORDER` walk that picks whichever formatter happens to be on PATH first.
 
 When two configs in the precedence are both present (e.g. `.markdownlint.json` and `.prettierrc`), the first-found wins; the second is not detected or read.
 

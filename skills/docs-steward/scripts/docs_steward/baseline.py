@@ -49,8 +49,16 @@ BASELINE_CANDIDATES: tuple[str, ...] = (
     ".remarkrc.cjs",
     ".remarkrc.mjs",
     ".mdformat.toml",
-    ".editorconfig",
+    # `dprint.json` ranks ABOVE `.editorconfig` so a repo that declares
+    # both is matched against the formatter-specific config the user
+    # explicitly wrote rather than the cross-tool style hint that has
+    # no selector preference. `.editorconfig` left below means: if it's
+    # the ONLY config a repo declares, selection falls through to
+    # FALLBACK_ORDER (which is fine — the user gets whatever formatter
+    # is on PATH and editorconfig itself is consumed by tools that
+    # support it via their own mechanism, not via --config forwarding).
     "dprint.json",
+    ".editorconfig",
 )
 
 
