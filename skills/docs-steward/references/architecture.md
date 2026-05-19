@@ -52,7 +52,7 @@ tests/
         ├── __init__.py
         ├── conftest.py      injects skills/docs-steward/scripts/ onto sys.path
         ├── fakes.py         FakeProcessRunner + FakeFileSystem (the only test doubles needed)
-        └── test_*.py        one module per source module; 240+ tests, sub-300ms wall time
+        └── test_*.py        one module per source module; wall time consistently sub-second
 ```
 
 `conftest.py` is what lets the test modules `import docs_steward.*` without packaging the skill. CI (`.github/workflows/tests.yml`) runs `pytest` from the repo root; the suite matrix is `{ubuntu-latest, windows-latest} × {3.12, 3.13}`.
