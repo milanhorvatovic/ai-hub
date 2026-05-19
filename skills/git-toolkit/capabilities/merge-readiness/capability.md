@@ -46,7 +46,7 @@ statusCheckRollup,additions,deletions,changedFiles,isCrossRepository
 | **CI checks** | All required checks in `statusCheckRollup` have `conclusion == SUCCESS`. Skipped is OK; pending → Warn; failure → Fail | List failing checks by name |
 | **Mergeable** | `mergeable == MERGEABLE` AND `mergeStateStatus ∈ {CLEAN, HAS_HOOKS, UNSTABLE}` | Fail on `CONFLICTING`, `DIRTY`, `BLOCKED`, `BEHIND` |
 | **Approvals** | `reviewDecision == APPROVED` | Fail on `REVIEW_REQUIRED` or `CHANGES_REQUESTED` |
-| **No unresolved threads** | `gh api repos/{o}/{r}/pulls/{n}/comments` filtered for unresolved | Warn (not fail) — some teams allow merge with open threads |
+| **No unresolved threads** | GraphQL `pullRequest.reviewThreads { isResolved }` (REST `pulls/{n}/comments` doesn't expose resolution state) — see `../pr-conversation-resolve/capability.md` step 1 for the canonical query | Warn (not fail) — some teams allow merge with open threads |
 | **No WIP commits** | `git log --no-merges <base>..HEAD --pretty='%s'` — check for `WIP`/`wip`/`[WIP]`/`fixup!`/`squash!` | Fail; redirect to `rebase-cleanup` |
 | **Description in sync** | Run a light version of `pr-description-sync` workflow (does body claim work that's still in the diff?) | Warn if MINOR-UPDATE; Fail if MAJOR-REWRITE or HANDOFF-TO-WRITE |
 | **No outdated PR** | `headRefOid` matches the SHA the latest review was against (best-effort) | Warn if reviewers approved a different SHA |
