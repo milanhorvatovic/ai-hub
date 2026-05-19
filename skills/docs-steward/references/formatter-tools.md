@@ -57,7 +57,7 @@ Pairs with `.prettierrc` / `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}` / `pret
 
 ### mdformat
 
-Pairs with `pyproject.toml#[tool.mdformat]` or a standalone `.mdformat.toml`.
+Pairs with `.mdformat.toml` at the repo root. mdformat itself also reads a `[tool.mdformat]` section out of `pyproject.toml`, but `docs_steward.baseline.BASELINE_CANDIDATES` only matches by filename — `pyproject.toml` is not in the candidate list (and adding it would require parsing the TOML to confirm the `[tool.mdformat]` table exists, which the rest of baseline detection deliberately avoids). A repo whose only mdformat config lives under `pyproject.toml#[tool.mdformat]` therefore falls through to `universal-subset` and may select a different formatter. Add a standalone `.mdformat.toml` when you want the skill to detect mdformat.
 
 | Mode | Command |
 |---|---|
