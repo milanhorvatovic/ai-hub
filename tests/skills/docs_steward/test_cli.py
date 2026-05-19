@@ -204,7 +204,12 @@ class CliEndToEndTests(unittest.TestCase):
             self.assertEqual(plugin_missing[0]["detail"]["plugin"], "gfm")
             # Event records the resolved (absolute) path so consumers can
             # locate the file regardless of where the CLI was invoked from.
-            self.assertEqual(plugin_missing[0]["detail"]["file"], md_path)
+            # _resolve_against_root emits forward-slash paths on every host,
+            # so the expected value normalizes the os.path.join result to
+            # forward slashes; on POSIX this is a no-op, on Windows it
+            # rewrites the native backslash separator.
+            expected_file = md_path.replace("\\", "/")
+            self.assertEqual(plugin_missing[0]["detail"]["file"], expected_file)
 
     def test_md_audit_skips_plugin_check_when_tool_is_not_mdformat(self) -> None:
         # prettier selected → no plugin-missing event regardless of file content.
