@@ -86,6 +86,15 @@ def _try_git_ls_files(
         if rel not in seen:
             seen.add(rel)
             unique_rels.append(rel)
+    # Drop paths under any _SKIP_DIRS segment. The git listing is
+    # unfiltered by construction — `git ls-files` tracks vendored files
+    # when they've been committed, so a repo that checks in markdown
+    # under `node_modules/` or `vendor-built/dist/` would surface those
+    # entries. The walk fallback prunes the same set via os.walk's
+    # dirnames mutation; the git path must apply the same contract or
+    # the SKILL.md "skips node_modules / .git / dist / build / .venv /
+    # venv / target" promise diverges between modes.
+    unique_rels = [r for r in unique_rels if not _has_skip_segment(r)]
     # Filter to paths that actually exist on disk. `git ls-files --cached`
     # still surfaces an entry for a tracked file the user has deleted in
     # their working tree (the deletion isn't `git rm`-ed yet), but the
@@ -116,6 +125,12 @@ def _walk(root: str) -> list[str]:
             if name.endswith(_MARKDOWN_EXTENSIONS):
                 found.append(_posix_join(dirpath, name))
     return found
+
+
+def _has_skip_segment(rel: str) -> bool:
+    """True when any path segment of `rel` matches a skip-dir name.
+    `rel` is a git-listed path (POSIX-slash) relative to the repo root."""
+    return any(seg in _SKIP_DIRS for seg in rel.split("/"))
 
 
 def _posix_join(root: str, rel: str) -> str:

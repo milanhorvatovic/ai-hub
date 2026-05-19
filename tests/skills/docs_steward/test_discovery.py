@@ -111,6 +111,43 @@ class GitLsFilesPathTests(unittest.TestCase):
             basenames = sorted(os.path.basename(f) for f in files)
             self.assertEqual(basenames, ["real.md"])
 
+    def test_git_path_filters_paths_under_skip_dirs(self) -> None:
+        # Regression: the walk fallback prunes node_modules / .git /
+        # dist / build / .venv / venv / target via os.walk's dirnames
+        # mutation, but the git-backed path returned every tracked path
+        # unfiltered. A repo that checks in markdown under one of those
+        # directories (vendored docs, built artifacts, .venv site-
+        # packages docs) would surface them despite SKILL.md's skip
+        # promise. The git path now applies the same contract.
+        runner = FakeProcessRunner(
+            results={
+                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(
+                    0,
+                    "README.md\n"
+                    "node_modules/pkg/README.md\n"
+                    "dist/built.md\n"
+                    "vendor/.venv/site-packages/x.md\n"
+                    "docs/intro.md\n",
+                    "",
+                ),
+            }
+        )
+        files = list_markdown_files(
+            runner, "/repo",
+            fs=_fs_with(
+                "/repo",
+                "README.md",
+                "node_modules/pkg/README.md",
+                "dist/built.md",
+                "vendor/.venv/site-packages/x.md",
+                "docs/intro.md",
+            ),
+        )
+        self.assertEqual(
+            sorted(files),
+            sorted(["/repo/README.md", "/repo/docs/intro.md"]),
+        )
+
     def test_filters_out_index_entries_for_deleted_working_tree_files(self) -> None:
         # Regression: `git ls-files --cached` keeps an entry for a tracked
         # file the user has rm-ed but not `git rm`-ed. Downstream audit
