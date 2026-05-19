@@ -27,7 +27,7 @@ scripts/md-audit-frontmatter.py --yamllint-config .yamllint  # override the bund
 
 **`md-fix.py`:** audit → format → re-audit → emit `delta` event with `{resolved, still_open, new}` counts. Bails early if pre-audit hits an error.
 
-NDJSON on stdout, progress + errors on stderr.
+All emitted events go to stdout as NDJSON via `cli._emit`. The CLI does not write its own progress or error messages to stderr — invocation errors (unknown subcommand, missing required argument) surface via argparse's stderr usage messages, but routine progress is encoded inside the event stream itself (`selected`, `bundled-config`, `clean`, `missing`, `error` events) rather than as a separate stderr channel. Formatter subprocess output is captured and routed through the event stream too; no formatter bytes reach the terminal directly.
 
 Exit codes (uniform across all entry shims): `0` clean / `1` findings (or files changed) / `2` invocation error / `3` no usable tool.
 
