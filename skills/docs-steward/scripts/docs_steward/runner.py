@@ -15,7 +15,6 @@ Exit-code contract:
 
 from __future__ import annotations
 
-import os.path
 import re
 from collections.abc import Sequence
 
