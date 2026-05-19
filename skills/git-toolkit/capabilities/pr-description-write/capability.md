@@ -92,7 +92,7 @@ Per `../../references/format-pr.md`:
 - For `sm == "PR_BODY"`: flat prose, ≤72-char first line, no headings (see `../../references/merge-policy.md` template).
 - For non-squash-`PR_BODY`: markdown structure per template.
 - Imperative present-tense bullets in "Changes" section.
-- Past tense for what the PR did in the Summary.
+- Present-tense Summary describing what the PR does (e.g. "Adds retry logic…"), per `../../references/format-pr.md`.
 - No marketing language.
 
 ### 7. Pre-display secret scan
