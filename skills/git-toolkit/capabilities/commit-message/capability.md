@@ -168,7 +168,7 @@ For each commit in the range, run `git show <sha> --no-patch --format='%H%n%s%n%
 | Subject length | ≤72 chars | `error` if >72, `warn` if 51-72 (ideal ≤50) |
 | Imperative mood | Subject starts with imperative verb | `warn` (heuristic — past tense is the most common failure) |
 | Trailing period | No `.` at end of subject | `error` |
-| Conventional-commits prefix | If repo uses CC, subject matches `^(feat\|fix\|chore\|docs\|refactor\|test\|perf\|build\|ci\|style\|revert)(\([^)]+\))?!?:\s` | `error` if missing |
+| Conventional-commits prefix | If repo uses CC, subject matches the conventional-commits pattern in `../../references/format-subject.md` | `error` if missing |
 | Scope consistency | Scope (if present) matches past-commits scopes | `warn` if novel scope |
 | Body wrap | Each body line ≤72 chars unless URL or code block | `warn` |
 | Blank line after subject | Subject and body separated by exactly one blank line | `error` if missing |
