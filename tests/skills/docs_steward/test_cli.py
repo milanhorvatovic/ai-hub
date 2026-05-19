@@ -163,7 +163,12 @@ class CliEndToEndTests(unittest.TestCase):
             with open(md_path, "w", encoding="utf-8") as fh:
                 fh.write("| col | col |\n|---|---|\n| a | b |\n")
 
-            audit_cmd = ("mdformat", "--check", "--", md_path)
+            # The CLI normalizes absolute paths to forward slashes
+            # through _to_posix, so the formatter argv and the plugin-
+            # missing event carry the POSIX-style form regardless of
+            # host. Build the expectation accordingly.
+            md_path_posix = md_path.replace("\\", "/")
+            audit_cmd = ("mdformat", "--check", "--", md_path_posix)
             runner = FakeProcessRunner(
                 paths={"mdformat": "/x/mdformat", "git": "/x/git"},
                 results={
@@ -178,7 +183,7 @@ class CliEndToEndTests(unittest.TestCase):
             plugin_missing = [e for e in events if e["event"] == "plugin-missing"]
             self.assertEqual(len(plugin_missing), 1)
             self.assertEqual(plugin_missing[0]["detail"]["plugin"], "gfm")
-            self.assertEqual(plugin_missing[0]["detail"]["file"], md_path)
+            self.assertEqual(plugin_missing[0]["detail"]["file"], md_path_posix)
 
     def test_md_audit_plugin_missing_resolves_relative_files_against_root(self) -> None:
         # Same setup as the previous test, but the positional file argument
