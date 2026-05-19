@@ -52,7 +52,7 @@ _PREAMBLE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^Summary:\s\d+\serror"),             # markdownlint-cli2 summary
     re.compile(r"^Checking formatting\.{3}"),         # prettier --check banner
     re.compile(r"^All matched files use Prettier"),   # prettier --check clean
-    re.compile(r"^Code style issues found"),          # prettier --check summary
+    re.compile(r"^(?:\[warn\]\s+)?Code style issues found"),  # prettier --check summary (also prefixed)
     re.compile(r"^\(\d+\.?\d*ms\)$"),                 # prettier timing
 )
 

@@ -401,6 +401,32 @@ class QuietFlagTests(unittest.TestCase):
         findings = [e for e in events if e.event == EventType.FINDING]
         self.assertEqual(len(findings), 2)  # preamble + finding both kept
 
+    def test_quiet_drops_warn_prefixed_prettier_summary(self) -> None:
+        # Regression: some prettier builds emit the summary with the
+        # `[warn] ` prefix (`[warn] Code style issues found in N files.
+        # Run Prettier with --write to fix.`). The preamble pattern now
+        # accepts the optional prefix so --quiet drops both forms.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        output = (
+            "[warn] foo.md\n"
+            "[warn] bar.md\n"
+            "[warn] Code style issues found in 2 files. Run Prettier with --write to fix.\n"
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(1, output, "")},
+        )
+        events, _ = run_tool(
+            Mode.AUDIT, ".prettierrc", False, runner, ROOT, quiet=True,
+        )
+        findings = [e.detail for e in events if e.event == EventType.FINDING]
+        # Two [warn] <path> lines survive; the [warn] summary is filtered.
+        self.assertEqual(len(findings), 2)
+        self.assertTrue(all("[warn]" in f for f in findings))
+        self.assertFalse(
+            any("Code style issues" in f for f in findings),
+        )
+
     def test_quiet_drops_prettier_summary_line(self) -> None:
         # Regression: --quiet must drop Prettier's trailing summary
         # ("Code style issues found in N files. Run Prettier with
