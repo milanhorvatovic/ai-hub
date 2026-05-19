@@ -19,7 +19,7 @@ def _parse_frontmatter(md_path: Path) -> dict[str, str]:
     PyYAML dependency. Handles flat key: value pairs and the multi-line `>`
     folded string used in skill descriptions.
     """
-    text = md_path.read_text()
+    text = md_path.read_text(encoding="utf-8")
     if not text.startswith("---\n"):
         raise AssertionError(f"{md_path} missing leading frontmatter")
     end = text.find("\n---\n", 4)
@@ -69,7 +69,7 @@ def test_skill_md_has_frontmatter(skill_md: Path) -> None:
 
 
 def test_skill_version_is_semver(skill_md: Path) -> None:
-    text = skill_md.read_text()
+    text = skill_md.read_text(encoding="utf-8")
     m = re.search(r'^\s+version:\s*"([^"]+)"', text, flags=re.MULTILINE)
     assert m, "no version: key found in metadata"
     version = m.group(1)
@@ -82,7 +82,7 @@ def test_capability_table_lists_existing_paths(
 ) -> None:
     """Every `capabilities/<name>/capability.md` path in the router table
     must resolve to an actual file on disk."""
-    text = skill_md.read_text()
+    text = skill_md.read_text(encoding="utf-8")
     paths = re.findall(r"capabilities/([a-z-]+)/capability\.md", text)
     assert paths, "no capability paths found in SKILL.md"
     missing = [
@@ -96,7 +96,7 @@ def test_no_orphan_capabilities(
 ) -> None:
     """Every capability directory under capabilities/ must be listed in the
     router table. Orphan capabilities can never be triggered."""
-    text = skill_md.read_text()
+    text = skill_md.read_text(encoding="utf-8")
     listed = set(re.findall(r"capabilities/([a-z-]+)/capability\.md", text))
     on_disk = {
         p.name

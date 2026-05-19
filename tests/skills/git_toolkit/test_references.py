@@ -28,7 +28,7 @@ def _collect_relative_links(md_path: Path) -> list[tuple[str, int]]:
     Catches forms like `references/foo.md`, `../../references/foo.md`,
     `capabilities/foo/capability.md`.
     """
-    text = md_path.read_text()
+    text = md_path.read_text(encoding="utf-8")
     out: list[tuple[str, int]] = []
     for lineno, line in enumerate(text.splitlines(), start=1):
         for m in re.finditer(
@@ -58,7 +58,7 @@ def test_skill_md_reference_links_resolve(
     skill_md: Path, references_dir: Path
 ) -> None:
     """Every `references/<name>.md` linked from SKILL.md must exist."""
-    text = skill_md.read_text()
+    text = skill_md.read_text(encoding="utf-8")
     referenced = re.findall(r"references/([A-Za-z0-9_./-]+\.md)", text)
     missing = [r for r in referenced if not (references_dir / r).is_file()]
     assert not missing, f"SKILL.md references missing files: {missing}"
@@ -67,7 +67,7 @@ def test_skill_md_reference_links_resolve(
 def test_review_output_schema_is_valid_json(references_dir: Path) -> None:
     schema_path = references_dir / "review-output.schema.json"
     assert schema_path.is_file(), "review-output.schema.json not found"
-    schema = json.loads(schema_path.read_text())
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
     assert isinstance(schema, dict)
     assert schema.get("type") == "object"
     assert "properties" in schema
@@ -83,7 +83,7 @@ def test_review_output_schema_is_valid_json(references_dir: Path) -> None:
 def test_review_output_schema_declares_recognized_draft(
     references_dir: Path,
 ) -> None:
-    schema = json.loads((references_dir / "review-output.schema.json").read_text())
+    schema = json.loads((references_dir / "review-output.schema.json").read_text(encoding="utf-8"))
     uri = schema.get("$schema", "")
     recognized = (
         "https://json-schema.org/draft/2020-12/schema",
@@ -98,9 +98,9 @@ def test_review_output_schema_result_enum_matches_prose(
 ) -> None:
     """The schema's `result` enum must match the values listed in the prose
     spec (review-output.md). Catches drift between the two."""
-    schema = json.loads((references_dir / "review-output.schema.json").read_text())
+    schema = json.loads((references_dir / "review-output.schema.json").read_text(encoding="utf-8"))
     schema_enum = set(schema["properties"]["result"]["enum"])
-    prose = (references_dir / "review-output.md").read_text()
+    prose = (references_dir / "review-output.md").read_text(encoding="utf-8")
     prose_values = set(re.findall(r"`(PASS|MOSTLY-PASS|FAIL|N/A)`", prose))
     # The prose may use slightly different forms; require schema enum to be a
     # subset of what the prose mentions (prose can list more nuances).
@@ -122,7 +122,7 @@ def test_review_output_schema_result_enum_matches_prose(
 def test_rule_id_matches_schema_pattern(rule_id: str, references_dir: Path) -> None:
     """Sanity-check the schema's rule pattern against canonical rule ids
     used in the prose docs."""
-    schema = json.loads((references_dir / "review-output.schema.json").read_text())
+    schema = json.loads((references_dir / "review-output.schema.json").read_text(encoding="utf-8"))
     pattern = schema["properties"]["rule"]["pattern"]
     assert re.fullmatch(pattern, rule_id), (
         f"canonical rule id {rule_id!r} fails schema pattern {pattern!r}"
