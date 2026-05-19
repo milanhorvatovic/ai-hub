@@ -72,7 +72,9 @@ If not in a git repo → fall back to the current working directory and note the
 
 ### 2. Inventory all markdown files
 
-`discovery.list_markdown_files` returns absolute paths to every `.md` / `.markdown` file under the repo root, via `git ls-files` (respects `.gitignore`) or, when git is unavailable, an `os.walk` fallback that skips `node_modules`, `.git`, `dist`, `build`, `.venv`, `venv`, `target`. No file classification; no scoping by role — every markdown file is passed to the chosen formatter as-is.
+`discovery.list_markdown_files` returns absolute paths to every `.md` / `.markdown` file under the repo root, via `git ls-files --cached --others --exclude-standard` (covers both tracked and untracked-but-not-ignored files; respects `.gitignore`) or, when git is unavailable, an `os.walk` fallback. Either path filters out entries under `node_modules`, `.git`, `dist`, `build`, `.venv`, `venv`, `target` and drops paths whose working-tree file is missing or is a directory.
+
+The inventory is consumed by the audit-frontmatter (`md-audit-frontmatter`) and the mdformat-plugin pre-check (`md-audit` / `md-format` / `md-fix` when mdformat is the selected tool). The markdown formatter pipeline itself does NOT iterate this list — it invokes the chosen formatter with the tool's own default glob (e.g. `prettier --check '**/*.md' '**/*.markdown'`, `markdownlint-cli2 '**/*.md' '**/*.markdown' '#node_modules' ...`, `mdformat --check .`). The skip-dir contract is enforced for the formatter pipeline by the per-tool default-glob negative patterns (markdownlint-cli2 / markdownlint), by `--ignore-path .gitignore` (markdownlint), or by the tool's own discovery (mdformat / dprint / remark via cwd=root); see `references/formatter-tools.md` for the exact commands.
 
 ### 3. Determine the style baseline
 
