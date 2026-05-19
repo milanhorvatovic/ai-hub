@@ -70,6 +70,23 @@ class RecommendInstallsTests(unittest.TestCase):
         first_recommend = min(i for i, t in enumerate(types) if t == EventType.RECOMMEND)
         self.assertLess(last_installed, first_recommend)
 
+    def test_only_yamllint_installed_does_not_claim_fallback_formatter(self) -> None:
+        # Regression: yamllint is a complementary YAML linter — having
+        # only yamllint on PATH does NOT mean a usable markdown formatter
+        # exists, even though yamllint is in INSTALL_PRIORITY (so the
+        # recommender still surfaces install commands for it). The
+        # VERDICT must say "no formatter on PATH" rather than "fallback
+        # tool (yamllint) present".
+        runner = _runner_with_tools(Tool.YAMLLINT)
+        events, code = recommend_installs(runner)
+        self.assertEqual(code, 1)
+        verdict = events[-1]
+        self.assertEqual(verdict.event, EventType.VERDICT)
+        self.assertEqual(verdict.tool, "none")
+        # The yamllint INSTALLED event is still emitted (inventory pass).
+        installed = [e for e in events if e.event == EventType.INSTALLED]
+        self.assertEqual([e.tool for e in installed], [Tool.YAMLLINT.value])
+
 
 if __name__ == "__main__":
     unittest.main()

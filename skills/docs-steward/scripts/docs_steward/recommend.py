@@ -15,12 +15,19 @@ from .hints import install_hints
 from .priority import INSTALL_PRIORITY
 from .probe import capture_version
 from .process import ProcessRunner
-from .tools import SUPPORTED_TOOLS, Tool
+from .tools import REGISTRY, SUPPORTED_TOOLS, Tool
 
 
 def _first_installed_from_priority(runner: ProcessRunner) -> Tool | None:
+    """Return the first priority tool that's actually a markdown formatter
+    (in `REGISTRY`) AND present on PATH. yamllint is part of INSTALL_PRIORITY
+    so the recommender surfaces install commands for it, but it is NOT a
+    markdown formatter — finding only yamllint on PATH must not satisfy
+    the "fallback tool present" VERDICT, or the message would imply a
+    usable markdown formatter exists when probe correctly reports none."""
+    formatter_tools = set(REGISTRY.keys())
     for tool in INSTALL_PRIORITY:
-        if runner.which(tool.value):
+        if tool in formatter_tools and runner.which(tool.value):
             return tool
     return None
 
