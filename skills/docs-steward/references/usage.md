@@ -16,7 +16,7 @@ scripts/md-format.py [--unwrap] [--baseline FILE] [--quiet] [FILE...]  # write m
 scripts/md-format.py --dry-run                            # preview changes without writing (emits would-change events)
 scripts/md-fix.py [--unwrap] [--baseline FILE] [--quiet] [FILE...]     # one-shot: audit → format → re-audit → delta
 scripts/md-audit-frontmatter.py [FILE...]                 # lint YAML frontmatter + fenced YAML blocks (yamllint)
-scripts/md-audit-frontmatter.py --yamllint-config .yamllint  # override the bundled yamllint config
+scripts/md-audit-frontmatter.py --yamllint-config .yamllint  # force a specific yamllint config (overrides auto-discovery)
 ```
 
 **Per-file targeting:** any audit/format/fix entry accepts positional file paths as the last arguments. When provided, the formatter scopes to exactly those files (bypassing its default glob). Works without git — the file list is passed verbatim.
