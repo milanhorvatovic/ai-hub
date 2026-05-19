@@ -213,6 +213,48 @@ class ResolveMdformatInterpreterTests(unittest.TestCase):
             runner = FakeProcessRunner(paths={"mdformat": path})
             self.assertIsNone(_resolve_mdformat_interpreter(runner))
 
+    def test_endswith_env_false_positive_rejected(self) -> None:
+        # Regression: head.endswith("env") used to match interpreters
+        # whose final path component just happened to end with "env" —
+        # `/opt/genv/bin/wrapper`, `~/.envs/myenv`, `/some/.env`. Those
+        # shebangs were wrongly parsed as the /usr/bin/env <interp>
+        # form. Now an exact basename match is required.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mdformat")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("#!/opt/genv/bin/wrapper\n")
+            runner = FakeProcessRunner(paths={"mdformat": path})
+            # The shebang is treated as a non-env interpreter. wrapper
+            # is not recognized as Python, so the helper returns None
+            # and the probe falls back to pip rather than executing
+            # /opt/genv/bin/wrapper -c '...'.
+            self.assertIsNone(_resolve_mdformat_interpreter(runner))
+
+    def test_non_python_shebang_falls_back_to_pip(self) -> None:
+        # mise / asdf / pyenv shims may have a bash shebang. Running
+        # `bash -c 'import importlib.metadata; ...'` would exit non-zero,
+        # the probe would report zero plugins, and emit_plugin_missing
+        # would fire false events. Reject bash and other non-Python
+        # interpreters so the caller falls back to the pip-based probe.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mdformat")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("#!/usr/bin/env bash\n")
+            runner = FakeProcessRunner(paths={"mdformat": path})
+            self.assertIsNone(_resolve_mdformat_interpreter(runner))
+
+    def test_versioned_python_interpreter_recognized(self) -> None:
+        # python3.12 etc. — version-suffixed forms should still match.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mdformat")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("#!/opt/pipx/venvs/mdformat/bin/python3.12\n")
+            runner = FakeProcessRunner(paths={"mdformat": path})
+            self.assertEqual(
+                _resolve_mdformat_interpreter(runner),
+                "/opt/pipx/venvs/mdformat/bin/python3.12",
+            )
+
     def test_returns_none_for_non_shebang_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "mdformat")

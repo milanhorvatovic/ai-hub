@@ -23,11 +23,18 @@ Used by:
 
 from __future__ import annotations
 
+import os.path
 import re
 from collections.abc import Callable, Sequence
 
 from .events import Event, EventType
 from .process import ProcessRunner
+
+
+_PYTHON_INTERP_NAMES: frozenset[str] = frozenset({
+    "python", "python3", "python2",
+    # Versioned (python3.12 etc.) handled via a startswith fallback below.
+})
 
 
 # Known mdformat plugin packages the probe checks for. Each maps to a short
@@ -112,12 +119,36 @@ def _resolve_mdformat_interpreter(runner: ProcessRunner) -> str | None:
     # shebangs use `env -S <flags> <interp>` (the -S "split" flag lets
     # multiple args pass through); naive parts[1] would return the
     # literal `-S` and the subsequent interpreter probe would fail.
-    if head.endswith("env"):
+    # Compare basename exactly — `head.endswith("env")` would also match
+    # `/opt/genv/bin/wrapper`, `~/.envs/myenv`, `/some/.env`, etc., and
+    # wrongly parse those shebangs as the env-wrapper form.
+    head_name = os.path.basename(head)
+    if head_name == "env":
+        candidate: str | None = None
         for arg in parts[1:]:
             if not arg.startswith("-"):
-                return arg
+                candidate = arg
+                break
+    else:
+        candidate = head
+    # Only return when the interpreter is recognizably Python. An mdformat
+    # shim provided by a version manager (mise / asdf / pyenv-shim) may
+    # have a bash shebang that delegates to Python via PATH; running
+    # `bash -c 'import importlib.metadata as m; print(m.version(...))'`
+    # would exit non-zero, the probe would report zero installed plugins,
+    # and emit_plugin_missing would then fire false PLUGIN_MISSING events
+    # against any GFM file. Restrict the shebang path to interpreters we
+    # know can execute `python -c "import importlib.metadata; ..."`;
+    # everything else (bash shim, compiled wrapper, etc.) falls back to
+    # the legacy pip-based detection in _probe_via_pip_fallback.
+    if candidate is None:
         return None
-    return head
+    candidate_name = os.path.basename(candidate)
+    if candidate_name in _PYTHON_INTERP_NAMES or candidate_name.startswith(
+        ("python2.", "python3.")
+    ):
+        return candidate
+    return None
 
 
 def _probe_via_interpreter(runner: ProcessRunner, interpreter: str) -> list[Event]:
