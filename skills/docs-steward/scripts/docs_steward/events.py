@@ -18,7 +18,14 @@ class EventType(str, Enum):
     - AVAILABLE / INSTALLED / BUNDLED_CONFIG: detail is a string (version / path).
     - MISSING / CLEAN / VERDICT: detail is a string (human-readable message).
     - RECOMMEND: detail is a dict {"priority_rank": int, "install_options": list[str]}.
-    - SELECTED: detail is a dict {"baseline", "mode", "unwrap", "config_source", "cmd"}.
+    - SELECTED: detail is pipeline-specific. Markdown formatter pipeline
+      (`md-audit` / `md-format` / `md-fix`) emits
+      {"baseline", "mode", "unwrap", "config_source", "cmd",
+       "files_scoped", "dry_run"}. Frontmatter audit pipeline
+      (`md-audit-frontmatter`) emits {"mode": "audit-frontmatter",
+       "config_source", "config_path", "files_scanned"} — no `baseline`,
+      `unwrap`, `cmd`, `files_scoped`, or `dry_run` keys.
+      Consumers should branch on `detail["mode"]`.
     - FINDING / CHANGED / WOULD_CHANGE: detail is a string (one line of formatter output).
     - ERROR: detail is a dict {"exit": int, "hint"?: str} or a string.
     - PLUGIN_AVAILABLE: event.tool is "mdformat"; detail is a dict

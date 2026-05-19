@@ -13,7 +13,7 @@ Consumers should parse one line at a time and dispatch by `event`. Schema is sta
 | `missing` | `"all"` or tool name | string (install hint) | `probe.py` exit 3; `md-audit.py` / `md-format.py` when no usable formatter; `md-audit-frontmatter.py` when yamllint absent |
 | `recommend` | tool name | `{"priority_rank": int, "install_options": list[str]}` | `recommend-tools.py`: one per missing priority tool |
 | `verdict` | tool name or `"none"` | string | `recommend-tools.py`: single summary event tied to exit code |
-| `selected` | tool name | `{"baseline": str, "mode": str, "unwrap": bool, "config_source": str, "cmd": str, "files_scoped": int \| null, "dry_run": bool}` | `md-audit` / `md-format` / `md-fix`: which tool runs and how |
+| `selected` | tool name | Pipeline-specific — see `selected` variants below | `md-audit` / `md-format` / `md-fix` (markdown formatter shape); `md-audit-frontmatter` (yamllint shape) |
 | `bundled-config` | tool name | string (config path) | When a bundled fallback config is applied (baseline = universal-subset and tool has a bundled config) |
 | `finding` | tool name | string (one line of formatter output) | `md-audit.py` / `md-fix.py` audit phase: per-finding line from the formatter |
 | `changed` | tool name | string (one line of formatter output) | `md-format.py` write mode: per-file change line |
@@ -28,6 +28,10 @@ Consumers should parse one line at a time and dispatch by `event`. Schema is sta
 
 ### `selected` (most complex)
 
+Two variants — the markdown formatter pipeline and the yamllint frontmatter pipeline emit different `detail` shapes. Consumers should branch on `mode` (`"audit"` / `"format"` mean the markdown shape; `"audit-frontmatter"` means the yamllint shape).
+
+#### Markdown formatter variant
+
 Emitted once per `md-audit` / `md-format` / `md-fix` invocation (and once per phase of fix-cycle).
 
 | Field | Type | Meaning |
@@ -39,6 +43,21 @@ Emitted once per `md-audit` / `md-format` / `md-fix` invocation (and once per ph
 | `cmd` | string | The exact formatter argv as a space-joined string |
 | `files_scoped` | int or null | Count of positional file args, or null when scope is the formatter's default glob |
 | `dry_run` | bool | Whether `--dry-run` was passed (md-format only); always false for md-audit |
+
+#### Frontmatter audit variant
+
+Emitted once per `md-audit-frontmatter` invocation by `yaml_audit.audit_frontmatter`. The `tool` field on the event is always `"yamllint"`.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `mode` | string | Always `"audit-frontmatter"` |
+| `config_source` | string | `"repo"` (caller passed `--yamllint-config`), `"bundled"` (bundled fallback yamllint.yaml), or `"tool-default"` (no config available) |
+| `config_path` | string or null | Resolved absolute path of the yamllint config in use, or null when no config could be resolved |
+| `files_scanned` | int | Count of markdown files the audit walked |
+
+Notes:
+- The frontmatter variant does NOT include `baseline`, `unwrap`, `cmd`, `files_scoped`, or `dry_run` — those are markdown-pipeline-specific concepts.
+- Field-stability guarantees apply per-variant — adding fields to one variant doesn't imply adding them to the other.
 
 ### `recommend`
 
