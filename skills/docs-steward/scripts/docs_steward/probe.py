@@ -24,11 +24,13 @@ from .tools import REGISTRY, SUPPORTED_TOOLS, Tool
 
 
 _MISSING_HINT = (
-    "No supported formatter on PATH. Install one of: "
-    "markdownlint-cli2 (preferred markdownlint family), markdownlint-cli "
-    "(legacy markdownlint family, same rule configs), prettier, mdformat, "
-    "dprint, remark-cli. Run `recommend-tools.py` for platform-specific "
-    "install commands."
+    "No supported formatter on PATH. Install one of (binary name shown; "
+    "the npm package name is in parens where it differs): "
+    "markdownlint-cli2 (preferred markdownlint family), "
+    "markdownlint (npm package: markdownlint-cli; legacy, same rule configs), "
+    "prettier, mdformat, dprint, "
+    "remark (npm package: remark-cli). "
+    "Run `recommend-tools.py` for platform-specific install commands."
 )
 
 
