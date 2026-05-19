@@ -29,6 +29,7 @@ from .bundled_config import bundled_config_for
 from .events import Event, EventType
 from .frontmatter import FrontmatterBlock, extract_blocks
 from .fs import FileSystem
+from .hints import install_hints
 from .process import ProcessRunner
 from .tools import Tool
 
@@ -104,8 +105,19 @@ def audit_frontmatter(
     None, the bundled fallback yamllint config is used; pass an explicit
     path (typically a repo's `.yamllint` / `.yamllint.yaml`) to override."""
     if runner.which(_TOOL.value) is None:
+        # Route the install hint through the centralized `install_hints`
+        # table — same source of truth `recommend-tools` reads — so the
+        # MISSING message can't drift from the recommender's first-line
+        # canonical install command.
+        hints = install_hints(_TOOL)
+        canonical = hints[0] if hints else ""
+        message = (
+            f"yamllint not on PATH; install via: {canonical}"
+            if canonical
+            else "yamllint not on PATH"
+        )
         return (
-            [Event(EventType.MISSING, _TOOL.value, "yamllint not on PATH; install via: pipx install yamllint")],
+            [Event(EventType.MISSING, _TOOL.value, message)],
             3,
         )
 
