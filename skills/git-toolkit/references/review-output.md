@@ -12,13 +12,13 @@ The default human output is a markdown table with these columns:
 
 | Rule | Result | Details |
 |---|---|---|
-| <rule name> | PASS / MOSTLY PASS / FAIL / N/A | <one-line specifics; commit SHA, line number, or quoted excerpt> |
+| <rule name> | PASS / MOSTLY-PASS / FAIL / N/A | <one-line specifics; commit SHA, line number, or quoted excerpt> |
 
 - **Rule** — the rule's short name, taken verbatim from the spec it references (`Imperative mood`, `≤72 char subjects`, `Trailers auto-added`).
-- **Result** — exactly one of `PASS`, `MOSTLY PASS`, `FAIL`, `N/A`. Reserve `N/A` for rules that do not apply to the target (e.g., trailer rules on a commit with no trailers).
-- **Details** — for `FAIL` and `MOSTLY PASS`, name the offending commits by short SHA, and quote the offending excerpt. For `PASS`, leave blank or write the max observed (e.g., `longest is 57`). Keep details to one line; deeper context goes in the per-finding section below.
+- **Result** — exactly one of `PASS`, `MOSTLY-PASS`, `FAIL`, `N/A`. Reserve `N/A` for rules that do not apply to the target (e.g., trailer rules on a commit with no trailers).
+- **Details** — for `FAIL` and `MOSTLY-PASS`, name the offending commits by short SHA, and quote the offending excerpt. For `PASS`, leave blank or write the max observed (e.g., `longest is 57`). Keep details to one line; deeper context goes in the per-finding section below.
 
-After the table, list each `FAIL` and `MOSTLY PASS` finding as a separate block:
+After the table, list each `FAIL` and `MOSTLY-PASS` finding as a separate block:
 
 ```markdown
 ### Finding: <rule name> on <sha or scope>
@@ -60,8 +60,8 @@ A worked example stream lives at `review-output.example.ndjson` — 15 findings 
 At the end of the report (both human and NDJSON), emit a single-line verdict:
 
 - `COMPLIANT` — all rules `PASS` or `N/A`.
-- `COMPLIANT with N minor fix(es) recommended` — only `MOSTLY PASS` findings, no `FAIL`.
-- `NOT COMPLIANT (N FAIL, M MOSTLY PASS)` — at least one `FAIL`.
+- `COMPLIANT with N minor fix(es) recommended` — only `MOSTLY-PASS` findings, no `FAIL`.
+- `NOT COMPLIANT (N FAIL, M MOSTLY-PASS)` — at least one `FAIL`.
 
 The verdict is what most readers will skim first; everything else is supporting detail.
 
