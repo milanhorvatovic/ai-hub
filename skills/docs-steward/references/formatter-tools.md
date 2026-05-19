@@ -39,7 +39,7 @@ Pairs with `.markdownlint.json` / `.markdownlint.jsonc` / `.markdownlint.yaml` /
 
 ### prettier
 
-Pairs with `.prettierrc` / `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}` / `prettier.config.{js,cjs,mjs}` / `package.json#prettier`.
+Pairs with `.prettierrc` / `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}` / `prettier.config.{js,cjs,mjs}`. Prettier itself also reads a `prettier` key out of `package.json`, but `docs_steward.baseline.BASELINE_CANDIDATES` does NOT include `package.json` — selection happens by filename match, so a repo whose only Prettier config lives under `package.json#prettier` falls through to `universal-subset` and the bundled fallback. Add a standalone `.prettierrc` (or any of the other names above) when you want the skill to detect Prettier.
 
 | Mode | Command |
 |---|---|
