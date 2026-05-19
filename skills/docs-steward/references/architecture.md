@@ -35,11 +35,6 @@ scripts/
 │   ├── process.py        ProcessRunner Protocol + SubprocessRunner adapter (subprocess seam)
 │   ├── fs.py             FileSystem Protocol + OsFileSystem adapter (filesystem seam)
 │   └── repo.py           repo_root(runner) — git rev-parse with cwd fallback
-└── tests/
-    ├── __init__.py
-    ├── fakes.py          FakeProcessRunner + FakeFileSystem (the only test doubles needed)
-    └── test_*.py         one module per source module; 100+ tests, sub-20ms wall time
-
 assets/
 └── configs/              bundled fallback configs used only when the repo declares none
     ├── README.md         scope, rationale, override paths
@@ -47,6 +42,20 @@ assets/
     ├── prettierrc.json   applied via --config when running prettier
     └── yamllint.yaml     applied via -c when running yamllint (md-audit-frontmatter)
 ```
+
+The pytest suite lives at the repo root, not under `scripts/`:
+
+```text
+tests/
+└── skills/
+    └── docs_steward/
+        ├── __init__.py
+        ├── conftest.py      injects skills/docs-steward/scripts/ onto sys.path
+        ├── fakes.py         FakeProcessRunner + FakeFileSystem (the only test doubles needed)
+        └── test_*.py        one module per source module; 240+ tests, sub-300ms wall time
+```
+
+`conftest.py` is what lets the test modules `import docs_steward.*` without packaging the skill. CI (`.github/workflows/tests.yml`) runs `pytest` from the repo root; the suite matrix is `{ubuntu-latest, windows-latest} × {3.12, 3.13}`.
 
 ## Port + adapter rationale
 
