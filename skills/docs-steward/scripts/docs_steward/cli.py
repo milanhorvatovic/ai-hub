@@ -128,7 +128,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--yamllint-config",
         type=str,
         default=None,
-        help="Path to a yamllint config; defaults to the bundled fallback.",
+        help=(
+            "Path to a yamllint config; overrides auto-discovery and the "
+            "bundled fallback. When omitted, the CLI probes the repo root "
+            "for .yamllint / .yamllint.yaml / .yamllint.yml (yamllint's own "
+            "standalone lookup order); only when none of those exists does "
+            "the bundled assets/configs/yamllint.yaml apply."
+        ),
     )
     _add_files_arg(frontmatter_cmd)
 
