@@ -4,7 +4,7 @@ Load on demand from `SKILL.md` section 5.D.4 (audit) and section 7 (fix). Five t
 
 ## Detection probe
 
-Run once per audit; cache the result for the session. Order matches the style-baseline precedence in step 4 — the first matching tool **whose corresponding config file was chosen as the baseline** wins. When no tool matches, fall back to hand-rolled edits.
+Run once per audit; cache the result for the session. Order matches the style-baseline precedence in step 4 — the first matching tool **whose corresponding config file was chosen as the baseline** wins. When no tool matches, selection walks `FALLBACK_ORDER` and picks the first formatter on PATH (see "Baseline-matched tool missing" below); only when no formatter at all is available does the skill emit `MISSING` and exit 3 — there is no implicit hand-rolled-edits path.
 
 ```sh
 command -v markdownlint-cli2 >/dev/null 2>&1 && echo markdownlint-cli2
