@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from docs_steward.cli import (
     _resolve_against_root,
+    _resolve_config_against_cwd,
     _resolve_config_against_root,
     main,
 )
@@ -330,6 +331,44 @@ class ResolveConfigAgainstRootTests(unittest.TestCase):
             _resolve_config_against_root("C:\\repo\\.yamllint", "/repo"),
             "C:/repo/.yamllint",
         )
+
+
+class ResolveConfigAgainstCwdTests(unittest.TestCase):
+    """`--yamllint-config` resolves against the invocation cwd (where
+    the user typed the command) to match how `_files_or_none` resolves
+    positional file arguments. Patch os.getcwd so the tests are
+    deterministic on every host."""
+
+    def test_none_passes_through(self) -> None:
+        self.assertIsNone(_resolve_config_against_cwd(None))
+
+    def test_relative_path_resolves_against_cwd(self) -> None:
+        with patch("docs_steward.cli.os.getcwd", return_value="/repo/subdir"):
+            self.assertEqual(
+                _resolve_config_against_cwd("local.yaml"),
+                "/repo/subdir/local.yaml",
+            )
+
+    def test_dot_relative_path_preserves_dot_segment(self) -> None:
+        # posix_join is a literal string join, not a normalize. `./` in
+        # the input survives — file APIs treat <cwd>/./foo and <cwd>/foo
+        # identically, so this is functionally fine. Pin the behaviour.
+        with patch("docs_steward.cli.os.getcwd", return_value="/repo/subdir"):
+            self.assertEqual(
+                _resolve_config_against_cwd("./local.yaml"),
+                "/repo/subdir/./local.yaml",
+            )
+
+    def test_absolute_path_passes_through_normalized(self) -> None:
+        with patch("docs_steward.cli.os.getcwd", return_value="/repo/subdir"):
+            self.assertEqual(
+                _resolve_config_against_cwd("/etc/yamllint.yaml"),
+                "/etc/yamllint.yaml",
+            )
+            self.assertEqual(
+                _resolve_config_against_cwd("C:\\repo\\.yamllint"),
+                "C:/repo/.yamllint",
+            )
 
     def test_relative_path_joined_to_root(self) -> None:
         self.assertEqual(

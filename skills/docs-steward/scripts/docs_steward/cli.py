@@ -233,7 +233,13 @@ def _dispatch_audit_frontmatter(
     files = _files_or_none(args)
     if files is None:
         files = list_markdown_files(runner, root)
-    yamllint_config = _resolve_config_against_root(args.yamllint_config, root)
+    # Resolve `--yamllint-config` against the invocation cwd (where the
+    # user actually ran the CLI), matching the positional-files behaviour
+    # in `_files_or_none`. The earlier root-relative form was surprising:
+    # `cd subdir && md-audit-frontmatter.py --yamllint-config ./local.yaml`
+    # targeted <root>/local.yaml rather than <subdir>/local.yaml, the
+    # opposite of how positional file args resolve.
+    yamllint_config = _resolve_config_against_cwd(args.yamllint_config)
     return audit_frontmatter(
         runner, fs, _resolve_against_root(files, root), config_path=yamllint_config,
     )
@@ -287,14 +293,26 @@ def _resolve_against_root(files: Sequence[str], root: str) -> tuple[str, ...]:
 
 
 def _resolve_config_against_root(config: str | None, root: str) -> str | None:
-    """Same resolution rule as `_resolve_against_root`, applied to a single
-    optional config path (e.g. `--yamllint-config .yamllint`). None passes
-    through so the caller can still signal "use the bundled fallback".
-    Absolute paths are normalized to forward slashes for output
-    consistency with the rest of the path-resolution surface."""
+    """Resolve an optional config path against an explicit `root`. None
+    passes through so the caller can still signal "use the bundled
+    fallback". Absolute paths are normalized to forward slashes for
+    output consistency. Kept for any caller that genuinely wants root-
+    relative resolution; new code should prefer
+    `_resolve_config_against_cwd` to match positional-file semantics."""
     if config is None:
         return None
     return _to_posix(config) if _is_absolute(config) else _posix_join(root, config)
+
+
+def _resolve_config_against_cwd(config: str | None) -> str | None:
+    """Resolve `--yamllint-config` against the invocation cwd, mirroring
+    how `_files_or_none` resolves positional file arguments. Relative
+    paths therefore mean "relative to where the user typed the
+    command", which is the only consistent answer when the CLI runs
+    from a subdirectory. None passes through (use bundled fallback)."""
+    if config is None:
+        return None
+    return _to_posix(config) if _is_absolute(config) else _posix_join(os.getcwd(), config)
 
 
 _DISPATCH: dict[str, Callable[[argparse.Namespace, ProcessRunner], tuple[list[Event], int]]] = {
