@@ -6,9 +6,12 @@ declaration order and returns the first existing config filename, or
 it is passed through verbatim so the caller can force any path.
 
 The candidate list mirrors SKILL.md section 3 step ordering — markdownlint
-configs first, then prettier, then remark, mdformat, editorconfig, dprint.
-Adding a candidate is a one-line edit here; downstream modules iterate
-this list.
+configs first, then prettier, then remark, mdformat, dprint, editorconfig.
+`dprint.json` ranks above `.editorconfig` (round 8e) so a repo that
+declares both is matched against the formatter-specific config (routes
+to Tool.DPRINT) rather than the cross-tool style hint that has no
+preferred-tool entry. Adding a candidate is a one-line edit here;
+downstream modules iterate this list.
 """
 
 from __future__ import annotations
