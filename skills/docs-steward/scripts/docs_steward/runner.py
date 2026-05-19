@@ -183,12 +183,18 @@ def run_tool(
     events: list[Event] = []
     config_path: str | None = None
     config_source = "repo"
+    # Deferred until after SELECTED is appended below so the event order
+    # matches yaml_audit.audit_frontmatter (SELECTED first, then optional
+    # BUNDLED_CONFIG). Streaming consumers can rely on the first event of
+    # any pipeline being SELECTED — which carries the run parameters —
+    # without conditionally peeking for an earlier BUNDLED_CONFIG.
+    bundled_event: Event | None = None
     if baseline == UNIVERSAL_SUBSET:
         candidate = bundled_config_for(tool)
         if candidate is not None:
             config_path = candidate
             config_source = "bundled"
-            events.append(Event(EventType.BUNDLED_CONFIG, tool.value, candidate))
+            bundled_event = Event(EventType.BUNDLED_CONFIG, tool.value, candidate)
         else:
             config_source = "tool-default"
     elif baseline_belongs_to_tool(baseline, tool):
@@ -239,6 +245,8 @@ def run_tool(
             },
         )
     )
+    if bundled_event is not None:
+        events.append(bundled_event)
 
     result = runner.run(cmd, cwd=root)
 

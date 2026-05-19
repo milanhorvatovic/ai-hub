@@ -115,6 +115,16 @@ class RunToolTests(unittest.TestCase):
         self.assertEqual(bundled[0].detail, cfg)
         selected = [e for e in events if e.event == EventType.SELECTED][0]
         self.assertEqual(selected.detail["config_source"], "bundled")  # type: ignore[index]
+        # Event ordering: SELECTED comes BEFORE BUNDLED_CONFIG so streaming
+        # consumers see the run parameters first. Matches the ordering
+        # yaml_audit.audit_frontmatter has always used.
+        selected_idx = next(
+            i for i, e in enumerate(events) if e.event == EventType.SELECTED
+        )
+        bundled_idx = next(
+            i for i, e in enumerate(events) if e.event == EventType.BUNDLED_CONFIG
+        )
+        self.assertLess(selected_idx, bundled_idx)
 
     def test_universal_subset_unsupported_tool_uses_tool_default(self) -> None:
         # Force selection of mdformat (no bundled config) via universal-subset
