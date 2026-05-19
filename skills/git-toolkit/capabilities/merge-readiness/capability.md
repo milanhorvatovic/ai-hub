@@ -5,8 +5,9 @@ description: >
   required approvals are in place, no merge conflicts exist, the PR
   description is in sync with the branch, no WIP commits remain, and the
   repo's branch-protection rules are satisfied. Outputs a structured
-  READY / NOT-READY verdict with a per-gate status table and what to fix
-  next. Never merges automatically. Triggers when the user asks "is this
+  READY / PARTIALLY-READY / NOT-READY verdict with a per-gate status table
+  (PARTIALLY-READY = all gates pass but one or more carry warnings) and what
+  to fix next. Never merges automatically. Triggers when the user asks "is this
   PR ready to merge", "what's blocking merge", "can I ship this", or
   before invoking merge-execute.
 ---
@@ -55,9 +56,9 @@ statusCheckRollup,additions,deletions,changedFiles,isCrossRepository
 
 ### 3. Compute verdict
 
-- **READY** — All gates pass (warns OK).
+- **READY** — All gates pass with no warnings.
+- **PARTIALLY-READY** — All gates pass but one or more carry warnings; safe to merge with explicit caveat.
 - **NOT-READY** — Any gate fails.
-- **PARTIALLY-READY** — All gates pass except warns; explicit caveat needed.
 
 ### 4. Output
 
