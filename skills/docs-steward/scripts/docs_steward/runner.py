@@ -174,12 +174,14 @@ def run_tool(
         # backslashes that diverge from discovery's POSIX-normalized paths.
         # Treat both POSIX-leading-slash and Windows-drive-letter as absolute
         # so a baseline like /etc/.prettierrc passes through on Windows too
-        # (native os.path.isabs would say False there).
+        # (native os.path.isabs would say False there). Absolute paths are
+        # also normalized so a Windows --baseline C:\repo\.prettierrc lands
+        # in selected.detail.cmd as C:/repo/.prettierrc.
         is_abs = baseline.startswith(("/", "\\")) or (
             len(baseline) >= 2 and baseline[1] == ":"
         )
         if is_abs:
-            config_path = baseline
+            config_path = baseline.replace("\\", "/")
         else:
             root_norm = root.replace("\\", "/").rstrip("/")
             rel_norm = baseline.replace("\\", "/").lstrip("/")

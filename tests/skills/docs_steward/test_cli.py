@@ -263,6 +263,16 @@ class ResolveAgainstRootTests(unittest.TestCase):
         resolved = _resolve_against_root(("/repo/a.md", "/repo/b.md"), "/somewhere/else")
         self.assertEqual(resolved, ("/repo/a.md", "/repo/b.md"))
 
+    def test_windows_absolute_paths_normalized_to_forward_slashes(self) -> None:
+        # A user-supplied Windows path keeps drive-letter form but
+        # backslashes are flipped to forward slashes so NDJSON output
+        # and rendered cmd strings never mix the two separators alongside
+        # discovery's POSIX-joined paths.
+        resolved = _resolve_against_root(
+            ("C:\\repo\\file.md", "D:/already/forward.md"), "/repo",
+        )
+        self.assertEqual(resolved, ("C:/repo/file.md", "D:/already/forward.md"))
+
     def test_relative_paths_joined_to_root(self) -> None:
         # Forward-slash join regardless of host (production uses _posix_join
         # so the command line lands the same way on Linux, macOS, and
@@ -289,6 +299,12 @@ class ResolveConfigAgainstRootTests(unittest.TestCase):
         self.assertEqual(
             _resolve_config_against_root("/etc/yamllint.yaml", "/repo"),
             "/etc/yamllint.yaml",
+        )
+
+    def test_absolute_windows_path_normalized_to_forward_slashes(self) -> None:
+        self.assertEqual(
+            _resolve_config_against_root("C:\\repo\\.yamllint", "/repo"),
+            "C:/repo/.yamllint",
         )
 
     def test_relative_path_joined_to_root(self) -> None:

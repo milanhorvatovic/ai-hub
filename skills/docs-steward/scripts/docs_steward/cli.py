@@ -257,7 +257,7 @@ def _files_or_none(args: argparse.Namespace) -> Sequence[str] | None:
         return None
     invocation_cwd = os.getcwd()
     return tuple(
-        path if _is_absolute(path) else _posix_join(invocation_cwd, path)
+        _to_posix(path) if _is_absolute(path) else _posix_join(invocation_cwd, path)
         for path in files
     )
 
@@ -279,6 +279,17 @@ def _is_absolute(path: str) -> bool:
     return False
 
 
+def _to_posix(path: str) -> str:
+    """Normalize a path's separators to forward slashes. Applied to both
+    absolute paths (which previously passed through unchanged) and
+    relative-join results so every path the orchestrator emits — in
+    NDJSON event payloads, in `selected.detail.cmd`, in formatter argv —
+    is uniformly POSIX-style regardless of host. A Windows user typing
+    `--baseline C:\\repo\\.prettierrc` therefore lands on the same
+    `C:/repo/.prettierrc` shape that discovery / _posix_join produce."""
+    return path.replace("\\", "/")
+
+
 def _posix_join(root: str, rel: str) -> str:
     """Join `rel` against `root` with forward slashes, regardless of host.
 
@@ -289,8 +300,8 @@ def _posix_join(root: str, rel: str) -> str:
     to one separator keeps NDJSON output and command lines consistent
     across platforms and avoids `os.path.join("/repo", ".prettierrc")`
     producing `/repo\\.prettierrc` on Windows CI."""
-    root_norm = root.replace("\\", "/").rstrip("/")
-    rel_norm = rel.replace("\\", "/").lstrip("/")
+    root_norm = _to_posix(root).rstrip("/")
+    rel_norm = _to_posix(rel).lstrip("/")
     return f"{root_norm}/{rel_norm}"
 
 
@@ -299,22 +310,26 @@ def _resolve_against_root(files: Sequence[str], root: str) -> tuple[str, ...]:
     file reads (FileSystem.read_text, audit_frontmatter, emit_plugin_missing)
     resolve to the same file the formatter sees when it runs with cwd=root.
 
-    Absolute paths pass through unchanged; relative paths are joined with
-    `root` via `_posix_join` (forward slash, host-independent). Idempotent
-    for paths produced by discovery.list_markdown_files (which already
-    returns absolute, POSIX-joined paths)."""
+    Absolute paths are normalized to forward slashes but not re-rooted;
+    relative paths are joined with `root` via `_posix_join`. The result
+    is uniformly POSIX-style — a Windows user passing
+    `C:\\repo\\file.md` lands on `C:/repo/file.md`, so NDJSON output
+    and command lines never mix backslash and forward-slash separators."""
     return tuple(
-        path if _is_absolute(path) else _posix_join(root, path) for path in files
+        _to_posix(path) if _is_absolute(path) else _posix_join(root, path)
+        for path in files
     )
 
 
 def _resolve_config_against_root(config: str | None, root: str) -> str | None:
     """Same resolution rule as `_resolve_against_root`, applied to a single
     optional config path (e.g. `--yamllint-config .yamllint`). None passes
-    through so the caller can still signal "use the bundled fallback"."""
+    through so the caller can still signal "use the bundled fallback".
+    Absolute paths are normalized to forward slashes for output
+    consistency with the rest of the path-resolution surface."""
     if config is None:
         return None
-    return config if _is_absolute(config) else _posix_join(root, config)
+    return _to_posix(config) if _is_absolute(config) else _posix_join(root, config)
 
 
 _DISPATCH: dict[str, Callable[[argparse.Namespace, ProcessRunner], tuple[list[Event], int]]] = {
