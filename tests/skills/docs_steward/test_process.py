@@ -102,12 +102,19 @@ class SubprocessRunnerUtf8DecodeTests(unittest.TestCase):
     otherwise raise UnicodeDecodeError on Windows."""
 
     def test_runs_command_emitting_utf8_smart_quotes(self) -> None:
-        # POSIX `printf` emits the UTF-8 bytes for `…` (E2 80 A6) and
-        # `“`/`”`. With `text=True` + platform-default encoding this
-        # would crash on cp1252; with `encoding="utf-8"` it round-trips.
+        # Emit the UTF-8 bytes for `…` (E2 80 A6) and `“`/`”` via the
+        # in-tree Python interpreter so the test has no dependency on an
+        # external printf (Windows runners don't ship one by default).
+        # With `text=True` + platform-default encoding this would crash
+        # on cp1252; with `encoding="utf-8"` it round-trips.
+        import sys as _sys
         runner = SubprocessRunner(extra_path_dirs=())
         result = runner.run(
-            ["printf", "%s", "smart “quotes” and ellipsis …"]
+            [
+                _sys.executable, "-c",
+                "import sys; sys.stdout.buffer.write("
+                "'smart “quotes” and ellipsis …'.encode('utf-8'))",
+            ]
         )
         self.assertEqual(result.returncode, 0)
         self.assertIn("“quotes”", result.stdout)
