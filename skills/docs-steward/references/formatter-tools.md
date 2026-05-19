@@ -44,10 +44,10 @@ Pairs with `.prettierrc` / `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}` / `pret
 | Mode | Command |
 |---|---|
 | Probe | `prettier --version` |
-| Audit | `prettier --check --parser markdown "**/*.md"` |
-| Audit (unwrap-respecting) | `prettier --check --parser markdown --prose-wrap=never "**/*.md"` |
-| Format | `prettier --write --parser markdown "**/*.md"` |
-| Format (unwrap) | `prettier --write --parser markdown --prose-wrap=never "**/*.md"` |
+| Audit | `prettier --check --parser markdown "**/*.md" "**/*.markdown"` |
+| Audit (unwrap-respecting) | `prettier --check --parser markdown --prose-wrap=never "**/*.md" "**/*.markdown"` |
+| Format | `prettier --write --parser markdown "**/*.md" "**/*.markdown"` |
+| Format (unwrap) | `prettier --write --parser markdown --prose-wrap=never "**/*.md" "**/*.markdown"` |
 
 - **Exit 0** = formatted; **exit 1** = unformatted files exist (audit) or write error (format); **exit 2** = config / invocation error.
 - **Output**: structured but per-mode. In **audit mode** (`--check`) Prettier emits a `Checking formatting...` banner, then one `[warn] <path>` line per unformatted file, then a `Code style issues found in N files. Run Prettier with --write to fix.` summary; in **format mode** (`--write`) it emits `<file> Nms` per write. The skill does not synthesize messages, so each non-empty stdout/stderr line lands verbatim as a `finding` event detail string (audit) or a `changed` event detail string (format) — the `[warn]` prefix on each audit line and the summary line both reach the consumer. NDJSON has no INFO/severity concept; consumers that want bare file paths must strip the `[warn] ` prefix locally (or filter the trailing summary line on text). `--quiet` drops the banner + summary via the preamble filter; the `[warn] <path>` lines are preserved as findings.
@@ -96,8 +96,8 @@ Pairs with `.remarkrc` / `.remarkrc.{json,yaml,yml,js,cjs,mjs}`. Less common tod
 | Mode | Command |
 |---|---|
 | Probe | `remark --version` |
-| Audit | `remark --quiet --frail "**/*.md"` |
-| Format | `remark --output "**/*.md"` |
+| Audit | `remark --quiet --frail "**/*.md" "**/*.markdown"` |
+| Format | `remark --output "**/*.md" "**/*.markdown"` |
 
 - `--frail` forces non-zero exit on any warning; the skill relies on this to flip exit semantics into a usable signal.
 - `--output` rewrites in place; without it `remark` prints to stdout.
