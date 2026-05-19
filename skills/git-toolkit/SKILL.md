@@ -5,11 +5,12 @@ description: >
   names, commit messages, rebase plans, PR titles and descriptions, and
   release notes. Enforces conventional-commits syntax (when the repo uses it),
   imperative mood, ≤72-char subjects, trailer placement, issue references
-  (Closes vs Refs), and squash/rebase-merge implications. Routes to six
-  capabilities: branch-name, commit-message (write or review), rebase-cleanup,
-  pr-description-write, pr-description-sync, and release-notes. Never
-  auto-publishes and never auto-adds trailers (Co-Authored-By, Signed-off-by,
-  etc.). Activates when the user asks to write, validate, review, fix, sync,
+  (Closes vs Refs), and squash/rebase-merge implications. Routes across the
+  lifecycle to capabilities covering branch naming, commit authoring, history
+  cleanup, PR description authoring and sync, issue linking, CI failure
+  triage, conversation resolution, merge readiness and execution, and release
+  notes. Never auto-publishes and never auto-adds trailers (Co-Authored-By,
+  Signed-off-by, etc.). Activates when the user asks to write, validate, review, fix, sync,
   refresh, clean up, or draft anything in the commit / PR / release /
   branch-name workflow; when commits feel inconsistent; or before requesting
   review or merging.
