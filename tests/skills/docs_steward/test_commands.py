@@ -26,7 +26,7 @@ class BuildCommandTests(unittest.TestCase):
                 "--parser",
                 "markdown",
                 "**/*.md",
-            "**/*.markdown",
+                "**/*.markdown",
             ],
         )
 
@@ -44,7 +44,7 @@ class BuildCommandTests(unittest.TestCase):
                 "--parser",
                 "markdown",
                 "**/*.md",
-            "**/*.markdown",
+                "**/*.markdown",
             ],
         )
 
