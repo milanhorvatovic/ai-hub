@@ -68,6 +68,29 @@ class AuditFrontmatterTests(unittest.TestCase):
         self.assertIn("[warning]", findings[0].detail)  # type: ignore[operator]
         self.assertIn("document-start", findings[0].detail)  # type: ignore[operator]
 
+    def test_stderr_noise_with_clean_stdout_does_not_emit_findings(self) -> None:
+        # Regression: _audit_one_block used to concat stdout+stderr
+        # before parsing. yamllint can write benign warnings to stderr
+        # (deprecation notices, config-resolution traces) on an
+        # otherwise clean run; those lines were getting wrapped as
+        # fallback FINDING events with the raw stderr text as the
+        # detail. yamllint -f parsable puts findings on stdout only —
+        # the parse now ignores stderr.
+        fs = FakeFileSystem(files={"/repo/x.md": "---\nkey: value\n---\n"})
+        runner = _runner_with_yamllint({
+            _BASE_ARGV: ProcessResult(
+                0,
+                "",
+                "warning: loading default config (no .yamllint found)\n",
+            ),
+        })
+        events, code = audit_frontmatter(runner, fs, ["/repo/x.md"])
+        self.assertEqual(code, 0)
+        findings = [e for e in events if e.event == EventType.FINDING]
+        self.assertEqual(findings, [])
+        kinds = [e.event for e in events]
+        self.assertIn(EventType.CLEAN, kinds)
+
     def test_non_utf8_file_emits_per_file_error_does_not_crash(self) -> None:
         # The schema (events.py + ndjson-schema.md) advertises per-file
         # ERROR coverage for "encoding error". The implementation must
