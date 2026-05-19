@@ -27,17 +27,17 @@ A capability that matches either pattern should skip the commit / PR with a one-
 
 ## Generic noreply patterns
 
-Treat any email matching these as bot-like unless the login disambiguates:
+Treat any email matching these as bot-like unless the login disambiguates. The patterns are **case-insensitive regexes** (not shell globs): `[bot]` is a literal bracketed substring, escaped as `\[bot\]`.
 
 ```
-*[bot]@users.noreply.github.com
-*@bots.noreply.github.com
-bot@*
-*-bot@*
-*-ci@*
-ci@*
-service-account@*
-*@*.iam.gserviceaccount.com   (Google Cloud service accounts; common in CI)
+.*\[bot\]@users\.noreply\.github\.com$
+.*@bots\.noreply\.github\.com$
+^bot@
+.*-bot@
+.*-ci@
+^ci@
+^service-account@
+.*@.*\.iam\.gserviceaccount\.com$   (Google Cloud service accounts; common in CI)
 ```
 
 The exception (`noreply@github.com` alone, no `[bot]` prefix) is GitHub's web editor — that is a real user committing through the UI. Distinguish by checking the author's `name` field too: web-editor commits have a human name; bot commits have the bot's display name like `dependabot[bot]`.
