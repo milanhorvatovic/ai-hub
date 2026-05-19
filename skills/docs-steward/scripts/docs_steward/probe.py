@@ -9,7 +9,7 @@ surfaced as `AVAILABLE` but does NOT satisfy the formatter contract,
 so a host with only yamllint on PATH still exits 3 with the MISSING
 event alongside the yamllint AVAILABLE entry.
 
-`_capture_version` lives here because the same shape applies to
+`capture_version` lives here because the same shape applies to
 `recommend_installs` — both modules call it to populate `installed` /
 `available` event details from `--version` output. CR-stripping handles
 Windows-shell line terminators uniformly.
