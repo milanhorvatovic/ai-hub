@@ -36,9 +36,16 @@ _NO_TOOL_HINT = (
 
 # Preamble-line patterns to drop under --quiet. These are formatter-emitted
 # status / banner / summary lines that are not findings. A line passes the
-# filter (is kept) when none of these patterns matches.
+# filter (is kept) when none of these patterns matches. The version-banner
+# pattern requires whitespace followed by an optional `v` and a digit so
+# it matches the real "prettier 3.2.5" / "markdownlint-cli2 v0.13.0" shape
+# without false-positiving on finding lines that happen to start with a
+# tool name + path delimiter (e.g. `prettier-v3.md:1 MD040 ...` or
+# `remark-v1.md:5 MD040 ...`).
 _PREAMBLE_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"^(markdownlint(?:-cli2)?|prettier|mdformat|dprint|remark|yamllint)[\s\-v]"),
+    re.compile(
+        r"^(markdownlint(?:-cli2)?|prettier|mdformat|dprint|remark|yamllint)\s+v?\d",
+    ),
     re.compile(r"^Finding:\s"),                       # markdownlint-cli2 banner
     re.compile(r"^Linting:\s"),                       # markdownlint-cli2 banner
     re.compile(r"^Summary:\s\d+\serror"),             # markdownlint-cli2 summary

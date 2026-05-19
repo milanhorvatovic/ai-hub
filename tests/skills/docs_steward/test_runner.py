@@ -345,6 +345,33 @@ class QuietFlagTests(unittest.TestCase):
         findings = [e for e in events if e.event == EventType.FINDING]
         self.assertEqual(len(findings), 2)  # preamble + finding both kept
 
+    def test_quiet_does_not_drop_finding_with_tool_name_path(self) -> None:
+        # Regression: an over-broad preamble regex (^<tool>[\s\-v]) used
+        # to false-positive on a finding line whose file path happened
+        # to start with `prettier-v` or `remark-v` (e.g. someone named a
+        # markdown file `prettier-v3.md`). The tightened regex requires
+        # `^<tool>\s+v?\d` — whitespace separator + digit — so a tool-
+        # name-as-path-prefix can't be mistaken for a version banner.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        output = (
+            "prettier 3.2.5\n"
+            "prettier-v3.md:1 MD040 fenced-code-language\n"
+            "remark-v1.md:5 MD040 fenced-code-language\n"
+            "yamllint-v2.md:9 MD009 trailing-whitespace\n"
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(1, output, "")},
+        )
+        events, _ = run_tool(
+            Mode.AUDIT, ".prettierrc", False, runner, ROOT, quiet=True,
+        )
+        findings = [e.detail for e in events if e.event == EventType.FINDING]
+        # The version banner is dropped; the three findings whose paths
+        # start with `<tool>-v<digit>.md` are kept.
+        self.assertEqual(len(findings), 3)
+        self.assertTrue(all("MD0" in f for f in findings))
+
 
 # ============================================================
 # --dry-run for md-format (#8)
