@@ -82,6 +82,35 @@ class GitLsFilesPathTests(unittest.TestCase):
         )
         self.assertEqual(files, ["/repo/README.md", "/repo/docs/intro.md"])
 
+    def test_default_fallback_filters_out_directory_named_like_markdown(self) -> None:
+        # Regression: the no-fs fallback previously used os.path.exists,
+        # which accepts directories. A directory named like a markdown
+        # file (`README.md/` — possible on case-insensitive filesystems
+        # or via deliberate authoring) would slip through and the
+        # downstream read_text would raise IsADirectoryError. The
+        # fallback now uses os.path.isfile (regular files only), so the
+        # directory entry is filtered out before the downstream read.
+        with tempfile.TemporaryDirectory() as tmp:
+            # Create one real file and one directory that the git
+            # listing claims is a file.
+            real_md = os.path.join(tmp, "real.md")
+            with open(real_md, "w", encoding="utf-8") as fh:
+                fh.write("# real\n")
+            dir_named_like_md = os.path.join(tmp, "fake.md")
+            os.makedirs(dir_named_like_md)
+
+            runner = FakeProcessRunner(
+                results={
+                    ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(
+                        0, "real.md\nfake.md\n", ""
+                    ),
+                }
+            )
+            # No fs override → falls through to os.path.isfile.
+            files = list_markdown_files(runner, tmp)
+            basenames = sorted(os.path.basename(f) for f in files)
+            self.assertEqual(basenames, ["real.md"])
+
     def test_filters_out_index_entries_for_deleted_working_tree_files(self) -> None:
         # Regression: `git ls-files --cached` keeps an entry for a tracked
         # file the user has rm-ed but not `git rm`-ed. Downstream audit

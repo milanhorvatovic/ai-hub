@@ -32,9 +32,13 @@ def list_markdown_files(
 
     `fs` is consulted only by the git-backed path to filter out index
     entries whose working-tree file has been deleted (`git ls-files
-    --cached` still surfaces them). Default `None` uses `os.path.exists`
-    so production code keeps a zero-argument call. Tests inject a
-    `FakeFileSystem` so the synthesized paths can be marked existent.
+    --cached` still surfaces them). Default `None` uses `os.path.isfile`
+    so production code keeps a zero-argument call AND matches the
+    FileSystem.exists / OsFileSystem.exists contract (regular files
+    only — a directory named `README.md` must not pass the filter or
+    the downstream `read_text` would raise IsADirectoryError). Tests
+    inject a `FakeFileSystem` so the synthesized paths can be marked
+    existent.
     """
     git_listed = _try_git_ls_files(runner, root, fs)
     if git_listed is not None:
@@ -88,7 +92,13 @@ def _try_git_ls_files(
     # downstream audit would then read a non-existent path and emit a
     # misleading ERROR event. Honouring "what's on disk now" matches the
     # skill's intent of auditing real files.
-    exists = fs.exists if fs is not None else os.path.exists
+    # Use `os.path.isfile` (regular files only) for the no-fs fallback
+    # so a directory entry that happens to share a markdown filename
+    # ("README.md/" — yes it can happen, especially under case-
+    # insensitive filesystems) doesn't pass the filter and trigger an
+    # IsADirectoryError downstream. `FileSystem.exists` / `OsFileSystem.exists`
+    # already enforce regular-files-only.
+    exists = fs.exists if fs is not None else os.path.isfile
     return [
         _posix_join(root, rel)
         for rel in unique_rels
