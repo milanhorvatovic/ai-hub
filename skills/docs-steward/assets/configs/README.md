@@ -36,7 +36,7 @@ All defaults track the user's `feedback_no_hard_wrap.md` preference: line-width 
 Two ways:
 
 1. **Add a config to your repo.** `docs_steward.baseline.detect_baseline` will pick it up; the bundled fallback is skipped.
-2. **Pass `--baseline FILE` to `scripts/md-audit.py` / `scripts/md-format.py` / `scripts/md-fix.py`.** Forces a specific config path; bypasses both auto-detection and bundled fallback. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag for the bundled yamllint override.
+2. **Pass `--baseline FILE` to `scripts/md-audit.py` / `scripts/md-format.py` / `scripts/md-fix.py`.** Forces a specific config path and skips auto-detection. The bundled fallback fires only when the resolved baseline is the `universal-subset` sentinel: an arbitrary file path therefore opts out of the bundled defaults, but explicit `--baseline universal-subset` is the same code path as "no config detected" and still applies the bundled config. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag for the bundled yamllint override.
 
 ## Editing these files
 
