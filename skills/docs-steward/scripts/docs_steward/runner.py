@@ -258,7 +258,14 @@ def run_tool(
         )
     )
 
-    if result.returncode >= 2:
+    # Map both "documented invocation error" (returncode >= 2) AND
+    # "killed by signal" (subprocess.Popen surfaces signal terminations as
+    # negative returncode = -SIGTERM / -SIGKILL / ...) to ERROR + exit 2.
+    # Treating a signal-killed formatter as a returncode-1 run would let
+    # the stray stdout/stderr bytes that survived the kill render as
+    # FINDING / CHANGED events instead of being labelled as the failure
+    # they are.
+    if result.returncode >= 2 or result.returncode < 0:
         events.append(Event(EventType.ERROR, tool.value, {"exit": result.returncode}))
         return events, 2
     return events, 1

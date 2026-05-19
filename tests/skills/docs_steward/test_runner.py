@@ -63,6 +63,23 @@ class RunToolTests(unittest.TestCase):
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].detail, "Code style issues found in foo.md")
 
+    def test_signal_killed_negative_returncode_emits_error_event_and_exit_2(self) -> None:
+        # Regression: returncode < 0 means subprocess.Popen surfaced a
+        # signal-killed child (Python convention: -SIGTERM, -SIGKILL).
+        # The old `if result.returncode >= 2` branch missed it, so any
+        # stray stdout/stderr bytes from the killed child rendered as
+        # FINDING events and the cycle returned exit 1 instead of exit 2.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(-15, "foo.md\n", "killed")},
+        )
+        events, code = run_tool(Mode.AUDIT, ".prettierrc", False, runner, ROOT)
+        self.assertEqual(code, 2)
+        errors = [e for e in events if e.event == EventType.ERROR]
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].detail, {"exit": -15})
+
     def test_tool_error_exit_geq_2_emits_error_event_and_exit_2(self) -> None:
         cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
