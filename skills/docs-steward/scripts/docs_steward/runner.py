@@ -260,24 +260,16 @@ def run_tool(
         events.append(Event(EventType.CLEAN, tool.value, f"{mode.value} passed"))
         return events, 0
 
-    output_for_events = (
-        result.stdout
-        if effective_mode == Mode.FORMAT
-        else result.stdout + result.stderr
-    )
-    events.extend(
-        _emit_output_lines(
-            output_for_events, tool.value, mode, quiet=quiet, dry_run=dry_run
-        )
-    )
-
-    # Map both "documented invocation error" (returncode >= 2) AND
-    # "killed by signal" (subprocess.Popen surfaces signal terminations as
-    # negative returncode = -SIGTERM / -SIGKILL / ...) to ERROR + exit 2.
-    # Treating a signal-killed formatter as a returncode-1 run would let
-    # the stray stdout/stderr bytes that survived the kill render as
-    # FINDING / CHANGED events instead of being labelled as the failure
-    # they are.
+    # Error-path decision comes BEFORE the FINDING/CHANGED parse so
+    # stderr from a failing run is surfaced ONCE — via the ERROR event's
+    # detail — rather than duplicated as FINDING/CHANGED events. The
+    # earlier ordering parsed stdout+stderr into FINDING events first,
+    # then appended an ERROR with the same stderr in detail; consumers
+    # therefore saw the same diagnostic twice on AUDIT-mode failures.
+    # Treating a signal-killed formatter (negative returncode) as a
+    # returncode-1 run would also let stray stdout/stderr bytes render
+    # as FINDING/CHANGED events instead of being labelled as the
+    # failure they are.
     if result.returncode >= 2 or result.returncode < 0:
         # Attach the tool's stderr to the ERROR detail when the run
         # failed. Successful runs filter stderr out of the event stream
@@ -294,6 +286,21 @@ def run_tool(
             detail["stderr"] = stderr_text
         events.append(Event(EventType.ERROR, tool.value, detail))
         return events, 2
+
+    # Non-error path (returncode 1): real findings or changes. Parse
+    # stdout+stderr in AUDIT mode (some tools put real findings on
+    # stderr — markdownlint-cli2 exit-1 banner, remark --frail
+    # messages); stdout only in FORMAT mode (stderr is banner noise).
+    output_for_events = (
+        result.stdout
+        if effective_mode == Mode.FORMAT
+        else result.stdout + result.stderr
+    )
+    events.extend(
+        _emit_output_lines(
+            output_for_events, tool.value, mode, quiet=quiet, dry_run=dry_run
+        )
+    )
     return events, 1
 
 

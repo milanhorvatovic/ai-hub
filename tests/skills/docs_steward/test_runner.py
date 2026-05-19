@@ -97,6 +97,36 @@ class RunToolTests(unittest.TestCase):
         # diagnostic ('config error') and not just `{exit: 2}`.
         self.assertEqual(errors[0].detail, {"exit": 2, "stderr": "config error"})
 
+    def test_tool_error_path_does_not_duplicate_stderr_as_findings(self) -> None:
+        # Regression: the failure path used to parse stdout+stderr into
+        # FINDING events FIRST, then emit ERROR with the same stderr in
+        # detail. AUDIT-mode consumers saw the diagnostic twice — once
+        # per finding-line in the FINDING events, once in the ERROR
+        # detail. The order is now error-check → ERROR-only (skipping
+        # _emit_output_lines on failure); the FINDING/CHANGED parse
+        # only runs on the returncode-1 path.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={
+                cmd: ProcessResult(
+                    2,
+                    "",
+                    "Error: Invalid configuration: unknown option 'tabWdith'\nTrace: ...\n",
+                ),
+            },
+        )
+        events, code = run_tool(Mode.AUDIT, ".prettierrc", False, runner, ROOT)
+        self.assertEqual(code, 2)
+        # No FINDING events derived from the stderr — that's exactly the
+        # duplication we're guarding against.
+        self.assertEqual([e for e in events if e.event == EventType.FINDING], [])
+        # The ERROR event still carries stderr in its detail.
+        errors = [e for e in events if e.event == EventType.ERROR]
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].detail["exit"], 2)  # type: ignore[index]
+        self.assertIn("Invalid configuration", errors[0].detail["stderr"])  # type: ignore[index]
+
     def test_tool_error_with_empty_stderr_omits_stderr_field(self) -> None:
         # When the failing run produced no stderr, the ERROR detail
         # stays compact — no `stderr: ""` noise. Consumers branching
