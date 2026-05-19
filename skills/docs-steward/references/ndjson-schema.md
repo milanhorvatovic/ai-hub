@@ -19,7 +19,7 @@ Consumers should parse one line at a time and dispatch by `event`. Schema is sta
 | `changed` | tool name | string (one line of formatter output) | `md-format.py` write mode: per-file change line |
 | `would-change` | tool name | string (one line of formatter check output) | `md-format.py --dry-run`: per-file would-change line |
 | `clean` | tool name | string (human message) | When the chosen tool returns exit 0 with no findings/changes |
-| `error` | tool name | `{"exit": int}` or string | When the chosen tool returns exit ≥ 2 (config error, plugin missing, etc.) |
+| `error` | tool name | `{"exit": int}` (tool returned non-zero), `{"file": str, "reason": str}` (per-file unreadable), or string | When the chosen tool returns exit ≥ 2 (config error, plugin missing, etc.) OR — for `md-audit-frontmatter` — a target file fails to read (deleted between discovery and audit, encoding error, permission denied); see `error` variants below |
 | `plugin-available` | `"mdformat"` | `{"plugin": str, "package": str, "version": str}` | `probe.py`: each detected mdformat plugin (mdformat-gfm, mdformat-tables, etc.) |
 | `plugin-missing` | `"mdformat"` | `{"plugin": str, "package": str, "file": str, "reason": str}` | When mdformat is selected and a target file contains syntax requiring an absent plugin (today: GFM detection for `mdformat-gfm`) |
 | `delta` | `"fix-cycle"` | `{"resolved": int, "still_open": int, "new": int}` | `md-fix.py`: single summary at the end of the audit → format → re-audit loop |
@@ -68,13 +68,27 @@ Notes:
 
 ### `error`
 
-When the formatter exits with returncode ≥ 2:
+Two variants. Consumers should branch on `isinstance(detail, dict) and "file" in detail` to distinguish.
+
+#### Exit-code variant
+
+Emitted once per pipeline when the chosen formatter exits ≥ 2 (config error, plugin missing, etc.):
 
 ```json
 {"event": "error", "tool": "prettier", "detail": {"exit": 2}}
 ```
 
 The tool's actual stderr is emitted as preceding `finding` / `changed` events (not folded into the error detail).
+
+#### Per-file unreadable variant
+
+Emitted by `md-audit-frontmatter` once per file the audit could not read (deleted between discovery and audit, encoding error, permission denied). Emitted inline alongside the per-file processing order so consumers can correlate the failure with surrounding `finding` events:
+
+```json
+{"event": "error", "tool": "yamllint", "detail": {"file": "/repo/missing.md", "reason": "FileNotFoundError: [Errno 2] No such file or directory: '/repo/missing.md'"}}
+```
+
+The aggregate exit code stays 2 whenever any per-file error fires, even when real `finding` events also surface (see "Exit codes" below).
 
 ### `delta` (md-fix only)
 

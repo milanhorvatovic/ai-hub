@@ -27,7 +27,18 @@ class EventType(str, Enum):
       `unwrap`, `cmd`, `files_scoped`, or `dry_run` keys.
       Consumers should branch on `detail["mode"]`.
     - FINDING / CHANGED / WOULD_CHANGE: detail is a string (one line of formatter output).
-    - ERROR: detail is a dict {"exit": int, "hint"?: str} or a string.
+    - ERROR: detail is pipeline-specific. Two shapes are emitted:
+      (a) {"exit": int, "hint"?: str} — formatter or yamllint returned
+          a non-zero exit (typically >= 2) that we surface as an
+          invocation error. The skill aggregate exit code is 2.
+      (b) {"file": str, "reason": str} — `md-audit-frontmatter` could
+          not read a target file (deleted between discovery and audit,
+          encoding error, permission denied). Emitted inline per file;
+          the aggregate exit code is still 2.
+      A bare string detail is reserved for free-form messages and is
+      not currently emitted by any production path. Consumers should
+      branch on `isinstance(detail, dict) and "file" in detail` to
+      distinguish the per-file variant from the exit-code variant.
     - PLUGIN_AVAILABLE: event.tool is "mdformat"; detail is a dict
       {"plugin": str, "package": str, "version": str}. (The `tool` field
       lives on the Event itself, not inside `detail`.)
