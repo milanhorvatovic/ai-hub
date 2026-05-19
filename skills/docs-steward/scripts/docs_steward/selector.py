@@ -49,6 +49,16 @@ FALLBACK_ORDER: tuple[Tool, ...] = (
 )
 
 
+def _basename(baseline: str) -> str:
+    """Cross-host basename. `os.path.basename` only treats backslashes as
+    separators on Windows — on POSIX (including WSL / Git Bash / a POSIX
+    Python invoked from CI against a Windows-style argument) a path like
+    `C:\\repo\\.prettierrc` returns the entire string. Normalize
+    backslashes to forward slashes first so the family-prefix match
+    behaves identically on every host."""
+    return os.path.basename(baseline.replace("\\", "/"))
+
+
 def select_tool(baseline: str, runner: ProcessRunner) -> Tool | None:
     """Pick the tool to run for `baseline`. Returns None when no usable tool
     is on PATH for any preference + fallback path.
@@ -61,7 +71,7 @@ def select_tool(baseline: str, runner: ProcessRunner) -> Tool | None:
     `FALLBACK_ORDER`, picking whichever formatter happens to be on PATH
     first — frequently a different family than the user asked for.
     """
-    basename = os.path.basename(baseline)
+    basename = _basename(baseline)
     for prefix, preferred in _BASELINE_PREFERENCES:
         if basename.startswith(prefix):
             for tool in preferred:
@@ -89,7 +99,7 @@ def baseline_belongs_to_tool(baseline: str, tool: Tool) -> bool:
     error out the formatter or be silently ignored, so the runner only
     threads `--config` through for family-matching baselines.
     """
-    basename = os.path.basename(baseline)
+    basename = _basename(baseline)
     for prefix, preferred in _BASELINE_PREFERENCES:
         if basename.startswith(prefix):
             return tool in preferred

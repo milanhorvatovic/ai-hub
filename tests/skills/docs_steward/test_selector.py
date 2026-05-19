@@ -86,6 +86,18 @@ class SelectToolTests(unittest.TestCase):
             select_tool(".markdownlint-cli2.jsonc", runner), Tool.MARKDOWNLINT,
         )
 
+    def test_windows_style_baseline_selects_family_under_posix(self) -> None:
+        # Regression: a Windows-style --baseline path supplied to a POSIX
+        # Python (WSL / Git Bash / CI runner that accepts Windows paths)
+        # used to skip the family-prefix match because os.path.basename
+        # didn't split on backslashes, falling through to FALLBACK_ORDER
+        # and selecting whichever formatter happened to be on PATH first.
+        # With backslashes normalized, the family preference wins.
+        runner = _runner_with(Tool.MARKDOWNLINT_CLI2, Tool.PRETTIER)
+        self.assertEqual(
+            select_tool("C:\\repo\\.prettierrc", runner), Tool.PRETTIER,
+        )
+
     def test_markdownlint_cli2_config_picks_cli2_when_available(self) -> None:
         # When CLI2 IS on PATH, the cli2-specific baseline routes there
         # directly via the dedicated `.markdownlint-cli2.` prefix.
@@ -177,6 +189,36 @@ class BaselineBelongsToToolTests(unittest.TestCase):
         )
         self.assertFalse(
             baseline_belongs_to_tool(".markdownlint-cli2.yaml", Tool.MARKDOWNLINT),
+        )
+
+    def test_windows_style_baseline_path_belongs_under_posix(self) -> None:
+        # Regression: os.path.basename on POSIX doesn't split on
+        # backslashes, so a Windows-style --baseline C:\\repo\\.prettierrc
+        # supplied under WSL / Git Bash / POSIX Python returned the
+        # entire string from basename, the family-prefix match failed,
+        # and baseline_belongs_to_tool reported False — the runner then
+        # skipped --config forwarding. Backslashes are now normalized
+        # to forward slashes before basename, so the helper gives the
+        # right answer on every host.
+        self.assertTrue(
+            baseline_belongs_to_tool("C:\\repo\\.prettierrc", Tool.PRETTIER),
+        )
+        self.assertTrue(
+            baseline_belongs_to_tool(
+                "C:\\repo\\.markdownlint.json", Tool.MARKDOWNLINT_CLI2,
+            ),
+        )
+        self.assertTrue(
+            baseline_belongs_to_tool(
+                "C:\\repo\\.markdownlint-cli2.jsonc", Tool.MARKDOWNLINT_CLI2,
+            ),
+        )
+        # And cross-family still says False — the normalization doesn't
+        # weaken the family discipline.
+        self.assertFalse(
+            baseline_belongs_to_tool(
+                "C:\\repo\\.markdownlint-cli2.jsonc", Tool.MARKDOWNLINT,
+            ),
         )
 
     def test_markdownlint_rule_config_belongs_to_both_clis(self) -> None:
