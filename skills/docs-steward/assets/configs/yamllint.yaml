@@ -3,12 +3,19 @@
 # yamllint config of its own. Aligned to the no-hard-wrap preference: line
 # length is the preview tool's concern, not the source file's.
 #
-# Rule rationale per line below. There is no auto-detection of repo-level
-# yamllint configs — docs_steward.baseline.detect_baseline only looks at the
-# markdown / formatter precedence chain, not at .yamllint / .yamllint.yaml.
-# To override this file, pass `--yamllint-config <path>` to
-# scripts/md-audit-frontmatter.py; placing a .yamllint in the repo root has
-# no effect on the md-audit-frontmatter pipeline.
+# Resolution precedence used by scripts/md-audit-frontmatter.py:
+#   1. `--yamllint-config <path>` — explicit override, beats everything.
+#   2. Auto-discovered .yamllint / .yamllint.yaml / .yamllint.yml at the
+#      repo root — order mirrors yamllint's own standalone lookup, so a
+#      repo-declared file drives the audit.
+#   3. This file — the bundled fallback only applies when both of the
+#      above are absent.
+#
+# docs_steward.baseline.detect_baseline still owns the markdown / formatter
+# precedence chain (.markdownlint*, .prettierrc*, .remarkrc*, .mdformat.toml,
+# dprint.json, .editorconfig); yamllint discovery is handled separately by
+# docs_steward.cli._discover_repo_yamllint_config because yamllint is
+# orthogonal to the markdown formatter selection.
 
 extends: default
 
