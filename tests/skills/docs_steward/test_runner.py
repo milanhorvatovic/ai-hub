@@ -374,6 +374,30 @@ class QuietFlagTests(unittest.TestCase):
         findings = [e for e in events if e.event == EventType.FINDING]
         self.assertEqual(len(findings), 2)  # preamble + finding both kept
 
+    def test_quiet_drops_prettier_summary_line(self) -> None:
+        # Regression: --quiet must drop Prettier's trailing summary
+        # ("Code style issues found in N files. Run Prettier with
+        # --write to fix.") in addition to the leading banner. Before
+        # the round-10 preamble update, the summary leaked through as
+        # an extra FINDING event.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        output = (
+            "Checking formatting...\n"
+            "[warn] foo.md\n"
+            "[warn] bar.md\n"
+            "Code style issues found in 2 files. Run Prettier with --write to fix.\n"
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(1, output, "")},
+        )
+        events, _ = run_tool(
+            Mode.AUDIT, ".prettierrc", False, runner, ROOT, quiet=True,
+        )
+        findings = [e.detail for e in events if e.event == EventType.FINDING]
+        self.assertEqual(len(findings), 2)
+        self.assertTrue(all("[warn]" in f for f in findings))
+
     def test_quiet_does_not_drop_finding_with_tool_name_path(self) -> None:
         # Regression: an over-broad preamble regex (^<tool>[\s\-v]) used
         # to false-positive on a finding line whose file path happened
