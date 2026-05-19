@@ -92,7 +92,16 @@ def _extract_fenced(lines: list[str], offset: int) -> list[FrontmatterBlock]:
         while end_idx < len(lines) and not close_re.match(lines[end_idx]):
             end_idx += 1
         if end_idx >= len(lines):
-            break  # unterminated fenced block — skip silently
+            # Unterminated yaml opener — advance past it and keep scanning.
+            # Earlier the loop `break`-ed out here, silently dropping every
+            # well-formed yaml fence later in the file. The skill prefers
+            # auditing as many parseable blocks as possible even when the
+            # surrounding markdown has an authoring mistake; the strict
+            # CommonMark "unclosed fence consumes rest of document"
+            # behaviour would mask later legitimate yaml blocks from
+            # md-audit-frontmatter without recourse.
+            i += 1
+            continue
         yaml_text = "\n".join(lines[i + 1 : end_idx])
         anchor = _first_nonempty(yaml_text, fallback=f"yaml fence #{len(blocks) + 1}")
         blocks.append(FrontmatterBlock("fenced", yaml_text, f"yaml fence: {anchor}"))

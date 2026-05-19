@@ -141,6 +141,28 @@ class FrontmatterExtractionTests(unittest.TestCase):
         text = "```yaml\nkey: value\n~~~\nstill inside fence\n"
         self.assertEqual(extract_blocks(text), [])
 
+    def test_unterminated_fence_does_not_drop_later_well_formed_fences(self) -> None:
+        # Regression: when an earlier yaml opener never closed before EOF
+        # the scanner used to `break` and silently drop every well-formed
+        # yaml fence after it. Now we advance past the unmatched opener
+        # and keep scanning so the second fence still lands in the audit.
+        text = (
+            "```yaml\n"
+            "key: never closed\n"
+            "more body text\n"
+            "even more body\n"
+            "```yaml\n"
+            "actual: block\n"
+            "```\n"
+        )
+        blocks = extract_blocks(text)
+        # The first opener has no closer before the SECOND opener, so the
+        # parser treats it as malformed and skips it; the well-formed
+        # second block must still be reported.
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0].kind, "fenced")
+        self.assertIn("actual: block", blocks[0].yaml_text)
+
     def test_closing_fence_too_short_is_unterminated(self) -> None:
         # An opener with `````` cannot be closed by ```` (CommonMark requires
         # the closer to be at least as long as the opener).
