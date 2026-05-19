@@ -604,11 +604,11 @@ class RunFixCycleTests(unittest.TestCase):
         audit_cmd = ("markdownlint-cli2", "--config", "/repo/.markdownlint.json",
                      "**/*.md", "**/*.markdown",
                      "#node_modules", "#.git",
-                     "#dist", "#build", "#.venv")
+                     "#dist", "#build", "#.venv", "#venv", "#target")
         fmt_cmd = ("markdownlint-cli2", "--config", "/repo/.markdownlint.json", "--fix",
                    "**/*.md", "**/*.markdown",
                    "#node_modules", "#.git",
-                   "#dist", "#build", "#.venv")
+                   "#dist", "#build", "#.venv", "#venv", "#target")
         pre_out = 'README.md:42:3 MD040 fenced-code-language-required "```"\n'
         post_out = 'README.md:38:3 MD040 fenced-code-language-required "```"\n'
 

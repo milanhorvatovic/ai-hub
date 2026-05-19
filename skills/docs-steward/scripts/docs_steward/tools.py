@@ -52,9 +52,16 @@ class CommandTemplate:
 # silently skipped on the default-glob path. mdformat (`.` recursive)
 # and dprint (`dprint.json` includes) defer to their own config and so
 # do not enumerate extensions here.
+# Negative globs (`#<dir>`) align with discovery._SKIP_DIRS so the
+# default-glob invocation skips the same set of directories the
+# inventory pipeline skips. Without `#venv` / `#target` here, a repo
+# whose `venv/` or `target/` isn't covered by .gitignore (or whose
+# Python virtualenv isn't named .venv) would have markdownlint-cli2
+# lint vendored docs under those directories, despite SKILL.md
+# documenting the skip set as identical across both pipelines.
 _MARKDOWNLINT_CLI2_GLOBS = (
     "**/*.md", "**/*.markdown",
-    "#node_modules", "#.git", "#dist", "#build", "#.venv",
+    "#node_modules", "#.git", "#dist", "#build", "#.venv", "#venv", "#target",
 )
 _MARKDOWNLINT_GLOB = (
     "--ignore-path", ".gitignore", "**/*.md", "**/*.markdown",
