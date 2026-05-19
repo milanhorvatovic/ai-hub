@@ -10,6 +10,7 @@ scripts/
 ├── recommend-tools.py    entry shim — delegates to docs_steward.cli main
 ├── md-audit.py           entry shim — delegates to docs_steward.cli main
 ├── md-format.py          entry shim — delegates to docs_steward.cli main
+├── md-fix.py             entry shim — delegates to docs_steward.cli main (audit -> format -> re-audit loop)
 ├── md-audit-frontmatter.py  entry shim — delegates to docs_steward.cli main
 ├── docs_steward/
 │   ├── __init__.py       public API exports (Event, EventType, Mode, Tool)
