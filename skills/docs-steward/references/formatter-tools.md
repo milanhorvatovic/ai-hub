@@ -28,10 +28,10 @@ Pairs with `.markdownlint.json` / `.markdownlint.jsonc` / `.markdownlint.yaml` /
 | Mode | Command |
 |---|---|
 | Probe | `markdownlint-cli2 --version` (or `markdownlint --version`) |
-| Audit | `markdownlint-cli2 "**/*.md" "#node_modules" "#.git" "#dist" "#build" "#.venv"` |
-| Audit (older CLI) | `markdownlint --ignore-path .gitignore '**/*.md'` |
-| Format | `markdownlint-cli2 --fix "**/*.md" "#node_modules" "#.git" "#dist" "#build" "#.venv"` |
-| Format (older CLI) | `markdownlint --fix --ignore-path .gitignore '**/*.md'` |
+| Audit | `markdownlint-cli2 "**/*.md" "**/*.markdown" "#node_modules" "#.git" "#dist" "#build" "#.venv" "#venv" "#target"` |
+| Audit (older CLI) | `markdownlint --ignore-path .gitignore "**/*.md" "**/*.markdown"` |
+| Format | `markdownlint-cli2 --fix "**/*.md" "**/*.markdown" "#node_modules" "#.git" "#dist" "#build" "#.venv" "#venv" "#target"` |
+| Format (older CLI) | `markdownlint --fix --ignore-path .gitignore "**/*.md" "**/*.markdown"` |
 
 - **Exit 0** = no findings; **exit 1** = findings present; **exit 2** = config / invocation error.
 - **Output line shape**: `path/to/file.md:LINE:COL MD### name "fragment"`. The skill emits each non-empty stdout/stderr line verbatim as a `finding` event detail string — no parsing, no field extraction. The line:col prefix IS stripped internally by `runner._normalize_finding_key` when computing the `md-fix` DELTA so an unfixed finding at a shifted line still counts as `still_open` rather than `resolved + new`, but consumers reading the NDJSON `finding.detail` see the raw line. To skip the line:col prefix for display, parse `^([^:]+):(\d+)(?::(\d+))? (MD\d{3})(?:/(\S+))? (.*)$` on the consumer side.
