@@ -214,7 +214,14 @@ def emit_plugin_missing(
     for path in files:
         try:
             text = read_text(path)
-        except OSError:
+        except (OSError, UnicodeDecodeError):
+            # Skip files we cannot inspect at all. OSError covers
+            # FileNotFoundError / PermissionError / IsADirectoryError;
+            # UnicodeDecodeError fires when the target file isn't valid
+            # UTF-8 (a ValueError subclass, NOT OSError). This check
+            # runs in the CLI preamble — letting either exception
+            # propagate would crash the entire md-audit / md-format
+            # invocation before the formatter even starts.
             continue
         if needs_gfm(text):
             events.append(

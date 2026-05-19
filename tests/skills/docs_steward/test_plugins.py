@@ -326,6 +326,20 @@ class EmitPluginMissingTests(unittest.TestCase):
         )
         self.assertEqual(events, [])
 
+    def test_non_utf8_file_skipped_silently(self) -> None:
+        # The CLI preamble plugin check must NOT crash on a non-UTF-8
+        # markdown file. UnicodeDecodeError is a ValueError subclass,
+        # not OSError; widening the except clause covers both so the
+        # entire md-audit / md-format invocation isn't aborted before
+        # the formatter even runs.
+        def raise_unicode_decode(_: str) -> str:
+            raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid byte")
+
+        events = emit_plugin_missing(
+            ["/repo/badenc.md"], raise_unicode_decode, installed_labels=set()
+        )
+        self.assertEqual(events, [])
+
     def test_multiple_files_each_emit_independently(self) -> None:
         contents = {
             "/repo/a.md": "| t | t |\n|---|---|\n| 1 | 2 |\n",
