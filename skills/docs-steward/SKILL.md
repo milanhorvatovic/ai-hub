@@ -80,7 +80,9 @@ If not in a git repo → fall back to the current working directory and note the
 
 Candidates probed in order:
 
-1. markdownlint family: `.markdownlint.json`, `.markdownlint.jsonc`, `.markdownlint.yaml`, `.markdownlint.yml`, `.markdownlint-cli2.{jsonc,yaml}`
+1. markdownlint family:
+   - **Rule configs** (consumed by both `markdownlint` and `markdownlint-cli2`): `.markdownlint.json`, `.markdownlint.jsonc`, `.markdownlint.yaml`, `.markdownlint.yml`
+   - **CLI2-only configs** (`.markdownlint-cli2.{jsonc,yaml}`): cli2-specific format the legacy `markdownlint` CLI cannot parse. The selector routes these baselines to `markdownlint-cli2` exclusively; when cli2 isn't on PATH the chosen formatter falls back via `FALLBACK_ORDER` and the cli2 config is **not** forwarded as `--config` (the legacy CLI runs against its own discovery instead).
 2. prettier family: `.prettierrc`, `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}`, `prettier.config.{js,cjs,mjs}`
 3. remark family: `.remarkrc`, `.remarkrc.{json,yaml,yml,js,cjs,mjs}`
 4. mdformat: `.mdformat.toml`

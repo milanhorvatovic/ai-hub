@@ -19,8 +19,18 @@ from .process import ProcessRunner
 from .tools import Tool
 
 
+# `.markdownlint-cli2.{jsonc,yaml}` is a cli2-specific configuration
+# format the legacy `markdownlint` CLI cannot parse. Match cli2 configs
+# to CLI2 *only* — order is significant: this prefix must come BEFORE
+# the broader `.markdownlint.` entry below, otherwise the broader
+# prefix would also match the cli2 filename and `MARKDOWNLINT` would
+# end up in the preferred-tools tuple, leading the runner to forward a
+# cli2-only config to legacy markdownlint via `--config`.
+# `.markdownlint.{json,jsonc,yaml,yml}` rule configs are consumed by
+# both binaries, so that prefix keeps the CLI2 / MARKDOWNLINT pair.
 _BASELINE_PREFERENCES: tuple[tuple[str, tuple[Tool, ...]], ...] = (
-    (".markdownlint", (Tool.MARKDOWNLINT_CLI2, Tool.MARKDOWNLINT)),
+    (".markdownlint-cli2.", (Tool.MARKDOWNLINT_CLI2,)),
+    (".markdownlint.", (Tool.MARKDOWNLINT_CLI2, Tool.MARKDOWNLINT)),
     (".prettierrc", (Tool.PRETTIER,)),
     ("prettier.config.", (Tool.PRETTIER,)),
     (".remarkrc", (Tool.REMARK,)),

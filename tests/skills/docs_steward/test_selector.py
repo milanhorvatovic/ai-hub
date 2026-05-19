@@ -69,6 +69,31 @@ class SelectToolTests(unittest.TestCase):
         runner = _runner_with(Tool.PRETTIER)
         self.assertEqual(select_tool(".markdownlint.json", runner), Tool.PRETTIER)
 
+    def test_markdownlint_cli2_config_falls_back_when_only_legacy_cli_available(self) -> None:
+        # `.markdownlint-cli2.jsonc` baseline must NOT route to the legacy
+        # markdownlint binary even when that's the only markdownlint-
+        # family CLI on PATH — the file format is cli2-specific. Selection
+        # falls through to FALLBACK_ORDER instead. markdownlint may still
+        # end up selected via the fallback chain (it's in FALLBACK_ORDER),
+        # but baseline_belongs_to_tool will then say False, so run_tool
+        # skips the --config forward and the legacy CLI runs via its own
+        # discovery (likely with no config — safer than mis-parsing).
+        runner = _runner_with(Tool.MARKDOWNLINT)
+        # The fallback selects markdownlint (it's in FALLBACK_ORDER and
+        # is the only tool present), but that's OK because the runner
+        # won't forward the cli2 config to it.
+        self.assertEqual(
+            select_tool(".markdownlint-cli2.jsonc", runner), Tool.MARKDOWNLINT,
+        )
+
+    def test_markdownlint_cli2_config_picks_cli2_when_available(self) -> None:
+        # When CLI2 IS on PATH, the cli2-specific baseline routes there
+        # directly via the dedicated `.markdownlint-cli2.` prefix.
+        runner = _runner_with(Tool.MARKDOWNLINT_CLI2, Tool.MARKDOWNLINT, Tool.PRETTIER)
+        self.assertEqual(
+            select_tool(".markdownlint-cli2.jsonc", runner), Tool.MARKDOWNLINT_CLI2,
+        )
+
     def test_fallback_order_is_non_empty(self) -> None:
         self.assertGreater(len(FALLBACK_ORDER), 0)
 
@@ -134,6 +159,43 @@ class BaselineBelongsToToolTests(unittest.TestCase):
         self.assertTrue(
             baseline_belongs_to_tool("/repo/.prettierrc", Tool.PRETTIER),
         )
+
+    def test_markdownlint_cli2_config_belongs_only_to_cli2(self) -> None:
+        # `.markdownlint-cli2.jsonc` is a cli2-specific format the legacy
+        # markdownlint binary can't parse. Routing the cli2 baseline to
+        # Tool.MARKDOWNLINT (via the broader `.markdownlint.` prefix)
+        # would cause run_tool to forward the cli2 config as --config to
+        # the wrong CLI.
+        self.assertTrue(
+            baseline_belongs_to_tool(".markdownlint-cli2.jsonc", Tool.MARKDOWNLINT_CLI2),
+        )
+        self.assertFalse(
+            baseline_belongs_to_tool(".markdownlint-cli2.jsonc", Tool.MARKDOWNLINT),
+        )
+        self.assertTrue(
+            baseline_belongs_to_tool(".markdownlint-cli2.yaml", Tool.MARKDOWNLINT_CLI2),
+        )
+        self.assertFalse(
+            baseline_belongs_to_tool(".markdownlint-cli2.yaml", Tool.MARKDOWNLINT),
+        )
+
+    def test_markdownlint_rule_config_belongs_to_both_clis(self) -> None:
+        # `.markdownlint.json` is the shared rule-config format; either
+        # binary can consume it. Both must report True.
+        for name in (
+            ".markdownlint.json",
+            ".markdownlint.jsonc",
+            ".markdownlint.yaml",
+            ".markdownlint.yml",
+        ):
+            self.assertTrue(
+                baseline_belongs_to_tool(name, Tool.MARKDOWNLINT_CLI2),
+                name,
+            )
+            self.assertTrue(
+                baseline_belongs_to_tool(name, Tool.MARKDOWNLINT),
+                name,
+            )
 
 
 if __name__ == "__main__":
