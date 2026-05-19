@@ -34,7 +34,7 @@ Pairs with `.markdownlint.json` / `.markdownlint.jsonc` / `.markdownlint.yaml` /
 | Format (older CLI) | `markdownlint --fix --ignore-path .gitignore '**/*.md'` |
 
 - **Exit 0** = no findings; **exit 1** = findings present; **exit 2** = config / invocation error.
-- **Output line shape**: `path/to/file.md:LINE:COL MD### name "fragment"` — parse with `^([^:]+):(\d+)(?::(\d+))? (MD\d{3})(?:/(\S+))? (.*)$`. The skill discards `LINE:COL` (per no-line-numbers convention) and reuses the `MD###` code + message verbatim.
+- **Output line shape**: `path/to/file.md:LINE:COL MD### name "fragment"`. The skill emits each non-empty stdout/stderr line verbatim as a `finding` event detail string — no parsing, no field extraction. The line:col prefix IS stripped internally by `runner._normalize_finding_key` when computing the `md-fix` DELTA so an unfixed finding at a shifted line still counts as `still_open` rather than `resolved + new`, but consumers reading the NDJSON `finding.detail` see the raw line. To skip the line:col prefix for display, parse `^([^:]+):(\d+)(?::(\d+))? (MD\d{3})(?:/(\S+))? (.*)$` on the consumer side.
 - **Install hints**: `npm install -g markdownlint-cli2` (canonical — substitute `markdownlint-cli` for the older CLI); `pnpm add -g markdownlint-cli2` / `bun add -g markdownlint-cli2` / `yarn global add markdownlint-cli2` (alternative JS package managers); `mise use -g npm:markdownlint-cli2` (mise via npm backend). No standalone binary; requires a Node runtime.
 
 ### prettier
@@ -50,7 +50,7 @@ Pairs with `.prettierrc` / `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}` / `pret
 | Format (unwrap) | `prettier --write --parser markdown --prose-wrap=never "**/*.md"` |
 
 - **Exit 0** = formatted; **exit 1** = unformatted files exist (audit) or write error (format); **exit 2** = config / invocation error.
-- **Output**: file paths only (audit) or `<file> Nms` per write (format). No structured rule codes — when used as the audit engine, the skill emits one INFO finding per file: *"Prettier would reformat (run `prettier --write` to apply)."*
+- **Output**: file paths only (audit) or `<file> Nms` per write (format). No structured rule codes; the skill does not synthesize messages, so each non-empty stdout/stderr line lands verbatim as a `finding` event detail string (audit) or a `changed` event detail string (format). NDJSON has no INFO/severity concept — consumers that want a human "Prettier would reformat" hint should render it locally from the bare file path in the detail.
 - `--prose-wrap=never` is appended automatically by section 5.D.3 when the unwrap gating permits.
 - Honors `.prettierignore`; the glob is otherwise unfiltered.
 - **Install hints**: `npm install -g prettier` (canonical); `pnpm add -g prettier` / `bun add -g prettier` / `yarn global add prettier` (alternative JS package managers); `volta install prettier` (toolchain manager); `mise use -g npm:prettier` (mise via npm backend); `npx prettier@latest` (one-shot, no install). Requires a Node runtime.
@@ -69,7 +69,7 @@ Pairs with `pyproject.toml#[tool.mdformat]` or a standalone `.mdformat.toml`.
 | Format (preserve width) | `mdformat --wrap=N .` |
 
 - **Exit 0** = formatted (audit) or success (format); **non-zero** = changes needed (audit) or error (format).
-- **Output**: file paths only. Same one-INFO-per-file fallback as prettier.
+- **Output**: file paths only. Each non-empty stdout/stderr line is emitted verbatim as a `finding` event detail string (audit) or `changed` (format); no per-file message synthesis.
 - `--wrap=no` is appended automatically when section 5.D.3 unwrap gating permits.
 - Plugins (`mdformat-gfm`, `mdformat-tables`, `mdformat-frontmatter`, `mdformat-footnote`) extend syntax coverage but are not auto-installed; surface their absence as INFO when the file uses the corresponding syntax.
 - **Install hints**: `pipx install mdformat` (preferred — isolated); `uv tool install mdformat` (fast); `pip install --user mdformat` (user-site); `brew install mdformat` (macOS); `mise use -g pipx:mdformat` (mise via pipx backend); add `mdformat-gfm` for GitHub-flavored markdown. Pure-Python; no Node required.
@@ -85,7 +85,7 @@ Pairs with `dprint.json` containing a `markdown` plugin entry.
 | Format | `dprint fmt` |
 
 - **Exit 0** = formatted; **non-zero** = changes needed (audit) or error (format).
-- **Output**: file paths only; one-INFO-per-file fallback applies.
+- **Output**: file paths only. Each non-empty stdout/stderr line is emitted verbatim as a `finding` event detail string (audit) or `changed` (format); no per-file message synthesis.
 - Honors `dprint.json`'s `includes` / `excludes`; no glob argument needed.
 - **Install hints**: `curl -fsSL https://dprint.dev/install.sh | sh` (POSIX official installer); `iwr https://dprint.dev/install.ps1 -useb | iex` (Windows PowerShell); `brew install dprint` (macOS); `winget install dprint` / `scoop install dprint` (Windows package managers); `cargo install dprint` (via Rust toolchain); `mise use -g aqua:dprint/dprint` (mise via aqua backend). Single static binary regardless of installer.
 
