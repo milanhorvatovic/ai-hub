@@ -129,7 +129,7 @@ The skill must distinguish the three classes for every tool:
 | Class | Action |
 |---|---|
 | **Clean** (exit 0 in audit) | No findings; skip the file in the report. |
-| **Findings** (exit 1 in audit) | Parse stdout; emit one finding per reported issue. Reuse the tool's rule code when present, else synthesize `MD000-<tool>` so the report still has a `<RULE>` slot. |
+| **Findings** (exit 1 in audit) | Stream each non-empty stdout line verbatim as a `finding` event (and stderr too in AUDIT mode — some tools emit findings there). No rule-code synthesis: consumers that want a `<RULE>` slot should parse the tool's own format from `finding.detail` (e.g. `MD\d{3}` for markdownlint, the rule field in remark's parsable output). The skill stays out of the synthesis business so it doesn't paper over consumer-side variation. |
 | **Tool error** (exit ≥ 2, or unexpected stderr) | Append the tool's stdout/stderr as event-stream lines, then emit a single `ERROR` event with `{"exit": N}` and exit 2. There is no implicit hand-rolled-edits fallback after a tool error — addressing the failing tool is on the caller. |
 
 ## Caveats
