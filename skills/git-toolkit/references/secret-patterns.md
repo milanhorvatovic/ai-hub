@@ -6,7 +6,7 @@ Load this whenever a capability is about to display or write text that will beco
 
 Listed rather than tabulated on purpose: alternation pipes (`|`) must stay literal in the raw source. A markdown table would force `\|` escaping, and a reader that consumes the raw file (not the rendered HTML) would treat `\|` as a literal pipe — breaking the alternation in engines like Python `re`. Each entry is `name` — `regex` — what it catches.
 
-- `github_token` — `gh[pousr]_[A-Za-z0-9]{36,}` — GitHub PAT (`ghp_`), OAuth (`gho_`), user-server (`ghu_`), server-server (`ghs_`), refresh (`ghr_`)
+- `github_token` — `(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{82})` — GitHub PAT (`ghp_`), OAuth (`gho_`), user-server (`ghu_`), server-server (`ghs_`), refresh (`ghr_`), fine-grained PAT (`github_pat_`)
 - `aws_access_key` — `AKIA[0-9A-Z]{16}` — AWS access key IDs
 - `aws_secret_key` — `(?i)aws[_-]?secret[_-]?access[_-]?key["'\s:=]+[A-Za-z0-9/+=]{40}` — AWS secret access keys (heuristic — full keys are unconstrained chars but typically near labelled context)
 - `slack_token` — `xox[bpoars]-[A-Za-z0-9-]+` — Slack bot/user/OAuth/app/refresh/scim tokens
