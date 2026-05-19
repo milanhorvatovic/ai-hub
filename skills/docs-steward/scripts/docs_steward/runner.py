@@ -247,14 +247,27 @@ def run_tool(
 
     result = runner.run(cmd, cwd=root)
 
-    combined = (result.stdout + result.stderr).strip()
-    if result.returncode == 0 and (effective_mode == Mode.AUDIT or not combined):
+    # CLEAN decision and event-stream parsing both key on STDOUT only in
+    # FORMAT mode. Formatters emit per-file change records on stdout and
+    # reserve stderr for banner / deprecation warnings / debug output —
+    # consulting stderr for CLEAN/CHANGED leaked that noise as spurious
+    # CHANGED events and suppressed CLEAN when a successful format
+    # happened to print a deprecation warning. In AUDIT mode we still
+    # concatenate stderr because some formatters (markdownlint-cli2's
+    # exit-1 banner; remark's --frail messages) put real findings there.
+    stdout_trimmed = result.stdout.strip()
+    if result.returncode == 0 and (effective_mode == Mode.AUDIT or not stdout_trimmed):
         events.append(Event(EventType.CLEAN, tool.value, f"{mode.value} passed"))
         return events, 0
 
+    output_for_events = (
+        result.stdout
+        if effective_mode == Mode.FORMAT
+        else result.stdout + result.stderr
+    )
     events.extend(
         _emit_output_lines(
-            result.stdout + result.stderr, tool.value, mode, quiet=quiet, dry_run=dry_run
+            output_for_events, tool.value, mode, quiet=quiet, dry_run=dry_run
         )
     )
 

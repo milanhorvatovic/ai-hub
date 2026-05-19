@@ -83,7 +83,14 @@ def _audit_one_block(
     result = runner.run(list(argv), stdin=block.yaml_text)
     events: list[Event] = []
     matched_count = 0
-    output = (result.stdout + result.stderr).strip()
+    # yamllint -f parsable emits findings on stdout; stderr is reserved
+    # for invocation diagnostics (config not found, schema error,
+    # python tracebacks). Parsing both streams together turned stderr
+    # noise into fallback FINDING events with raw text as detail.
+    # Restrict the parse to stdout and let the rc-based invocation-
+    # failure path (audit_frontmatter's matched_count==0 + rc>=2 check)
+    # surface true failures via the {exit: N} ERROR event.
+    output = result.stdout.strip()
     for line in output.splitlines():
         stripped = line.rstrip("\r").strip()
         if not stripped:

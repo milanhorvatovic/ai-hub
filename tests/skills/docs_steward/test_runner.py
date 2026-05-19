@@ -92,6 +92,31 @@ class RunToolTests(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].detail, {"exit": 2})
 
+    def test_format_mode_stderr_noise_does_not_suppress_clean(self) -> None:
+        # Regression: FORMAT mode's CLEAN decision used to consult
+        # combined stdout+stderr. A deprecation warning on stderr from
+        # a successful format pass suppressed the CLEAN event and
+        # emitted the warning as a spurious CHANGED event. Stderr is
+        # banner / warning territory in FORMAT mode; only stdout decides
+        # whether anything was rewritten.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--write", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={
+                cmd: ProcessResult(
+                    0,
+                    "",
+                    "Deprecation: --parser is going away in v4.\n",
+                ),
+            },
+        )
+        events, code = run_tool(Mode.FORMAT, ".prettierrc", False, runner, ROOT)
+        self.assertEqual(code, 0)
+        kinds = [e.event for e in events]
+        self.assertIn(EventType.CLEAN, kinds)
+        # No spurious CHANGED event derived from the stderr warning.
+        self.assertEqual([e for e in events if e.event == EventType.CHANGED], [])
+
     def test_format_mode_emits_changed_not_finding(self) -> None:
         cmd = ("prettier", "--config", "/repo/.prettierrc", "--write", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
