@@ -26,7 +26,6 @@ from .events import Event, EventType
 from .modes import Mode
 from .process import ProcessRunner
 from .selector import baseline_belongs_to_tool, select_tool
-from .tools import Tool
 
 
 _NO_TOOL_HINT = (
@@ -80,7 +79,7 @@ def _emit_output_lines(
 
 
 def _scope_command(
-    cmd: list[str], files: Sequence[str] | None, tool: Tool
+    cmd: list[str], files: Sequence[str] | None
 ) -> list[str]:
     """Replace any glob arguments in the command with explicit files.
 
@@ -97,7 +96,8 @@ def _scope_command(
     A POSIX `--` separator is inserted between the kept flags and the
     explicit files so that a path beginning with `-` / `--` (e.g.
     `./--draft.md`) is treated as a positional file rather than a flag by
-    the underlying formatter.
+    the underlying formatter. All supported tools accept `--`, so no
+    per-tool branching is needed.
     """
     if files is None:
         return cmd
@@ -173,7 +173,7 @@ def run_tool(
     # cwd=root and will find the baseline via its own discovery.
 
     cmd = build_command(tool, effective_mode, unwrap=unwrap, config_path=config_path)
-    cmd = _scope_command(cmd, files, tool)
+    cmd = _scope_command(cmd, files)
     events.append(
         Event(
             EventType.SELECTED,
