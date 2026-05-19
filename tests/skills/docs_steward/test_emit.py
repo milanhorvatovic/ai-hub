@@ -19,12 +19,25 @@ class SerializeTests(unittest.TestCase):
         )
 
     def test_dict_detail_round_trips(self) -> None:
-        detail = {"priority_rank": 1, "install_options": "npm install prettier"}
+        # Mirror the real `recommend` event schema: install_options is a
+        # list of strings (one per install command across package
+        # managers), not a single delimited string. Pinning the real
+        # shape here keeps the serializer test consistent with the
+        # contract recommend_installs / ndjson-schema.md document.
+        detail = {
+            "priority_rank": 1,
+            "install_options": [
+                "npm install --global prettier",
+                "pnpm add -g prettier",
+                "bun add -g prettier",
+            ],
+        }
         event = Event(EventType.RECOMMEND, "prettier", detail)
         decoded = json.loads(serialize(event))
         self.assertEqual(decoded["event"], "recommend")
         self.assertEqual(decoded["tool"], "prettier")
         self.assertEqual(decoded["detail"], detail)
+        self.assertIsInstance(decoded["detail"]["install_options"], list)
 
     def test_no_trailing_newline(self) -> None:
         event = Event(EventType.CLEAN, "prettier", "audit passed")
