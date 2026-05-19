@@ -46,18 +46,26 @@ def _build_argv(config_path: str | None) -> list[str]:
     return argv
 
 
-def _parse_finding(raw: str, file_path: str, block: FrontmatterBlock) -> str:
+def _parse_finding(raw: str, file_path: str, block: FrontmatterBlock) -> tuple[str, bool]:
     """Convert one yamllint parsable line into a human-friendly finding
     string. yamllint reports `stdin:LINE:COL: [LEVEL] message (rule)`; the
     skill replaces `stdin:LINE:COL` with `<file>:<anchor>` and keeps the
-    level + message + rule intact."""
+    level + message + rule intact.
+
+    Returns (finding_string, matched) where `matched` is True when the
+    input parsed as a real yamllint parsable line and False when the
+    fallback (raw passthrough) was used. The flag lets the caller
+    distinguish "yamllint produced a real finding" from "yamllint emitted
+    noise we wrapped as a finding" — a yamllint config error written to
+    stderr is the latter case.
+    """
     match = _YAMLLINT_LINE.match(raw.strip())
     if not match:
-        return f"{file_path}:{block.anchor} — {raw.strip()}"
+        return f"{file_path}:{block.anchor} — {raw.strip()}", False
     level = match.group("level")
     msg = match.group("msg")
     rule = match.group("rule") or "yamllint"
-    return f"{file_path}:{block.anchor} — [{level}] {msg} ({rule})"
+    return f"{file_path}:{block.anchor} — [{level}] {msg} ({rule})", True
 
 
 def _audit_one_block(
@@ -65,19 +73,23 @@ def _audit_one_block(
     file_path: str,
     block: FrontmatterBlock,
     argv: Sequence[str],
-) -> tuple[list[Event], int]:
-    """Run yamllint on a single block; return (events, max_returncode)."""
+) -> tuple[list[Event], int, int]:
+    """Run yamllint on a single block; return (events, returncode,
+    matched_count) where matched_count is the number of output lines
+    that parsed as proper yamllint parsable findings (vs fallback)."""
     result = runner.run(list(argv), stdin=block.yaml_text)
     events: list[Event] = []
+    matched_count = 0
     output = (result.stdout + result.stderr).strip()
     for line in output.splitlines():
         stripped = line.rstrip("\r").strip()
         if not stripped:
             continue
-        events.append(
-            Event(EventType.FINDING, _TOOL.value, _parse_finding(stripped, file_path, block))
-        )
-    return events, result.returncode
+        finding, matched = _parse_finding(stripped, file_path, block)
+        if matched:
+            matched_count += 1
+        events.append(Event(EventType.FINDING, _TOOL.value, finding))
+    return events, result.returncode, matched_count
 
 
 def audit_frontmatter(
@@ -115,7 +127,7 @@ def audit_frontmatter(
         events.append(Event(EventType.BUNDLED_CONFIG, _TOOL.value, resolved_config))
 
     blocks_scanned = 0
-    max_rc = 0
+    invocation_failure_rc = 0
     any_file_error = False
 
     for file_path in files:
@@ -139,12 +151,25 @@ def audit_frontmatter(
             continue
         for block in extract_blocks(text):
             blocks_scanned += 1
-            block_events, rc = _audit_one_block(runner, file_path, block, argv)
+            block_events, rc, matched_count = _audit_one_block(
+                runner, file_path, block, argv,
+            )
             events.extend(block_events)
-            max_rc = max(max_rc, rc)
+            if rc >= 2 and matched_count == 0:
+                # True yamllint invocation failure: non-zero exit AND zero
+                # output lines parsed as real yamllint findings. yamllint
+                # -s exits 2 whenever a warning-level finding fires, but
+                # in that case `matched_count` is non-zero (the warning
+                # parsed against _YAMLLINT_LINE). Distinguishing the two
+                # avoids classifying every warning-only audit as exit 2 +
+                # ERROR; only true invocation failures (config error,
+                # python traceback, missing schema) take this path.
+                invocation_failure_rc = max(invocation_failure_rc, rc)
 
-    if max_rc >= 2:
-        events.append(Event(EventType.ERROR, _TOOL.value, {"exit": max_rc}))
+    if invocation_failure_rc >= 2:
+        events.append(
+            Event(EventType.ERROR, _TOOL.value, {"exit": invocation_failure_rc}),
+        )
         return events, 2
 
     finding_count = sum(1 for e in events if e.event == EventType.FINDING)

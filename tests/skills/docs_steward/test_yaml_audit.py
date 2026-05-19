@@ -122,6 +122,36 @@ class AuditFrontmatterTests(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].detail, {"exit": 2})
 
+    def test_yamllint_strict_warning_exit_2_with_findings_maps_to_exit_1(self) -> None:
+        # yamllint -s returns 2 whenever any warning-level finding fires.
+        # Earlier the audit treated every exit-2 as an invocation error and
+        # emitted ERROR + exit 2 even when yamllint had produced a real
+        # parsed warning. Now a non-empty block_events list with rc >= 2
+        # is recognized as the strict-warning case and maps to exit 1 +
+        # finding events; reserved exit 2 + ERROR for the true-failure
+        # case where rc >= 2 BUT block_events is empty.
+        fs = FakeFileSystem(files={"/repo/x.md": "---\nkey: value\n---\n"})
+        runner = _runner_with_yamllint(
+            {
+                _BASE_ARGV: ProcessResult(
+                    2,
+                    "stdin:2:3: [warning] wrong indentation: expected 2 but found 4 (indentation)\n",
+                    "",
+                ),
+            }
+        )
+        events, code = audit_frontmatter(runner, fs, ["/repo/x.md"])
+        self.assertEqual(code, 1)
+        findings = [e for e in events if e.event == EventType.FINDING]
+        self.assertEqual(len(findings), 1)
+        self.assertIn("indentation", findings[0].detail)  # type: ignore[operator]
+        # No ERROR event — the warning was a finding, not an invocation failure.
+        invocation_errors = [
+            e for e in events
+            if e.event == EventType.ERROR and isinstance(e.detail, dict) and "exit" in e.detail
+        ]
+        self.assertEqual(invocation_errors, [])
+
     def test_explicit_config_path_overrides_bundled(self) -> None:
         fs = FakeFileSystem(files={"/repo/x.md": "---\nkey: value\n---\n"})
         custom_argv = (
