@@ -73,7 +73,9 @@ def test_skill_version_is_semver(skill_md: Path) -> None:
     m = re.search(r'^\s+version:\s*"([^"]+)"', text, flags=re.MULTILINE)
     assert m, "no version: key found in metadata"
     version = m.group(1)
-    semver = re.fullmatch(r"\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?", version)
+    semver = re.fullmatch(
+        r"\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?", version
+    )
     assert semver, f"version `{version}` is not semver"
 
 
