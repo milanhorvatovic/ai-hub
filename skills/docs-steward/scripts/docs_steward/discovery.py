@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 
+from .fs import FileSystem
 from .process import ProcessRunner
 
 
@@ -23,16 +24,27 @@ _SKIP_DIRS = frozenset(
 )
 
 
-def list_markdown_files(runner: ProcessRunner, root: str) -> list[str]:
+def list_markdown_files(
+    runner: ProcessRunner, root: str, fs: FileSystem | None = None,
+) -> list[str]:
     """Return absolute paths to every markdown file under `root`. Empty list
-    when there are none; never raises."""
-    git_listed = _try_git_ls_files(runner, root)
+    when there are none; never raises.
+
+    `fs` is consulted only by the git-backed path to filter out index
+    entries whose working-tree file has been deleted (`git ls-files
+    --cached` still surfaces them). Default `None` uses `os.path.exists`
+    so production code keeps a zero-argument call. Tests inject a
+    `FakeFileSystem` so the synthesized paths can be marked existent.
+    """
+    git_listed = _try_git_ls_files(runner, root, fs)
     if git_listed is not None:
         return git_listed
     return _walk(root)
 
 
-def _try_git_ls_files(runner: ProcessRunner, root: str) -> list[str] | None:
+def _try_git_ls_files(
+    runner: ProcessRunner, root: str, fs: FileSystem | None,
+) -> list[str] | None:
     """Attempt `git ls-files`; return None when git is absent or the cwd is
     not a git repository (caller should fall back to filesystem walk).
 
@@ -70,7 +82,18 @@ def _try_git_ls_files(runner: ProcessRunner, root: str) -> list[str] | None:
         if rel not in seen:
             seen.add(rel)
             unique_rels.append(rel)
-    return [_posix_join(root, rel) for rel in unique_rels]
+    # Filter to paths that actually exist on disk. `git ls-files --cached`
+    # still surfaces an entry for a tracked file the user has deleted in
+    # their working tree (the deletion isn't `git rm`-ed yet), but the
+    # downstream audit would then read a non-existent path and emit a
+    # misleading ERROR event. Honouring "what's on disk now" matches the
+    # skill's intent of auditing real files.
+    exists = fs.exists if fs is not None else os.path.exists
+    return [
+        _posix_join(root, rel)
+        for rel in unique_rels
+        if exists(os.path.join(root, rel))
+    ]
 
 
 def _walk(root: str) -> list[str]:

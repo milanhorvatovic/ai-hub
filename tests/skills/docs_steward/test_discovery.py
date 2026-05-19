@@ -9,7 +9,14 @@ import unittest
 from docs_steward.discovery import list_markdown_files
 from docs_steward.process import ProcessResult
 
-from .fakes import FakeProcessRunner
+from .fakes import FakeFileSystem, FakeProcessRunner
+
+
+def _fs_with(root: str, *rels: str) -> FakeFileSystem:
+    """Mark each relative path as existing under `root` for discovery's
+    on-disk filter step. Content is empty (the filter only consults
+    `exists`, not `read_text`)."""
+    return FakeFileSystem(files={os.path.join(root, rel): "" for rel in rels})
 
 
 class GitLsFilesPathTests(unittest.TestCase):
@@ -21,7 +28,9 @@ class GitLsFilesPathTests(unittest.TestCase):
                 ),
             }
         )
-        files = list_markdown_files(runner, "/repo")
+        files = list_markdown_files(
+            runner, "/repo", fs=_fs_with("/repo", "README.md", "docs/intro.md"),
+        )
         self.assertEqual(
             sorted(files),
             sorted(["/repo/README.md", "/repo/docs/intro.md"]),
@@ -33,7 +42,9 @@ class GitLsFilesPathTests(unittest.TestCase):
                 ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(0, "", ""),
             }
         )
-        self.assertEqual(list_markdown_files(runner, "/repo"), [])
+        self.assertEqual(
+            list_markdown_files(runner, "/repo", fs=FakeFileSystem()), [],
+        )
 
     def test_includes_untracked_files_via_others_flag(self) -> None:
         # `git ls-files --cached --others --exclude-standard *.md *.markdown`
@@ -46,7 +57,10 @@ class GitLsFilesPathTests(unittest.TestCase):
                 ),
             }
         )
-        files = list_markdown_files(runner, "/repo")
+        files = list_markdown_files(
+            runner, "/repo",
+            fs=_fs_with("/repo", "README.md", "NEW_UNTRACKED.md"),
+        )
         self.assertEqual(
             sorted(files),
             sorted(["/repo/README.md", "/repo/NEW_UNTRACKED.md"]),
@@ -63,8 +77,29 @@ class GitLsFilesPathTests(unittest.TestCase):
                 ),
             }
         )
-        files = list_markdown_files(runner, "/repo")
+        files = list_markdown_files(
+            runner, "/repo", fs=_fs_with("/repo", "README.md", "docs/intro.md"),
+        )
         self.assertEqual(files, ["/repo/README.md", "/repo/docs/intro.md"])
+
+    def test_filters_out_index_entries_for_deleted_working_tree_files(self) -> None:
+        # Regression: `git ls-files --cached` keeps an entry for a tracked
+        # file the user has rm-ed but not `git rm`-ed. Downstream audit
+        # would read a non-existent path and emit a misleading ERROR. The
+        # discovery filter excludes any entry whose working-tree file is
+        # gone — only paths that actually exist make it into the output.
+        runner = FakeProcessRunner(
+            results={
+                ("git", "ls-files", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/*.md", ":(glob)**/*.markdown"): ProcessResult(
+                    0, "README.md\nremoved.md\n", ""
+                ),
+            }
+        )
+        # `removed.md` is in the listing but NOT in the fake fs.
+        files = list_markdown_files(
+            runner, "/repo", fs=_fs_with("/repo", "README.md"),
+        )
+        self.assertEqual(files, ["/repo/README.md"])
 
 
 class WalkFallbackTests(unittest.TestCase):
