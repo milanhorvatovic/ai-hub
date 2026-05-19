@@ -42,7 +42,7 @@ Capabilities are encouraged to link directly to the slice they need (e.g., `comm
 
 Applies across commit messages, PR bodies, and release notes:
 
-- Past tense for what the PR did (in the body): "Added retry logic to the consumer."
+- Past tense for what a change did, in commit-message bodies and release notes: "Added retry logic to the consumer." (PR descriptions are the exception — the Summary section uses present tense, "Adds retry logic…"; see `format-pr.md`.)
 - Present tense for what the code does (in inline references): "the consumer now retries on transient failures."
 - Active voice: "The parser rejects invalid tokens" not "Invalid tokens are rejected by the parser."
 - No first-person plural in commit messages ("we added") — use imperative or third person.
