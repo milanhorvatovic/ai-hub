@@ -23,13 +23,15 @@ import pytest
 
 def _collect_relative_links(md_path: Path) -> list[tuple[str, int]]:
     """Return (relative-link, 1-based-line-number) for every backtick-quoted
-    relative `.md` path into the skill tree.
+    relative `.md`/`.json` path into the skill tree.
 
-    Matches skill-internal relative links ending in `.md`, in either form:
-    a `../`-prefixed traversal (so intra-capability sibling links like
-    `../pr-conversation-resolve/capability.md` are validated alongside
-    `../../references/foo.md`), or a `references/` / `capabilities/` prefix
-    (as used from SKILL.md). Repo-root path mentions like
+    Matches skill-internal relative links ending in `.md` or `.json`, in
+    either form: a `../`-prefixed traversal (so intra-capability sibling
+    links like `../pr-conversation-resolve/capability.md` are validated
+    alongside `../../references/foo.md`, and reference links to non-`.md`
+    artifacts like `../../references/review-output.schema.json` are not
+    silently skipped), or a `references/` / `capabilities/` prefix (as used
+    from SKILL.md). Repo-root path mentions like
     `.github/copilot-instructions.md` and bare prose mentions like
     `format-conventions.md` are intentionally excluded — they are not
     skill-relative links.
@@ -39,7 +41,7 @@ def _collect_relative_links(md_path: Path) -> list[tuple[str, int]]:
     for lineno, line in enumerate(text.splitlines(), start=1):
         for m in re.finditer(
             r"`((?:(?:\.\./)+[A-Za-z0-9_./-]+"
-            r"|(?:references|capabilities)/[A-Za-z0-9_./-]+)\.md)`",
+            r"|(?:references|capabilities)/[A-Za-z0-9_./-]+)\.(?:md|json))`",
             line,
         ):
             out.append((m.group(1), lineno))
