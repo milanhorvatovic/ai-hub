@@ -18,7 +18,7 @@ Subcommand → service map:
 from __future__ import annotations
 
 import argparse
-import os.path
+import os
 import sys
 from collections.abc import Iterable, Sequence
 from typing import Callable
