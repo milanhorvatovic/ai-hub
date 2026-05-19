@@ -21,7 +21,7 @@ Proposes an interactive-rebase plan to clean up a branch's commit history.
 - **Resolve base** — PR base via `gh pr view --json baseRefName` if PR exists; else merge-base with `main` / `master` / `develop` (try each, first match wins).
 - **≤1 commits in range** → stop with "nothing to clean up."
 - **On default branch** → refuse; rebase-cleanup is for feature branches only.
-- **Detect pushed commits**: `git rev-list <base>..HEAD` vs `git rev-list <base>..HEAD --remotes`. If commits exist on remote AND the PR has at least one review (`gh pr view --json reviews`) → emit the force-push warning (Step 6) **before** any plan is shown.
+- **Detect pushed commits**: `git rev-list <base>..HEAD` is the full range; `git rev-list <base>..HEAD ^@{u}` returns the *unpushed* commits in that range (reachable from HEAD but not from the branch's upstream), so the pushed set is the complement. Where no upstream is configured, fall back to per-commit `git branch -r --contains <sha>`. If any commit in range is pushed AND the PR has at least one review (`gh pr view --json reviews`) → emit the force-push warning (Step 6) **before** any plan is shown.
 
 ## Workflow
 
