@@ -603,6 +603,29 @@ class NormalizeFindingKeyTests(unittest.TestCase):
             "foo.md warning Visit https://host:8080/help final-newline remark-lint",
         )
 
+    def test_path_with_spaces_is_normalized(self) -> None:
+        # Regression: paths containing spaces (`my docs/guide.md:42:3 ...`)
+        # were missed by the \\S+? path class so the same finding at two
+        # different lines counted as one resolved + one new rather than
+        # one still_open. The pattern now uses .+? to admit spaces while
+        # still single-line-bounded.
+        self.assertEqual(
+            _normalize_finding_key(
+                'my docs/guide.md:42:3 MD040 fenced-code-language "```"'
+            ),
+            "my docs/guide.md MD040 fenced-code-language",
+        )
+        # Two findings of the same rule at different lines must produce
+        # the same normalized key.
+        self.assertEqual(
+            _normalize_finding_key(
+                'my docs/guide.md:42:3 MD040 fenced-code-language "```"'
+            ),
+            _normalize_finding_key(
+                'my docs/guide.md:7:1 MD040 fenced-code-language "```"'
+            ),
+        )
+
     def test_does_not_strip_colons_from_path_with_no_extension(self) -> None:
         # A line whose leading path doesn't end with .md/.markdown should not
         # be matched at all — the pattern requires the markdown extension to

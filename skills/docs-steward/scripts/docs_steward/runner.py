@@ -311,9 +311,12 @@ def run_fix_cycle(
 # Strip ONLY the leading `<path>.{md,markdown}:LINE[:COL][-LINE:COL]` prefix —
 # anchored at start of line so a URL with a port (`https://host:8080/foo`)
 # embedded later in the message text isn't mistaken for a line/column number
-# and stripped. The captured path is preserved via backreference \1.
+# and stripped. The captured path uses `.+?` (not `\S+?`) so paths
+# containing spaces (e.g. `my docs/guide.md:42:3 MD040 ...`) are captured
+# whole; `.` does not match newline by default, so the match is still
+# bounded to a single line. The captured path is preserved via \1.
 _LINE_COL_PATTERN = re.compile(
-    r"^(\S+?\.(?:md|markdown)):\d+(?::\d+)?(?:-\d+:\d+)?",
+    r"^(.+?\.(?:md|markdown)):\d+(?::\d+)?(?:-\d+:\d+)?",
     re.IGNORECASE,
 )
 _QUOTED_FRAGMENT_PATTERN = re.compile(r'\s*"[^"]*"\s*$')
