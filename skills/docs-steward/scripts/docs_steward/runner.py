@@ -15,6 +15,7 @@ Exit-code contract:
 
 from __future__ import annotations
 
+import os.path
 import re
 from collections.abc import Sequence
 
@@ -24,7 +25,7 @@ from .commands import build_command
 from .events import Event, EventType
 from .modes import Mode
 from .process import ProcessRunner
-from .selector import select_tool
+from .selector import baseline_belongs_to_tool, select_tool
 from .tools import Tool
 
 
@@ -154,6 +155,22 @@ def run_tool(
             events.append(Event(EventType.BUNDLED_CONFIG, tool.value, candidate))
         else:
             config_source = "tool-default"
+    elif baseline_belongs_to_tool(baseline, tool):
+        # Explicit baseline (auto-detected at root or supplied via --baseline)
+        # belongs to the selected tool's family — forward it as the tool's
+        # --config so a config that lives outside cwd or under a subdirectory
+        # is still honoured. Relative paths resolve against `root` (the
+        # directory the formatter runs in) so the contract matches SKILL.md's
+        # claim that the baseline is "passed verbatim to the chosen formatter".
+        config_path = (
+            baseline if os.path.isabs(baseline) else os.path.join(root, baseline)
+        )
+        # config_source stays "repo" — the path came from the repo / caller,
+        # not a bundled fallback or tool default.
+    # else: baseline matched a different tool's family (or .editorconfig);
+    # the selected tool's CommandTemplate either has config_flag=None
+    # (mdformat / dprint / remark — discover-from-cwd) or already runs with
+    # cwd=root and will find the baseline via its own discovery.
 
     cmd = build_command(tool, effective_mode, unwrap=unwrap, config_path=config_path)
     cmd = _scope_command(cmd, files, tool)

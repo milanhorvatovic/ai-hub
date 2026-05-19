@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import unittest
 
-from docs_steward.selector import FALLBACK_ORDER, select_tool
+from docs_steward.selector import (
+    FALLBACK_ORDER,
+    baseline_belongs_to_tool,
+    select_tool,
+)
 from docs_steward.tools import Tool
 
 from .fakes import FakeProcessRunner
@@ -87,6 +91,48 @@ class SelectToolTests(unittest.TestCase):
         runner = _runner_with(Tool.MARKDOWNLINT_CLI2, Tool.PRETTIER)
         self.assertEqual(
             select_tool("/repo/.markdownlint.yaml", runner), Tool.MARKDOWNLINT_CLI2,
+        )
+
+
+class BaselineBelongsToToolTests(unittest.TestCase):
+    def test_prettierrc_belongs_to_prettier(self) -> None:
+        self.assertTrue(baseline_belongs_to_tool(".prettierrc", Tool.PRETTIER))
+        self.assertTrue(baseline_belongs_to_tool(".prettierrc.json", Tool.PRETTIER))
+        self.assertTrue(
+            baseline_belongs_to_tool("prettier.config.cjs", Tool.PRETTIER),
+        )
+
+    def test_markdownlint_baseline_belongs_to_both_clis(self) -> None:
+        self.assertTrue(
+            baseline_belongs_to_tool(".markdownlint.json", Tool.MARKDOWNLINT_CLI2),
+        )
+        self.assertTrue(
+            baseline_belongs_to_tool(".markdownlint.json", Tool.MARKDOWNLINT),
+        )
+
+    def test_mdformat_baseline_belongs_to_mdformat(self) -> None:
+        self.assertTrue(baseline_belongs_to_tool(".mdformat.toml", Tool.MDFORMAT))
+
+    def test_cross_family_baseline_does_not_belong(self) -> None:
+        # .prettierrc must NOT belong to markdownlint — passing it as
+        # --config to markdownlint would either error or be misparsed.
+        self.assertFalse(
+            baseline_belongs_to_tool(".prettierrc", Tool.MARKDOWNLINT_CLI2),
+        )
+        self.assertFalse(baseline_belongs_to_tool(".markdownlint.json", Tool.PRETTIER))
+
+    def test_editorconfig_belongs_to_no_tool(self) -> None:
+        for tool in Tool:
+            self.assertFalse(baseline_belongs_to_tool(".editorconfig", tool))
+
+    def test_universal_subset_belongs_to_no_tool(self) -> None:
+        for tool in Tool:
+            self.assertFalse(baseline_belongs_to_tool("universal-subset", tool))
+
+    def test_absolute_path_resolves_via_basename(self) -> None:
+        # /repo/.prettierrc must answer the same as bare .prettierrc.
+        self.assertTrue(
+            baseline_belongs_to_tool("/repo/.prettierrc", Tool.PRETTIER),
         )
 
 

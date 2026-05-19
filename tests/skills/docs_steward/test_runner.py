@@ -24,7 +24,7 @@ class RunToolTests(unittest.TestCase):
         self.assertEqual(events[0].event, EventType.MISSING)
 
     def test_clean_audit_returns_exit_0(self) -> None:
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={cmd: ProcessResult(0, "", "")},
@@ -39,7 +39,7 @@ class RunToolTests(unittest.TestCase):
         # Regression: markdownlint-cli2 prints version + file count + "Summary: 0 error(s)"
         # on stdout even when clean. Trust returncode in AUDIT mode; do not emit the
         # preamble lines as `finding` events nor flip the exit code to 1.
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         preamble = "prettier v3.8.3\nLinting: 3 file(s)\nSummary: 0 error(s)\n"
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
@@ -52,7 +52,7 @@ class RunToolTests(unittest.TestCase):
         self.assertIn(EventType.CLEAN, [e.event for e in events])
 
     def test_findings_emit_finding_events_exit_1(self) -> None:
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={cmd: ProcessResult(1, "Code style issues found in foo.md\n", "")},
@@ -64,7 +64,7 @@ class RunToolTests(unittest.TestCase):
         self.assertEqual(findings[0].detail, "Code style issues found in foo.md")
 
     def test_tool_error_exit_geq_2_emits_error_event_and_exit_2(self) -> None:
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={cmd: ProcessResult(2, "", "config error")},
@@ -76,7 +76,7 @@ class RunToolTests(unittest.TestCase):
         self.assertEqual(errors[0].detail, {"exit": 2})
 
     def test_format_mode_emits_changed_not_finding(self) -> None:
-        cmd = ("prettier", "--write", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--write", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={cmd: ProcessResult(0, "foo.md 12ms\n", "")},
@@ -134,6 +134,8 @@ class RunToolTests(unittest.TestCase):
     def test_unwrap_flag_propagates_to_command(self) -> None:
         cmd = (
             "prettier",
+            "--config",
+            "/repo/.prettierrc",
             "--prose-wrap=never",
             "--check",
             "--parser",
@@ -148,8 +150,70 @@ class RunToolTests(unittest.TestCase):
         _, code = run_tool(Mode.AUDIT, ".prettierrc", True, runner, ROOT)
         self.assertEqual(code, 0)
 
+    def test_explicit_absolute_baseline_path_forwarded_as_config(self) -> None:
+        # SKILL.md guarantees the baseline is "passed verbatim to the chosen
+        # formatter". When the baseline is an explicit absolute path outside
+        # repo root (e.g. --baseline /etc/.prettierrc), run_tool must
+        # forward it as the tool's --config argument; relying on the tool's
+        # cwd-based discovery would silently miss configs outside cwd.
+        cmd = (
+            "prettier", "--config", "/etc/.prettierrc",
+            "--check", "--parser", "markdown",
+            "**/*.md", "**/*.markdown",
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(0, "", "")},
+        )
+        events, code = run_tool(
+            Mode.AUDIT, "/etc/.prettierrc", False, runner, ROOT,
+        )
+        self.assertEqual(code, 0)
+        selected = [e for e in events if e.event == EventType.SELECTED][0]
+        self.assertEqual(selected.detail["config_source"], "repo")  # type: ignore[index]
+        self.assertIn("--config /etc/.prettierrc", selected.detail["cmd"])  # type: ignore[index]
+
+    def test_relative_baseline_resolved_against_root(self) -> None:
+        # --baseline config/.prettierrc with root=/repo => --config /repo/config/.prettierrc.
+        import os as _os
+        expected_path = _os.path.join("/repo", "config/.prettierrc")
+        cmd = (
+            "prettier", "--config", expected_path,
+            "--check", "--parser", "markdown",
+            "**/*.md", "**/*.markdown",
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(0, "", "")},
+        )
+        events, code = run_tool(
+            Mode.AUDIT, "config/.prettierrc", False, runner, ROOT,
+        )
+        self.assertEqual(code, 0)
+
+    def test_cross_family_baseline_not_passed_as_config(self) -> None:
+        # Baseline matches markdownlint family but only Prettier is on PATH.
+        # selector falls back to Prettier — the baseline does NOT belong to
+        # Prettier, so the --config arg must NOT be threaded through (would
+        # confuse Prettier with a markdownlint config file).
+        cmd = (
+            "prettier", "--check", "--parser", "markdown",
+            "**/*.md", "**/*.markdown",
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(0, "", "")},
+        )
+        events, code = run_tool(
+            Mode.AUDIT, ".markdownlint.json", False, runner, ROOT,
+        )
+        self.assertEqual(code, 0)
+        selected = [e for e in events if e.event == EventType.SELECTED][0]
+        # The --config flag is absent in the rendered command.
+        self.assertNotIn("--config", selected.detail["cmd"])  # type: ignore[index]
+
     def test_cr_lines_are_stripped(self) -> None:
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={cmd: ProcessResult(1, "foo.md\r\nbar.md\r\n", "")},
@@ -169,7 +233,8 @@ class PerFileTargetingTests(unittest.TestCase):
         # dropped, a POSIX `--` separator is appended, and the explicit list
         # follows so paths starting with `-` aren't parsed as flags.
         cmd = (
-            "prettier", "--check", "--parser", "markdown",
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown",
             "--", "docs/intro.md", "README.md",
         )
         runner = FakeProcessRunner(
@@ -191,7 +256,8 @@ class PerFileTargetingTests(unittest.TestCase):
         # arg, not parsed as an (unknown) flag by the formatter. The --
         # separator inserted by _scope_command makes this safe.
         cmd = (
-            "prettier", "--check", "--parser", "markdown",
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown",
             "--", "--draft.md",
         )
         runner = FakeProcessRunner(
@@ -207,7 +273,7 @@ class PerFileTargetingTests(unittest.TestCase):
         self.assertIn("-- --draft.md", selected.detail["cmd"])  # type: ignore[index]
 
     def test_no_files_keeps_default_glob(self) -> None:
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={cmd: ProcessResult(0, "", "")},
@@ -221,7 +287,7 @@ class PerFileTargetingTests(unittest.TestCase):
         # markdownlint-cli2 default cmd includes #node_modules etc. — should
         # all be dropped when explicit files are provided. baseline is the
         # repo's .markdownlint.json so no bundled --config is added.
-        cmd = ("markdownlint-cli2", "--", "/repo/foo.md")
+        cmd = ("markdownlint-cli2", "--config", "/repo/.markdownlint.json", "--", "/repo/foo.md")
         runner = FakeProcessRunner(
             paths={"markdownlint-cli2": "/x/markdownlint-cli2"},
             results={cmd: ProcessResult(0, "", "")},
@@ -244,7 +310,7 @@ class PerFileTargetingTests(unittest.TestCase):
 
 class QuietFlagTests(unittest.TestCase):
     def test_quiet_drops_markdownlint_cli2_preamble(self) -> None:
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         # Mixed preamble + real findings; quiet should drop preamble only.
         output = (
             "Finding: **/*.md\n"
@@ -267,7 +333,7 @@ class QuietFlagTests(unittest.TestCase):
         self.assertTrue(all("MD0" in f for f in findings))
 
     def test_not_quiet_keeps_everything(self) -> None:
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         output = "Linting: 3 file(s)\nfoo.md:1 MD040 issue\n"
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
@@ -288,7 +354,7 @@ class DryRunTests(unittest.TestCase):
     def test_dry_run_format_emits_would_change_events(self) -> None:
         # Dry-run swaps to the AUDIT-mode invocation (--check), but emits
         # WOULD_CHANGE events instead of FINDING events.
-        audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={audit_cmd: ProcessResult(1, "foo.md\nbar.md\n", "")},
@@ -306,7 +372,7 @@ class DryRunTests(unittest.TestCase):
         self.assertTrue(selected.detail["dry_run"])  # type: ignore[index]
 
     def test_dry_run_format_clean_yields_no_would_change(self) -> None:
-        audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={audit_cmd: ProcessResult(0, "", "")},
@@ -325,7 +391,7 @@ class DryRunTests(unittest.TestCase):
 
 class RunFixCycleTests(unittest.TestCase):
     def test_clean_pre_audit_skips_format_emits_zero_delta(self) -> None:
-        audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={audit_cmd: ProcessResult(0, "", "")},
@@ -340,8 +406,8 @@ class RunFixCycleTests(unittest.TestCase):
         )
 
     def test_findings_then_format_then_re_audit_clean_emits_resolved(self) -> None:
-        audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
-        fmt_cmd = ("prettier", "--write", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        fmt_cmd = ("prettier", "--config", "/repo/.prettierrc", "--write", "--parser", "markdown", "**/*.md", "**/*.markdown")
         # Pre-audit finds 2 issues; format succeeds; post-audit is clean.
         results = {
             audit_cmd: ProcessResult(1, "foo.md:1 MD040\nbar.md:5 MD009\n", ""),
@@ -379,7 +445,7 @@ class RunFixCycleTests(unittest.TestCase):
         # the "already clean" branch fired purely on `not pre_findings`.
         # Now the clean branch additionally requires `pre_exit == 0`, so
         # the failure signal survives.
-        audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={
@@ -395,7 +461,7 @@ class RunFixCycleTests(unittest.TestCase):
         self.assertEqual([e for e in events if e.event == EventType.DELTA], [])
 
     def test_audit_error_short_circuits(self) -> None:
-        audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier"},
             results={audit_cmd: ProcessResult(2, "", "prettier config error")},
@@ -412,11 +478,11 @@ class RunFixCycleTests(unittest.TestCase):
         # set-difference treated these as two different findings — one
         # resolved + one new — instead of one still_open. The delta must
         # use line-agnostic keys so unfixed findings count as still_open.
-        audit_cmd = ("markdownlint-cli2",
+        audit_cmd = ("markdownlint-cli2", "--config", "/repo/.markdownlint.json",
                      "**/*.md", "**/*.markdown",
                      "#node_modules", "#.git",
                      "#dist", "#build", "#.venv")
-        fmt_cmd = ("markdownlint-cli2", "--fix",
+        fmt_cmd = ("markdownlint-cli2", "--config", "/repo/.markdownlint.json", "--fix",
                    "**/*.md", "**/*.markdown",
                    "#node_modules", "#.git",
                    "#dist", "#build", "#.venv")

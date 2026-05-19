@@ -62,3 +62,25 @@ def select_tool(baseline: str, runner: ProcessRunner) -> Tool | None:
         if runner.which(tool.value):
             return tool
     return None
+
+
+def baseline_belongs_to_tool(baseline: str, tool: Tool) -> bool:
+    """True when `baseline` is a config the given `tool` natively consumes.
+
+    Routes through the same `_BASELINE_PREFERENCES` table as `select_tool`
+    so the answer agrees with selection: e.g. `.prettierrc` belongs to
+    Tool.PRETTIER, `.markdownlint.json` belongs to Tool.MARKDOWNLINT_CLI2
+    and Tool.MARKDOWNLINT, `.editorconfig` and `universal-subset` belong
+    to no tool (the prefix table doesn't include them).
+
+    Used by `runner.run_tool` to decide whether an explicit baseline path
+    should be forwarded as the tool's `--config` argument. Passing a
+    non-family config (e.g. `.editorconfig` to markdownlint) would either
+    error out the formatter or be silently ignored, so the runner only
+    threads `--config` through for family-matching baselines.
+    """
+    basename = os.path.basename(baseline)
+    for prefix, preferred in _BASELINE_PREFERENCES:
+        if basename.startswith(prefix):
+            return tool in preferred
+    return False

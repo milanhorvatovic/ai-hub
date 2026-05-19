@@ -41,7 +41,7 @@ class CliEndToEndTests(unittest.TestCase):
         self.assertEqual([r["detail"]["priority_rank"] for r in recommends], [1, 2, 3, 4, 5, 6])
 
     def test_audit_baseline_override_skips_detection(self) -> None:
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
             results={
@@ -59,6 +59,8 @@ class CliEndToEndTests(unittest.TestCase):
     def test_format_with_unwrap_propagates_flag_through_to_command(self) -> None:
         cmd = (
             "prettier",
+            "--config",
+            "/repo/.prettierrc",
             "--prose-wrap=never",
             "--write",
             "--parser",
@@ -88,7 +90,7 @@ class CliEndToEndTests(unittest.TestCase):
 
     def test_md_audit_accepts_positional_files(self) -> None:
         # Per-file targeting (#1) via positional args.
-        cmd = ("prettier", "--check", "--parser", "markdown", "--", "docs/intro.md")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "--", "docs/intro.md")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
             results={
@@ -104,7 +106,7 @@ class CliEndToEndTests(unittest.TestCase):
         self.assertEqual(selected["detail"]["files_scoped"], 1)
 
     def test_md_audit_quiet_filters_preamble(self) -> None:
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
             results={
@@ -123,7 +125,7 @@ class CliEndToEndTests(unittest.TestCase):
         self.assertIn("MD040", findings[0]["detail"])
 
     def test_md_format_dry_run_emits_would_change(self) -> None:
-        audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
             results={
@@ -206,7 +208,7 @@ class CliEndToEndTests(unittest.TestCase):
 
     def test_md_audit_skips_plugin_check_when_tool_is_not_mdformat(self) -> None:
         # prettier selected → no plugin-missing event regardless of file content.
-        cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
             results={
@@ -219,7 +221,7 @@ class CliEndToEndTests(unittest.TestCase):
         self.assertEqual([e for e in events if e["event"] == "plugin-missing"], [])
 
     def test_md_fix_clean_yields_zero_delta(self) -> None:
-        audit_cmd = ("prettier", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
             results={
