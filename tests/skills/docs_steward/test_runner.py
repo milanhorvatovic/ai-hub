@@ -174,11 +174,11 @@ class RunToolTests(unittest.TestCase):
         self.assertIn("--config /etc/.prettierrc", selected.detail["cmd"])  # type: ignore[index]
 
     def test_relative_baseline_resolved_against_root(self) -> None:
-        # --baseline config/.prettierrc with root=/repo => --config /repo/config/.prettierrc.
-        import os as _os
-        expected_path = _os.path.join("/repo", "config/.prettierrc")
+        # --baseline config/.prettierrc with root=/repo => --config
+        # /repo/config/.prettierrc. Forward-slash join regardless of host
+        # so Windows CI lands on the same command line as POSIX.
         cmd = (
-            "prettier", "--config", expected_path,
+            "prettier", "--config", "/repo/config/.prettierrc",
             "--check", "--parser", "markdown",
             "**/*.md", "**/*.markdown",
         )

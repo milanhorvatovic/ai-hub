@@ -162,9 +162,21 @@ def run_tool(
         # is still honoured. Relative paths resolve against `root` (the
         # directory the formatter runs in) so the contract matches SKILL.md's
         # claim that the baseline is "passed verbatim to the chosen formatter".
-        config_path = (
-            baseline if os.path.isabs(baseline) else os.path.join(root, baseline)
+        # Forward-slash join (regardless of host) keeps the command line
+        # consistent on Windows where os.path.join would otherwise insert
+        # backslashes that diverge from discovery's POSIX-normalized paths.
+        # Treat both POSIX-leading-slash and Windows-drive-letter as absolute
+        # so a baseline like /etc/.prettierrc passes through on Windows too
+        # (native os.path.isabs would say False there).
+        is_abs = baseline.startswith(("/", "\\")) or (
+            len(baseline) >= 2 and baseline[1] == ":"
         )
+        if is_abs:
+            config_path = baseline
+        else:
+            root_norm = root.replace("\\", "/").rstrip("/")
+            rel_norm = baseline.replace("\\", "/").lstrip("/")
+            config_path = f"{root_norm}/{rel_norm}"
         # config_source stays "repo" — the path came from the repo / caller,
         # not a bundled fallback or tool default.
     # else: baseline matched a different tool's family (or .editorconfig);

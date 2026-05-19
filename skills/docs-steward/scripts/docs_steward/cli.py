@@ -247,18 +247,49 @@ def _files_or_none(args: argparse.Namespace) -> Sequence[str] | None:
     return tuple(files)
 
 
+def _is_absolute(path: str) -> bool:
+    """Cross-platform absolute-path check. Treats both leading-slash form
+    (`/etc/foo`) and Windows drive-letter form (`C:\\foo`, `C:/foo`) as
+    absolute. `os.path.isabs` would say `/etc/foo` is NOT absolute on
+    Windows (no drive), which is fine for native Windows code but
+    inappropriate here — the orchestrator regularly receives POSIX-style
+    paths from git ls-files and from users running under WSL / Git Bash."""
+    if not path:
+        return False
+    if path[0] in ("/", "\\"):
+        return True
+    if len(path) >= 2 and path[1] == ":":
+        # Windows drive-letter form: C:\foo or C:/foo.
+        return True
+    return False
+
+
+def _posix_join(root: str, rel: str) -> str:
+    """Join `rel` against `root` with forward slashes, regardless of host.
+
+    The Python file APIs (open, os.stat) accept either separator on Windows,
+    so the choice is mostly cosmetic for the read step — but discovery
+    already emits POSIX-joined paths and downstream formatters (Prettier,
+    markdownlint, mdformat) accept forward slashes on Windows. Normalizing
+    to one separator keeps NDJSON output and command lines consistent
+    across platforms and avoids `os.path.join("/repo", ".prettierrc")`
+    producing `/repo\\.prettierrc` on Windows CI."""
+    root_norm = root.replace("\\", "/").rstrip("/")
+    rel_norm = rel.replace("\\", "/").lstrip("/")
+    return f"{root_norm}/{rel_norm}"
+
+
 def _resolve_against_root(files: Sequence[str], root: str) -> tuple[str, ...]:
     """Resolve any relative path in `files` against `root` so downstream
     file reads (FileSystem.read_text, audit_frontmatter, emit_plugin_missing)
     resolve to the same file the formatter sees when it runs with cwd=root.
 
     Absolute paths pass through unchanged; relative paths are joined with
-    `root` via os.path.join (native separator on the host — Python file
-    APIs accept either separator on Windows). Idempotent for paths produced
-    by discovery.list_markdown_files (which already returns absolute, POSIX
-    -joined paths)."""
+    `root` via `_posix_join` (forward slash, host-independent). Idempotent
+    for paths produced by discovery.list_markdown_files (which already
+    returns absolute, POSIX-joined paths)."""
     return tuple(
-        path if os.path.isabs(path) else os.path.join(root, path) for path in files
+        path if _is_absolute(path) else _posix_join(root, path) for path in files
     )
 
 
@@ -268,7 +299,7 @@ def _resolve_config_against_root(config: str | None, root: str) -> str | None:
     through so the caller can still signal "use the bundled fallback"."""
     if config is None:
         return None
-    return config if os.path.isabs(config) else os.path.join(root, config)
+    return config if _is_absolute(config) else _posix_join(root, config)
 
 
 _DISPATCH: dict[str, Callable[[argparse.Namespace, ProcessRunner], tuple[list[Event], int]]] = {

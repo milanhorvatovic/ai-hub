@@ -246,17 +246,15 @@ class ResolveAgainstRootTests(unittest.TestCase):
         self.assertEqual(resolved, ("/repo/a.md", "/repo/b.md"))
 
     def test_relative_paths_joined_to_root(self) -> None:
-        import os
+        # Forward-slash join regardless of host (production uses _posix_join
+        # so the command line lands the same way on Linux, macOS, and
+        # Windows CI — os.path.join on Windows would insert backslashes).
         resolved = _resolve_against_root(("docs/a.md", "b.md"), "/repo")
-        self.assertEqual(
-            resolved,
-            (os.path.join("/repo", "docs/a.md"), os.path.join("/repo", "b.md")),
-        )
+        self.assertEqual(resolved, ("/repo/docs/a.md", "/repo/b.md"))
 
     def test_mixed_paths(self) -> None:
-        import os
         resolved = _resolve_against_root(("/abs/a.md", "rel/b.md"), "/repo")
-        self.assertEqual(resolved, ("/abs/a.md", os.path.join("/repo", "rel/b.md")))
+        self.assertEqual(resolved, ("/abs/a.md", "/repo/rel/b.md"))
 
     def test_empty_files_returns_empty_tuple(self) -> None:
         self.assertEqual(_resolve_against_root((), "/repo"), ())
@@ -276,17 +274,15 @@ class ResolveConfigAgainstRootTests(unittest.TestCase):
         )
 
     def test_relative_path_joined_to_root(self) -> None:
-        import os
         self.assertEqual(
             _resolve_config_against_root(".yamllint", "/repo"),
-            os.path.join("/repo", ".yamllint"),
+            "/repo/.yamllint",
         )
 
     def test_relative_path_with_subdir_joined_to_root(self) -> None:
-        import os
         self.assertEqual(
             _resolve_config_against_root("config/.yamllint.yaml", "/repo"),
-            os.path.join("/repo", "config/.yamllint.yaml"),
+            "/repo/config/.yamllint.yaml",
         )
 
 
