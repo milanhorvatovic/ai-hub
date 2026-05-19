@@ -89,8 +89,16 @@ class CliEndToEndTests(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 2)
 
     def test_md_audit_accepts_positional_files(self) -> None:
-        # Per-file targeting (#1) via positional args.
-        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "--", "docs/intro.md")
+        # Per-file targeting (#1) via positional args. _files_or_none
+        # resolves relative paths against the invocation cwd, so the
+        # formatter argv carries the absolute path — patch os.getcwd so
+        # the test runs as if the user was at /repo when they typed
+        # `md-audit.py docs/intro.md`.
+        cmd = (
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown",
+            "--", "/repo/docs/intro.md",
+        )
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
             results={
@@ -98,9 +106,10 @@ class CliEndToEndTests(unittest.TestCase):
                 cmd: ProcessResult(0, "", ""),
             },
         )
-        code, events = self._run(
-            runner, ["md-audit", "--baseline", ".prettierrc", "docs/intro.md"],
-        )
+        with patch("docs_steward.cli.os.getcwd", return_value="/repo"):
+            code, events = self._run(
+                runner, ["md-audit", "--baseline", ".prettierrc", "docs/intro.md"],
+            )
         self.assertEqual(code, 0)
         selected = [e for e in events if e["event"] == "selected"][0]
         self.assertEqual(selected["detail"]["files_scoped"], 1)
@@ -185,9 +194,12 @@ class CliEndToEndTests(unittest.TestCase):
             with open(md_path, "w", encoding="utf-8") as fh:
                 fh.write("| col | col |\n|---|---|\n| a | b |\n")
 
-            # The formatter receives the relative path verbatim (cwd=root)
-            # after the POSIX `--` separator inserted by _scope_command.
-            audit_cmd = ("mdformat", "--check", "--", "table.md")
+            # _files_or_none now resolves relative paths against the
+            # invocation cwd. Patch os.getcwd to the test tmpdir so the
+            # resolved positional arg lands at tmp/table.md (matching
+            # what the user expects when running from inside tmp).
+            expected_md = tmp.replace("\\", "/").rstrip("/") + "/table.md"
+            audit_cmd = ("mdformat", "--check", "--", expected_md)
             runner = FakeProcessRunner(
                 paths={"mdformat": "/x/mdformat", "git": "/x/git"},
                 results={
@@ -195,9 +207,10 @@ class CliEndToEndTests(unittest.TestCase):
                     audit_cmd: ProcessResult(0, "", ""),
                 },
             )
-            code, events = self._run(
-                runner, ["md-audit", "--baseline", "universal-subset", "table.md"],
-            )
+            with patch("docs_steward.cli.os.getcwd", return_value=tmp):
+                code, events = self._run(
+                    runner, ["md-audit", "--baseline", "universal-subset", "table.md"],
+                )
             self.assertEqual(code, 0)
             plugin_missing = [e for e in events if e["event"] == "plugin-missing"]
             self.assertEqual(len(plugin_missing), 1)

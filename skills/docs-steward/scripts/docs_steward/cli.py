@@ -239,12 +239,27 @@ def _dispatch_audit_frontmatter(
 
 
 def _files_or_none(args: argparse.Namespace) -> Sequence[str] | None:
-    """Return the args.files list when non-empty; None means 'use the
-    formatter's default glob over the repo root'."""
+    """Return the args.files list (resolved to absolute paths) when
+    non-empty; None means 'use the formatter's default glob over the
+    repo root'.
+
+    Relative positional file arguments are resolved against the
+    invocation cwd (where the user actually ran the CLI), not against
+    the detected repo root. The downstream pipeline runs the formatter
+    with `cwd=root` — passing relative paths verbatim would target
+    files under the WRONG directory whenever the user wasn't already
+    at root (`cd docs && md-audit.py intro.md` is the canonical
+    surprise). Resolving here makes the rest of the pipeline path-
+    location agnostic.
+    """
     files = getattr(args, "files", None)
     if files is None or len(files) == 0:
         return None
-    return tuple(files)
+    invocation_cwd = os.getcwd()
+    return tuple(
+        path if _is_absolute(path) else _posix_join(invocation_cwd, path)
+        for path in files
+    )
 
 
 def _is_absolute(path: str) -> bool:
