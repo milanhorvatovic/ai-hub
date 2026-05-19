@@ -345,4 +345,4 @@ Each is documented in its own `capabilities/<name>/capability.md`.
 - Capabilities chain naturally but never auto-trigger each other; the user invokes each.
 - The git-side / GitHub-side boundary is visible at every step (capabilities labeled `[git-side]` work without `gh`).
 - Every state-changing command (`commit`, `rebase`, `push`, `gh pr edit`, `gh pr merge`) is proposed and applied by the user, never run automatically.
-- Trailers are absent throughout — no `Co-Authored-By`, no `Signed-off-by`, unless the user asked.
+- Trailers are absent throughout — no `Co-authored-by`, no `Signed-off-by`, unless the user asked.

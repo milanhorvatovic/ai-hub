@@ -17,6 +17,7 @@ Trailers are `Key: value` lines at the END of a commit message or PR body, after
 
 - **Lives in:** commit messages (for attribution in `git log`) AND optionally the PR body (for GitHub's contributor attribution UI under squash-with-`PR_BODY`).
 - **Format:** `Co-authored-by: Name <email>` — email must match a known GitHub user (case-insensitive) for the avatar to render. Use the noreply email format `<user-id>+<username>@users.noreply.github.com` when the contributor uses a private email.
+- **Canonical key casing:** `Co-authored-by:` is the canonical Git trailer key — use that form when *writing* a trailer the user requested. Git treats trailer keys case-insensitively, so when *detecting* trailers, match case-insensitively (`Co-authored-by:`, `Co-Authored-By:`, `co-authored-by:` all count). Some harnesses emit a non-canonical casing — e.g. Claude Code appends `Co-Authored-By: Claude <noreply@anthropic.com>`; documented harness strings elsewhere in this skill keep their literal casing on purpose.
 - **Body relevance:** under squash-with-`PR_BODY`, the body's `Co-authored-by:` trailers attribute commits in the squash. Otherwise, they're harmless cosmetic notes that GitHub mostly ignores in the body — attribution comes from the commit trailers themselves.
 - **Preserve verbatim:** never reformat, deduplicate, or reorder. Each trailer must match a real commit email exactly (case-insensitive email match) for GitHub to render the attribution.
 - **Order doesn't matter** between commits and body for attribution, but conventionally goes at the end.
@@ -69,7 +70,7 @@ When proposing a rewrite of a commit message or PR body, carry every existing tr
 
 ## Hard rule: never auto-add trailers
 
-This is a router-level principle. No capability adds a trailer on its own initiative — not `Co-Authored-By:`, not `Signed-off-by:`, not `Reviewed-by:`, not AI-attribution trailers, not any custom trailer. Trailers are CLAIMS (sign-off = legal attestation; co-authored-by = factual contribution; reviewed-by = social endorsement); adding one programmatically falsifies the claim.
+This is a router-level principle. No capability adds a trailer on its own initiative — not `Co-authored-by:`, not `Signed-off-by:`, not `Reviewed-by:`, not AI-attribution trailers, not any custom trailer. Trailers are CLAIMS (sign-off = legal attestation; co-authored-by = factual contribution; reviewed-by = social endorsement); adding one programmatically falsifies the claim.
 
 This rule applies across every capability:
 
@@ -78,7 +79,7 @@ This rule applies across every capability:
 - `pr-description-write` does not include trailers in the proposed body.
 - `pr-description-sync` does not add trailers when rewriting; it only preserves trailers that were already there.
 - `rebase-cleanup` does not introduce new trailers when squashing — only preserves existing ones byte-for-byte.
-- `release-notes` does not add `Co-Authored-By:` trailers; contributors are credited via PR-author handles in a "Contributors" section.
+- `release-notes` does not add `Co-authored-by:` trailers; contributors are credited via PR-author handles in a "Contributors" section.
 
 The only exception: when the user explicitly asks to add a trailer ("add Signed-off-by", "add Co-authored-by for Alice"), then add it — verbatim, at the end, after a blank line. Even then, do not synthesize the value (don't guess the email; use what the user provides or `git config user.email`).
 

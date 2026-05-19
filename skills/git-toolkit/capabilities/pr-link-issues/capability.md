@@ -152,4 +152,4 @@ Always:
 - Don't auto-edit the PR body — always surface the proposed change and the gh command.
 - Don't strip existing trailers when proposing body additions — append additions before trailers, not after.
 - Don't propose `Closes` on epic / parent issues — those typically close manually when all children land.
-- Don't add `Co-Authored-By:` or other trailers as part of the body update.
+- Don't add `Co-authored-by:` or other trailers as part of the body update.

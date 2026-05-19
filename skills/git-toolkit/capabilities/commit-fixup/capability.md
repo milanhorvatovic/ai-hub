@@ -112,4 +112,4 @@ Pick one:
 - Don't auto-run `git rebase -i --autosquash` — that's a separate user action with its own risks.
 - Don't propose fixups against commits on the default branch (`main`/`master`/`develop`) — shared history.
 - Don't include `git push --force` in the suggested follow-up — the user must opt into force-push explicitly.
-- Don't add `Co-Authored-By:` or any trailer when creating the fixup commit — the fixup inherits the target's trailers automatically on squash.
+- Don't add `Co-authored-by:` or any trailer when creating the fixup commit — the fixup inherits the target's trailers automatically on squash.

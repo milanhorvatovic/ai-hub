@@ -166,4 +166,4 @@ Never post or resolve automatically.
 - Don't draft sycophantic responses ("Great point!" "Awesome feedback!") — match the repo's existing tone.
 - Don't agree to changes without evidence the user agrees — draft alternatives when the response requires a decision.
 - Don't claim a commit fixes a thread without high confidence — when uncertain, propose "addressed in <sha> — please confirm" not "fixed in <sha>".
-- Don't add trailers (`Co-Authored-By:`, etc.) to comment bodies.
+- Don't add trailers (`Co-authored-by:`, etc.) to comment bodies.

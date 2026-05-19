@@ -9,7 +9,7 @@ description: >
   lifecycle to capabilities covering branch naming, commit authoring, history
   cleanup, PR description authoring and sync, issue linking, CI failure
   triage, conversation resolution, merge readiness and execution, and release
-  notes. Never auto-publishes and never auto-adds trailers (Co-Authored-By,
+  notes. Never auto-publishes and never auto-adds trailers (Co-authored-by,
   Signed-off-by, etc.). Activates when the user asks to write, validate, review, fix, sync,
   refresh, clean up, or draft anything in the commit / PR / release /
   branch-name workflow; when commits feel inconsistent; or before requesting
@@ -50,7 +50,7 @@ Shared references at this skill's root hold the canonical format spec, trailer r
 - **Format ≠ content accuracy.** `commit-message` and `pr-description-write` enforce format. `pr-description-sync` enforces content accuracy (claims match diff). Both can fire on the same PR; they are complementary.
 - **Repo conventions override defaults.** Every capability checks `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `.commitlintrc*`, the PR template — if present, those rules supersede the generic spec. Precedence: agent-instruction file > `CONTRIBUTING.md` > commit-lint config > generic defaults.
 - **Never auto-publish.** Commit-message rewrites, PR description edits, branch creates, rebases, release publishes — all require user confirmation. Show the proposal and the exact apply command; let the user run it.
-- **Never auto-add trailers.** `Co-Authored-By:`, `Signed-off-by:`, `Reviewed-by:`, and any other attribution trailer is added only when the user explicitly requests it. The skill never adds trailers programmatically — including to commit messages, PR bodies, release notes, or rebase-cleanup rewrites. See `references/trailer-semantics.md`. Trailers are CLAIMS (legal attestations, factual contributions, social endorsements); adding one without user consent falsifies the claim.
+- **Never auto-add trailers.** `Co-authored-by:`, `Signed-off-by:`, `Reviewed-by:`, and any other attribution trailer is added only when the user explicitly requests it. The skill never adds trailers programmatically — including to commit messages, PR bodies, release notes, or rebase-cleanup rewrites. See `references/trailer-semantics.md`. Trailers are CLAIMS (legal attestations, factual contributions, social endorsements); adding one without user consent falsifies the claim.
 - **Pre-publication secret scan.** Any text that will become a commit, PR body, or release note runs through `references/secret-patterns.md` first.
 - **Bot exemption.** Bot-authored commits and PRs are skipped at capability input guards — their format is fixed by the bot and will be overwritten on the next run. The catalog of bot author patterns (Dependabot, Renovate, GitHub Actions, Copilot, Snyk, pre-commit.ci, and more) lives in `references/bot-signatures.md` so capabilities reference one source instead of duplicating patterns inline.
 
@@ -195,7 +195,7 @@ Each capability runs independently; this flow is a recommendation, not a hard se
 - Don't enforce format on bot-authored commits or PRs — capabilities skip them at their input guards.
 - Don't auto-amend pushed-and-reviewed commits — propose, let the user decide whether the cost of rewriting history is worth the format fix.
 - Don't reformat trailers — see `references/trailer-semantics.md` for why reformatting breaks DCO and attribution.
-- **Don't add `Co-Authored-By:`, `Signed-off-by:`, or any other trailer to commit messages, PR bodies, release notes, or rebased commit messages unless the user explicitly asks.** This is a hard rule across every capability — no exceptions for "helpful defaults."
+- **Don't add `Co-authored-by:`, `Signed-off-by:`, or any other trailer to commit messages, PR bodies, release notes, or rebased commit messages unless the user explicitly asks.** This is a hard rule across every capability — no exceptions for "helpful defaults."
 - Don't propose a commit-message rewrite when the only issue is body wrap and the user / repo configures `git log` for soft-wrap.
 - Don't conflate format with content. A perfectly-formatted commit message can still be wrong about what changed; a poorly-formatted one can still be accurate. The two capabilities exist precisely because format and accuracy are different concerns.
 - Don't auto-create branches, auto-rebase, or auto-publish releases. Every state-changing git/gh command is surfaced for the user to run.

@@ -4,7 +4,7 @@ description: >
   Drafts release notes for a new version by aggregating commits and merged
   pull requests since the previous tag. Groups changes by conventional-commits
   type (feat / fix / refactor / docs / etc.), links closed issues, and credits
-  contributors via PR author handles — never adds Co-Authored-By trailers
+  contributors via PR author handles — never adds Co-authored-by trailers
   automatically. Outputs markdown ready for GitHub Releases and the gh
   command. Triggers on "draft release notes", "what's in v1.4", "prepare
   the changelog", "generate release notes since the last tag".
@@ -116,7 +116,7 @@ Format rules:
 - Per-bullet: lead with `**<scope>**` (bold) if conventional-commits scope present, then the verb/object, then PR link + author credit.
 - Linked issues from commit and PR body → `Closes #N` per `../../references/issue-references.md` rules. Only include `Closes` keywords if the diff actually closes the issue.
 - Skip commits whose subjects look generated (`Merge ...`, `Revert "..."` without context, bot-authored commits per `../../references/git-gh-quirks.md`).
-- Authors credited via `@<github-handle>` from PR author in the "Contributors" section. **NEVER add `Co-Authored-By:` trailers to the release notes** — the contributor list provides credit.
+- Authors credited via `@<github-handle>` from PR author in the "Contributors" section. **NEVER add `Co-authored-by:` trailers to the release notes** — the contributor list provides credit.
 - Match repo emoji convention by checking prior release notes; default to no emoji headings unless they're already established.
 
 ### 5. Secret scan
@@ -161,7 +161,7 @@ Write notes to `mktemp` AND show inline. Never run `gh release create` automatic
 ## Anti-patterns
 
 - Don't auto-publish the release. Always require the user to run `gh release create`.
-- **Don't add `Co-Authored-By:` trailers** — credit contributors via PR author handles in the "Contributors" section. This is a hard rule.
+- **Don't add `Co-authored-by:` trailers** — credit contributors via PR author handles in the "Contributors" section. This is a hard rule.
 - Don't fabricate breaking-change migration notes if the commit body doesn't describe them. Write `Migration: see PR #N for details` instead.
 - Don't include WIP / fixup! / squash! commits in the notes — they should have been cleaned up before merge (see `rebase-cleanup` capability).
 - Don't promise behavior the diff doesn't deliver. Pull bullets from commit subjects + PR titles, not from imagination.

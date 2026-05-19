@@ -122,7 +122,7 @@ Short, well-scoped commits often don't need a body at all — subject is enough.
 | Restating the subject as the first body line | The reader just read it; this is duplication |
 | Listing files changed | `git show --stat` does this; the body is for intent |
 | Marketing language ("awesome", "excited", "amazing") | Subjective + unhelpful + dates fast |
-| Auto-added attribution trailers (`Co-Authored-By:` etc. without user request) | See `trailer-semantics.md` — trailers are CLAIMS |
+| Auto-added attribution trailers (`Co-authored-by:` etc. without user request) | See `trailer-semantics.md` — trailers are CLAIMS |
 | Apology language ("sorry for the late fix", "this should have been cleaner") | History is not a changelog of feelings |
 | Personal nicknames or in-group jargon | `git log` outlives the author's tenure |
 

@@ -114,7 +114,7 @@ Subject uses a path prefix or a filename to scope the change.
 
 ### `auto-trailer` — body ends with an attribution trailer the user didn't request
 
-**Pattern**: body ends with `^(Co-Authored-By|Signed-off-by|Reviewed-by|Generated-by|Authored-by):\s` (case-insensitive) when no user instruction asked for it.
+**Pattern**: body ends with `^(Co-authored-by|Signed-off-by|Reviewed-by|Generated-by|Authored-by):\s` (case-insensitive) when no user instruction asked for it.
 
 **Fix**: per `trailer-semantics.md` Hard rule, drop unless the user explicitly asked. Trailers are CLAIMS; an automated tool adding one falsifies the claim.
 
@@ -156,7 +156,7 @@ Subject uses a path prefix or a filename to scope the change.
 
 **Fix**: strip greeting; replace with structured Summary section per `format-pr.md`.
 
-### `embedded-trailer` — `Co-Authored-By:` line inside the PR body
+### `embedded-trailer` — `Co-authored-by:` line inside the PR body
 
 **Pattern**: PR body contains a trailer-format line (`^[A-Z][a-zA-Z-]+:\s`) not at the very end of a structured section.
 

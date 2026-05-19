@@ -173,6 +173,6 @@ For multiple branches, one push per branch in dependent order (root first).
 - Don't run filter-branch / filter-repo across multiple branches in a single invocation. Per-branch sequencing produces identical output without harness classifier risk (see `../../references/harness-safety-nets.md`).
 - Don't combine a body reflow with any tree-content change in the same pass. Each is hard enough to verify alone.
 - Don't reflow trailers. Ever.
-- Don't add a `Co-Authored-By:` (or any other) trailer during reflow. The transformation preserves the existing message, nothing more (see router-level rule in `../../SKILL.md`).
+- Don't add a `Co-authored-by:` (or any other) trailer during reflow. The transformation preserves the existing message, nothing more (see router-level rule in `../../SKILL.md`).
 - Don't auto-execute `git push --force-with-lease`. Surface the recipe; the user runs it.
 - Don't run without pre-reflow tag backups. Recovery depends on them.

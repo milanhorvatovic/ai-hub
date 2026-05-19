@@ -134,7 +134,7 @@ The skill will not run force-push; user must opt in explicitly.
 - Don't run `git rebase -i` automatically — propose the plan; let the user run it.
 - Don't suggest squashing commits that are individually reviewable or individually revertable. Multiple small commits is sometimes the right structure (especially for bisecting).
 - Don't reword without proposing the new subject per `../../references/format-subject.md` — leaving the user to fill in is a non-answer.
-- **Don't add `Co-Authored-By:` or any other trailers when squashing.** Only preserve trailers that were already present in the original commits, byte-for-byte.
+- **Don't add `Co-authored-by:` or any other trailers when squashing.** Only preserve trailers that were already present in the original commits, byte-for-byte.
 - Don't include `git push --force` or `--force-with-lease` in any suggested command — the user must opt into the force-push risk.
 - Don't propose changes to merge commits unless the user explicitly asks.
 - Don't propose rebasing a branch whose base is itself a feature branch (stacked PR) without warning that rebasing rewrites the SHAs the stacked branch depends on. When dependents exist, emit a **Stacked Dependents** block before any plan: list each dependent branch and the rebase command needed to cascade the fix (`git checkout <dep> && git rebase <this-branch>`), in topological order. See `../../references/mass-rewrite.md` for the full cascade procedure when more than one level is involved.
