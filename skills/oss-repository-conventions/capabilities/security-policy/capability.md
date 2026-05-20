@@ -54,7 +54,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `default-branch-protected` — **should** · scorecard: Branch-Protection. Fail when the default branch allows direct pushes/force-push or requires no review/checks. Unprotected main lets unreviewed or rewritten history land.
 - `secret-scanning` — **should**. Pass when secret scanning / push protection is on, or a gitleaks-style check runs in CI. Catches credentials before they merge.
 - `signed-tags` — **could** (→ **should** when the repo publishes releases) · scorecard: Signed-Releases. Pass when release tags are signed. Lets consumers verify provenance.
-- `build-provenance` — **could** (→ **should** for published packages) · scorecard: Signed-Releases. Pass when releases carry SLSA/attestation provenance. Tamper-evidence for the artifact supply chain.
+- `build-provenance` — **could** (→ **should** for published packages) · scorecard: Signed-Releases. Grade by **SLSA build level**: L0 none → L1 provenance exists (e.g. `actions/attest-build-provenance` / a SLSA generator) → L2 provenance signed by a hosted build service → L3 hardened, non-falsifiable build. Pass the `could` bar at L1+; aim L2+ for distributed artifacts. Tamper-evidence for the artifact supply chain. Report the level, not just present/absent.
 
 ## Scaffold
 

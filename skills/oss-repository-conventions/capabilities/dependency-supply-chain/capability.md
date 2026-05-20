@@ -57,7 +57,10 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `vulnerabilities-monitored` — **should** · scorecard: Vulnerabilities. Fail when Dependabot alerts / dependency scanning are off. Known-vulnerable deps go unnoticed.
 - `lockfile-committed` — **should** (apps; nuanced for libraries). Fail when an application has no committed lockfile. Without it, installs and CI aren't reproducible.
 - `deps-pinned` — **could**. Pass when dependencies are constrained (no `*` / `latest`). Wildcards make builds non-deterministic and widen the attack surface.
+- `deps-hash-pinned` — **could** (→ **should** for apps that ship a lockfile). Pass when dependencies are pinned by **hash**, not only version (pip `--require-hashes`, a committed lockfile with integrity hashes, `npm ci` against `package-lock.json`). Hash-pinning blocks a tampered-but-same-version package — the S2C2F consumption baseline (see below).
 - `sbom-published` — **could** (→ **should** for distributed artifacts). Pass when an SBOM is generated/attached to releases. Lets consumers audit the supply chain.
+
+Consumption maturity is framed by the **S2C2F** (Secure Supply Chain Consumption Framework): ingest dependencies through a controlled source, pin by hash, scan for vulnerabilities and malware, and be able to rebuild from a known-good cache. The checks above (`updates-automated`, `vulnerabilities-monitored`, `lockfile-committed`, `deps-hash-pinned`) are its baseline practices; deeper S2C2F levels (private mirror/proxy, provenance verification on ingest) are `could` and noted, not scaffolded.
 
 ## Scaffold
 
