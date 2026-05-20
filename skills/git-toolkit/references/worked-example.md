@@ -306,7 +306,7 @@ Apply with:
 
 Optional `--auto` flag if you want to set merge-on-green for a still-pending check.
 
-## Step 15 — `release-notes` (GitHub-side, when cutting a release)
+## Step 15 — `release-notes` (git-side, optional gh enrichment, when cutting a release)
 
 After a few PRs have landed, you tag a release. Trigger: "draft release notes for v2.4.0".
 
@@ -318,7 +318,7 @@ Commits: 14 (after squash-merges)
 - (none)
 
 ## Fixes
-- fix(upload): retry transient failures up to 3 times with backoff (#729, @milanh)
+- fix(upload): retry transient failures up to 2 times with backoff (#729, @milanh)
 - fix(api): return 422 not 500 for malformed JSON bodies (#734, @alice)
 
 ## Docs
