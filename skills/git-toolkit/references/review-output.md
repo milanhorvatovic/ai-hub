@@ -57,11 +57,15 @@ A worked example stream lives at `review-output.example.ndjson` — 15 findings 
 
 ## Verdict line
 
-At the end of the report (both human and NDJSON), emit a single-line verdict:
+At the end of the report, emit a single verdict.
+
+**Human output** — one of these plain-text lines:
 
 - `COMPLIANT` — all rules `PASS` or `N/A`.
 - `COMPLIANT with N minor fix(es) recommended` — only `MOSTLY-PASS` findings, no `FAIL`.
 - `NOT COMPLIANT (N FAIL, M MOSTLY-PASS)` — at least one `FAIL`.
+
+**NDJSON output** — emit the verdict as a final JSON object with `rule: "verdict"`, never as a bare text line (a plain line would break the one-JSON-object-per-line contract). It carries the aggregate counts and `result` (`PASS` when compliant, `FAIL` when not), e.g. `{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..feature", "count_checked": 16, "count_failed": 5, "details": {"excerpt": "5 FAIL, 2 MOSTLY-PASS, 9 PASS"}}` — see `review-output.example.ndjson`.
 
 The verdict is what most readers will skim first; everything else is supporting detail.
 
