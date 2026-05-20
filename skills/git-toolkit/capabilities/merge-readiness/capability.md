@@ -44,7 +44,7 @@ statusCheckRollup,additions,deletions,changedFiles,isCrossRepository
 |---|---|---|
 | **Not draft** | `isDraft == false` | Fail if draft; suggest `gh pr ready <num>` |
 | **State** | `state == OPEN` | Fail otherwise |
-| **CI checks** | All required checks in `statusCheckRollup` have `conclusion == SUCCESS`. Skipped is OK; pending → Warn; failure → Fail | List failing checks by name |
+| **CI checks** | All required checks in `statusCheckRollup` pass: `conclusion ∈ {SUCCESS, NEUTRAL}` (NEUTRAL = pass-with-caveats, consistent with `pr-checks-summary`). `SKIPPED` is OK; pending → Warn; failure → Fail. Treat a check as required when `isRequired` is true (GraphQL) or it appears in the base branch protection's required-checks list; optional-check failures → Warn, not Fail | List failing checks by name |
 | **Mergeable** | `mergeable == MERGEABLE` AND `mergeStateStatus ∈ {CLEAN, HAS_HOOKS, UNSTABLE}` | Fail on `CONFLICTING`, `DIRTY`, `BLOCKED`, `BEHIND` |
 | **Approvals** | `reviewDecision == APPROVED` | Fail on `REVIEW_REQUIRED` or `CHANGES_REQUESTED` |
 | **No unresolved threads** | GraphQL `pullRequest.reviewThreads { isResolved }` (REST `pulls/{n}/comments` doesn't expose resolution state) — see `../pr-conversation-resolve/capability.md` step 1 for the canonical query | Warn (not fail) — some teams allow merge with open threads |
