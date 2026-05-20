@@ -30,6 +30,14 @@ Governs the repository's plumbing: the git hygiene files that keep the working t
 - Style _enforcement_ (linters/formatters) is the code-style capability; here, cover only `.editorconfig` presence as hygiene.
 - Settings need `gh`; without it, mark settings checks `unknown — gh not available`.
 
+## Languages
+
+Detect per `../../references/language-support.md`. `.gitignore` scaffolding is bound to GitHub's gitignore template set:
+
+- **First-class:** any name in `gh api /gitignore/templates` (Python, Node, Go, Rust, Swift, Objective-C, Ruby, Java, …) — fetched and merged.
+- **Recognized:** stacks without a template — hand-assemble ignores from detected build / output / dependency directories.
+- **Unknown:** ignore only the obvious local / secret paths; never fabricate stack-specific ignores.
+
 ## Scan
 
 Sources (catalog: `../../references/convention-files.md`, Misc section), citing each:

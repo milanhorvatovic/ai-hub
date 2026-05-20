@@ -30,6 +30,14 @@ Governs how the project ships versions: is versioning predictable, is there a ch
 - Cryptographic signing of tags/releases is scored by the security-policy capability; here, note signing as part of the process and defer the security check.
 - Don't create tags or publish releases — propose the commands.
 
+## Languages
+
+Detect per `../../references/language-support.md`. Bound by release-please's `release-type` set:
+
+- **First-class (release-please):** `node`, `python`, `rust`, `go`, `java`, `ruby`, `php`, `dart`, `elixir`, `helm`, `terraform-module`.
+- **Recognized:** stacks without a dedicated type — use the `simple` release-type (tag + changelog, no manifest bump). Swift has no release-please type, so it falls here.
+- **Unknown:** SemVer tags + Keep-a-Changelog by hand; never invent a `release-type`.
+
 ## Scan
 
 Sources (catalog: `../../references/convention-files.md`, Releases section), citing each:

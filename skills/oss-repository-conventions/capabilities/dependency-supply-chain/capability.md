@@ -29,6 +29,14 @@ Governs the trustworthiness of what the project depends on: are updates automate
 - Detect package ecosystems first (npm, pip/uv, cargo, go, bundler, …) so config targets the right manifests.
 - Don't run dependency updates or installs — propose config and commands.
 
+## Languages
+
+Detect per `../../references/language-support.md`. Bound by Dependabot's `package-ecosystem` set:
+
+- **First-class (Dependabot):** `npm`, `pip`, `uv`, `cargo`, `gomod`, `bundler`, `composer`, `gradle`, `maven`, `nuget`, `mix`, `pub`, `swift`, `docker`, `github-actions`, `terraform`, `gitsubmodule`.
+- **Recognized:** ecosystems Dependabot lacks but Renovate covers — propose Renovate instead.
+- **Unknown:** no update-bot config; flag dependencies as manually maintained. Never invent a `package-ecosystem` value.
+
 ## Scan
 
 Sources (catalog: `../../references/convention-files.md`, CI/CD + Security sections), citing each:

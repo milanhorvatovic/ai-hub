@@ -55,6 +55,14 @@ The skill provides the toolkit and wiring; the project owns its domain content.
 - Detect the stack first so the building blocks fit (Node, Python, …).
 - Workflow hardening (least-privilege `permissions:`, SHA-pinning, OIDC) is the ci-automation capability — scaffold the baseline here, harden there.
 
+## Languages
+
+Detect per `../../references/language-support.md`. The composable building blocks (setup action, thin caller, CodeQL) are language-agnostic; per-language specifics are delegated:
+
+- The `setup` action installs the **detected toolchain** (via mise or a language setup action) — see the dev-setup capability.
+- The `static` / `test` jobs run the project's commands — see code-style and testing-quality for the per-language tool sets.
+- CodeQL covers its supported languages (C/C++, C#, Go, Java/Kotlin, JS/TS, Python, Ruby, Swift); for others, skip code scanning rather than fabricate it.
+
 ## Scan
 
 Report presence across the four pillars, citing sources (catalog: `../../references/convention-files.md`):

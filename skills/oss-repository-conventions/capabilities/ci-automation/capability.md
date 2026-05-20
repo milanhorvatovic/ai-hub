@@ -32,6 +32,14 @@ Governs the repository's automation layer: do workflows build and test changes, 
 - Dependency bots (Dependabot/Renovate) and lockfile/SBOM concerns are the dependency-supply-chain capability; here, cover workflow files and action pinning.
 - Scaffolding a workflow that _runs_ tests relies on the test config from the testing-quality capability — reference it, don't redefine the suite.
 
+## Languages
+
+Detect per `../../references/language-support.md`. The workflow shell is language-agnostic; per-language support comes from setup actions:
+
+- **First-class:** languages with a maintained setup action — `actions/setup-node`, `actions/setup-python`, `actions/setup-go`, `actions-rust-lang/setup-rust-toolchain`, `swift-actions/setup-swift`, `ruby/setup-ruby`.
+- **Recognized:** other stacks — use a generic toolchain step (mise / container) in the job.
+- **Unknown:** scaffold the job skeleton with a placeholder toolchain step; never invent a setup action.
+
 ## Scan
 
 Sources (catalog: `../../references/convention-files.md`, CI/CD section), citing each:

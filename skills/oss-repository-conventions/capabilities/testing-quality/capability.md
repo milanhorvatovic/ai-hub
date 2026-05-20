@@ -27,6 +27,14 @@ Governs whether the project is verifiable: are there tests, do they run automati
 - Toolkit boundary: scaffold the runner/coverage wiring and the test layout; never write the project's tests. The composable `test`/`coverage` CI blocks come from the automation-baseline capability; hardening lives in ci-automation.
 - Don't run the test suite as part of audit unless asked — scanning configs is enough to judge setup.
 
+## Languages
+
+Detect per `../../references/language-support.md`. Test-framework support:
+
+- **First-class:** Python (pytest), JS/TS (vitest / jest), Go (`go test`), Rust (`cargo test`), Swift (XCTest / swift-testing), Ruby (rspec).
+- **Recognized:** Java / Kotlin (JUnit), PHP (phpunit) — name the framework, don't scaffold its config.
+- **Unknown:** detect a test directory if present and give generic coverage / CI-gating guidance; never invent a test runner.
+
 ## Scan
 
 Sources (catalog: `../../references/convention-files.md`, Tests section), citing each:

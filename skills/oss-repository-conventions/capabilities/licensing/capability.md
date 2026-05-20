@@ -29,6 +29,14 @@ Governs the legal clarity of the repository: is there a license, is it machine-i
 - User asks to scaffold but a `LICENSE` already exists → show the existing one and require explicit confirmation to replace; never overwrite silently.
 - User asks "which license should I use" without choosing → present options (see Scaffold) and ask; do not pick a license for them unilaterally.
 
+## Languages
+
+Detect per `../../references/language-support.md`. The `LICENSE` file and SPDX metadata are language-agnostic; only per-file SPDX _headers_ are language-bound:
+
+- **First-class (header comment syntax):** `//` for C / C++ / Go / Rust / Java / TS / JS / Swift; `#` for Python / Ruby / Shell / YAML; `<!-- -->` for HTML / XML / Markdown.
+- **Recognized:** other comment styles — add the header in the language's comment syntax when known.
+- **Unknown:** skip per-file headers (the root `LICENSE` still applies); never guess a comment syntax.
+
 ## Scan
 
 Check, in order, citing each source (catalog: `../../references/convention-files.md`, License section):

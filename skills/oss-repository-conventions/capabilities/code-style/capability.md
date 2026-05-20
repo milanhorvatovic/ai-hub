@@ -29,6 +29,14 @@ Governs how code style is configured and enforced — not how individual code is
 - This capability covers style _configuration and enforcement_, not the act of writing code or applying principles to a change.
 - Don't run formatters/linters that would modify the tree — propose the command.
 
+## Languages
+
+Detect per `../../references/language-support.md`. Formatter/linter support:
+
+- **First-class:** Python (ruff / black), JS/TS (prettier, eslint or biome), Go (gofmt / golangci-lint), Rust (rustfmt / clippy), Swift (swift-format / swiftlint), Objective-C / C / C++ (clang-format), Ruby (rubocop).
+- **Recognized:** Java / Kotlin (spotless / ktlint), PHP (php-cs-fixer) — name the tool, don't scaffold its config.
+- **Unknown:** recommend only `.editorconfig` (whitespace/charset baseline) and pre-commit hygiene hooks; never invent a language-specific formatter.
+
 ## Scan
 
 Sources (catalog: `../../references/convention-files.md`, Code style section), citing each:

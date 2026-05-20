@@ -29,6 +29,14 @@ Governs how reliably a contributor can go from `git clone` to a running, testabl
 - House style pins toolchains with `mise` — prefer it when the repo is silent, but honor an existing `.tool-versions` / `.nvmrc` rather than churning.
 - Running the actual setup is the user's call — propose the command; don't execute installs.
 
+## Languages
+
+Detect per `../../references/language-support.md`. Toolchain-pinning support:
+
+- **First-class:** anything `mise` / `asdf` pins (Python, Node / JS-TS, Go, Rust, Ruby, …) plus per-language version files (`.python-version`, `.nvmrc` / `.node-version`, `rust-toolchain.toml`, `.ruby-version`); Swift via Xcode / `.swift-version`.
+- **Recognized:** ecosystems without a mise plugin — document the manual install and version source.
+- **Unknown:** document a manual, reproducible setup path; never invent a version manager for the stack.
+
 ## Scan
 
 Sources (catalog: `../../references/convention-files.md`), citing each:
