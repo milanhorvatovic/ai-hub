@@ -55,10 +55,10 @@ def _parse_frontmatter(md_path: Path) -> dict[str, str]:
             current_lines.append(raw.strip())
             continue
         if raw.startswith("  "):
-            # Indented line that is not a folded/literal continuation — i.e. a
+            # Indented line that is not a folded-scalar continuation — i.e. a
             # nested mapping child like `metadata:` -> `version:`. Skipped on
-            # purpose: this parser supports only flat keys plus `>`/`|` scalars
-            # (see docstring), so nested keys are dropped, not mis-parsed.
+            # purpose: this parser supports only flat keys plus the `>` folded
+            # scalar (see docstring), so nested keys are dropped, not mis-parsed.
             continue
         if current_key is not None:
             result[current_key] = (
@@ -72,7 +72,7 @@ def _parse_frontmatter(md_path: Path) -> dict[str, str]:
         if not m:
             continue
         key, value = m.group(1), m.group(2).strip()
-        if value in {">", "|"}:
+        if value == ">":
             current_key = key
             current_lines = []
             result[key] = ""
