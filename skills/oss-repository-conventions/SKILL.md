@@ -18,7 +18,7 @@ description: >
   /oss-repository-conventions.
 allowed-tools: Bash Read Grep Glob Write Edit
 metadata:
-  version: "0.5.0"
+  version: "0.6.0"
 ---
 
 # oss-repository-conventions
@@ -64,6 +64,7 @@ Shared references at the skill root hold the scan catalog, the audit rubric, the
 - **Cite the file of truth.** Every scan/audit line names the file (and line, where useful) it was read from, or marks a finding `(inferred from git history)` / `(not declared)`. Silence in a config is not proof a convention is unused — it may be tribal knowledge.
 - **Never auto-publish repo settings.** Branch protection, default branch, repo topics, and other settings reachable via `gh api` are _proposed_ as commands, never applied automatically.
 - **Composable, baseline-first automation.** Automation is scaffolded as small reusable building blocks (composite actions, reusable workflows, thin callers), never one monolithic job. Each automation pillar offers a _bare-minimum baseline_ first, with a clear provide/own boundary — the skill supplies the toolkit and wiring; the project owns its domain content (most acutely, its own tests). The `automation-baseline` capability is the cross-pillar entry point.
+- **Detect languages first; degrade gracefully; never fabricate.** The language-dependent capabilities (code-style, testing-quality, dev-setup, dependency-supply-chain, ci-automation, release-versioning, licensing headers, repo-infrastructure, automation-baseline) detect the repo's language(s) per `references/language-support.md`, recommend concrete tooling only for the languages each one supports, and degrade to language-agnostic guidance otherwise — never inventing a formatter / linter / test-runner / package-manager for a stack they don't know. Support is tool-bound, so each capability declares its own supported set in a `## Languages` section.
 
 ## Capability routing
 
@@ -139,6 +140,7 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | `references/oss-health-rubric.md` | The audit rubric — per-domain checks, severity, and how the health score is computed |
 | `references/house-style.md` | The maintainer's distilled conventions and recurring gaps, used to bias audit recommendations |
 | `references/output-format.md` | Canonical markdown report shape for scan and audit output, with a per-finding NDJSON line |
+| `references/language-support.md` | Shared language detection method + degrade principle for the language-dependent capabilities (each declares its own tool-bound supported set) |
 
 ## Full-repo audit
 
