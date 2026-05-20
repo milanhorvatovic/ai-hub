@@ -72,9 +72,13 @@ def test_capability_links_resolve(
 def test_skill_md_reference_links_resolve(
     skill_md: Path, references_dir: Path
 ) -> None:
-    """Every `references/<name>.md` linked from SKILL.md must exist."""
+    """Every `references/<name>` link in SKILL.md must exist — including
+    non-`.md` artifacts like the JSON Schema and the NDJSON example fixture,
+    so a renamed schema/example doesn't silently break the router's list."""
     text = skill_md.read_text(encoding="utf-8")
-    referenced = re.findall(r"references/([A-Za-z0-9_./-]+\.md)", text)
+    referenced = re.findall(
+        r"references/([A-Za-z0-9_./-]+\.(?:md|json|ndjson))", text
+    )
     missing = [r for r in referenced if not (references_dir / r).is_file()]
     assert not missing, f"SKILL.md references missing files: {missing}"
 
