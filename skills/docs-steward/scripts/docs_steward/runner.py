@@ -57,9 +57,12 @@ _PREAMBLE_PATTERNS: tuple[re.Pattern[str], ...] = (
     # markdownlint-cli2's startup banner carries a trailing engine version in
     # parens (`markdownlint-cli2 v0.22.1 (markdownlint v0.40.0)`), so the
     # generic version-banner pattern above (anchored `\s*$` after the version)
-    # doesn't catch it. Match it explicitly — specific enough not to swallow a
-    # finding line, which always begins with a `path:line` locator.
-    re.compile(r"^markdownlint-cli2 v[\d.]+\s+\(markdownlint v"),
+    # doesn't catch it. Match the *full* banner — version, parenthetical engine
+    # version, and end-of-line — so a finding line whose path merely begins with
+    # the banner shape (e.g. a file named `markdownlint-cli2 v0.22.1 (markdownlint
+    # v0.40.0).md`, which continues `:line MD### ...`) is never swallowed: the
+    # trailing `\)\s*$` anchor can't match a `path:line` locator.
+    re.compile(r"^markdownlint-cli2 v[\d.]+\s+\(markdownlint v[\d.]+\)\s*$"),
     re.compile(r"^Finding:\s"),                       # markdownlint-cli2 banner
     re.compile(r"^Linting:\s"),                       # markdownlint-cli2 banner
     re.compile(r"^Summary:\s\d+\serror"),             # markdownlint-cli2 summary

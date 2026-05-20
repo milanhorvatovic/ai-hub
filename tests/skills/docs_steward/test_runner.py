@@ -648,6 +648,31 @@ class QuietFlagTests(unittest.TestCase):
         self.assertFalse(any(f == "prettier 3.2.5" for f in findings))
         self.assertFalse(any(f == "mdformat 0.7.17" for f in findings))
 
+    def test_quiet_does_not_drop_finding_with_cli2_banner_path_prefix(self) -> None:
+        # Regression: the cli2-banner pattern used to anchor only the
+        # `markdownlint-cli2 v… (markdownlint v` prefix, so a finding whose
+        # path literally begins with the banner shape (a markdown file named
+        # `markdownlint-cli2 v0.22.1 (markdownlint v0.40.0).md`) was wrongly
+        # swallowed. Anchoring the full banner to `\)\s*$` means a `path:line`
+        # locator — which continues past the paren — can no longer match.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        output = (
+            "markdownlint-cli2 v0.22.1 (markdownlint v0.40.0)\n"
+            "markdownlint-cli2 v0.22.1 (markdownlint v0.40.0).md:1 MD040 fenced-code-language\n"
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(1, output, "")},
+        )
+        events, _ = run_tool(
+            Mode.AUDIT, ".prettierrc", False, runner, ROOT, quiet=True,
+        )
+        findings = [e.detail for e in events if e.event == EventType.FINDING]
+        # The bare banner is dropped; the finding whose path starts with the
+        # banner shape survives.
+        self.assertEqual(len(findings), 1)
+        self.assertIn("MD040", findings[0])
+
 
 # ============================================================
 # --dry-run for md-format (#8)
