@@ -101,7 +101,9 @@ Load mantras/principles references when you need nuance; the one-line summaries 
 | `architecture.md` | is being structured / restructured above the module level |
 | `configuration.md` | reads config, env vars, secrets, or feature flags |
 | `testing.md` | needs a testing-strategy decision (what to test, which doubles, why flaky) |
-| `refactoring.md` | is restructuring / cleaning up / modernizing existing code | Load a language capability only when the task touches that language's files.
+| `refactoring.md` | is restructuring / cleaning up / modernizing existing code |
+
+Load a language capability only when the task touches that language's files.
 
 ## When to trigger
 
