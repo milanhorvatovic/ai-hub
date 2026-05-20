@@ -1,15 +1,16 @@
 """Cross-reference tests for the oss-repository-conventions skill.
 
-oss-repository-conventions is a single-file skill: SKILL.md plus one reference catalog,
-`references/convention-files.md`. SKILL.md links to the catalog via a
-`references/<name>.md` path; these tests catch that link breaking at change
-time.
+The skill is a router (SKILL.md) plus per-domain capabilities and shared
+references. SKILL.md links to `references/<name>.md` and
+`capabilities/<name>/capability.md`; each capability links back to shared
+references via `../../references/<name>.md`. These tests catch any of those
+links breaking at change time.
 
-The catalog itself lists hundreds of *external* repo file paths in backticks
-(`CLAUDE.md`, `.github/workflows/*.yml`, `pyproject.toml`, …). Those are data,
-not skill-internal links — so the internal-link collector here matches only
+The scan catalog (`references/convention-files.md`) lists hundreds of *external*
+repo file paths in backticks (`CLAUDE.md`, `.github/workflows/*.yml`, …). Those
+are data, not skill-internal links — so the internal-link collector matches only
 `../`-traversal and `references/` / `capabilities/`-prefixed pointers, never a
-bare or repo-relative catalog entry like `.github/copilot-instructions.md`.
+bare or repo-relative catalog entry.
 """
 
 from __future__ import annotations
@@ -46,9 +47,21 @@ def test_skill_md_reference_links_resolve(
     assert not missing, f"SKILL.md references missing files: {missing}"
 
 
+def test_skill_md_capability_links_resolve(
+    skill_md: Path, capabilities_dir: Path
+) -> None:
+    """Every `capabilities/<name>/<file>.md` linked from SKILL.md must exist."""
+    text = skill_md.read_text(encoding="utf-8")
+    referenced = re.findall(r"capabilities/([A-Za-z0-9_./-]+\.md)", text)
+    assert referenced, "SKILL.md routes to no capabilities"
+    missing = [r for r in referenced if not (capabilities_dir / r).is_file()]
+    assert not missing, f"SKILL.md routes to missing capabilities: {missing}"
+
+
 def test_internal_links_resolve_and_stay_in_tree(skill_root: Path) -> None:
     """Every skill-internal relative link across the skill tree resolves to a
-    file inside the tree — no `../` chain escapes the skill directory."""
+    file inside the tree — no `../` chain escapes the skill directory. Covers
+    SKILL.md and every capability.md (which link to `../../references/...`)."""
     skill_root_resolved = skill_root.resolve()
     broken: list[str] = []
     for md in sorted(skill_root.rglob("*.md")):

@@ -1,10 +1,10 @@
 """Pytest fixtures for the oss-repository-conventions skill self-tests.
 
-The skill is documentation only (markdown) and, unlike the router skills in
-this repo, ships no `capabilities/` directory — it is a single-file scanner
-with one reference catalog. These tests do not import any skill code; they
-validate the on-disk structure: frontmatter shape, semver versioning, and
-cross-reference resolution between SKILL.md and references/.
+The skill is documentation only (markdown): a router (SKILL.md) plus one
+capability per domain under capabilities/ and shared references/. These tests
+do not import any skill code; they validate the on-disk structure — frontmatter
+shape, semver versioning, router/capability registration consistency,
+allowed-tools union, and cross-reference resolution.
 """
 
 from __future__ import annotations
@@ -26,6 +26,11 @@ def skill_root() -> Path:
 @pytest.fixture(scope="session")
 def skill_md(skill_root: Path) -> Path:
     return skill_root / "SKILL.md"
+
+
+@pytest.fixture(scope="session")
+def capabilities_dir(skill_root: Path) -> Path:
+    return skill_root / "capabilities"
 
 
 @pytest.fixture(scope="session")
