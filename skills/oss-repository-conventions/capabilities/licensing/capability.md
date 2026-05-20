@@ -14,9 +14,7 @@ allowed-tools: Bash Read Grep Glob Write Edit
 
 # licensing capability
 
-Governs the legal clarity of the repository: is there a license, is it
-machine-identifiable, and is it consistent with the code and its dependencies.
-Reads and judges by default; writes only in scaffold mode, one file at a time.
+Governs the legal clarity of the repository: is there a license, is it machine-identifiable, and is it consistent with the code and its dependencies. Reads and judges by default; writes only in scaffold mode, one file at a time.
 
 ## Modes
 
@@ -45,8 +43,7 @@ Identify the SPDX id of the root license by matching its text/title (MIT, Apache
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `license-present` — **must** · scorecard: License. Fail when no SPDX-identifiable `LICENSE` sits at repo root. A public repo with no license is "all rights reserved" — nobody may legally reuse it.
 - `license-spdx-identifiable` — **must**. Warn when the license text doesn't match a known SPDX id (custom or hand-edited). Tooling and downstreams can't detect a non-standard license.
@@ -57,13 +54,12 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-Only after the user has chosen a license (or confirmed the house default from
-`../../references/house-style.md`). Show the content, then write on confirmation.
+Only after the user has chosen a license (or confirmed the house default from `../../references/house-style.md`). Show the content, then write on confirmation.
 
 Choosing — present the trade-off, don't decide unprompted:
 
 | Goal | Common choice |
-|---|---|
+| --- | --- |
 | Maximum adoption, minimal obligation | MIT or BSD-3-Clause |
 | Permissive + explicit patent grant | Apache-2.0 |
 | Library copyleft (changes to the lib stay open) | MPL-2.0 or LGPL-3.0 |

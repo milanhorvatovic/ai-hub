@@ -13,9 +13,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # governance capability
 
-Governs ownership and decision-making: are reviews routed to the right people,
-is it clear who maintains the project, and — as it grows — how decisions get
-made. Reads and judges by default; writes governance files only on confirmation.
+Governs ownership and decision-making: are reviews routed to the right people, is it clear who maintains the project, and — as it grows — how decisions get made. Reads and judges by default; writes governance files only on confirmation.
 
 ## Modes
 
@@ -40,8 +38,7 @@ Sources (catalog: `../../references/convention-files.md`), citing each:
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `codeowners-present` — **should** (→ **could** for solo repos). Fail when there's no CODEOWNERS on a multi-contributor repo. Without it, review assignment is ad hoc and gaps go unreviewed.
 - `codeowners-valid` — **should** (when CODEOWNERS exists). Fail on syntax errors, patterns matching nothing, or owners that don't exist/lack access. An invalid CODEOWNERS silently stops routing reviews.
@@ -52,8 +49,7 @@ Validate CODEOWNERS with `gh api repos/{owner}/{repo}/codeowners/errors` when `g
 
 ## Scaffold
 
-Templates live in `references/scaffold-templates.md` (CODEOWNERS, MAINTAINERS,
-GOVERNANCE). Write after confirmation, one file at a time:
+Templates live in `references/scaffold-templates.md` (CODEOWNERS, MAINTAINERS, GOVERNANCE). Write after confirmation, one file at a time:
 
 - **CODEOWNERS** — derive ownership from the directory structure and the de-facto owners (`git shortlog`); confirm handles/teams. House style: `.github/CODEOWNERS`.
 - **MAINTAINERS** — list current maintainers with contact and area; confirm the set.

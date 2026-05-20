@@ -1,7 +1,6 @@
 # Contributing to <project>
 
-Thanks for your interest in contributing! This guide covers how to get set up,
-the change process, and what we expect in a pull request.
+Thanks for your interest in contributing! This guide covers how to get set up, the change process, and what we expect in a pull request.
 
 ## Getting started
 
@@ -28,15 +27,10 @@ the change process, and what we expect in a pull request.
 
 <Choose one and delete the others:>
 
-- **DCO:** We require a Developer Certificate of Origin sign-off. Add `-s` to your
-  commits (`git commit -s`); this certifies you have the right to submit the work
-  under the project's license.
-- **CLA:** Contributions require signing our Contributor License Agreement; the
-  CLA bot will prompt you on your first PR.
-- **No additional terms:** By contributing you agree your work is licensed under
-  the project's [LICENSE](LICENSE).
+- **DCO:** We require a Developer Certificate of Origin sign-off. Add `-s` to your commits (`git commit -s`); this certifies you have the right to submit the work under the project's license.
+- **CLA:** Contributions require signing our Contributor License Agreement; the CLA bot will prompt you on your first PR.
+- **No additional terms:** By contributing you agree your work is licensed under the project's [LICENSE](LICENSE).
 
 ## Code of conduct
 
-This project follows its [Code of Conduct](CODE_OF_CONDUCT.md). By participating
-you agree to uphold it.
+This project follows its [Code of Conduct](CODE_OF_CONDUCT.md). By participating you agree to uphold it.

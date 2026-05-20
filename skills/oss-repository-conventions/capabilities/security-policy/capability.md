@@ -15,11 +15,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # security-policy capability
 
-Governs how the repository handles vulnerabilities and protects its integrity:
-is there a private disclosure path, are releases and history tamper-evident, and
-is the default branch protected. Reads and judges by default; writes
-`SECURITY.md` only on confirmation and *proposes* (never applies) settings
-changes.
+Governs how the repository handles vulnerabilities and protects its integrity: is there a private disclosure path, are releases and history tamper-evident, and is the default branch protected. Reads and judges by default; writes `SECURITY.md` only on confirmation and _proposes_ (never applies) settings changes.
 
 ## Modes
 
@@ -50,11 +46,10 @@ Settings (require `gh`):
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `no-secrets-in-history` — **must** · scorecard: Vulnerabilities. Fail when a scan finds live committed credentials. Leaked secrets are an active compromise; point to rotation + history rewrite (don't perform it here).
-- `security-md` — **should**. Fail when no `SECURITY.md`, or when it routes vulnerabilities to public issues; pass when it gives a *private* channel (GitHub private reporting, security@ email, advisory link). Public disclosure defeats responsible reporting.
+- `security-md` — **should**. Fail when no `SECURITY.md`, or when it routes vulnerabilities to public issues; pass when it gives a _private_ channel (GitHub private reporting, security@ email, advisory link). Public disclosure defeats responsible reporting.
 - `private-vuln-reporting` — **should**. Fail when GitHub private vulnerability reporting is off and `SECURITY.md` offers no private path. Reporters need a non-public way in.
 - `default-branch-protected` — **should** · scorecard: Branch-Protection. Fail when the default branch allows direct pushes/force-push or requires no review/checks. Unprotected main lets unreviewed or rewritten history land.
 - `secret-scanning` — **should**. Pass when secret scanning / push protection is on, or a gitleaks-style check runs in CI. Catches credentials before they merge.
@@ -63,12 +58,9 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-`SECURITY.md` — write after confirmation from `references/security-md.template.md`,
-tailored to the repo's reporting choice and real supported-versions (don't guess
-the table). House style places it at `.github/SECURITY.md`.
+`SECURITY.md` — write after confirmation from `references/security-md.template.md`, tailored to the repo's reporting choice and real supported-versions (don't guess the table). House style places it at `.github/SECURITY.md`.
 
-Settings — **propose, never apply** (the user runs these); show the exact command
-and what it changes:
+Settings — **propose, never apply** (the user runs these); show the exact command and what it changes:
 
 ```bash
 # Enable private vulnerability reporting

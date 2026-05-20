@@ -1,10 +1,6 @@
 # ci-automation — hardening patterns
 
-This capability *hardens* workflows. The base composable CI shape — the `setup`
-composite action, the thin `ci.yml` caller, and the CodeQL workflow — comes from
-the automation-baseline capability's building blocks; harden whatever it (or the
-repo) produces using the patterns below. Pin every third-party action to a full
-commit SHA.
+This capability _hardens_ workflows. The base composable CI shape — the `setup` composite action, the thin `ci.yml` caller, and the CodeQL workflow — comes from the automation-baseline capability's building blocks; harden whatever it (or the repo) produces using the patterns below. Pin every third-party action to a full commit SHA.
 
 ## Least-privilege permissions
 
@@ -29,8 +25,7 @@ jobs:
 - uses: ossf/scorecard-action@<40-char-sha>     # v2
 ```
 
-First-party `actions/*` are lower risk but still better pinned. Tools like
-`ratchet` or a pin-verification CI step keep this honest.
+First-party `actions/*` are lower risk but still better pinned. Tools like `ratchet` or a pin-verification CI step keep this honest.
 
 ## OIDC for deploy/publish (no long-lived secrets)
 

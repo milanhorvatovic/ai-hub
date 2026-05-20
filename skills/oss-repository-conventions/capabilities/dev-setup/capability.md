@@ -14,10 +14,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # dev-setup capability
 
-Governs how reliably a contributor can go from `git clone` to a running,
-testable checkout: is the toolchain pinned, are dev dependencies declared, and is
-there a single bootstrap path. Reads and judges by default; writes setup files
-only on confirmation.
+Governs how reliably a contributor can go from `git clone` to a running, testable checkout: is the toolchain pinned, are dev dependencies declared, and is there a single bootstrap path. Reads and judges by default; writes setup files only on confirmation.
 
 ## Modes
 
@@ -44,8 +41,7 @@ Sources (catalog: `../../references/convention-files.md`), citing each:
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `toolchain-pinned` — **should**. Fail when language/tool versions aren't pinned anywhere. Unpinned toolchains cause "works on my machine" drift between contributors and CI.
 - `dev-deps-declared` — **should**. Fail when dev/test dependencies aren't declared separately from runtime deps. Contributors can't install the test toolchain reproducibly.
@@ -57,9 +53,7 @@ CI parity note: the toolchain CI installs should match what's pinned here; flag 
 
 ## Scaffold
 
-Templates live in `references/scaffold-templates.md` (mise.toml, .env.example,
-setup script). Write after confirmation, one file at a time, tailored to the
-detected stack:
+Templates live in `references/scaffold-templates.md` (mise.toml, .env.example, setup script). Write after confirmation, one file at a time, tailored to the detected stack:
 
 - **`mise.toml`** — pin the languages/tools at the versions the repo already uses (read from existing configs / CI), house style.
 - **`.env.example`** — list the env vars the code reads (grep for `os.environ` / `process.env`), with placeholder values.

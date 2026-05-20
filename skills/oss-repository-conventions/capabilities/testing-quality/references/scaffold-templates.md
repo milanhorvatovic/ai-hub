@@ -1,7 +1,6 @@
 # testing-quality — scaffold templates
 
-Test-runner and coverage configs for the `testing-quality` capability. Tailor to
-the repo's framework; the CI step that runs them is scaffolded by ci-automation.
+Test-runner and coverage configs for the `testing-quality` capability. Tailor to the repo's framework; the CI step that runs them is scaffolded by ci-automation.
 
 ## Python — `pyproject.toml` (pytest + coverage)
 

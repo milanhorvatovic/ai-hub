@@ -1,8 +1,6 @@
 # repo-infrastructure — scaffold templates
 
-Baseline plumbing files for the `repo-infrastructure` capability. The
-`.gitignore` itself is fetched per-stack (`gh api /gitignore/templates/{name}`)
-rather than templated here. Tailor these to the languages present before writing.
+Baseline plumbing files for the `repo-infrastructure` capability. The `.gitignore` itself is fetched per-stack (`gh api /gitignore/templates/{name}`) rather than templated here. Tailor these to the languages present before writing.
 
 ## `.gitattributes`
 

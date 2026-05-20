@@ -14,10 +14,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # documentation capability
 
-Governs whether someone can understand and use the project: is the README
-sufficient, are there examples, and — for non-trivial projects — a docs site and
-recorded decisions. Reads and judges by default; writes documentation scaffolds
-only on confirmation.
+Governs whether someone can understand and use the project: is the README sufficient, are there examples, and — for non-trivial projects — a docs site and recorded decisions. Reads and judges by default; writes documentation scaffolds only on confirmation.
 
 ## Modes
 
@@ -28,7 +25,7 @@ only on confirmation.
 ## Inputs & guards
 
 - Not a git repo → stop.
-- Scaffold produces *structure and skeletons*, not finished prose — fill headings from the repo's reality and leave clearly-marked placeholders for the maintainer's words.
+- Scaffold produces _structure and skeletons_, not finished prose — fill headings from the repo's reality and leave clearly-marked placeholders for the maintainer's words.
 - Detect project type (library / CLI / app / service) so the README and examples fit.
 - An existing substantial README → audit and suggest gaps; don't replace without a diff.
 
@@ -44,8 +41,7 @@ Sources (catalog: `../../references/convention-files.md`, Documentation + Agent 
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `readme-present` — **must**. Fail when there's no README. It's the first and often only thing a visitor reads; without it the project is unusable to newcomers.
 - `readme-complete` — **should**. Fail when the README lacks what-it-is, install, or usage. A title-only README doesn't let anyone adopt the project.
@@ -56,8 +52,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-Templates live in `references/scaffold-templates.md` (README skeleton, AGENTS.md,
-ADR). Write after confirmation, tailored to the project type:
+Templates live in `references/scaffold-templates.md` (README skeleton, AGENTS.md, ADR). Write after confirmation, tailored to the project type:
 
 - **README** — fill the structure from the repo (name, real install/usage commands, license link); leave prose placeholders, don't invent feature claims.
 - **AGENTS.md** — house style canonical agent-instruction file; point `CLAUDE.md` / `.github/copilot-instructions.md` at it rather than duplicating.

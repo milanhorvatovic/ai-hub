@@ -1,7 +1,6 @@
 # community-health — scaffold templates
 
-Intake-surface files for the `community-health` capability. Tailor fields to the
-project before writing. House style nests these under `.github/`.
+Intake-surface files for the `community-health` capability. Tailor fields to the project before writing. House style nests these under `.github/`.
 
 ## Bug report issue form — `.github/ISSUE_TEMPLATE/bug_report.yml`
 

@@ -17,9 +17,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # ci-automation capability
 
-Governs the repository's automation layer: do workflows build and test changes,
-and are they configured safely (least privilege, pinned actions, OIDC). Reads
-and judges by default; writes workflow files only on confirmation.
+Governs the repository's automation layer: do workflows build and test changes, and are they configured safely (least privilege, pinned actions, OIDC). Reads and judges by default; writes workflow files only on confirmation.
 
 ## Modes
 
@@ -30,9 +28,9 @@ and judges by default; writes workflow files only on confirmation.
 ## Inputs & guards
 
 - Not a git repo → stop.
-- Workflow secrets and deploy credentials are sensitive — never echo secret values; reason about *configuration*, not contents.
+- Workflow secrets and deploy credentials are sensitive — never echo secret values; reason about _configuration_, not contents.
 - Dependency bots (Dependabot/Renovate) and lockfile/SBOM concerns are the dependency-supply-chain capability; here, cover workflow files and action pinning.
-- Scaffolding a workflow that *runs* tests relies on the test config from the testing-quality capability — reference it, don't redefine the suite.
+- Scaffolding a workflow that _runs_ tests relies on the test config from the testing-quality capability — reference it, don't redefine the suite.
 
 ## Scan
 
@@ -46,8 +44,7 @@ Sources (catalog: `../../references/convention-files.md`, CI/CD section), citing
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `ci-on-pr` — **should** (→ **must** for code repos) · scorecard: CI-Tests. Fail when no workflow builds/tests on `pull_request`. Changes merge unverified otherwise.
 - `least-privilege-token` — **should** · scorecard: Token-Permissions. Fail when workflows don't set minimal `permissions:` (read-only default, elevate per job). Over-privileged tokens widen the blast radius of a compromised action.
@@ -58,13 +55,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-The base composable CI shape (setup action, thin caller, CodeQL) comes from the
-automation-baseline capability; this capability *hardens* it. Apply the patterns
-in `references/scaffold-templates.md`: default `permissions: contents: read` and
-elevate per job, pin every third-party action to a commit SHA with a trailing
-`# vX.Y.Z` comment, use OIDC for deploy/publish, and set concurrency cancellation
-and job timeouts. Scaffold the optional OpenSSF Scorecard workflow from the same
-file. Modify workflows only on confirmation, showing a diff for existing files.
+The base composable CI shape (setup action, thin caller, CodeQL) comes from the automation-baseline capability; this capability _hardens_ it. Apply the patterns in `references/scaffold-templates.md`: default `permissions: contents: read` and elevate per job, pin every third-party action to a commit SHA with a trailing `# vX.Y.Z` comment, use OIDC for deploy/publish, and set concurrency cancellation and job timeouts. Scaffold the optional OpenSSF Scorecard workflow from the same file. Modify workflows only on confirmation, showing a diff for existing files.
 
 ## Output
 

@@ -1,7 +1,6 @@
 # code-style — scaffold templates
 
-Starting configs for the `code-style` capability. Pick one formatter per
-language; align indent/EOL with `.editorconfig`. Tailor to the repo's languages.
+Starting configs for the `code-style` capability. Pick one formatter per language; align indent/EOL with `.editorconfig`. Tailor to the repo's languages.
 
 ## `.pre-commit-config.yaml`
 
@@ -50,5 +49,4 @@ quote-style = "double"
 }
 ```
 
-> If the repo already uses ESLint + Prettier, keep that pair instead of adding
-> Biome — don't run two formatters for the same language.
+> If the repo already uses ESLint + Prettier, keep that pair instead of adding Biome — don't run two formatters for the same language.

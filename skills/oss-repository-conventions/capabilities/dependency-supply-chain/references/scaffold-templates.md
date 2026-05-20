@@ -1,8 +1,6 @@
 # dependency-supply-chain — scaffold templates
 
-Dependency-automation configs for the `dependency-supply-chain` capability. Add
-one ecosystem entry per manifest directory. House style uses Dependabot at
-`.github/dependabot.yaml`.
+Dependency-automation configs for the `dependency-supply-chain` capability. Add one ecosystem entry per manifest directory. House style uses Dependabot at `.github/dependabot.yaml`.
 
 ## Dependabot — `.github/dependabot.yaml`
 
@@ -61,13 +59,11 @@ gh api -X PUT repos/{owner}/{repo}/automated-security-fixes
 
 ## Autonomous Dependabot recipe
 
-A near-hands-off mechanism that labels, approves, and merges Dependabot PRs, with
-a reconciler to catch dropped events. Three workflows plus a token.
+A near-hands-off mechanism that labels, approves, and merges Dependabot PRs, with a reconciler to catch dropped events. Three workflows plus a token.
 
 **Prerequisites**
 
-- A **GitHub App token** (`actions/create-github-app-token`) or a bot PAT — the
-  default `GITHUB_TOKEN` cannot approve PRs or trigger the downstream required checks.
+- A **GitHub App token** (`actions/create-github-app-token`) or a bot PAT — the default `GITHUB_TOKEN` cannot approve PRs or trigger the downstream required checks.
 - **Branch protection** on `main` with required status checks (so auto-merge only lands green PRs).
 
 **a) Label by update type — `.github/workflows/dependabot-release-label.yaml`** (on `pull_request: [opened, reopened]`)
@@ -117,5 +113,4 @@ jobs:
           # update-branch if behind. The hourly cron backstops missed webhooks.
 ```
 
-Pin every action to a SHA; mint the bot token per job; never auto-merge major or
-security-flagged updates unattended.
+Pin every action to a SHA; mint the bot token per job; never auto-merge major or security-flagged updates unattended.

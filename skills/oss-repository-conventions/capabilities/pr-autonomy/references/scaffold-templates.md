@@ -1,7 +1,6 @@
 # pr-autonomy — scaffold snippets
 
-Per-rung building blocks. Install a rung's guardrails *before* its capability.
-Pin every action to a SHA; mint the App token per job; keep `permissions` minimal.
+Per-rung building blocks. Install a rung's guardrails _before_ its capability. Pin every action to a SHA; mint the App token per job; keep `permissions` minimal.
 
 ## Prerequisite (L3+): branch protection with required checks — propose, don't apply
 

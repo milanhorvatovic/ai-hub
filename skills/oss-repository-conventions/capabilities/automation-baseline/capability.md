@@ -16,11 +16,7 @@ allowed-tools: Bash Read Grep Glob Write Edit
 
 # automation-baseline capability
 
-The unifying entry point for repository automation. Rather than one monolithic
-CI workflow, it lays down a small set of **composable building blocks** and a
-clear **provide/own boundary**, then defers the depth of each pillar to its own
-capability. Reads and judges by default; writes building blocks only on
-confirmation.
+The unifying entry point for repository automation. Rather than one monolithic CI workflow, it lays down a small set of **composable building blocks** and a clear **provide/own boundary**, then defers the depth of each pillar to its own capability. Reads and judges by default; writes building blocks only on confirmation.
 
 ## Modes
 
@@ -39,14 +35,14 @@ Automation is assembled from small reusable units, never one big job:
 
 The monolithic `checkout → verify-lockfile → setup → lint → typecheck → test → coverage` job is the anti-pattern this replaces: split it so each concern is a reusable, independently-failing unit.
 
-*How autonomously* PRs then move to merge is a separate dimension — the autonomy ladder (auto-approve → auto-merge → full flow) owned by the pr-autonomy capability. The baseline gets a repo to "CI gates every PR" (rung L1); raising the rung is a deliberate, separately-guarded step.
+_How autonomously_ PRs then move to merge is a separate dimension — the autonomy ladder (auto-approve → auto-merge → full flow) owned by the pr-autonomy capability. The baseline gets a repo to "CI gates every PR" (rung L1); raising the rung is a deliberate, separately-guarded step.
 
 ## Provide / own boundary
 
 The skill provides the toolkit and wiring; the project owns its domain content.
 
 | Pillar | Baseline this skill scaffolds | The project owns | Depth in |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Testing | runner + coverage wiring, `tests/` layout, per-test-type guidance | the actual unit/integration/acceptance/E2E tests and commands | testing-quality |
 | Code scanning | a CodeQL workflow (free for public repos) | query tuning / suppressions | security-policy |
 | Dependencies | Dependabot config + the autonomous update→approve→merge recipe | per-ecosystem grouping preferences | dependency-supply-chain |
@@ -61,8 +57,7 @@ The skill provides the toolkit and wiring; the project owns its domain content.
 
 ## Scan
 
-Report presence across the four pillars, citing sources (catalog:
-`../../references/convention-files.md`):
+Report presence across the four pillars, citing sources (catalog: `../../references/convention-files.md`):
 
 1. CI: `.github/workflows/*` building/testing on `pull_request`; whether it's composable (composite actions / reusable workflows) or a monolith.
 2. Code scanning: a CodeQL workflow (`.github/workflows/codeql*`) or `github/codeql-action` usage.
@@ -71,24 +66,15 @@ Report presence across the four pillars, citing sources (catalog:
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
-- `ci-composable` — **could**. Pass when CI is assembled from reusable building blocks (composite actions / reusable workflows) rather than one monolithic job. Composable CI is maintainable and shareable across repos. *(This is the only check unique to this capability.)*
+- `ci-composable` — **could**. Pass when CI is assembled from reusable building blocks (composite actions / reusable workflows) rather than one monolithic job. Composable CI is maintainable and shareable across repos. _(This is the only check unique to this capability.)_
 
-Then present a **baseline-readiness roll-up** that aggregates the owning pillars'
-checks (cite each): testing-quality `tests-run-in-ci`, security-policy
-code-scanning, dependency-supply-chain `updates-automated`, release-versioning
-`release-automated`. In a full-repo audit, **score each of those once via its
-owning pillar** — this capability only contributes `ci-composable` to the score,
-to avoid double-counting.
+Then present a **baseline-readiness roll-up** that aggregates the owning pillars' checks (cite each): testing-quality `tests-run-in-ci`, security-policy code-scanning, dependency-supply-chain `updates-automated`, release-versioning `release-automated`. In a full-repo audit, **score each of those once via its owning pillar** — this capability only contributes `ci-composable` to the score, to avoid double-counting.
 
 ## Scaffold
 
-Building blocks live in `references/building-blocks.md` (setup composite action,
-thin `ci.yml` caller with `static`/`test`/`coverage` jobs, CodeQL workflow).
-Write after confirmation, tailored to the stack. Then point the maintainer at the
-pillar recipes for the rest of the baseline:
+Building blocks live in `references/building-blocks.md` (setup composite action, thin `ci.yml` caller with `static`/`test`/`coverage` jobs, CodeQL workflow). Write after confirmation, tailored to the stack. Then point the maintainer at the pillar recipes for the rest of the baseline:
 
 - Dependencies: the autonomous recipe in the dependency-supply-chain capability.
 - Releases: the changelog + artifacts recipe in the release-versioning capability.

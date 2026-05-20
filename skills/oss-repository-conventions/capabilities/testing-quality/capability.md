@@ -12,13 +12,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # testing-quality capability
 
-Governs whether the project is verifiable: are there tests, do they run
-automatically, and is coverage visible. **Toolkit, not turnkey** — the test
-*content* (unit / integration / acceptance / E2E) is project-specific and the
-project owns it; this capability provides the runner and coverage *wiring*, the
-layout, and per-test-type setup/maintenance guidance. Reads and judges by
-default; writes test/coverage config and harness scaffolding only on
-confirmation — never the tests themselves.
+Governs whether the project is verifiable: are there tests, do they run automatically, and is coverage visible. **Toolkit, not turnkey** — the test _content_ (unit / integration / acceptance / E2E) is project-specific and the project owns it; this capability provides the runner and coverage _wiring_, the layout, and per-test-type setup/maintenance guidance. Reads and judges by default; writes test/coverage config and harness scaffolding only on confirmation — never the tests themselves.
 
 ## Modes
 
@@ -44,8 +38,7 @@ Sources (catalog: `../../references/convention-files.md`, Tests section), citing
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `tests-present` — **must** (code repos) · scorecard: CI-Tests. Fail when a repo that ships code has no test suite. Untested published code can't be changed safely or trusted by consumers.
 - `tests-run-in-ci` — **should** · scorecard: CI-Tests. Fail when tests exist but don't run on pull requests. Tests that aren't automated don't catch regressions.
@@ -55,29 +48,24 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Test types (the project owns these)
 
-The skill helps set up and maintain each layer; it does not write the tests.
-Guidance per type, so the maintainer knows what to put where:
+The skill helps set up and maintain each layer; it does not write the tests. Guidance per type, so the maintainer knows what to put where:
 
 - **unit** — fast, isolated, no I/O; the default `tests/` layer. Maintain: keep them deterministic and quick; they gate every PR.
 - **integration** — exercise real boundaries (DB, filesystem, HTTP) with controlled fixtures/containers. Maintain: isolate via a separate task/marker so they can run apart from unit tests; provide service containers in CI.
 - **acceptance** — assert behavior against requirements/specs from the user's view. Maintain: keep them readable as living documentation; tie to issues/specs.
 - **E2E** — drive the whole system (browser/CLI/API end to end). Maintain: keep them few and stable; they're slow and flaky-prone — run on a schedule or pre-release rather than every PR.
 
-Recommend splitting these into separate runner targets/markers so CI can run the
-fast layers on every PR and the slow layers (E2E) on a schedule.
+Recommend splitting these into separate runner targets/markers so CI can run the fast layers on every PR and the slow layers (E2E) on a schedule.
 
 ## Scaffold
 
-Provide the *wiring*, not the tests. From `references/scaffold-templates.md`,
-write after confirmation (tailored to the framework, or the ecosystem default):
+Provide the _wiring_, not the tests. From `references/scaffold-templates.md`, write after confirmation (tailored to the framework, or the ecosystem default):
 
 - the **runner config** (pytest / vitest / …) and a `tests/` layout with per-type subdirs or markers;
 - the **coverage config** (measurement + optional, realistic gate);
 - optional **harness skeletons** clearly marked as placeholders (a fixture file, an empty E2E spec) — never real assertions.
 
-The `test` and `coverage` CI jobs that run all this are composable building
-blocks from the automation-baseline capability; wire to them rather than
-duplicating a workflow, and harden via ci-automation.
+The `test` and `coverage` CI jobs that run all this are composable building blocks from the automation-baseline capability; wire to them rather than duplicating a workflow, and harden via ci-automation.
 
 ## Output
 

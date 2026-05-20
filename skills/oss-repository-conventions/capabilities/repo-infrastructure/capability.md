@@ -15,10 +15,7 @@ allowed-tools: Bash Read Grep Glob Write Edit
 
 # repo-infrastructure capability
 
-Governs the repository's plumbing: the git hygiene files that keep the working
-tree and history clean, and the GitHub settings that shape how the repo behaves.
-Reads and judges by default; writes hygiene files on confirmation and *proposes*
-(never applies) settings changes.
+Governs the repository's plumbing: the git hygiene files that keep the working tree and history clean, and the GitHub settings that shape how the repo behaves. Reads and judges by default; writes hygiene files on confirmation and _proposes_ (never applies) settings changes.
 
 ## Modes
 
@@ -29,8 +26,8 @@ Reads and judges by default; writes hygiene files on confirmation and *proposes*
 ## Inputs & guards
 
 - Not a git repo → stop.
-- Branch-*protection* rules (required reviews/checks, force-push) are security posture — defer to the security-policy capability; here, cover only general settings.
-- Style *enforcement* (linters/formatters) is the code-style capability; here, cover only `.editorconfig` presence as hygiene.
+- Branch-_protection_ rules (required reviews/checks, force-push) are security posture — defer to the security-policy capability; here, cover only general settings.
+- Style _enforcement_ (linters/formatters) is the code-style capability; here, cover only `.editorconfig` presence as hygiene.
 - Settings need `gh`; without it, mark settings checks `unknown — gh not available`.
 
 ## Scan
@@ -43,8 +40,7 @@ Sources (catalog: `../../references/convention-files.md`, Misc section), citing 
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `gitignore-present` — **should**. Fail when there's no `.gitignore`, or it omits this stack's build/secret paths. Without it, artifacts and secrets get committed.
 - `gitattributes-present` — **could**. Pass when `.gitattributes` normalizes line endings and marks generated/vendored paths. Prevents CRLF churn and skewed language stats.

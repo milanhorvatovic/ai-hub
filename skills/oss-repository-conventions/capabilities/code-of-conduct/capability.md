@@ -13,10 +13,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # code-of-conduct capability
 
-Governs the community's behavioral baseline: is there a code of conduct, is it a
-standard one contributors recognize, and can someone actually report a problem
-to a real person. Reads and judges by default; writes `CODE_OF_CONDUCT.md` only
-on confirmation.
+Governs the community's behavioral baseline: is there a code of conduct, is it a standard one contributors recognize, and can someone actually report a problem to a real person. Reads and judges by default; writes `CODE_OF_CONDUCT.md` only on confirmation.
 
 ## Modes
 
@@ -40,8 +37,7 @@ Sources (catalog: `../../references/convention-files.md`), citing each:
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `coc-present` — **should**. Fail when there's no `CODE_OF_CONDUCT`. A public project without one has no stated basis to address abusive behavior.
 - `coc-enforcement-contact` — **should**. Fail when the document has no enforcement contact or only a placeholder. An unenforceable code of conduct is decorative.
@@ -49,14 +45,9 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-`CODE_OF_CONDUCT.md` — write after confirmation from
-`references/code-of-conduct.template.md` (Contributor Covenant). Replace the
-contact placeholder with the maintainer-provided enforcement contact before
-writing; do not write the file with a placeholder left in. House style keeps the
-file at repo root; GitHub also surfaces it from `.github/`.
+`CODE_OF_CONDUCT.md` — write after confirmation from `references/code-of-conduct.template.md` (Contributor Covenant). Replace the contact placeholder with the maintainer-provided enforcement contact before writing; do not write the file with a placeholder left in. House style keeps the file at repo root; GitHub also surfaces it from `.github/`.
 
-For the canonical full text, fetch the current Contributor Covenant rather than
-paraphrasing the body.
+For the canonical full text, fetch the current Contributor Covenant rather than paraphrasing the body.
 
 ## Output
 

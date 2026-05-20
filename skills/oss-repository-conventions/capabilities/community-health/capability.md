@@ -13,10 +13,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # community-health capability
 
-Governs the day-to-day intake surfaces: are issues and PRs structured, can users
-find support, and is triage set up. These are the files GitHub aggregates into a
-repo's community profile. Reads and judges by default; writes the health files
-only on confirmation.
+Governs the day-to-day intake surfaces: are issues and PRs structured, can users find support, and is triage set up. These are the files GitHub aggregates into a repo's community profile. Reads and judges by default; writes the health files only on confirmation.
 
 ## Modes
 
@@ -27,7 +24,7 @@ only on confirmation.
 ## Inputs & guards
 
 - Not a git repo → stop.
-- This capability covers the PR *template* (a repo convention file), not authoring any individual PR — that's the change-narration domain.
+- This capability covers the PR _template_ (a repo convention file), not authoring any individual PR — that's the change-narration domain.
 - Discussions/label state needs `gh`; without it, mark those checks `unknown — gh not available`.
 - FUNDING is opt-in and only meaningful for public repos — never push it; offer it as a `could`.
 
@@ -43,8 +40,7 @@ Sources (catalog: `../../references/convention-files.md`), citing each:
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `issue-templates` — **should**. Fail when there are no issue templates/forms. Unstructured issues lack repro steps and version info, slowing triage.
 - `pr-template` — **should**. Fail when there's no `PULL_REQUEST_TEMPLATE`. A template makes PRs describe what changed and link issues consistently.
@@ -54,12 +50,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-Templates live in `references/scaffold-templates.md` (bug-report and feature
-issue forms, `config.yml`, PR template, SUPPORT, FUNDING). Write after
-confirmation, one file at a time. Prefer **issue forms** (YAML) over plain
-markdown templates — they collect structured fields. Tailor fields to the
-project (e.g. version dropdown from real releases). House style nests these
-under `.github/`.
+Templates live in `references/scaffold-templates.md` (bug-report and feature issue forms, `config.yml`, PR template, SUPPORT, FUNDING). Write after confirmation, one file at a time. Prefer **issue forms** (YAML) over plain markdown templates — they collect structured fields. Tailor fields to the project (e.g. version dropdown from real releases). House style nests these under `.github/`.
 
 ## Output
 

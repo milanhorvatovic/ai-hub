@@ -14,10 +14,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # code-style capability
 
-Governs how code style is configured and enforced — not how individual code is
-written. Is there a formatter and linter per language, and does style actually
-run somewhere automated rather than relying on goodwill. Reads and judges by
-default; writes style configs only on confirmation.
+Governs how code style is configured and enforced — not how individual code is written. Is there a formatter and linter per language, and does style actually run somewhere automated rather than relying on goodwill. Reads and judges by default; writes style configs only on confirmation.
 
 ## Modes
 
@@ -29,7 +26,7 @@ default; writes style configs only on confirmation.
 
 - Not a git repo → stop.
 - Detect the languages present first; only audit style for languages the repo actually contains.
-- This capability covers style *configuration and enforcement*, not the act of writing code or applying principles to a change.
+- This capability covers style _configuration and enforcement_, not the act of writing code or applying principles to a change.
 - Don't run formatters/linters that would modify the tree — propose the command.
 
 ## Scan
@@ -43,8 +40,7 @@ Sources (catalog: `../../references/convention-files.md`, Code style section), c
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `formatter-configured` — **should** (per language present). Fail when a major language has no formatter. Without one, style is subjective and diffs fill with reformatting noise.
 - `linter-configured` — **should** (per language present). Fail when there's no linter catching bugs/smells. Linters prevent a class of defects before review.
@@ -54,9 +50,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-Templates live in `references/scaffold-templates.md` (pre-commit config; ruff and
-prettier/biome starting configs). Write after confirmation, tailored to the
-languages present:
+Templates live in `references/scaffold-templates.md` (pre-commit config; ruff and prettier/biome starting configs). Write after confirmation, tailored to the languages present:
 
 - Pick **one** formatter per language (house-style-friendly: ruff for Python, prettier or biome for JS/TS) — don't stack overlapping tools.
 - Align the config's indent/EOL with `.editorconfig` (the repo-infrastructure capability owns that file).

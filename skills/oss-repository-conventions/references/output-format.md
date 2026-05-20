@@ -1,7 +1,6 @@
 # Output format
 
-How scan and audit results are presented. One human-readable markdown report,
-plus an optional machine-readable NDJSON finding stream for tooling.
+How scan and audit results are presented. One human-readable markdown report, plus an optional machine-readable NDJSON finding stream for tooling.
 
 ## scan output
 
@@ -21,8 +20,7 @@ Scanned <YYYY-MM-DD>, <N> source files.
 
 ## audit output
 
-The scan plus judgment. Each finding carries a severity and a one-line *why*,
-and the section closes with a domain score from `oss-health-rubric.md`:
+The scan plus judgment. Each finding carries a severity and a one-line _why_, and the section closes with a domain score from `oss-health-rubric.md`:
 
 ```markdown
 # <repo-name> — <domain> audit
@@ -50,28 +48,23 @@ Overall health: <NN>%   (GitHub community profile: <NN>%)
 2. [should] …
 3. [could] …
 
-Domain scores: licensing <NN>% · security <NN>% · … 
+Domain scores: licensing <NN>% · security <NN>% · …
 ```
 
 ## NDJSON findings (optional, for tooling)
 
-When the user or a calling tool wants machine-readable output, emit one JSON
-object per finding, newline-delimited:
+When the user or a calling tool wants machine-readable output, emit one JSON object per finding, newline-delimited:
 
 ```text
 {"domain":"licensing","check":"license-present","severity":"must","status":"fail","file":null,"message":"No LICENSE at repo root","scaffold":"capabilities/licensing"}
 {"domain":"security-policy","check":"security-md","severity":"should","status":"pass","file":".github/SECURITY.md","message":"Disclosure policy present"}
 ```
 
-Fields: `domain`, `check` (the kebab-case `id`), `severity` (`must`/`should`/`could`),
-`status` (`pass`/`fail`/`warn`/`skip`), `file` (source path or `null`),
-`message`, and optional `scaffold` (capability that can generate the fix). The
-`check`, `severity`, and `status` values come straight from a capability's audit
-checks — see the check schema in `oss-health-rubric.md`.
+Fields: `domain`, `check` (the kebab-case `id`), `severity` (`must`/`should`/`could`), `status` (`pass`/`fail`/`warn`/`skip`), `file` (source path or `null`), `message`, and optional `scaffold` (capability that can generate the fix). The `check`, `severity`, and `status` values come straight from a capability's audit checks — see the check schema in `oss-health-rubric.md`.
 
 ## Rules
 
 - Never assert a convention without a source; use `(inferred …)` or `(not declared)`.
 - Show unmet `must`/`should` items next to any score — the number alone isn't actionable.
-- Write reports to `mktemp` *and* show inline, so the user can save or paste them.
+- Write reports to `mktemp` _and_ show inline, so the user can save or paste them.
 - Offer the next action (`scaffold` for a `must`/`should`) rather than just listing the gap.

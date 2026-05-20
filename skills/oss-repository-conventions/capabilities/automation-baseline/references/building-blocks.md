@@ -1,9 +1,6 @@
 # automation-baseline — composable building blocks
 
-The bare-minimum, composable CI baseline. Each unit is small and reusable; the
-caller wires them. Pin every third-party action to a commit SHA and keep
-`permissions` minimal (the ci-automation capability owns hardening). Tailor
-commands to the stack.
+The bare-minimum, composable CI baseline. Each unit is small and reusable; the caller wires them. Pin every third-party action to a commit SHA and keep `permissions` minimal (the ci-automation capability owns hardening). Tailor commands to the stack.
 
 ## 1. `setup` composite action — `.github/actions/setup/action.yml`
 
@@ -21,8 +18,7 @@ runs:
       shell: bash
 ```
 
-> A composite action runs *after* the caller's `checkout`, so checkout stays in
-> the job, not here.
+> A composite action runs _after_ the caller's `checkout`, so checkout stays in the job, not here.
 
 ## 2. Thin caller — `.github/workflows/ci.yml`
 
@@ -67,9 +63,7 @@ jobs:
         with: { name: coverage, path: coverage/ }
 ```
 
-`static` and `test` fail independently and run in parallel — a lint error no
-longer hides a test failure, and vice versa. Coverage upload/badge is a separate
-optional concern (see the testing-quality capability).
+`static` and `test` fail independently and run in parallel — a lint error no longer hides a test failure, and vice versa. Coverage upload/badge is a separate optional concern (see the testing-quality capability).
 
 ## 3. CodeQL code scanning — `.github/workflows/codeql.yml`
 
@@ -106,8 +100,7 @@ jobs:
 
 ## Scaling up: reusable workflows
 
-When several repos share these blocks, promote them to reusable workflows and
-call them, so a fix lands in one place:
+When several repos share these blocks, promote them to reusable workflows and call them, so a fix lands in one place:
 
 ```yaml
 # caller ci.yml in each repo

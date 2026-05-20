@@ -16,10 +16,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # pr-autonomy capability
 
-Governs how far a pull request travels toward merge without a human, and whether
-the guardrails for that level are in place. Reads and judges by default; writes
-autonomy automation only on confirmation, and *proposes* (never applies) the
-settings it depends on.
+Governs how far a pull request travels toward merge without a human, and whether the guardrails for that level are in place. Reads and judges by default; writes autonomy automation only on confirmation, and _proposes_ (never applies) the settings it depends on.
 
 ## Modes
 
@@ -29,11 +26,10 @@ settings it depends on.
 
 ## The autonomy ladder
 
-The full model — rungs, guardrails, and per-rung implementation approaches —
-lives in `references/autonomy-levels.md`. In brief:
+The full model — rungs, guardrails, and per-rung implementation approaches — lives in `references/autonomy-levels.md`. In brief:
 
 | Level | Automated | Human role |
-|---|---|---|
+| --- | --- | --- |
 | L0 manual | nothing | opens, reviews, merges |
 | L1 assisted | bots open PRs; CI gates | reviews + merges each |
 | L2 auto-approve | automation approves eligible PRs | merges / oversees |
@@ -47,14 +43,14 @@ Higher autonomy without these is reckless, not advanced:
 - **Eligibility gate** — only a defined subset qualifies (bot author, patch/minor, path allowlist, size cap); never the whole PR population.
 - **Hard stops** — major bumps, security-flagged PRs, breaking changes, and edits to CI/release/secret paths always require a human.
 - **Scoped identity** — a least-privilege App token (the default `GITHUB_TOKEN` can neither approve PRs nor trigger the downstream required checks).
-- **Required checks are the gate** — autonomy only ever lands a *green* PR; branch protection enforces it.
+- **Required checks are the gate** — autonomy only ever lands a _green_ PR; branch protection enforces it.
 - **Reconciler + observability** — a scheduled/event-driven catch-up for dropped events, and alerting on stuck or failed autonomous actions.
 - **Escape hatch** — one switch to disable, plus auto-disable on a security review.
 
 ## Inputs & guards
 
 - Not a git repo → stop.
-- This is merge-autonomy *configuration and policy* — not reviewing a specific PR's content (that's the change-narration domain).
+- This is merge-autonomy _configuration and policy_ — not reviewing a specific PR's content (that's the change-narration domain).
 - L2+ needs `gh` and a bot/App token; L3+ needs branch protection with required checks. Detect these; if absent, scaffold them as prerequisites (settings are proposed, not applied).
 - Never raise the rung past what the guardrails support — gate the recommendation on the prerequisites being present.
 
@@ -71,8 +67,7 @@ Map the findings to a rung (the highest level fully supported by its guardrails)
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `autonomy-level-appropriate` — **could**. Pass when the rung fits the repo's risk and PR volume (a flooded repo stuck at L1 is toil; a high-blast-radius repo at L4 without gates is risk). Match autonomy to context.
 - `autonomy-guardrails-complete` — **should** (when above L1). Fail when the current rung lacks a guardrail it requires (e.g. auto-merge with no required checks, or auto-approve via `GITHUB_TOKEN`). Ungated autonomy merges unreviewed or red changes.
@@ -82,18 +77,13 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-Per-rung snippets live in `references/scaffold-templates.md` (native auto-merge,
-App-token approve, eligibility gate, reconciler, escape hatch). Move **one rung
-at a time**, after confirmation, installing that rung's guardrails first:
+Per-rung snippets live in `references/scaffold-templates.md` (native auto-merge, App-token approve, eligibility gate, reconciler, escape hatch). Move **one rung at a time**, after confirmation, installing that rung's guardrails first:
 
 - **→ L2 auto-approve** — mint an App token; approve only eligibility-gated PRs.
 - **→ L3 auto-merge** — require branch protection + required checks (propose the settings), then enable native `gh pr merge --auto` or a third-party merger; gate by update-type/path.
 - **→ L4 full autonomous** — add the reconciler, observability, and escape hatch on top of L3.
 
-Name the **approaches** at each rung (native vs Mergify/Kodiak; bot-action vs
-App-token review) and let the maintainer choose; don't prescribe one. For the
-dependency-specific full flow, defer to the autonomous recipe in the
-dependency-supply-chain capability — it instantiates L3/L4 for Dependabot.
+Name the **approaches** at each rung (native vs Mergify/Kodiak; bot-action vs App-token review) and let the maintainer choose; don't prescribe one. For the dependency-specific full flow, defer to the autonomous recipe in the dependency-supply-chain capability — it instantiates L3/L4 for Dependabot.
 
 ## Output
 
@@ -104,7 +94,7 @@ Report per `../../references/output-format.md`: scan emits the current rung + gu
 - **Solo repo** — L3/L4 can be reasonable even solo (less toil), but keep hard stops; note the single-operator risk.
 - **High-blast-radius repo** (infra, security-critical) — cap the recommended rung lower, or restrict autonomy to a narrow eligibility set.
 - **`gh` / token unavailable** — report the current rung from files; mark settings-derived checks `unknown`; don't scaffold L2+ without the token.
-- **Third-party merger already in use** (Mergify/Kodiak) — audit *its* config for the same guardrails rather than proposing a parallel mechanism.
+- **Third-party merger already in use** (Mergify/Kodiak) — audit _its_ config for the same guardrails rather than proposing a parallel mechanism.
 
 ## Anti-patterns
 

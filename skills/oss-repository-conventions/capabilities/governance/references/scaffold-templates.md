@@ -1,8 +1,6 @@
 # governance — scaffold templates
 
-Small ownership/governance files for the `governance` capability. Fill from the
-repo's real structure and confirmed people before writing; never write invented
-handles.
+Small ownership/governance files for the `governance` capability. Fill from the repo's real structure and confirmed people before writing; never write invented handles.
 
 ## CODEOWNERS
 

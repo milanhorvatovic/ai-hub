@@ -1,7 +1,6 @@
 # release-versioning — scaffold templates
 
-Release-process files for the `release-versioning` capability. These define the
-*structure*; the prose of any specific release is the change-narration domain.
+Release-process files for the `release-versioning` capability. These define the _structure_; the prose of any specific release is the change-narration domain.
 
 ## `CHANGELOG.md` (Keep a Changelog + SemVer)
 
@@ -46,8 +45,7 @@ jobs:
           release-type: <node|python|rust|simple>
 ```
 
-Pair with `release-please-config.json` + `.release-please-manifest.json` for
-monorepos or non-default layouts.
+Pair with `release-please-config.json` + `.release-please-manifest.json` for monorepos or non-default layouts.
 
 ## Release-notes template — `.github/RELEASE_NOTES_TEMPLATE.md` (house style)
 

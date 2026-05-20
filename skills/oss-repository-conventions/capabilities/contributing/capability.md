@@ -14,10 +14,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # contributing capability
 
-Governs how a newcomer goes from interested to merged: is the process written
-down, is the legal contribution basis (DCO/CLA) clear, and can someone get a dev
-environment running. Reads and judges by default; writes `CONTRIBUTING.md` only
-on confirmation.
+Governs how a newcomer goes from interested to merged: is the process written down, is the legal contribution basis (DCO/CLA) clear, and can someone get a dev environment running. Reads and judges by default; writes `CONTRIBUTING.md` only on confirmation.
 
 ## Modes
 
@@ -42,8 +39,7 @@ Sources (catalog: `../../references/convention-files.md`), citing each:
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `contributing-present` — **should** · scorecard: Contributors. Fail when there's no `CONTRIBUTING`. Without it, contributors guess the process and PRs arrive in the wrong shape.
 - `setup-and-test-documented` — **should**. Fail when the guide doesn't say how to install deps and run tests (or the commands it lists don't match the repo). A contributor can't verify their change otherwise.
@@ -53,15 +49,9 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-`CONTRIBUTING.md` — write after confirmation from `references/contributing.template.md`.
-Fill it from the repo's reality, not placeholders: the actual setup steps
-(defer detail to the dev-setup capability), the actual test command, and the
-maintainer's chosen contribution basis (ask DCO vs CLA vs neither). House style
-keeps `CONTRIBUTING.md` at repo root.
+`CONTRIBUTING.md` — write after confirmation from `references/contributing.template.md`. Fill it from the repo's reality, not placeholders: the actual setup steps (defer detail to the dev-setup capability), the actual test command, and the maintainer's chosen contribution basis (ask DCO vs CLA vs neither). House style keeps `CONTRIBUTING.md` at repo root.
 
-If the repo enforces sign-off, document the `git commit -s` requirement and what
-`Signed-off-by` attests (the DCO) — but never add sign-off trailers to anyone's
-commits here; that's a change-narration concern.
+If the repo enforces sign-off, document the `git commit -s` requirement and what `Signed-off-by` attests (the DCO) — but never add sign-off trailers to anyone's commits here; that's a change-narration concern.
 
 ## Output
 

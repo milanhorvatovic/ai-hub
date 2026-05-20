@@ -1,8 +1,6 @@
 # documentation — scaffold templates
 
-Documentation skeletons for the `documentation` capability. Fill headings from
-the repo's reality; leave prose placeholders for the maintainer. Don't invent
-feature claims.
+Documentation skeletons for the `documentation` capability. Fill headings from the repo's reality; leave prose placeholders for the maintainer. Don't invent feature claims.
 
 ## `README.md`
 
@@ -57,8 +55,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 - <Anything an agent must not do.>
 ```
 
-> Point `CLAUDE.md` and `.github/copilot-instructions.md` at this file rather
-> than duplicating it, e.g. "See [AGENTS.md](AGENTS.md)."
+> Point `CLAUDE.md` and `.github/copilot-instructions.md` at this file rather than duplicating it, e.g. "See [AGENTS.md](AGENTS.md)."
 
 ## ADR — `docs/adr/0001-record-architecture-decisions.md`
 

@@ -15,9 +15,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # release-versioning capability
 
-Governs how the project ships versions: is versioning predictable, is there a
-changelog, are releases repeatable, and do tags/releases/version sources agree.
-Reads and judges by default; writes release-process files only on confirmation.
+Governs how the project ships versions: is versioning predictable, is there a changelog, are releases repeatable, and do tags/releases/version sources agree. Reads and judges by default; writes release-process files only on confirmation.
 
 ## Modes
 
@@ -28,7 +26,7 @@ Reads and judges by default; writes release-process files only on confirmation.
 ## Inputs & guards
 
 - Not a git repo → stop.
-- This capability covers the release *process and conventions*, not writing the notes for a specific version — that's the change-narration domain. Scaffold a changelog *structure* and a notes *template*, not a particular release's content.
+- This capability covers the release _process and conventions_, not writing the notes for a specific version — that's the change-narration domain. Scaffold a changelog _structure_ and a notes _template_, not a particular release's content.
 - Cryptographic signing of tags/releases is scored by the security-policy capability; here, note signing as part of the process and defer the security check.
 - Don't create tags or publish releases — propose the commands.
 
@@ -44,8 +42,7 @@ Sources (catalog: `../../references/convention-files.md`, Releases section), cit
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `changelog-present` — **should**. Fail when there's no changelog, or it isn't kept up to date. Consumers can't tell what changed between versions otherwise.
 - `semver-followed` — **should**. Fail when versions/tags don't follow SemVer (`vMAJOR.MINOR.PATCH`) or break it (e.g. breaking changes in a patch). Predictable versioning is the contract with consumers.
@@ -57,17 +54,13 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-Templates live in `references/scaffold-templates.md` (Keep-a-Changelog skeleton,
-release-please config, a release-notes template). The release baseline is
-**generated changelog + artifacts** — wire the tooling to produce them, don't
-hand-maintain them. Write after confirmation:
+Templates live in `references/scaffold-templates.md` (Keep-a-Changelog skeleton, release-please config, a release-notes template). The release baseline is **generated changelog + artifacts** — wire the tooling to produce them, don't hand-maintain them. Write after confirmation:
 
 - **CHANGELOG.md** — Keep a Changelog structure with an `Unreleased` section; once release tooling is in place it owns new entries (generated from commits/PRs). Backfill recent entries from tags/PRs if asked, but don't fabricate history.
 - **release automation** — release-please (house-friendly) or semantic-release, matched to the repo's commit convention; configure it to cut the version, generate the changelog entry, create the GitHub Release, and attach build artifacts + supplementary files (SBOM, checksums).
-- **release-notes template** — house style: `.github/RELEASE_NOTES_TEMPLATE.md` (the *shape*; the prose of a given release is the change-narration domain).
+- **release-notes template** — house style: `.github/RELEASE_NOTES_TEMPLATE.md` (the _shape_; the prose of a given release is the change-narration domain).
 
-This is the release pillar of the automation baseline; the automation-baseline
-capability references it.
+This is the release pillar of the automation baseline; the automation-baseline capability references it.
 
 ## Output
 

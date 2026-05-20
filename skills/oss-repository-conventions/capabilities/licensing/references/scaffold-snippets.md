@@ -1,13 +1,10 @@
 # licensing — scaffold snippets
 
-Small reusable pieces for the `licensing` capability's scaffold mode. The full
-`LICENSE` text itself is fetched canonically (`gh api /licenses/{spdx} --jq .body`)
-rather than templated here — only fill the `[year]` / `[fullname]` placeholders.
+Small reusable pieces for the `licensing` capability's scaffold mode. The full `LICENSE` text itself is fetched canonically (`gh api /licenses/{spdx} --jq .body`) rather than templated here — only fill the `[year]` / `[fullname]` placeholders.
 
 ## Per-file SPDX header
 
-Prepend to source files when the repo opts into per-file headers (REUSE-style).
-Use the comment syntax of the file's language; keep it as the first lines.
+Prepend to source files when the repo opts into per-file headers (REUSE-style). Use the comment syntax of the file's language; keep it as the first lines.
 
 ```text
 SPDX-FileCopyrightText: <year> <holder>

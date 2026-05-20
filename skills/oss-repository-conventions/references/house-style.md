@@ -1,21 +1,15 @@
 # Maintainer house style
 
-Conventions distilled from the maintainer's existing OSS repositories. When the
-generic OSS baseline offers several equally-valid options, `audit` recommends
-the house pattern so a new repo matches the rest of the fleet. The repo's own
-declared conventions still win over this file (see the router's precedence
-rule); this is the tie-breaker, not an override.
+Conventions distilled from the maintainer's existing OSS repositories. When the generic OSS baseline offers several equally-valid options, `audit` recommends the house pattern so a new repo matches the rest of the fleet. The repo's own declared conventions still win over this file (see the router's precedence rule); this is the tie-breaker, not an override.
 
-> Keep this file evidence-based. When a pattern here stops matching the
-> maintainer's repos, update it — don't let it ossify into folklore.
+> Keep this file evidence-based. When a pattern here stops matching the maintainer's repos, update it — don't let it ossify into folklore.
 
 ## Observed patterns
 
-Seen consistently across the more-developed repos (e.g. the GitHub Action and
-the skill-system repos):
+Seen consistently across the more-developed repos (e.g. the GitHub Action and the skill-system repos):
 
 | Area | House pattern |
-|---|---|
+| --- | --- |
 | License | A real `LICENSE` with a clear SPDX id at repo root (the fleet's recurring weak spot — several repos still ship none; treat absence as `must`). |
 | Readme | `README.md` with a one-line what-it-is, install, and usage up top. |
 | Changelog | `CHANGELOG.md` in Keep-a-Changelog shape, kept in the repo (not only GitHub Releases). |
@@ -33,8 +27,7 @@ the skill-system repos):
 
 ## Recurring gaps to flag
 
-These are missing across most of the fleet — audit should surface them by
-default and offer to scaffold:
+These are missing across most of the fleet — audit should surface them by default and offer to scaffold:
 
 - **No `CODE_OF_CONDUCT.md`** anywhere — adopt Contributor Covenant.
 - **Missing `LICENSE`** on several repos — pick and add one.

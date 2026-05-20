@@ -14,10 +14,7 @@ allowed-tools: Bash Read Grep Glob Write
 
 # dependency-supply-chain capability
 
-Governs the trustworthiness of what the project depends on: are updates
-automated, is the dependency graph pinned and reproducible, are known
-vulnerabilities surfaced, and can consumers see a bill of materials. Reads and
-judges by default; writes dependency config only on confirmation.
+Governs the trustworthiness of what the project depends on: are updates automated, is the dependency graph pinned and reproducible, are known vulnerabilities surfaced, and can consumers see a bill of materials. Reads and judges by default; writes dependency config only on confirmation.
 
 ## Modes
 
@@ -45,8 +42,7 @@ Sources (catalog: `../../references/convention-files.md`, CI/CD + Security secti
 
 ## Audit
 
-Checks follow the schema in `../../references/oss-health-rubric.md`
-(`id` — **severity** [· scorecard: Name]. criterion. why):
+Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `updates-automated` — **should** · scorecard: Dependency-Update-Tool. Fail when no Dependabot/Renovate config exists. Without it, dependencies rot and CVE fixes are missed.
 - `updates-autonomous` — **could** (→ **should** for repos drowning in update PRs). Pass when safe update-types (patch/minor) are auto-approved and auto-merged once required checks pass, with a reconcile/scheduled catch-up. Open-only automation still buries maintainers in manual merges.
@@ -57,16 +53,9 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-Templates live in `references/scaffold-templates.md` (Dependabot config, Renovate
-config, a dependency-review CI step). Write after confirmation, targeting the
-detected ecosystems. House style uses **Dependabot** at `.github/dependabot.yaml`
-with a weekly cadence and grouped updates; offer Renovate if the maintainer
-prefers it. Enabling Dependabot alerts is a repo *setting* — propose the command,
-don't apply it.
+Templates live in `references/scaffold-templates.md` (Dependabot config, Renovate config, a dependency-review CI step). Write after confirmation, targeting the detected ecosystems. House style uses **Dependabot** at `.github/dependabot.yaml` with a weekly cadence and grouped updates; offer Renovate if the maintainer prefers it. Enabling Dependabot alerts is a repo _setting_ — propose the command, don't apply it.
 
-For hands-off updates, scaffold the **autonomous Dependabot recipe** in the same
-file (release-label → auto-merge → reconciler), distilled from a proven setup. It
-requires:
+For hands-off updates, scaffold the **autonomous Dependabot recipe** in the same file (release-label → auto-merge → reconciler), distilled from a proven setup. It requires:
 
 - a **GitHub App token or bot PAT** — the default `GITHUB_TOKEN` can't approve PRs or trigger the downstream required checks;
 - **branch protection with required status checks**, so `gh pr merge --auto` lands a PR only when it's green;
@@ -74,9 +63,7 @@ requires:
 - for **built artifacts** (e.g. a bundled action's `dist/`), an auto-merge step that rebuilds and commits the artifact as the bot before merging;
 - a **reconciler** (scheduled + event-driven) that catches dropped events and re-drives stuck PRs.
 
-This recipe instantiates the autonomy ladder at L3/L4 for Dependabot; the
-pr-autonomy capability owns the general ladder, the guardrail spine, and the
-other rungs/approaches — apply its guardrails here rather than re-deriving them.
+This recipe instantiates the autonomy ladder at L3/L4 for Dependabot; the pr-autonomy capability owns the general ladder, the guardrail spine, and the other rungs/approaches — apply its guardrails here rather than re-deriving them.
 
 ## Output
 

@@ -1,7 +1,6 @@
 # dev-setup — scaffold templates
 
-Reproducible-environment files for the `dev-setup` capability. Pin versions to
-what the repo already uses (read existing configs / CI) before writing.
+Reproducible-environment files for the `dev-setup` capability. Pin versions to what the repo already uses (read existing configs / CI) before writing.
 
 ## `mise.toml` (house style toolchain pinning)
 
@@ -53,5 +52,4 @@ command -v pre-commit >/dev/null 2>&1 && pre-commit install || true
 echo "Setup complete. Run the tests with: <test command>"
 ```
 
-Make it executable: `chmod +x scripts/setup`, and reference it from
-CONTRIBUTING and the README.
+Make it executable: `chmod +x scripts/setup`, and reference it from CONTRIBUTING and the README.
