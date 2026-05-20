@@ -29,10 +29,10 @@ Use GraphQL (REST doesn't expose `isResolved`):
 
 ```
 gh api graphql -f query='
-query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
+query($owner: String!, $repo: String!, $pr: Int!, $endCursor: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $pr) {
-      reviewThreads(first: 100, after: $cursor) {
+      reviewThreads(first: 100, after: $endCursor) {
         pageInfo { hasNextPage endCursor }
         nodes {
           id
@@ -56,7 +56,7 @@ query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
 }' -F owner=<o> -F repo=<r> -F pr=<num>
 ```
 
-`reviewThreads` is capped at 100 per page. For PRs with more threads, loop on the cursor: pass `-F cursor=<endCursor>` from the previous page while `pageInfo.hasNextPage` is true, accumulating `nodes` across pages — otherwise threads past the first 100 are silently dropped, which would undercount the "unresolved" total reported in Step 4. (`gh api graphql --paginate` automates this when the query exposes `pageInfo { hasNextPage endCursor }`, as above.)
+`reviewThreads` is capped at 100 per page. For PRs with more threads, loop on the cursor: pass `-F endCursor=<endCursor>` from the previous page while `pageInfo.hasNextPage` is true, accumulating `nodes` across pages — otherwise threads past the first 100 are silently dropped, which would undercount the "unresolved" total reported in Step 4. (`gh api graphql --paginate` automates this only when the query declares a variable literally named `$endCursor` and exposes `pageInfo { hasNextPage endCursor }`, as above — `gh` ignores any other cursor variable name.)
 
 ### 2. Filter to unresolved
 
