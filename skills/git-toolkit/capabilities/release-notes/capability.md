@@ -115,7 +115,7 @@ Format rules:
 
 - Per-bullet: lead with `**<scope>**` (bold) if conventional-commits scope present, then the verb/object, then PR link + author credit.
 - Linked issues from commit and PR body → `Closes #N` per `../../references/issue-references.md` rules. Only include `Closes` keywords if the diff actually closes the issue.
-- Skip commits whose subjects look generated (`Merge ...`, `Revert "..."` without context, bot-authored commits per `../../references/git-gh-quirks.md`).
+- Skip commits whose subjects look generated (`Merge ...`, `Revert "..."` without context, bot-authored commits per `../../references/bot-signatures.md`).
 - Authors credited via `@<github-handle>` from PR author in the "Contributors" section. **NEVER add `Co-authored-by:` trailers to the release notes** — the contributor list provides credit.
 - Match repo emoji convention by checking prior release notes; default to no emoji headings unless they're already established.
 
