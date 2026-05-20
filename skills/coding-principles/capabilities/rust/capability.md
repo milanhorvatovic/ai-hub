@@ -64,7 +64,7 @@ Language-specific rules layered on top of the parent `coding-principles` skill. 
 
 - Features are additive. Enabling a feature must not change behavior in a way that breaks downstream code.
 - Default features should be the common case. Crates intended for `no_std` use should have `std` as a default feature, opt-out.
-- Workspaces: pin dependency versions in the workspace root; member crates inherit with `package = { workspace = true }`.
+- Workspaces: pin dependency versions in the workspace root; member crates inherit per-dependency with `serde = { workspace = true }` (and `[package]` fields with `version.workspace = true`).
 
 ## Anti-patterns
 
