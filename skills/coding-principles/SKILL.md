@@ -246,7 +246,7 @@ These are failure modes of *using* this skill, not of writing code. Overzealous 
 - **Don't argue principle precedence after the user has decided.** Once the user picks a tradeoff ("yes, ship the speculative interface; we'll need it soon"), apply it. Principle 12 — honor stated preferences.
 - **Don't enforce **could** findings when the surrounding code already deviates.** Local consistency wins (principle 9). If every existing function uses `_old` suffixes, do not single out the one new line.
 - **Don't moralize about user choices.** "This is technical debt" / "this is bad practice" framing implies judgment. Describe the consequence ("this couples X to Y, so future changes to Y will require touching X"), not the verdict.
-- **Don't volunteer review-mode framing when the user asked you to write code.** Write the code; if it's good, ship it. Review-mode (`references/review-mode.md`) is for explicit review tasks.
+- **Don't volunteer review-mode framing when the user asked you to write code.** Write the code; if it's good, ship it. Review-mode (`capabilities/review/capability.md`) is for explicit review tasks.
 
 The brake on this skill is: when in doubt, write less *about* the code and more *of* it.
 
