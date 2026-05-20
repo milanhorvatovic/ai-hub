@@ -45,9 +45,16 @@ def test_mantra_count_is_consistent(skill_md: Path, references_dir: Path) -> Non
     """16 mantras in mantras.md (across the three tiers), 16 numbered summaries
     in the router, and the file-layout table's "16 mantras" claim all agree."""
     mantras_md = (references_dir / "mantras.md").read_text(encoding="utf-8")
-    # Bold-bullet mantras live between the first tier header and the reverse map.
-    tier_block = _between(mantras_md, "## Tier 1", "## Mantra")
-    bullets = [l for l in tier_block.splitlines() if l.startswith("- **")]
+    # Count bold-bullet mantras within each tier section explicitly. (Spanning
+    # from "## Tier 1" to a "## Mantra" marker only worked because it matched
+    # the reverse-map header — fragile if another "## Mantra"-prefixed section
+    # were ever added inside the tiers.)
+    bullets = [
+        line
+        for tier in ("## Tier 1", "## Tier 2", "## Tier 3")
+        for line in _section(mantras_md, tier).splitlines()
+        if line.startswith("- **")
+    ]
     assert len(bullets) == EXPECTED_MANTRAS, (
         f"mantras.md has {len(bullets)} tier bullets, expected {EXPECTED_MANTRAS}"
     )
@@ -102,18 +109,3 @@ def test_capability_name_slugs_follow_pattern(capabilities_dir: Path) -> None:
         if actual != expected:
             mismatches.append(f"{cap_dir.name}: name={actual!r}, expected {expected!r}")
     assert not mismatches, "capability slug drift:\n" + "\n".join(mismatches)
-
-
-def _between(text: str, start_prefix: str, end_prefix: str) -> str:
-    """Body between the first line starting with `start_prefix` and the first
-    subsequent line starting with `end_prefix`."""
-    lines = text.splitlines()
-    start = next(
-        (i for i, l in enumerate(lines) if l.startswith(start_prefix)), None
-    )
-    assert start is not None, f"marker not found: {start_prefix!r}"
-    end = next(
-        (i for i in range(start + 1, len(lines)) if lines[i].startswith(end_prefix)),
-        len(lines),
-    )
-    return "\n".join(lines[start + 1 : end])
