@@ -9,8 +9,6 @@ description: >
   React/JSX guidance, anti-patterns (enum, namespace, @ts-ignore), and
   before/after code examples anchored to numbered principles 16, 18, and
   19 of the parent skill.
-metadata:
-  version: "0.2.0"
 ---
 
 # TypeScript capability

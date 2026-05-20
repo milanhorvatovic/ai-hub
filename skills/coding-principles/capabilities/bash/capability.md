@@ -8,8 +8,6 @@ description: >
   arrays, anti-patterns (useless cat, eval, parsing ls, etc.), and the
   tooling floor (shellcheck, shfmt). Extends the parent skill; does not
   override its principles.
-metadata:
-  version: "0.1.0"
 ---
 
 # Bash capability

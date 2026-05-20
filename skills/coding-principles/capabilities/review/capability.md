@@ -11,8 +11,6 @@ description: >
   (formatter-handled style nits, file-local-consistency conflicts,
   generated code), output format, and review-specific anti-patterns
   (lecturing, stacking coulds, inventing findings).
-metadata:
-  version: "0.2.0"
 ---
 
 # Review capability

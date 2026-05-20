@@ -8,8 +8,6 @@ description: >
   ownership and borrowing idioms, unsafe-block SAFETY comments, async
   runtime discipline, Cargo features (additive only), and anti-patterns
   (unwrap in libs, Box<dyn Error>, derive overdose).
-metadata:
-  version: "0.1.0"
 ---
 
 # Rust capability
