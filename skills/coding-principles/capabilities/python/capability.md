@@ -9,6 +9,7 @@ description: >
   bare except, eval, global), test conventions, and before/after code
   examples anchored to numbered principles 4, 5, 13, 15, 17, and 19 of the
   parent skill.
+allowed-tools: Read Grep
 ---
 
 # Python capability
