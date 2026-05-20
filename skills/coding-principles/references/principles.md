@@ -81,7 +81,7 @@ Default to writing no comments. Well-named identifiers already explain what. Add
 
 Do not write comments that reference the current PR, ticket, or caller ("added for the X flow", "used by Y", "fix for #123") — those rot. Put that in the commit message.
 
-Never write multi-paragraph docstrings or block comments unless the project's existing style demands it (check `repo-conventions`).
+Never write multi-paragraph docstrings or block comments unless the project's existing style demands it (check the repo's declared conventions and sibling files).
 
 ## 8. No half-implementations — *must*
 
@@ -93,7 +93,7 @@ A half-implementation is worse than nothing — it looks done, passes the typech
 
 Before modifying a file, read enough of it (and its callers) to understand the local conventions: naming, error handling, logging, test patterns. Match the surrounding style even when it differs from your default. Consistency inside a file matters more than absolute purity.
 
-When the file is new, `repo-conventions` or sibling files anchor the style.
+When the file is new, the repo's declared conventions or sibling files anchor the style.
 
 ## 10. Verify the change works — *must*
 

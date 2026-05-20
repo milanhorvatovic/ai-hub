@@ -59,4 +59,4 @@ You're either **refactoring** (changing structure, tests stay green, no behavior
 - **Principle 9** — match file-local conventions; don't refactor for personal taste.
 - **Testability + pure/impure mantras** — "hard to test" is the signal to refactor; the target is a pure core with I/O at the edges.
 - **Scalability mantra** — expand-contract and strangler-fig are how you *add/replace* without a risky rewrite.
-- Pairs with the **`simplify`** skill (post-edit cleanup) and this skill's **review** capability (which flags refactor-worthy smells via `smells.md`).
+- Pairs with a separate post-edit cleanup pass and this skill's **review** capability (which flags refactor-worthy smells via `smells.md`).

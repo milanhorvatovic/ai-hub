@@ -33,7 +33,7 @@ This skill is built for *AI agents authoring code*, not for human teams iteratin
 - **Severity (must / should / could) governs triage.** When several violations exist at once, fix musts first, recommend shoulds, apply coulds silently.
 - **Mantra tier (Goals > Design > Pruning) governs design conflicts.** When two principles fight, the higher tier wins. Inside a tier, siblings are case-by-case — they answer different questions and rarely conflict head-on.
 - **YAGNI is a check, not a veto.** Modular shape (small functions, narrow interfaces, isolated I/O, typed boundaries) is free at write-time and earned by the current feature. Infrastructure (one-impl interfaces, plugin points, factories, configuration layers) requires evidence of need and is deferred.
-- **The skill is read-only.** It shapes the Edit/Write calls that follow; it does not run linters, formatters, or refactor tools. Pair with `simplify` (post-edit cleanup) and `repo-conventions` (file-local style) — see "Relationship to other skills" below.
+- **The skill is read-only.** It shapes the Edit/Write calls that follow; it does not run linters, formatters, or refactor tools, and it leaves post-edit cleanup and repo-local style to separate passes — see "Scope boundaries" below.
 
 When in doubt about how a rule applies: prefer the interpretation that produces simpler, more typed, more testable, more observable code in *this* draft — not the one that anticipates future flexibility.
 
@@ -42,7 +42,7 @@ When in doubt about how a rule applies: prefer the interpretation that produces 
 - **Is:** a rulebook the agent reads before and during code changes. Decisions about scope, abstraction, error handling, comments, and compatibility flow through this skill's rules.
 - **Is not:** a linter, a code reviewer, a refactor tool, or a doc generator. It does not modify files. It does not produce a report. It shapes how *other* writes happen.
 
-Pairs with `simplify` (post-hoc cleanup of changed code), `repo-conventions` (what the repo already declares), and `git-toolkit` (how the change gets narrated).
+Adjacent concerns are deliberately out of scope: post-hoc cleanup of changed code, the repo's own declared conventions, and how the change is narrated (commits, PRs, branches). See "Scope boundaries" below.
 
 ## File layout
 
@@ -117,7 +117,7 @@ Do not trigger when:
 - The task is exploratory ("how does X work?", "where is Y defined?") with no edit intent.
 - The change is docs-only, config-only, or pure data (e.g. JSON fixtures).
 - The user is asking for an ops/infra action (deploy, restart, rollback).
-- A more specific skill already owns the task (e.g. `git-toolkit` for commit messages).
+- A more specific skill or tool already owns the task (e.g. authoring commit messages or PR descriptions).
 
 ## Mantras (one-line summaries)
 
@@ -269,7 +269,7 @@ For idioms, tooling floor, language-specific anti-patterns, and code examples an
 
 Load only when the task touches files in that language. Reading all four for a Python-only change wastes context. When a change spans languages, load both capabilities.
 
-For languages not covered above (Go, Ruby, Java, C/C++, Swift, etc.), fall back to the core principles plus what `repo-conventions` reports for the specific repo. Propose a new capability if the language is recurring in this user's work.
+For languages not covered above (Go, Ruby, Java, C/C++, Swift, etc.), fall back to the core principles plus the repo's own declared conventions for the specific repo. Propose a new capability if the language is recurring in this user's work.
 
 ### Workflow capabilities (task-type trigger)
 
@@ -285,13 +285,15 @@ Capabilities extend the core principles; they do not override them. If a capabil
 
 This skill produces no output of its own. It loads as context and shapes downstream tool calls (Edit, Write) and end-of-turn summaries. If invoked explicitly with `/coding-principles` and no follow-up task, respond with: *"Loaded. What are we coding?"* — nothing more.
 
-## Relationship to other skills
+## Scope boundaries
 
-- **`simplify`** — a separate post-edit refactor pass on already-written code (reuse opportunities, dead branches, redundant abstractions). This skill applies during *writing* (avoid violations via the router checklist) and during *review* (find violations via the review capability); `simplify` runs *after* the edits are made — typically against the diff before commit — to suggest cleanups this skill could have prevented but didn't. Sequence on a typical task: write with `coding-principles` → run `simplify` on the diff → fix → commit. Do not load both as the same task lens; they answer different questions (this one shapes the change; `simplify` polishes what's already there).
-- **`repo-conventions`** — tells you what the repo already declares. This skill tells you how to think; `repo-conventions` tells you what this specific repo expects. When they conflict, repo-local conventions win for style decisions; principles win for design decisions.
-- **`git-toolkit`** — handles how the change is narrated (commits, PRs, branches). This skill is silent on narration.
-- **`security-review`** — separate concern; security review evaluates threat models, this skill evaluates implementation hygiene.
-- **`docs-steward`** — separate concern; docs formatting and lint, not code.
+This skill covers implementation discipline only. Adjacent concerns are deliberately out of scope and belong to separate passes or tools:
+
+- **Post-edit cleanup** — a separate refactor pass over already-written code (reuse opportunities, dead branches, redundant abstractions). This skill applies during *writing* (avoid violations via the router checklist) and during *review* (find violations via the review capability); cleanup runs *after* the edits are made, typically against the diff before commit, to catch what slipped through. Sequence on a typical task: write → clean up the diff → fix → commit. The two are different lenses — this one shapes the change; cleanup polishes what's already there.
+- **Repo-local conventions** — what the specific repo already declares (style, naming, and structure in `CLAUDE.md` / `AGENTS.md` / `CONTRIBUTING.md`, lint configs, and sibling files). This skill tells you how to think; the repo's conventions tell you what this repo expects. When they conflict, repo-local conventions win for style decisions; principles win for design decisions.
+- **Change narration** — how the change is described in commits, PRs, and branches. This skill is silent on narration.
+- **Security review** — threat-model evaluation. This skill evaluates implementation hygiene, not threat models.
+- **Docs formatting** — documentation formatting and lint, not code.
 
 ## Edge cases
 
