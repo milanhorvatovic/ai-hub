@@ -7,7 +7,7 @@ Consumers should parse one line at a time and dispatch by `event`. Schema is sta
 ## EventType table
 
 | Event | Tool field | Detail shape | When emitted |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `available` | tool name | string (version string) | `probe.py`: each tool found on PATH |
 | `installed` | tool name | string (version string) | `recommend-tools.py`: each tool already installed |
 | `missing` | `"all"` or tool name | string (install hint) | `probe.py` exit 3; `md-audit.py` / `md-format.py` when no usable formatter; `md-audit-frontmatter.py` when yamllint absent |
@@ -18,7 +18,7 @@ Consumers should parse one line at a time and dispatch by `event`. Schema is sta
 | `finding` | tool name | string (one line of formatter output) | `md-audit.py` / `md-fix.py` audit phase: per-finding line from the formatter |
 | `changed` | tool name | string (one line of formatter output) | `md-format.py` write mode: per-file change line |
 | `would-change` | tool name | string (one line of formatter check output) | `md-format.py --dry-run`: per-file would-change line |
-| `clean` | tool name | string (human message) | When the chosen tool returns exit 0 with no findings/changes |
+| `clean` | tool name | string (human message) | When a tool returns exit 0 with no findings/changes. **Per-tool, not per-invocation:** a multi-pass audit can emit `clean` for one tool and `finding` for another in the same run (see "Multi-pass audit" below) — treat the exit code (or the presence of any `finding`) as the run-level verdict, never a lone `clean` |
 | `error` | tool name | `{"exit": int, "stderr"?: str}` (tool returned non-zero; `stderr` carries the failing-run diagnostic when present), `{"file": str, "reason": str}` (per-file unreadable), or string | When the chosen tool returns exit ≥ 2 (config error, plugin missing, etc.) OR — for `md-audit-frontmatter` — a target file fails to read (deleted between discovery and audit, encoding error, permission denied); see `error` variants below |
 | `plugin-available` | `"mdformat"` | `{"plugin": str, "package": str, "version": str}` | `probe.py`: each detected mdformat plugin (mdformat-gfm, mdformat-tables, etc.) |
 | `plugin-missing` | `"mdformat"` | `{"plugin": str, "package": str, "file": str, "reason": str}` | When mdformat is selected and a target file contains syntax requiring an absent plugin (today: GFM detection for `mdformat-gfm`) |
@@ -32,10 +32,10 @@ Two variants — the markdown formatter pipeline and the yamllint frontmatter pi
 
 #### Markdown formatter variant
 
-Emitted once per `md-audit` / `md-format` / `md-fix` invocation (and once per phase of fix-cycle).
+Emitted once per markdown-formatter pass. A single invocation is usually one pass, but several cases emit more than one `selected` (see "Multi-pass audit" below): each phase of `md-fix`'s fix-cycle (audit → format → re-audit), and any `md-audit` / `md-fix` run where a non-markdownlint formatter is paired with the complementary markdownlint lint pass. `selected` is therefore per-pass, not per-invocation — each carries its own `tool` and `cmd`.
 
 | Field | Type | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | `baseline` | string | The style-baseline config filename detected (`.markdownlint.json`, etc.) or `"universal-subset"` |
 | `mode` | string | `"audit"` or `"format"` |
 | `unwrap` | bool | Whether `--unwrap` was passed (adds `--prose-wrap=never` / `--wrap=no` to the cmd) |
@@ -49,20 +49,31 @@ Emitted once per `md-audit` / `md-format` / `md-fix` invocation (and once per ph
 Emitted once per `md-audit-frontmatter` invocation by `yaml_audit.audit_frontmatter`. The `tool` field on the event is always `"yamllint"`.
 
 | Field | Type | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | `mode` | string | Always `"audit-frontmatter"` |
 | `config_source` | string | `"repo"` (caller passed `--yamllint-config`), `"bundled"` (bundled fallback yamllint.yaml), or `"tool-default"` (no config available) |
 | `config_path` | string or null | Resolved absolute path of the yamllint config in use, or null when no config could be resolved |
 | `files_scanned` | int | Count of markdown files the audit walked |
 
 Notes:
+
 - The frontmatter variant does NOT include `baseline`, `unwrap`, `cmd`, `files_scoped`, or `dry_run` — those are markdown-pipeline-specific concepts.
 - Field-stability guarantees apply per-variant — adding fields to one variant doesn't imply adding them to the other.
+
+### Multi-pass audit
+
+`md-audit` and `md-fix` are not always a single tool pass. When the selected formatter is not markdownlint (e.g. prettier — the config-less default) and a markdownlint binary is on PATH, a complementary **markdownlint lint pass** runs alongside it in read-only audit mode: prettier owns formatting (wrap, tables, whitespace) while markdownlint reports the semantic `MD###` rules prettier ignores (MD040, MD036, MD033, MD034, …). For `md-fix` this pass runs after the fix-cycle, so the cycle's `delta` measures only what the format pass resolved while the lint pass surfaces the rule violations no formatter auto-fixes.
+
+Consequences for consumers:
+
+- **Two `selected` events.** One for the formatter, one for the markdownlint pass — each with its own `tool` and `cmd`. This is expected, not a duplicate.
+- **`clean` is per-tool.** The formatter may exit clean and emit `clean` while the markdownlint pass emits `finding` events in the same run. A lone `clean` event never means "the whole run is clean."
+- **The exit code is the run-level verdict.** It is the `max` across all passes (plus any `plugin-missing` / fix-cycle outcome): `0` only when every pass is clean, `1` when any pass reports findings, `≥ 2` on any invocation error. Key on the exit code (or the presence of any `finding` event), not on `clean`.
 
 ### `recommend`
 
 | Field | Type | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | `priority_rank` | int | 1-based rank in `INSTALL_PRIORITY` (1 = top priority) |
 | `install_options` | list[str] | Platform-specific install commands the user can run |
 
@@ -107,7 +118,7 @@ Computed by comparing finding-line sets between pre-format audit and post-format
 Uniform across all entry shims:
 
 | Exit | Meaning |
-|---|---|
+| --- | --- |
 | 0 | Clean (no findings or no changes needed) |
 | 1 | Findings present, files changed, or fix-cycle left findings unresolved |
 | 2 | Formatter invocation error (returncode ≥ 2), OR — for `md-audit-frontmatter` — any target file was unreadable (per-file ERROR events emit inline; lint findings, when also present, still appear in the event stream but the aggregate exit code stays 2 so consumers don't misread "audit found problems" as "audit setup is fine") |

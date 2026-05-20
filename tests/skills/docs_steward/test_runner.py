@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 from docs_steward.baseline import UNIVERSAL_SUBSET
+from docs_steward.commands import build_command
 from docs_steward.events import EventType
 from docs_steward.modes import Mode
 from docs_steward.process import ProcessResult
@@ -34,6 +35,44 @@ class RunToolTests(unittest.TestCase):
         kinds = [e.event for e in events]
         self.assertIn(EventType.SELECTED, kinds)
         self.assertIn(EventType.CLEAN, kinds)
+
+    def test_tool_override_runs_specified_tool_not_selector_choice(self) -> None:
+        # baseline `.editorconfig` belongs to no tool family (no --config
+        # forwarded); both prettier and markdownlint-cli2 are on PATH so the
+        # selector would normally pick prettier (FALLBACK_ORDER). The override
+        # forces markdownlint-cli2 instead — the mechanism behind the CLI's
+        # complementary lint pass.
+        cmd = tuple(
+            build_command(
+                Tool.MARKDOWNLINT_CLI2, Mode.AUDIT, unwrap=False, config_path=None
+            )
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier", "markdownlint-cli2": "/x/mdl2"},
+            results={cmd: ProcessResult(0, "", "")},
+        )
+        events, code = run_tool(
+            Mode.AUDIT, ".editorconfig", False, runner, ROOT,
+            tool_override=Tool.MARKDOWNLINT_CLI2,
+        )
+        self.assertEqual(code, 0)
+        selected = next(e for e in events if e.event == EventType.SELECTED)
+        self.assertEqual(selected.tool, "markdownlint-cli2")
+
+    def test_tool_override_not_on_path_returns_exit_3(self) -> None:
+        # An override bypasses select_tool's PATH gate, so run_tool re-applies
+        # it: a forced tool that isn't installed resolves to MISSING / exit 3
+        # (no usable formatter) — the same contract as the selector path —
+        # never a 127-style invocation error (exit 2). The complementary lint
+        # pass avoids this branch by pre-checking with which() and skipping the
+        # call when no markdownlint binary is present.
+        runner = FakeProcessRunner(paths={"prettier": "/x/prettier"})  # no markdownlint
+        events, code = run_tool(
+            Mode.AUDIT, ".editorconfig", False, runner, ROOT,
+            tool_override=Tool.MARKDOWNLINT_CLI2,
+        )
+        self.assertEqual(code, 3)
+        self.assertEqual(events[0].event, EventType.MISSING)
 
     def test_audit_clean_with_preamble_stdout_returns_exit_0(self) -> None:
         # Regression: markdownlint-cli2 prints version + file count + "Summary: 0 error(s)"
@@ -476,7 +515,10 @@ class QuietFlagTests(unittest.TestCase):
     def test_quiet_drops_markdownlint_cli2_preamble(self) -> None:
         cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         # Mixed preamble + real findings; quiet should drop preamble only.
+        # Includes the cli2 startup banner (version + parenthetical engine
+        # version) which the generic version-banner pattern misses.
         output = (
+            "markdownlint-cli2 v0.22.1 (markdownlint v0.40.0)\n"
             "Finding: **/*.md\n"
             "Linting: 3 file(s)\n"
             "Summary: 2 error(s)\n"
@@ -620,6 +662,31 @@ class QuietFlagTests(unittest.TestCase):
         # The two version banners must NOT appear as findings.
         self.assertFalse(any(f == "prettier 3.2.5" for f in findings))
         self.assertFalse(any(f == "mdformat 0.7.17" for f in findings))
+
+    def test_quiet_does_not_drop_finding_with_cli2_banner_path_prefix(self) -> None:
+        # Regression: the cli2-banner pattern used to anchor only the
+        # `markdownlint-cli2 v… (markdownlint v` prefix, so a finding whose
+        # path literally begins with the banner shape (a markdown file named
+        # `markdownlint-cli2 v0.22.1 (markdownlint v0.40.0).md`) was wrongly
+        # swallowed. Anchoring the full banner to `\)\s*$` means a `path:line`
+        # locator — which continues past the paren — can no longer match.
+        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        output = (
+            "markdownlint-cli2 v0.22.1 (markdownlint v0.40.0)\n"
+            "markdownlint-cli2 v0.22.1 (markdownlint v0.40.0).md:1 MD040 fenced-code-language\n"
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier"},
+            results={cmd: ProcessResult(1, output, "")},
+        )
+        events, _ = run_tool(
+            Mode.AUDIT, ".prettierrc", False, runner, ROOT, quiet=True,
+        )
+        findings = [e.detail for e in events if e.event == EventType.FINDING]
+        # The bare banner is dropped; the finding whose path starts with the
+        # banner shape survives.
+        self.assertEqual(len(findings), 1)
+        self.assertIn("MD040", findings[0])
 
 
 # ============================================================

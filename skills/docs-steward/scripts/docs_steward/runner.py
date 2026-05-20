@@ -26,6 +26,7 @@ from .modes import Mode
 from .paths import is_absolute, posix_join
 from .process import ProcessRunner
 from .selector import baseline_belongs_to_tool, select_tool
+from .tools import Tool
 
 
 _NO_TOOL_HINT = (
@@ -53,6 +54,15 @@ _PREAMBLE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(
         r"^(markdownlint(?:-cli2)?|prettier|mdformat|dprint|remark|yamllint)\s+v?\d+(?:\.\d+)*\s*$",
     ),
+    # markdownlint-cli2's startup banner carries a trailing engine version in
+    # parens (`markdownlint-cli2 v0.22.1 (markdownlint v0.40.0)`), so the
+    # generic version-banner pattern above (anchored `\s*$` after the version)
+    # doesn't catch it. Match the *full* banner — version, parenthetical engine
+    # version, and end-of-line — so a finding line whose path merely begins with
+    # the banner shape (e.g. a file named `markdownlint-cli2 v0.22.1 (markdownlint
+    # v0.40.0).md`, which continues `:line MD### ...`) is never swallowed: the
+    # trailing `\)\s*$` anchor can't match a `path:line` locator.
+    re.compile(r"^markdownlint-cli2 v[\d.]+\s+\(markdownlint v[\d.]+\)\s*$"),
     re.compile(r"^Finding:\s"),                       # markdownlint-cli2 banner
     re.compile(r"^Linting:\s"),                       # markdownlint-cli2 banner
     re.compile(r"^Summary:\s\d+\serror"),             # markdownlint-cli2 summary
@@ -163,6 +173,7 @@ def run_tool(
     files: Sequence[str] | None = None,
     quiet: bool = False,
     dry_run: bool = False,
+    tool_override: Tool | None = None,
 ) -> tuple[list[Event], int]:
     """Run the selected formatter and emit events.
 
@@ -172,6 +183,16 @@ def run_tool(
     - `quiet`: drop preamble lines from the formatter's output.
     - `dry_run`: in FORMAT mode, run the audit invocation instead and emit
       WOULD_CHANGE events. Ignored in AUDIT mode.
+    - `tool_override`: run this specific tool instead of selecting one from
+      `baseline`. Used for the complementary markdownlint lint pass the CLI
+      runs alongside a non-markdownlint formatter in audit mode (pass
+      `baseline=UNIVERSAL_SUBSET` with the override to pick up the tool's
+      bundled config). An override bypasses `select_tool`'s PATH gate, so
+      run_tool re-checks it with `runner.which` and returns the MISSING /
+      exit-3 (no usable formatter) result when the override isn't on PATH —
+      the same contract as the selector path. Callers that want a *soft* skip
+      when the tool is absent (the lint pass is optional) must pre-check with
+      `runner.which` and not call run_tool at all; see `_markdownlint_lint_pass`.
     """
     effective_mode = mode
     # dry_run on FORMAT mode delegates to the AUDIT invocation under the hood
@@ -180,7 +201,18 @@ def run_tool(
     if dry_run and mode == Mode.FORMAT:
         effective_mode = Mode.AUDIT
 
-    tool = select_tool(baseline, runner)
+    # An override bypasses select_tool's PATH gate, so re-apply that gate here:
+    # an override naming a tool that isn't on PATH resolves to None and flows
+    # through the same MISSING / exit-3 ("no usable formatter") contract as the
+    # selector path, rather than reaching runner.run and degrading to a 127 ->
+    # exit-2 (invocation error). Callers wanting a *soft* skip when the tool is
+    # absent (the complementary markdownlint lint pass is optional, not
+    # required) must pre-check with runner.which and not call run_tool at all —
+    # see cli._markdownlint_lint_pass.
+    if tool_override is not None:
+        tool = tool_override if runner.which(tool_override.value) is not None else None
+    else:
+        tool = select_tool(baseline, runner)
     if tool is None:
         return (
             [Event(EventType.MISSING, "all", _NO_TOOL_HINT.format(baseline=baseline))],

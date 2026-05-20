@@ -4,8 +4,12 @@ The baseline-preference table maps a baseline-name prefix to the ordered list
 of tools that consume that config family. When the baseline matches a prefix,
 the matching tools are tried in order; the first one on PATH wins. When no
 prefix matches (or none of the preferred tools is available), `FALLBACK_ORDER`
-is tried in order — favoring strict linters over loose formatters, so the
-caller gets the noisiest signal when given a choice.
+is tried in order — prettier first, so a repo that declares no config still gets
+consistent formatting (including `proseWrap: never` from the bundled config).
+The semantic `MD###` rules are not lost: the CLI runs markdownlint as a
+complementary lint pass alongside the chosen formatter in audit mode (see
+`cli._dispatch_run` / `runner.run_tool`'s `tool_override`), so prettier owns
+formatting while markdownlint still reports the rules it doesn't.
 
 This selection order is intentionally different from `priority.INSTALL_PRIORITY`
 which optimizes for "what should the user install first?" — see priority.py.
@@ -40,9 +44,9 @@ _BASELINE_PREFERENCES: tuple[tuple[str, tuple[Tool, ...]], ...] = (
 
 
 FALLBACK_ORDER: tuple[Tool, ...] = (
+    Tool.PRETTIER,
     Tool.MARKDOWNLINT_CLI2,
     Tool.MARKDOWNLINT,
-    Tool.PRETTIER,
     Tool.MDFORMAT,
     Tool.DPRINT,
     Tool.REMARK,

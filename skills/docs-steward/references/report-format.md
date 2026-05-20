@@ -24,7 +24,7 @@ Each `finding` event becomes one line. The line text is the formatter's raw outp
 ## Header fields
 
 | Field | Source NDJSON event | Source field |
-|---|---|---|
+| --- | --- | --- |
 | `<repo-name>` | (derived) | basename of `repo.repo_root` result |
 | `<N>` | (derived) | count of distinct files mentioned across `finding` events |
 | `<YYYY-MM-DD HH:MM:SS>` | (derived) | local time of the audit run |
