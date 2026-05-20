@@ -25,7 +25,7 @@ Prefer bash builtins and parameter expansion over external tools for per-iterati
 ## Read files efficiently
 
 ```bash
-# slow — fork per line
+# slow — useless cat fork + per-line read overhead
 while read -r line; do process "$line"; done < <(cat file)
 ```
 
