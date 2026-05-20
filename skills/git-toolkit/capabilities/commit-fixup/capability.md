@@ -61,7 +61,7 @@ If no candidate scores above a floor (say, 3): the staged change isn't a fixup â
 ### 4. Detect if target is pushed and reviewed
 
 ```
-git rev-list <target>..HEAD --remotes  # is the target on a remote tracking branch?
+git branch -r --contains <target>  # non-empty â†’ the target commit is on a remote branch
 ```
 
 If yes, AND a PR exists with reviews: emit the rebase-impact warning (same as `rebase-cleanup`'s force-push warning). The fixup is fine to create; the eventual `git rebase --autosquash` is what's destructive.
