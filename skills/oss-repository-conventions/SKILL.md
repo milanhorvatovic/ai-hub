@@ -90,12 +90,12 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 |---|---|---|
 | repo-infrastructure | Git hygiene files (.gitignore/.gitattributes/.editorconfig/.mailmap) and repo settings (default branch, topics, merge policy) | capabilities/repo-infrastructure/capability.md |
 | dev-setup | Toolchain pinning (mise/.tool-versions), dev/test deps, one-command bootstrap, .env.example, devcontainer | capabilities/dev-setup/capability.md |
+| code-style | Per-language formatters & linters, pre-commit/lefthook hooks, style enforced in CI | capabilities/code-style/capability.md |
 
 ### Roadmap (planned, not yet built)
 
 Listed by name only — not yet routable. Built capabilities graduate into the tables above.
 
-- `code-style` — linters/formatters per language, pre-commit/lefthook
 - `testing-quality` — frameworks, coverage gating, test layout, CI test config
 - `ci-automation` — workflows, required checks, matrix, OIDC, action pinning, scheduled automation, bots
 - `dependency-supply-chain` — Dependabot/Renovate, lockfiles, SBOM, action/dependency pinning, supply-chain policy
