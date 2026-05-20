@@ -74,6 +74,7 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 |---|---|---|
 | licensing | LICENSE selection & SPDX, dual/multi-licensing, per-file headers, REUSE compliance, NOTICE, license compatibility | capabilities/licensing/capability.md |
 | security-policy | SECURITY.md & private disclosure, advisories, signed commits/tags, provenance/SLSA, OpenSSF Scorecard signals, branch protection | capabilities/security-policy/capability.md |
+| code-of-conduct | CODE_OF_CONDUCT (Contributor Covenant), enforcement contact | capabilities/code-of-conduct/capability.md |
 
 ### Contribution & community
 
@@ -85,7 +86,6 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 
 Listed by name only — not yet routable. Built capabilities graduate into the tables above.
 
-- `code-of-conduct` — Contributor Covenant, enforcement contact
 - `governance` — GOVERNANCE, MAINTAINERS/OWNERS, CODEOWNERS, AUTHORS
 - `community-health` — issue/PR templates, SUPPORT, FUNDING, discussions, labels
 - `repo-infrastructure` — .gitignore/.gitattributes/.editorconfig/.mailmap, repo settings, branch protection, topics
