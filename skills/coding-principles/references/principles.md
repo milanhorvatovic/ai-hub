@@ -1,6 +1,6 @@
 # Numbered principles (full prose)
 
-Operational rules. Each principle is enforceable on its own; the mantras in `mantras.md` are the shorthand category labels they live under.
+Operational rules. Each principle is enforceable on its own; the mantras in `references/mantras.md` are the shorthand category labels they live under.
 
 Cross-references to mantras are by name. Cross-references between principles are by number (`see principle N`).
 
@@ -24,7 +24,7 @@ Severity governs *triage* (which violation to fix first). The **mantra tier hier
 
 Inside a tier, siblings are case-by-case — they answer different questions and rarely conflict head-on. When two principles in the same tier appear to fight, look for the trap (e.g. modular-by-composition's "delegate behavior, not the held object" resolves the apparent tension between composition and encapsulation).
 
-This rule is duplicated in `mantras.md` because it is load-bearing: an agent that loads `principles.md` without the mantras still needs to know how design conflicts resolve.
+This rule is duplicated in `references/mantras.md` because it is load-bearing: an agent that loads `references/principles.md` without the mantras still needs to know how design conflicts resolve.
 
 ## 1. Match scope to the request — *should*
 

@@ -73,5 +73,5 @@ Detect N+1 in tests by asserting query count, not just result correctness.
 ## Observability of persistence
 
 - Log slow queries (most DBs have a slow-query log; ORMs can log query timing).
-- Emit query-count and query-duration metrics per endpoint (see `observability.md`) — N+1 shows up as a query-count spike.
+- Emit query-count and query-duration metrics per endpoint (see `references/observability.md`) — N+1 shows up as a query-count spike.
 - Trace queries as spans within the request trace so a slow endpoint points at the slow query.

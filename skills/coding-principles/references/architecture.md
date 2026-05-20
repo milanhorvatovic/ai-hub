@@ -57,7 +57,7 @@ Don't cargo-cult the full ceremony. The *load-bearing* idea is "dependencies poi
 | Unit tests | next to source or mirrored `tests/` tree — match the language (Rust: in-file `#[cfg(test)]`; Python/TS: either) |
 | Integration tests | separate `tests/` directory |
 | Public API entry | one obvious entry point (`__init__.py`, `index.ts`, `lib.rs`, `main`) |
-| Config | loaded at the edge, not scattered (see `configuration.md`) |
+| Config | loaded at the edge, not scattered (see `references/configuration.md`) |
 | Generated code | clearly marked, separate dir, never hand-edited |
 
 ## When NOT to layer

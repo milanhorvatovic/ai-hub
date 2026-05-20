@@ -24,7 +24,7 @@ You're either **refactoring** (changing structure, tests stay green, no behavior
 
 ## Patterns for change at scale
 
-- **Parallel change / expand-contract** (you have this for DB migrations in `persistence.md` — it generalizes to APIs, function signatures, schemas, config):
+- **Parallel change / expand-contract** (you have this for DB migrations in `references/persistence.md` — it generalizes to APIs, function signatures, schemas, config):
   1. **Expand** — add the new form alongside the old (new param with a default, new field, new function).
   2. **Migrate** — move callers/consumers to the new form, incrementally.
   3. **Contract** — remove the old form once nothing uses it.
@@ -59,4 +59,4 @@ You're either **refactoring** (changing structure, tests stay green, no behavior
 - **Principle 9** — match file-local conventions; don't refactor for personal taste.
 - **Testability + pure/impure mantras** — "hard to test" is the signal to refactor; the target is a pure core with I/O at the edges.
 - **Scalability mantra** — expand-contract and strangler-fig are how you *add/replace* without a risky rewrite.
-- Pairs with a separate post-edit cleanup pass and this skill's **review** capability (which flags refactor-worthy smells via `smells.md`).
+- Pairs with a separate post-edit cleanup pass and this skill's **review** capability (which flags refactor-worthy smells via `references/smells.md`).

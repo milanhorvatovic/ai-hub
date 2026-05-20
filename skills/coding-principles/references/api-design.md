@@ -50,7 +50,7 @@ Use the status code that matches the semantics; don't return `200` with an `{err
 - Consistent shape across the whole API: `{ "error": { "code": "...", "message": "...", "request_id": "..." } }`.
 - `code` is a stable machine-readable string (`INVALID_EMAIL`), not a localized message.
 - `message` is human-readable but does not leak internals (no stack traces, SQL, file paths — principle 13).
-- Include a `request_id` clients can quote in support tickets (correlates with server logs — see `observability.md`).
+- Include a `request_id` clients can quote in support tickets (correlates with server logs — see `references/observability.md`).
 
 ### General
 
@@ -62,7 +62,7 @@ Use the status code that matches the semantics; don't return `200` with an `{err
 ## GraphQL
 
 - **Schema-first**: the schema is the contract; resolvers implement it. Nullability is part of the type — be deliberate (`String!` vs `String`).
-- **N+1 is the default failure mode** — use DataLoader (batching + caching) for every relation resolver. See `persistence.md`.
+- **N+1 is the default failure mode** — use DataLoader (batching + caching) for every relation resolver. See `references/persistence.md`.
 - **Pagination**: Relay connection spec (`edges`/`node`/`pageInfo`/`cursor`) is the industry standard.
 - **Errors**: partial results + a top-level `errors` array; use error extensions for machine-readable codes.
 - **Depth/complexity limiting**: cap query depth and cost server-side — unbounded nested queries are a DoS vector.
@@ -81,4 +81,4 @@ Use the status code that matches the semantics; don't return `200` with an `{err
 - **Authorize every request** (principle 13) — authentication ≠ authorization.
 - **Rate-limit** public endpoints; return `429` + `Retry-After`.
 - **Timeouts everywhere** — every outbound call from a handler has a deadline; never make an un-timed network call in a request path.
-- **Correlation IDs** — accept an inbound trace/request ID, generate one if absent, propagate it to every downstream call and every log line (see `observability.md`).
+- **Correlation IDs** — accept an inbound trace/request ID, generate one if absent, propagate it to every downstream call and every log line (see `references/observability.md`).

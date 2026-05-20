@@ -72,7 +72,7 @@ Per-principle violation tags:
 - **should** — strong default. Deviation needs a stated reason.
 - **could** — preference. Deviation is fine when surrounding code differs; apply silently when you can.
 
-Severity governs *triage*. Tier (Goals / Design / Pruning, in `mantras.md`) governs *design conflicts*. They answer different questions.
+Severity governs *triage*. Tier (Goals / Design / Pruning, in `references/mantras.md`) governs *design conflicts*. They answer different questions.
 
 ## Write-mode vs review-mode
 

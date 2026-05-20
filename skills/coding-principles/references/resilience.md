@@ -14,7 +14,7 @@ The core assumption: **every remote call will eventually fail, hang, or slow dow
 
 ## Retries
 
-- **Only retry idempotent / safe operations.** Retrying a non-idempotent `POST` double-charges. Use idempotency keys (see `api-design.md`) to make retries safe.
+- **Only retry idempotent / safe operations.** Retrying a non-idempotent `POST` double-charges. Use idempotency keys (see `references/api-design.md`) to make retries safe.
 - **Only retry transient failures** — timeouts, `503`, `429`, connection resets. Never retry `400`/`401`/`403`/`422` (the request is wrong; retrying it unchanged just wastes calls).
 - **Exponential backoff + jitter.** `delay = base * 2^attempt`, then add randomness. Without jitter, all clients retry in lockstep and create a thundering herd that re-downs the recovering dependency. Full jitter (`random(0, base * 2^attempt)`) is the AWS-recommended default.
 - **Bounded.** Cap attempts (e.g. 3) and total time. Infinite retries turn a blip into an outage.
@@ -51,7 +51,7 @@ Isolate resources so one failing dependency can't starve the others. Separate co
 
 ## Health checks
 
-- **Liveness** (process up) vs **readiness** (can serve — dependencies reachable). See `observability.md`. A dependency outage should fail readiness (shed traffic) without failing liveness (restart loop).
+- **Liveness** (process up) vs **readiness** (can serve — dependencies reachable). See `references/observability.md`. A dependency outage should fail readiness (shed traffic) without failing liveness (restart loop).
 
 ## Principle alignment
 

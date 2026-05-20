@@ -1,6 +1,6 @@
 # Mantras (full prose)
 
-Universal shorthand that governs every decision the skill makes. The numbered principles in `principles.md` are the operational form; the mantras are the labels you carry across decisions.
+Universal shorthand that governs every decision the skill makes. The numbered principles in `references/principles.md` are the operational form; the mantras are the labels you carry across decisions.
 
 ## Tier hierarchy and conflict resolution
 
@@ -27,11 +27,11 @@ Three tiers. **Tier wins over tier** when mantras conflict — a Tier 1 *goal* o
   - *Technique — composition over inheritance.* Combine behavior by *holding* and delegating, not by *extending* a base class. Inheritance creates rigid hierarchies, fragile-base-class problems, and couples subclasses to parent internals. Prefer composition (a `class` *holds* a `Logger`; it does not `extends LoggingBase`), small interfaces, and traits/mixins where the language supports them. Inheritance is acceptable for true *is-a* relationships the language idiomatically expects (extending `Exception`, implementing a framework-required base class) — never as a code-reuse mechanism. "Reuse via inheritance" is reuse purchased on credit.
   - *Boundary — minimum public surface.* Export the smallest API that satisfies callers; everything else private/internal. The public surface is a contract — every exported function, type, or constant is a future maintenance commitment. Default to private and promote on demand: `_prefix` in Python, omit `pub` in Rust, no re-export in TS index files, package-private in Java. A module that exports forty things has effectively no encapsulation; one that exports four has shape.
   - *The trap where technique fights boundary — delegate behavior, not the object.* Composition can leak surface area when a wrapper exposes pass-through accessors to its held collaborators. Resolution: expose `client.send(msg)`, not `client.getInternalSocket()`. The held collaborator is an implementation detail; the wrapper's API is the contract callers see. Use the held thing inside; do not hand it out.
-  - *What this principle rejects:* plugin systems, abstract base classes, DI containers, and "extension points" introduced without evidence of need — those are *speculative generality* (see principle 4 in `principles.md`), not modularity. Modular shape is free; modular infrastructure is not.
+  - *What this principle rejects:* plugin systems, abstract base classes, DI containers, and "extension points" introduced without evidence of need — those are *speculative generality* (see principle 4 in `references/principles.md`), not modularity. Modular shape is free; modular infrastructure is not.
 
 - **Strong typing** — Prefer concrete types over escape hatches (`any`, `Any`, `unknown`-without-narrowing, `Object`, `dynamic`, `void*`, `interface{}`). Escape hatches are a deliberate, justified choice — never the default. Types are how the compiler does free code review; don't disable it.
 
-- **Fail fast, fail loud** — Surface invalid state at the boundary it enters, not three call frames later as a confusing downstream error. Validate inputs at the function/module/service edge; assert invariants (`assert`, `invariant()`, type narrowing, range checks) at construction. Never silently coerce, default, or swallow — `try/except Exception: pass` is a future incident. When something is genuinely unexpected, throw or panic; don't return `None`, `false`, or an empty list and hope the caller notices. Pairs with principle 5 in `principles.md` (trust internal code): once validated at the boundary, downstream code does not re-check.
+- **Fail fast, fail loud** — Surface invalid state at the boundary it enters, not three call frames later as a confusing downstream error. Validate inputs at the function/module/service edge; assert invariants (`assert`, `invariant()`, type narrowing, range checks) at construction. Never silently coerce, default, or swallow — `try/except Exception: pass` is a future incident. When something is genuinely unexpected, throw or panic; don't return `None`, `false`, or an empty list and hope the caller notices. Pairs with principle 5 in `references/principles.md` (trust internal code): once validated at the boundary, downstream code does not re-check.
 
 - **Immutability by default** — `const` / `readonly` / `final` / `let` over mutable bindings; new values over in-place mutation; copy-on-write at boundaries. A mutated variable is a mini-state-machine; an immutable value is a fact. Pure functions over methods that mutate `self`. Mutability is a *justified* choice (performance-critical inner loops, accumulator patterns) — not the default. Reduces aliasing bugs, makes concurrency safer, and makes types more honest (`readonly T[]` says what it means).
 
@@ -50,7 +50,7 @@ Three tiers. **Tier wins over tier** when mantras conflict — a Tier 1 *goal* o
 
 ## Mantra → principle reverse map
 
-Diagnostic aid. When a mantra is being violated, these are the numbered principles in `principles.md` that operationalize it. Use this to translate a high-level concern ("this design isn't testable") into specific actionable findings.
+Diagnostic aid. When a mantra is being violated, these are the numbered principles in `references/principles.md` that operationalize it. Use this to translate a high-level concern ("this design isn't testable") into specific actionable findings.
 
 | Mantra | Operationalized by principles |
 | ------ | ----------------------------- |
