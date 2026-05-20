@@ -39,8 +39,10 @@ Treat any email matching these as bot-like unless the login disambiguates. The p
 .*-ci@
 ^ci@
 ^service-account@
-.*@.*\.iam\.gserviceaccount\.com$   (Google Cloud service accounts; common in CI)
+.*@.*\.iam\.gserviceaccount\.com$
 ```
+
+The last pattern (`.iam.gserviceaccount.com`) matches Google Cloud service accounts, common in CI. Each line in the block above is a bare regex with no inline comments — a consumer can read the fence line-by-line as patterns without stripping trailing prose.
 
 The exception (`noreply@github.com` alone, no `[bot]` prefix) is GitHub's web editor — that is a real user committing through the UI. Distinguish by checking the author's `name` field too: web-editor commits have a human name; bot commits have the bot's display name like `dependabot[bot]`.
 
