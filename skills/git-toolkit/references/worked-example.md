@@ -287,10 +287,11 @@ PR: #729 fix(upload): retry transient failures
 | WIP commits | ✅ none | |
 | Description in sync | ✅ IN-SYNC | last sync check passed |
 
-Verdict: NOT-READY (1 warn on unresolved thread).
+Verdict: PARTIALLY-READY (all gates pass; 1 warn on unresolved thread).
 
 Resolution: either close @reviewer-3's thread with a follow-up answer or accept the
-risk and merge over it (your call).
+risk and merge over it (your call) — PARTIALLY-READY means it's safe to merge with
+an explicit caveat.
 ```
 
 ## Step 14 — `merge-execute` (GitHub-side)

@@ -99,7 +99,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 
 | Capability | Trigger | Path |
 |---|---|---|
-| merge-readiness | [GitHub-side] Pre-merge gate check — CI status, approvals, mergeability, unresolved threads, no WIP commits, description-in-sync. Outputs READY / NOT-READY with per-gate detail | capabilities/merge-readiness/capability.md |
+| merge-readiness | [GitHub-side] Pre-merge gate check — CI status, approvals, mergeability, unresolved threads, no WIP commits, description-in-sync. Outputs READY / PARTIALLY-READY / NOT-READY with per-gate detail | capabilities/merge-readiness/capability.md |
 | merge-execute | [GitHub-side] Output the canonical `gh pr merge` command per repo merge policy (squash / rebase / merge), with the right `--delete-branch` and `--auto` flags | capabilities/merge-execute/capability.md |
 | release-notes | [git-side, optional gh enrichment] Draft release notes for a new version by aggregating commits since the previous tag, grouped by conventional-commits type; enriches with merged-PR metadata and contributor credit when `gh` is authenticated, and degrades to a commit-only draft otherwise | capabilities/release-notes/capability.md |
 
