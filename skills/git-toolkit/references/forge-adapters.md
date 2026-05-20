@@ -57,7 +57,7 @@ else:
     offer the local-only proposal if one exists, or stop with a clean message
 ```
 
-Capabilities that have no git-side equivalent (e.g., `pr-checks-summary`, `merge-execute`, `merge-readiness`, `release-notes`) should refuse cleanly rather than producing a degraded GitHub-shaped output on a non-GitHub forge.
+Capabilities that have no git-side equivalent (e.g., `pr-checks-summary`, `merge-execute`, `merge-readiness`) should refuse cleanly rather than producing a degraded GitHub-shaped output on a non-GitHub forge. (`release-notes` is NOT in this set — it is git-side: it always produces the commit-derived draft on any forge or none, and only the publish step is forge-conditional.)
 
 ## What the skill does NOT promise
 
