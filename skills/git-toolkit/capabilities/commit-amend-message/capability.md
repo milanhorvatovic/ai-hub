@@ -18,7 +18,7 @@ Amends only the message of HEAD; leaves the staged diff untouched.
 
 - Must be inside a git repo.
 - Must have ≥1 commit: `git rev-list --count HEAD` ≥ 1.
-- Check if HEAD has been pushed: `git branch -r --contains HEAD` (non-empty → HEAD is on a remote branch; or `git rev-list @{u}..HEAD` shows HEAD as unpushed when it appears there) — emit a **Force-Push Impact** block (per `../../capabilities/commit-message/capability.md` Step 5: none / mild / high) before any proposal. If impact is `high` (PR has review comments anchored to HEAD's SHA), surface every anchored thread URL and require explicit user opt-in before showing the amended message.
+- Check if HEAD has been pushed: `git branch -r --contains HEAD` (non-empty → HEAD is on a remote branch). This reads local remote-tracking refs, which can be stale — run `git fetch` first if they may be out of date, otherwise a freshly-pushed HEAD can read as unpushed and silently skip the force-push guard. (`git rev-list @{u}..HEAD` is an upstream-only convenience, not a substitute: it errors when no upstream is configured and only measures the configured upstream, so a HEAD pushed to a non-upstream remote branch reads as unpushed.) Then emit a **Force-Push Impact** block (per `../../capabilities/commit-message/capability.md` Step 5: none / mild / high) before any proposal. If impact is `high` (PR has review comments anchored to HEAD's SHA), surface every anchored thread URL and require explicit user opt-in before showing the amended message.
 - This capability touches the message only. If the user actually wants to add or change the diff, redirect them to `git commit --amend` directly (with staged changes) or to `rebase-cleanup` for non-HEAD commits.
 
 ## Workflow

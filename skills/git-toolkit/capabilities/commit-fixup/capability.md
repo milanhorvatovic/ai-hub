@@ -64,6 +64,8 @@ If no candidate scores above a floor (say, 3): the staged change isn't a fixup â
 git branch -r --contains <target>  # non-empty â†’ the target commit is on a remote branch
 ```
 
+`git branch -r --contains` reads local remote-tracking refs, which can be stale without a `git fetch`; run `git fetch` first if they may be out of date, otherwise a pushed target can read as not-pushed and silently skip the rebase-impact warning.
+
 If yes, AND a PR exists with reviews: emit the rebase-impact warning (same as `rebase-cleanup`'s force-push warning). The fixup is fine to create; the eventual `git rebase --autosquash` is what's destructive.
 
 ### 5. Output
