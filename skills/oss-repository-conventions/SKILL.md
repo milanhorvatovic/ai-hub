@@ -18,7 +18,7 @@ description: >
   /oss-repository-conventions.
 allowed-tools: Bash Read Grep Glob Write Edit
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # oss-repository-conventions
@@ -106,6 +106,25 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 |---|---|---|
 | release-versioning | SemVer policy, Keep-a-Changelog, release automation, tag/release consistency, support/deprecation policy | capabilities/release-versioning/capability.md |
 | documentation | README structure & badges, docs site, ADRs, runnable examples, agent-instruction files | capabilities/documentation/capability.md |
+
+### Alphabetic index (fallback)
+
+| Capability | Path |
+|---|---|
+| ci-automation | capabilities/ci-automation/capability.md |
+| code-of-conduct | capabilities/code-of-conduct/capability.md |
+| code-style | capabilities/code-style/capability.md |
+| community-health | capabilities/community-health/capability.md |
+| contributing | capabilities/contributing/capability.md |
+| dependency-supply-chain | capabilities/dependency-supply-chain/capability.md |
+| dev-setup | capabilities/dev-setup/capability.md |
+| documentation | capabilities/documentation/capability.md |
+| governance | capabilities/governance/capability.md |
+| licensing | capabilities/licensing/capability.md |
+| release-versioning | capabilities/release-versioning/capability.md |
+| repo-infrastructure | capabilities/repo-infrastructure/capability.md |
+| security-policy | capabilities/security-policy/capability.md |
+| testing-quality | capabilities/testing-quality/capability.md |
 
 ## Shared references
 
