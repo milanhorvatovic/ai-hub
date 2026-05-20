@@ -50,4 +50,4 @@ The rule: **UTF-8 everywhere; decode bytes to text at the boundary, encode text 
 - **Python**: `datetime` (tz-aware) / `whenever` / `pendulum`; `decimal.Decimal`; explicit `encoding="utf-8"` on `open`; `unicodedata.normalize`.
 - **TypeScript/Node**: `Temporal` (or Luxon); integer cents or `decimal.js`; `Buffer`/`TextDecoder` with explicit encoding; `String.prototype.normalize()`; `Intl.Segmenter` for graphemes.
 - **Rust**: `chrono` / `time`; `rust_decimal`; `&str` is guaranteed UTF-8; `unicode-segmentation` for graphemes; `unicode-normalization`.
-- **Bash**: avoid date/number/encoding-sensitive logic — `date` differs GNU vs BSD (see `references/platform-matrix.md`), no decimal type (`bc`/`awk` for math), locale affects sorting/formatting. Past trivial cases, this is a "leave bash" signal.
+- **Bash**: avoid date/number/encoding-sensitive logic — `date` differs GNU vs BSD (see `platform-matrix.md`), no decimal type (`bc`/`awk` for math), locale affects sorting/formatting. Past trivial cases, this is a "leave bash" signal.

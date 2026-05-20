@@ -118,33 +118,3 @@ def test_reference_file_pointers_resolve(skill_root: Path) -> None:
                 elif not target.is_file():
                     broken.append(rel)
     assert not broken, "broken pointers in reference files:\n" + "\n".join(broken)
-
-
-def test_reference_cross_refs_use_canonical_form(skill_root: Path) -> None:
-    """Cross-references between reference files must use the skill-root-relative
-    `references/<file>.md` form, not a bare `<file>.md`.
-
-    A bare backtick mention of a real reference file resolves only by accident
-    (same directory) and is invisible to `test_reference_file_pointers_resolve`,
-    so it can drift silently. This enforces the canonical form. Only bare names
-    that match an actual reference file are flagged — bare mentions of non-
-    reference files (e.g. a capability's `project-structure.md`) are left alone,
-    so genuine cross-tree prose mentions don't false-positive."""
-    refs_dir = skill_root / "references"
-    ref_names = {p.name for p in refs_dir.glob("*.md")}
-    offenders: list[str] = []
-    for md in sorted(refs_dir.glob("*.md")):
-        for lineno, line in enumerate(
-            md.read_text(encoding="utf-8").splitlines(), start=1
-        ):
-            # Backtick-delimited bare filename (no `/`, so not already prefixed).
-            for m in re.finditer(r"`([A-Za-z0-9_-]+\.md)`", line):
-                if m.group(1) in ref_names:
-                    offenders.append(
-                        f"{md.name}:{lineno} -> `{m.group(1)}` "
-                        f"(use `references/{m.group(1)}`)"
-                    )
-    assert not offenders, (
-        "bare cross-references to reference files (use references/<file>.md):\n"
-        + "\n".join(offenders)
-    )

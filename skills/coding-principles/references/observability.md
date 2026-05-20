@@ -45,7 +45,7 @@ Practices:
 ## Correlation IDs
 
 - Accept an inbound request/trace ID; generate one if absent.
-- Attach it to every log line, propagate it to every downstream call, and return it to the client (in the response and in error bodies — see `references/api-design.md`).
+- Attach it to every log line, propagate it to every downstream call, and return it to the client (in the response and in error bodies — see `api-design.md`).
 - This is the thread that ties a user's bug report to the exact server-side trace and logs.
 
 ## Health and readiness
