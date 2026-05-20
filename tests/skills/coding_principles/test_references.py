@@ -42,18 +42,23 @@ def _collect_relative_links(md_path: Path) -> list[tuple[str, int]]:
 def test_capability_links_resolve(
     skill_root: Path, capabilities_dir: Path
 ) -> None:
-    """Every relative path linked from a capability.md must resolve."""
+    """Every relative path linked from a capability.md must resolve to a file
+    that stays inside the skill tree. A link that escapes the tree via `../`
+    (e.g. `../../../../README.md`) is reported as broken even if it exists —
+    the test validates *skill-internal* links only."""
     broken: list[str] = []
+    skill_root_resolved = skill_root.resolve()
     for cap_dir in sorted(capabilities_dir.iterdir()):
         cap_md = cap_dir / "capability.md"
         if not cap_md.is_file():
             continue
         for link, lineno in _collect_relative_links(cap_md):
             target = (cap_md.parent / link).resolve()
-            if not target.is_file():
-                broken.append(
-                    f"{cap_md.relative_to(skill_root)}:{lineno} -> {link}"
-                )
+            rel = f"{cap_md.relative_to(skill_root)}:{lineno} -> {link}"
+            if not target.is_relative_to(skill_root_resolved):
+                broken.append(f"{rel} (escapes skill tree)")
+            elif not target.is_file():
+                broken.append(rel)
     assert not broken, "broken relative links in capabilities:\n" + "\n".join(
         broken
     )
@@ -91,8 +96,11 @@ def test_reference_file_pointers_resolve(skill_root: Path) -> None:
     file's own directory). Both are checked here so a stale pointer buried in a
     reference — e.g. a link to a since-promoted file — fails at change time
     rather than degrading silently at load. Bare prose mentions without a
-    `capabilities/`, `references/`, or `../` prefix are intentionally ignored."""
+    `capabilities/`, `references/`, or `../` prefix are intentionally ignored.
+    A pointer that resolves outside the skill tree is reported as an escape, so
+    a stray `../../../../something.md` cannot pass just because it exists."""
     refs_dir = skill_root / "references"
+    skill_root_resolved = skill_root.resolve()
     broken: list[str] = []
     for md in sorted(refs_dir.glob("*.md")):
         for lineno, line in enumerate(
@@ -105,6 +113,10 @@ def test_reference_file_pointers_resolve(skill_root: Path) -> None:
             ):
                 link = m.group(1)
                 base = md.parent if link.startswith("../") else skill_root
-                if not (base / link).resolve().is_file():
-                    broken.append(f"{md.relative_to(skill_root)}:{lineno} -> {link}")
+                target = (base / link).resolve()
+                rel = f"{md.relative_to(skill_root)}:{lineno} -> {link}"
+                if not target.is_relative_to(skill_root_resolved):
+                    broken.append(f"{rel} (escapes skill tree)")
+                elif not target.is_file():
+                    broken.append(rel)
     assert not broken, "broken pointers in reference files:\n" + "\n".join(broken)
