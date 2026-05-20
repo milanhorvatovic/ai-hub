@@ -170,7 +170,7 @@ For each commit in the range, run `git show <sha> --no-patch --format='%H%n%s%n%
 | Trailing period | No `.` at end of subject | `error` |
 | Conventional-commits prefix | If repo uses CC, subject matches the conventional-commits pattern in `../../references/format-subject.md` | `error` if missing |
 | Scope consistency | Scope (if present) matches past-commits scopes | `warn` if novel scope |
-| Body wrap | Each body line ≤72 chars unless URL or code block | `warn` |
+| Body wrap | Conditional on repo style per `../../references/format-body.md`: only when the repo demonstrably hard-wraps, flag body lines >72 chars (excluding URLs / code blocks). When the repo uses the flowing-paragraph default, this is `N/A` — do not flag long single-line paragraphs | `warn` if hard-wrap repo; else `N/A` |
 | Blank line after subject | Subject and body separated by exactly one blank line | `error` if missing |
 | WIP / fixup markers | No `WIP`, `wip`, `fixup!`, `squash!` in committed (non-rebase) commits | `error` |
 | Trailer position | Trailers at end only, after blank line | `warn` |
