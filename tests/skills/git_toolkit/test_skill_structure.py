@@ -17,9 +17,10 @@ def _parse_frontmatter(md_path: Path) -> dict[str, str]:
 
     Hand-rolled because the skill's tests run with Python stdlib only — no
     PyYAML dependency. Handles flat key: value pairs and the multi-line `>`
-    folded string used in skill descriptions.
+    folded string used in skill descriptions. Newlines are normalized to LF
+    first so CRLF checkouts (Windows / core.autocrlf) parse identically.
     """
-    text = md_path.read_text(encoding="utf-8")
+    text = md_path.read_text(encoding="utf-8").replace("\r\n", "\n")
     if not text.startswith("---\n"):
         raise AssertionError(f"{md_path} missing leading frontmatter")
     end = text.find("\n---\n", 4)
