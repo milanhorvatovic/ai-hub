@@ -82,12 +82,12 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | Capability | Covers | Path |
 |---|---|---|
 | contributing | CONTRIBUTING, DCO/CLA & sign-off, dev onboarding, good-first-issue labels | capabilities/contributing/capability.md |
+| community-health | Issue/PR templates & forms, SUPPORT, FUNDING, discussions, triage labels | capabilities/community-health/capability.md |
 
 ### Roadmap (planned, not yet built)
 
 Listed by name only — not yet routable. Built capabilities graduate into the tables above.
 
-- `community-health` — issue/PR templates, SUPPORT, FUNDING, discussions, labels
 - `repo-infrastructure` — .gitignore/.gitattributes/.editorconfig/.mailmap, repo settings, branch protection, topics
 - `dev-setup` — reproducible dev env: mise/.tool-versions, devcontainer, .env.example, bootstrap scripts, dev deps
 - `code-style` — linters/formatters per language, pre-commit/lefthook
