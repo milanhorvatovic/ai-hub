@@ -5,9 +5,11 @@ description: >
   pull requests since the previous tag. Groups changes by conventional-commits
   type (feat / fix / refactor / docs / etc.), links closed issues, and credits
   contributors via PR author handles — never adds Co-authored-by trailers
-  automatically. Outputs markdown ready for GitHub Releases and the gh
-  command. Triggers on "draft release notes", "what's in v1.4", "prepare
-  the changelog", "generate release notes since the last tag".
+  automatically. Always produces the commit-derived markdown draft (any forge
+  or none); publishing is forge-conditional (GitHub Releases via gh, GitLab via
+  glab, Codeberg/Forgejo via tea, paste-in for Bitbucket). Triggers on "draft
+  release notes", "what's in v1.4", "prepare the changelog", "generate release
+  notes since the last tag".
 ---
 
 # release-notes capability
@@ -23,7 +25,7 @@ Resolve the range:
 
 Guards:
 
-- **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. GitLab and Codeberg/Forgejo have native Releases concepts (`glab release create`, `tea release create`); Bitbucket Cloud does not — refuse cleanly on Bitbucket rather than emulating Releases via downloads.
+- **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>` in the proposal preamble. Forge does **not** gate the draft: the commit-derived notes (Step 4) are always produced — on any forge, including Bitbucket, and with no remote at all. Forge only selects the publish/apply command (Step 6). GitHub, GitLab, and Codeberg/Forgejo have native Releases concepts (`gh` / `glab` / `tea release create`); Bitbucket Cloud does not — there, still emit the draft and note "Bitbucket has no native Releases — paste the draft into your release mechanism" instead of refusing or emulating Releases via downloads.
 - 0 commits in range → stop with "nothing since <tag>."
 - `gh` not authenticated → degrade to commit-only mode (no PR enrichment, no contributor handles); warn the user.
 - Repo has no remote → commit-only mode.
@@ -138,16 +140,19 @@ Contributors: <N> unique authors
 Breaking changes: <count>
 Length: <chars>
 
-Apply with:
-  gh release create <tag> --notes-file <path> [--draft] [--prerelease]
+Apply with (publish step is forge-conditional — use the line for the detected forge):
+  GitHub:            gh release create <tag> --notes-file <path> [--draft] [--prerelease]
+  GitLab:            glab release create <tag> --notes-file <path>
+  Codeberg/Forgejo:  tea release create --tag <tag> --note "$(cat <path>)"
+  Bitbucket:         no native Releases — paste the draft from <path> into your release mechanism
 
-Or update an existing release:
+Or update an existing GitHub release:
   gh release edit <tag> --notes-file <path>
 
 (Notes also written to: <tmpfile>)
 ```
 
-Write notes to `mktemp` AND show inline. Never run `gh release create` automatically — releases are publicly visible and difficult to retract (deleting a release leaves a record in the GitHub events log).
+Write notes to `mktemp` AND show inline. The commit-derived draft is always produced — even on Bitbucket or with no remote. Publishing is the forge-conditional enrichment: emit only the matching `release create` line for the detected forge, and on Bitbucket surface the paste-draft note instead of a command. Never run any `release create` automatically — releases are publicly visible and difficult to retract (deleting a release leaves a record in the forge's events log).
 
 ## Edge cases
 
@@ -160,7 +165,7 @@ Write notes to `mktemp` AND show inline. Never run `gh release create` automatic
 
 ## Anti-patterns
 
-- Don't auto-publish the release. Always require the user to run `gh release create`.
+- Don't auto-publish the release. Always require the user to run the forge's `release create` command (`gh` / `glab` / `tea`), or to paste the draft manually on Bitbucket.
 - **Don't add `Co-authored-by:` trailers** — credit contributors via PR author handles in the "Contributors" section. This is a hard rule.
 - Don't fabricate breaking-change migration notes if the commit body doesn't describe them. Write `Migration: see PR #N for details` instead.
 - Don't include WIP / fixup! / squash! commits in the notes — they should have been cleaned up before merge (see `rebase-cleanup` capability).
