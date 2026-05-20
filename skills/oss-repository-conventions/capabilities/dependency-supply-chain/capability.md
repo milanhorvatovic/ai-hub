@@ -41,6 +41,7 @@ Sources (catalog: `../../references/convention-files.md`, CI/CD + Security secti
 3. Version constraints: scan manifests for wildcard / unconstrained versions (`*`, `latest`).
 4. Vulnerability monitoring: Dependabot alerts (`gh api repos/{owner}/{repo}/vulnerability-alerts` returns 204 when enabled), secret/dependency scanning settings.
 5. SBOM/provenance: CycloneDX / Syft / `actions/dependency-review-action` steps in workflows.
+6. Update autonomy: workflows that auto-label, auto-approve, and auto-merge Dependabot PRs (`dependabot/fetch-metadata`, `gh pr merge --auto`) and any reconcile/scheduled catch-up job.
 
 ## Audit
 
@@ -48,6 +49,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 (`id` — **severity** [· scorecard: Name]. criterion. why):
 
 - `updates-automated` — **should** · scorecard: Dependency-Update-Tool. Fail when no Dependabot/Renovate config exists. Without it, dependencies rot and CVE fixes are missed.
+- `updates-autonomous` — **could** (→ **should** for repos drowning in update PRs). Pass when safe update-types (patch/minor) are auto-approved and auto-merged once required checks pass, with a reconcile/scheduled catch-up. Open-only automation still buries maintainers in manual merges.
 - `vulnerabilities-monitored` — **should** · scorecard: Vulnerabilities. Fail when Dependabot alerts / dependency scanning are off. Known-vulnerable deps go unnoticed.
 - `lockfile-committed` — **should** (apps; nuanced for libraries). Fail when an application has no committed lockfile. Without it, installs and CI aren't reproducible.
 - `deps-pinned` — **could**. Pass when dependencies are constrained (no `*` / `latest`). Wildcards make builds non-deterministic and widen the attack surface.
@@ -61,6 +63,16 @@ detected ecosystems. House style uses **Dependabot** at `.github/dependabot.yaml
 with a weekly cadence and grouped updates; offer Renovate if the maintainer
 prefers it. Enabling Dependabot alerts is a repo *setting* — propose the command,
 don't apply it.
+
+For hands-off updates, scaffold the **autonomous Dependabot recipe** in the same
+file (release-label → auto-merge → reconciler), distilled from a proven setup. It
+requires:
+
+- a **GitHub App token or bot PAT** — the default `GITHUB_TOKEN` can't approve PRs or trigger the downstream required checks;
+- **branch protection with required status checks**, so `gh pr merge --auto` lands a PR only when it's green;
+- an **update-type gate** (`dependabot/fetch-metadata`) that auto-merges patch/minor but holds major and security-flagged PRs for a human;
+- for **built artifacts** (e.g. a bundled action's `dist/`), an auto-merge step that rebuilds and commits the artifact as the bot before merging;
+- a **reconciler** (scheduled + event-driven) that catches dropped events and re-drives stuck PRs.
 
 ## Output
 
@@ -77,5 +89,6 @@ Report per `../../references/output-format.md`: scan emits the dependency/supply
 
 - Don't run installs or dependency upgrades — propose config and commands.
 - Don't duplicate workflow action-pinning here — that's ci-automation.
+- Don't auto-merge major version bumps or security-flagged PRs unattended — gate those for human review.
 - Don't treat a missing library lockfile as an automatic failure.
 - Don't overwrite an existing Dependabot/Renovate config without a diff.
