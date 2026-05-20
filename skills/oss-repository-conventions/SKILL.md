@@ -18,7 +18,7 @@ description: >
   /oss-repository-conventions.
 allowed-tools: Bash Read Grep Glob Write Edit
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
 ---
 
 # oss-repository-conventions
@@ -63,6 +63,7 @@ Shared references at the skill root hold the scan catalog, the audit rubric, the
 - **Severity is honest.** A missing `LICENSE` on a public repo is `must`; a missing `FUNDING.yml` is `could`. The rubric, not enthusiasm, sets severity. Don't inflate.
 - **Cite the file of truth.** Every scan/audit line names the file (and line, where useful) it was read from, or marks a finding `(inferred from git history)` / `(not declared)`. Silence in a config is not proof a convention is unused — it may be tribal knowledge.
 - **Never auto-publish repo settings.** Branch protection, default branch, repo topics, and other settings reachable via `gh api` are *proposed* as commands, never applied automatically.
+- **Composable, baseline-first automation.** Automation is scaffolded as small reusable building blocks (composite actions, reusable workflows, thin callers), never one monolithic job. Each automation pillar offers a *bare-minimum baseline* first, with a clear provide/own boundary — the skill supplies the toolkit and wiring; the project owns its domain content (most acutely, its own tests). The `automation-baseline` capability is the cross-pillar entry point.
 
 ## Capability routing
 
@@ -97,6 +98,7 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 
 | Capability | Covers | Path |
 |---|---|---|
+| automation-baseline | Entry point: bare-minimum composable automation across testing/scanning/deps/releases — scaffolds building blocks, defers depth to the pillars | capabilities/automation-baseline/capability.md |
 | ci-automation | Actions workflows, build/test on PRs, least-privilege tokens, SHA-pinned actions, OIDC, scheduled jobs | capabilities/ci-automation/capability.md |
 | dependency-supply-chain | Dependabot/Renovate, lockfiles, dependency pinning, vulnerability monitoring, SBOM | capabilities/dependency-supply-chain/capability.md |
 
@@ -111,6 +113,7 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 
 | Capability | Path |
 |---|---|
+| automation-baseline | capabilities/automation-baseline/capability.md |
 | ci-automation | capabilities/ci-automation/capability.md |
 | code-of-conduct | capabilities/code-of-conduct/capability.md |
 | code-style | capabilities/code-style/capability.md |
