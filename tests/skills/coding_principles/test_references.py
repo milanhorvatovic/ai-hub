@@ -80,3 +80,31 @@ def test_skill_md_capability_links_resolve(
     referenced = re.findall(r"capabilities/([A-Za-z0-9_./-]+\.md)", text)
     missing = [r for r in referenced if not (capabilities_dir / r).is_file()]
     assert not missing, f"SKILL.md references missing capabilities: {missing}"
+
+
+def test_reference_file_pointers_resolve(skill_root: Path) -> None:
+    """Pointers inside reference prose must resolve too.
+
+    Reference files use two link conventions: skill-root-relative pointers
+    (`capabilities/<x>.md`, `references/<x>.md` — resolved from the skill root,
+    the way SKILL.md writes them) and `../`-traversal links (resolved from the
+    file's own directory). Both are checked here so a stale pointer buried in a
+    reference — e.g. a link to a since-promoted file — fails at change time
+    rather than degrading silently at load. Bare prose mentions without a
+    `capabilities/`, `references/`, or `../` prefix are intentionally ignored."""
+    refs_dir = skill_root / "references"
+    broken: list[str] = []
+    for md in sorted(refs_dir.glob("*.md")):
+        for lineno, line in enumerate(
+            md.read_text(encoding="utf-8").splitlines(), start=1
+        ):
+            for m in re.finditer(
+                r"`((?:\.\./[A-Za-z0-9_./-]+"
+                r"|(?:references|capabilities)/[A-Za-z0-9_./-]+)\.(?:md|json))`",
+                line,
+            ):
+                link = m.group(1)
+                base = md.parent if link.startswith("../") else skill_root
+                if not (base / link).resolve().is_file():
+                    broken.append(f"{md.relative_to(skill_root)}:{lineno} -> {link}")
+    assert not broken, "broken pointers in reference files:\n" + "\n".join(broken)
