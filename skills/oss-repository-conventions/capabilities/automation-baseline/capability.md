@@ -39,6 +39,8 @@ Automation is assembled from small reusable units, never one big job:
 
 The monolithic `checkout → verify-lockfile → setup → lint → typecheck → test → coverage` job is the anti-pattern this replaces: split it so each concern is a reusable, independently-failing unit.
 
+*How autonomously* PRs then move to merge is a separate dimension — the autonomy ladder (auto-approve → auto-merge → full flow) owned by the pr-autonomy capability. The baseline gets a repo to "CI gates every PR" (rung L1); raising the rung is a deliberate, separately-guarded step.
+
 ## Provide / own boundary
 
 The skill provides the toolkit and wiring; the project owns its domain content.
@@ -92,6 +94,7 @@ pillar recipes for the rest of the baseline:
 - Releases: the changelog + artifacts recipe in the release-versioning capability.
 - Testing: the runner/coverage toolkit + per-test-type guidance in the testing-quality capability (the project supplies the tests).
 - Hardening: pass the scaffolded workflows through the ci-automation capability (permissions, SHA-pins, OIDC).
+- Merge autonomy: choose the rung (auto-approve / auto-merge / full flow) via the pr-autonomy capability, which installs the guardrails for that level.
 
 ## Output
 

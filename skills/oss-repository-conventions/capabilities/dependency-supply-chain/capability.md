@@ -74,6 +74,10 @@ requires:
 - for **built artifacts** (e.g. a bundled action's `dist/`), an auto-merge step that rebuilds and commits the artifact as the bot before merging;
 - a **reconciler** (scheduled + event-driven) that catches dropped events and re-drives stuck PRs.
 
+This recipe instantiates the autonomy ladder at L3/L4 for Dependabot; the
+pr-autonomy capability owns the general ladder, the guardrail spine, and the
+other rungs/approaches — apply its guardrails here rather than re-deriving them.
+
 ## Output
 
 Report per `../../references/output-format.md`: scan emits the dependency/supply-chain inventory with sources; audit emits severity-tagged (Scorecard-aligned) findings, the domain score, and a `scaffold` offer or the exact command for each unmet check.
