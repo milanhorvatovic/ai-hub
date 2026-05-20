@@ -25,25 +25,28 @@ Interprets failed CI checks and proposes likely fixes; doesn't just list status.
 
 ### 1. Fetch check status
 
+Canonical machine-readable source (portable across gh versions):
+
 ```
-gh pr checks <num> --json name,state,link,startedAt,completedAt,workflow,bucket
+gh pr view <num> --json statusCheckRollup
 ```
 
-Or the richer GraphQL query for run-level detail:
+Or fetch run-level detail directly via REST:
 
 ```
 gh api repos/{o}/{r}/commits/{headRefOid}/check-runs --paginate
 ```
 
+Use `gh pr checks <num>` for human-readable output only; its `--json` flag exists only on newer gh (≥ 2.36) and isn't relied on here.
+
 ### 2. Bucket by status
 
-`bucket` is `gh`'s own rollup of each check's `state` — switch on it directly
-(or on the raw `state` for finer detail):
+`statusCheckRollup` mixes two node types. For `CheckRun` nodes switch on `status` (in-flight) then `conclusion` (terminal); for legacy `StatusContext` nodes switch on `state`:
 
-- **PASS** — `bucket == "pass"` (`state ∈ {SUCCESS, NEUTRAL}` — NEUTRAL passes with caveats)
-- **PENDING** — `bucket == "pending"` (`state ∈ {QUEUED, IN_PROGRESS, WAITING, REQUESTED, PENDING}` — in-flight, not failed)
-- **FAIL** — `bucket == "fail"` (`state ∈ {FAILURE, CANCELLED, TIMED_OUT, ACTION_REQUIRED, ERROR, STARTUP_FAILURE}`)
-- **SKIPPED** — `bucket == "skipping"` (`state == SKIPPED` — benign)
+- **PENDING** — CheckRun `status ∈ {QUEUED, IN_PROGRESS, WAITING, REQUESTED, PENDING}`; StatusContext `state == PENDING` (in-flight, not failed)
+- **PASS** — CheckRun `conclusion ∈ {SUCCESS, NEUTRAL}` (NEUTRAL passes with caveats); StatusContext `state ∈ {SUCCESS, EXPECTED}`
+- **FAIL** — CheckRun `conclusion ∈ {FAILURE, CANCELLED, TIMED_OUT, ACTION_REQUIRED, STARTUP_FAILURE, STALE}`; StatusContext `state ∈ {FAILURE, ERROR}`
+- **SKIPPED** — CheckRun `conclusion == SKIPPED` (benign)
 
 ### 3. For each FAIL, fetch logs
 
