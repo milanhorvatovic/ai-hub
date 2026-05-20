@@ -93,11 +93,16 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | code-style | Per-language formatters & linters, pre-commit/lefthook hooks, style enforced in CI | capabilities/code-style/capability.md |
 | testing-quality | Test framework & layout, tests run in CI, coverage measured/gated | capabilities/testing-quality/capability.md |
 
+### Automation & supply chain
+
+| Capability | Covers | Path |
+|---|---|---|
+| ci-automation | Actions workflows, build/test on PRs, least-privilege tokens, SHA-pinned actions, OIDC, scheduled jobs | capabilities/ci-automation/capability.md |
+
 ### Roadmap (planned, not yet built)
 
 Listed by name only — not yet routable. Built capabilities graduate into the tables above.
 
-- `ci-automation` — workflows, required checks, matrix, OIDC, action pinning, scheduled automation, bots
 - `dependency-supply-chain` — Dependabot/Renovate, lockfiles, SBOM, action/dependency pinning, supply-chain policy
 - `release-versioning` — SemVer policy, Keep-a-Changelog, release automation, tags, signed releases, deprecation/support policy
 - `documentation` — README structure & badges, docs site, ADRs, examples, agent-instruction files
