@@ -50,7 +50,7 @@ process_file() {
 
 ```bash
 # leaks the secret to anyone running `ps`; also into shell history
-curl -H "Authorization: Bearer $API_TOKEN" "$URL"   # OK
+curl -H "Authorization: Bearer $API_TOKEN" "$URL"   # token visible in `ps aux`
 mysql -u root -p"$DB_PASSWORD" -e "..."             # password visible in `ps aux`
 echo "deploying with token=$API_TOKEN" >> deploy.log
 ```
