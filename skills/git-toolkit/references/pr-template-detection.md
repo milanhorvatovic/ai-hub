@@ -30,7 +30,7 @@ After stripping, also normalize whitespace: collapse runs of whitespace to a sin
 
 ## Unfilled-detection threshold
 
-Compute the verbatim overlap between the stripped template and the stripped body. Definition: the number of non-whitespace characters from the template that appear verbatim, in order, in the body, divided by the total non-whitespace character count of the template.
+Compute the verbatim overlap between the stripped template and the stripped body. Definition: the length of the longest common subsequence of the whitespace-normalized template and body, divided by the length of the whitespace-normalized template. Both operands are the normalized strings from the step above, so the single spaces that survive normalization are counted consistently in numerator and denominator.
 
 ```
 overlap_ratio = len(longest_common_subseq(template, body)) / len(template)
