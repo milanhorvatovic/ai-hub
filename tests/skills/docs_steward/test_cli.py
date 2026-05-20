@@ -324,6 +324,78 @@ class CliEndToEndTests(unittest.TestCase):
             deltas[0]["detail"], {"resolved": 0, "still_open": 0, "new": 0},
         )
 
+    def test_md_fix_runs_complementary_markdownlint_pass(self) -> None:
+        # Regression: md-fix must agree with md-audit on the same repo. With
+        # prettier clean (zero delta) but a markdownlint-only violation
+        # (MD040), md-fix used to exit 0 while md-audit exited 1. The
+        # complementary lint pass now surfaces the MD### finding and drives
+        # the exit code, while the delta stays prettier-only (zeros).
+        prettier_audit = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        mdl_cmd = tuple(
+            build_command(
+                Tool.MARKDOWNLINT_CLI2,
+                Mode.AUDIT,
+                unwrap=False,
+                config_path=bundled_config_for(Tool.MARKDOWNLINT_CLI2),
+            )
+        )
+        runner = FakeProcessRunner(
+            paths={
+                "prettier": "/x/prettier",
+                "markdownlint-cli2": "/x/mdl2",
+                "git": "/x/git",
+            },
+            results={
+                ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, "/repo\n", ""),
+                prettier_audit: ProcessResult(0, "", ""),
+                mdl_cmd: ProcessResult(1, "foo.md:1 MD040 no language\n", ""),
+            },
+        )
+        code, events = self._run(runner, ["md-fix", "--baseline", ".prettierrc"])
+        # Exit code matches md-audit on the same repo (markdownlint finding).
+        self.assertEqual(code, 1)
+        # Delta stays prettier-only — the format pass resolved nothing.
+        deltas = [e for e in events if e["event"] == "delta"]
+        self.assertEqual(len(deltas), 1)
+        self.assertEqual(
+            deltas[0]["detail"], {"resolved": 0, "still_open": 0, "new": 0},
+        )
+        # The markdownlint MD### finding surfaces in the stream.
+        findings = [e for e in events if e["event"] == "finding"]
+        self.assertTrue(any("MD040" in f["detail"] for f in findings))
+        self.assertTrue(
+            any(
+                e["event"] == "selected" and e["tool"] == "markdownlint-cli2"
+                for e in events
+            )
+        )
+
+    def test_md_fix_skips_markdownlint_pass_when_formatter_is_markdownlint(self) -> None:
+        # When the repo selects markdownlint as the formatter, the fix cycle
+        # already covers the MD### rules; the complementary pass must no-op so
+        # the run isn't double-linted.
+        audit_cmd = tuple(
+            build_command(
+                Tool.MARKDOWNLINT_CLI2,
+                Mode.AUDIT,
+                unwrap=False,
+                config_path="/repo/.markdownlint.json",
+            )
+        )
+        runner = FakeProcessRunner(
+            paths={"markdownlint-cli2": "/x/mdl2", "git": "/x/git"},
+            results={
+                ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, "/repo\n", ""),
+                audit_cmd: ProcessResult(0, "", ""),
+            },
+        )
+        code, events = self._run(runner, ["md-fix", "--baseline", ".markdownlint.json"])
+        self.assertEqual(code, 0)
+        selected = [e for e in events if e["event"] == "selected"]
+        # Exactly one tool selected (the fix-cycle's markdownlint), no second
+        # complementary pass.
+        self.assertTrue(all(e["tool"] == "markdownlint-cli2" for e in selected))
+
 
 class ResolveAgainstRootTests(unittest.TestCase):
     def test_absolute_paths_pass_through(self) -> None:

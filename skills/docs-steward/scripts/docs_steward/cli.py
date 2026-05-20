@@ -250,7 +250,20 @@ def _dispatch_fix(
         files=files,
         quiet=getattr(args, "quiet", False),
     )
-    return plugin_events + events, code
+    # Mirror md-audit's complementary markdownlint lint pass. The fix cycle
+    # only resolves what the chosen formatter (prettier) can auto-fix, so
+    # without this pass a file violating only semantic MD### rules (MD040,
+    # MD036, …) would make md-audit exit 1 while md-fix emitted a zero delta
+    # and exited 0 — the two subcommands would disagree on the same repo.
+    # The pass is read-only AUDIT, self-skips when the formatter already IS
+    # markdownlint or no markdownlint binary is on PATH, and contributes its
+    # exit code via max() so md-fix matches md-audit. Findings stay out of
+    # the DELTA (which measures only the format pass's resolved/still_open/
+    # new) and surface as their own FINDING events after it.
+    lint_events, lint_code = _markdownlint_lint_pass(
+        args, runner, root, baseline, files, Mode.AUDIT
+    )
+    return plugin_events + events + lint_events, max(code, lint_code)
 
 
 def _maybe_plugin_missing_events(
