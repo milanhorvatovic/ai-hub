@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/git-toolkit/review-output.schema.json",
   "title": "git-toolkit REVIEW output finding",
   "description": "One JSON object per finding emitted by a git-toolkit capability running in REVIEW mode. Files using this schema are NDJSON: one object per line. See references/review-output.md for the prose spec.",
   "type": "object",
