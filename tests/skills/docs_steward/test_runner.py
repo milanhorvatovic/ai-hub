@@ -59,6 +59,21 @@ class RunToolTests(unittest.TestCase):
         selected = next(e for e in events if e.event == EventType.SELECTED)
         self.assertEqual(selected.tool, "markdownlint-cli2")
 
+    def test_tool_override_not_on_path_returns_exit_3(self) -> None:
+        # An override bypasses select_tool's PATH gate, so run_tool re-applies
+        # it: a forced tool that isn't installed resolves to MISSING / exit 3
+        # (no usable formatter) — the same contract as the selector path —
+        # never a 127-style invocation error (exit 2). The complementary lint
+        # pass avoids this branch by pre-checking with which() and skipping the
+        # call when no markdownlint binary is present.
+        runner = FakeProcessRunner(paths={"prettier": "/x/prettier"})  # no markdownlint
+        events, code = run_tool(
+            Mode.AUDIT, ".editorconfig", False, runner, ROOT,
+            tool_override=Tool.MARKDOWNLINT_CLI2,
+        )
+        self.assertEqual(code, 3)
+        self.assertEqual(events[0].event, EventType.MISSING)
+
     def test_audit_clean_with_preamble_stdout_returns_exit_0(self) -> None:
         # Regression: markdownlint-cli2 prints version + file count + "Summary: 0 error(s)"
         # on stdout even when clean. Trust returncode in AUDIT mode; do not emit the

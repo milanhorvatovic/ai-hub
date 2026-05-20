@@ -187,7 +187,12 @@ def run_tool(
       `baseline`. Used for the complementary markdownlint lint pass the CLI
       runs alongside a non-markdownlint formatter in audit mode (pass
       `baseline=UNIVERSAL_SUBSET` with the override to pick up the tool's
-      bundled config).
+      bundled config). An override bypasses `select_tool`'s PATH gate, so
+      run_tool re-checks it with `runner.which` and returns the MISSING /
+      exit-3 (no usable formatter) result when the override isn't on PATH —
+      the same contract as the selector path. Callers that want a *soft* skip
+      when the tool is absent (the lint pass is optional) must pre-check with
+      `runner.which` and not call run_tool at all; see `_markdownlint_lint_pass`.
     """
     effective_mode = mode
     # dry_run on FORMAT mode delegates to the AUDIT invocation under the hood
@@ -196,7 +201,18 @@ def run_tool(
     if dry_run and mode == Mode.FORMAT:
         effective_mode = Mode.AUDIT
 
-    tool = tool_override if tool_override is not None else select_tool(baseline, runner)
+    # An override bypasses select_tool's PATH gate, so re-apply that gate here:
+    # an override naming a tool that isn't on PATH resolves to None and flows
+    # through the same MISSING / exit-3 ("no usable formatter") contract as the
+    # selector path, rather than reaching runner.run and degrading to a 127 ->
+    # exit-2 (invocation error). Callers wanting a *soft* skip when the tool is
+    # absent (the complementary markdownlint lint pass is optional, not
+    # required) must pre-check with runner.which and not call run_tool at all —
+    # see cli._markdownlint_lint_pass.
+    if tool_override is not None:
+        tool = tool_override if runner.which(tool_override.value) is not None else None
+    else:
+        tool = select_tool(baseline, runner)
     if tool is None:
         return (
             [Event(EventType.MISSING, "all", _NO_TOOL_HINT.format(baseline=baseline))],
