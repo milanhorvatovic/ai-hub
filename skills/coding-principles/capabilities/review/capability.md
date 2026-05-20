@@ -3,8 +3,8 @@ name: coding-principles-review
 description: >
   Review-mode capability of the coding-principles skill. Loaded when the
   task is to review an existing diff, PR, branch, or specific change
-  rather than author new code. Frames the parent skill as a find-
-  violations lens (instead of avoid-violations): scan the diff, tag each
+  rather than author new code. Frames the parent skill as a
+  find-violations lens (instead of avoid-violations): scan the diff, tag each
   finding with a principle number and severity (must / should / could),
   triage by severity, phrase findings as observations + suggestions, and
   emit a structured report. Covers what to flag, what to skip
