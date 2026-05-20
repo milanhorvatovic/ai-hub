@@ -73,12 +73,12 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | Capability | Covers | Path |
 |---|---|---|
 | licensing | LICENSE selection & SPDX, dual/multi-licensing, per-file headers, REUSE compliance, NOTICE, license compatibility | capabilities/licensing/capability.md |
+| security-policy | SECURITY.md & private disclosure, advisories, signed commits/tags, provenance/SLSA, OpenSSF Scorecard signals, branch protection | capabilities/security-policy/capability.md |
 
 ### Roadmap (planned, not yet built)
 
 Listed by name only — not yet routable. Built capabilities graduate into the tables above.
 
-- `security-policy` — SECURITY.md, private disclosure, advisories, signing, provenance/SLSA, branch protection
 - `contributing` — CONTRIBUTING, DCO/CLA & sign-off, onboarding, good-first-issue
 - `code-of-conduct` — Contributor Covenant, enforcement contact
 - `governance` — GOVERNANCE, MAINTAINERS/OWNERS, CODEOWNERS, AUTHORS
