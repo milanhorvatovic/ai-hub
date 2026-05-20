@@ -143,6 +143,7 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | `references/language-support.md` | Shared language detection method + degrade principle for the language-dependent capabilities (each declares its own tool-bound supported set) |
 | `references/maturity-benchmarks.md` | Maps the rubric to recognized external benchmarks (OpenSSF Best Practices Badge, Scorecard, GitHub community profile, SLSA, CNCF/Apache maturity) for the audit roll-up |
 | `references/branch-protection.md` | Branch/tag protection + ruleset depth: required checks/reviews/signatures/linear history, tag protection, deployment environments, merge queue |
+| `references/automation-identity.md` | Automation identity trade-offs — default GITHUB_TOKEN vs fine-grained PAT vs classic PAT vs custom GitHub App vs deploy keys |
 
 ## Full-repo audit
 

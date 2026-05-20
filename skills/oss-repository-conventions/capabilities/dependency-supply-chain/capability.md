@@ -68,7 +68,7 @@ Templates live in `references/scaffold-templates.md` (Dependabot config, Renovat
 
 For hands-off updates, scaffold the **autonomous Dependabot recipe** in the same file (release-label → auto-merge → reconciler), distilled from a proven setup. It requires:
 
-- a **GitHub App token or bot PAT** — the default `GITHUB_TOKEN` can't approve PRs or trigger the downstream required checks;
+- a **GitHub App token or bot PAT** — the default `GITHUB_TOKEN` can't approve PRs or trigger the downstream required checks; pick per `../../references/automation-identity.md` (App token preferred);
 - **branch protection with required status checks**, so `gh pr merge --auto` lands a PR only when it's green;
 - an **update-type gate** (`dependabot/fetch-metadata`) that auto-merges patch/minor but holds major and security-flagged PRs for a human;
 - for **built artifacts** (e.g. a bundled action's `dist/`), an auto-merge step that rebuilds and commits the artifact as the bot before merging;

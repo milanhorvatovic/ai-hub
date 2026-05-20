@@ -42,7 +42,7 @@ Higher autonomy without these is reckless, not advanced:
 
 - **Eligibility gate** — only a defined subset qualifies (bot author, patch/minor, path allowlist, size cap); never the whole PR population.
 - **Hard stops** — major bumps, security-flagged PRs, breaking changes, and edits to CI/release/secret paths always require a human.
-- **Scoped identity** — a least-privilege App token (the default `GITHUB_TOKEN` can neither approve PRs nor trigger the downstream required checks).
+- **Scoped identity** — a least-privilege App token (the default `GITHUB_TOKEN` can neither approve PRs nor trigger the downstream required checks). Choose the identity per `../../references/automation-identity.md` (App token preferred over a fine-grained PAT; never a classic PAT).
 - **Required checks are the gate** — autonomy only ever lands a _green_ PR; branch protection enforces it.
 - **Reconciler + observability** — a scheduled/event-driven catch-up for dropped events, and alerting on stuck or failed autonomous actions.
 - **Escape hatch** — one switch to disable, plus auto-disable on a security review.

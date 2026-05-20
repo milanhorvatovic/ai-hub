@@ -57,7 +57,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `ci-on-pr` — **should** (→ **must** for code repos) · scorecard: CI-Tests. Fail when no workflow builds/tests on `pull_request`. Changes merge unverified otherwise.
 - `least-privilege-token` — **should** · scorecard: Token-Permissions. Fail when workflows don't set minimal `permissions:` (read-only default, elevate per job). Over-privileged tokens widen the blast radius of a compromised action.
 - `actions-pinned` — **should** · scorecard: Pinned-Dependencies. Fail when third-party actions use a moving tag/branch instead of a full commit SHA. A retagged action can inject code.
-- `oidc-for-deploy` — **could**. Pass when deploy/publish jobs use OIDC instead of long-lived cloud secrets. Removes a class of leakable credentials.
+- `oidc-for-deploy` — **could**. Pass when deploy/publish jobs use OIDC instead of long-lived cloud secrets. Removes a class of leakable credentials. For the workflow's own identity (App vs PAT vs default token), see `../../references/automation-identity.md`.
 - `concurrency-and-timeouts` — **could**. Pass when workflows cancel superseded runs and cap job time. Avoids stuck and duplicated runs.
 - `scheduled-maintenance` — **could**. Pass when useful scheduled jobs exist (stale triage, link-check, Scorecard). Keeps the repo tended automatically.
 
