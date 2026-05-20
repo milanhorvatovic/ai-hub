@@ -76,6 +76,12 @@ def _parse_frontmatter(md_path: Path) -> dict[str, str]:
             current_key = key
             current_lines = []
             result[key] = ""
+        elif value == "|":
+            # Literal scalars are not supported (no skill frontmatter uses one).
+            # Fail loud rather than store a garbage "|" value and drop the body.
+            raise AssertionError(
+                f"{md_path}: literal-scalar (|) frontmatter is not supported"
+            )
         else:
             result[key] = value
     if current_key is not None:
