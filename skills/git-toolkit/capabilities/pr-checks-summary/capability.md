@@ -43,8 +43,8 @@ Use `gh pr checks <num>` for human-readable output only; its `--json` flag exist
 
 `statusCheckRollup` mixes two node types. For `CheckRun` nodes switch on `status` (in-flight) then `conclusion` (terminal); for legacy `StatusContext` nodes switch on `state`:
 
-- **PENDING** — CheckRun `status ∈ {QUEUED, IN_PROGRESS, WAITING, REQUESTED, PENDING}`; StatusContext `state == PENDING` (in-flight, not failed)
-- **PASS** — CheckRun `conclusion ∈ {SUCCESS, NEUTRAL}` (NEUTRAL passes with caveats); StatusContext `state ∈ {SUCCESS, EXPECTED}`
+- **PENDING** — CheckRun `status ∈ {QUEUED, IN_PROGRESS, WAITING, REQUESTED, PENDING}`; StatusContext `state ∈ {PENDING, EXPECTED}` (in-flight, or a required status context still awaited — `EXPECTED` is not a pass)
+- **PASS** — CheckRun `conclusion ∈ {SUCCESS, NEUTRAL}` (NEUTRAL passes with caveats); StatusContext `state == SUCCESS`
 - **FAIL** — CheckRun `conclusion ∈ {FAILURE, CANCELLED, TIMED_OUT, ACTION_REQUIRED, STARTUP_FAILURE, STALE}`; StatusContext `state ∈ {FAILURE, ERROR}`
 - **SKIPPED** — CheckRun `conclusion == SKIPPED` (benign)
 
