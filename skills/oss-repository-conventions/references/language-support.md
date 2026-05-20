@@ -1,13 +1,6 @@
 # Language support
 
-Shared model for the language-dependent capabilities (code-style, testing-quality,
-dev-setup, dependency-supply-chain, ci-automation, release-versioning, licensing
-headers, repo-infrastructure `.gitignore`, automation-baseline). This file owns
-the **detection method** and the **degrade principle** — the parts that are
-identical everywhere. The **specific supported set is per capability**, declared
-in each capability's `## Languages` section, because support is bound to the
-*tool*, not the skill: Dependabot's `package-ecosystem` list, release-please's
-`release-type` list, and the set of languages with a formatter are all different.
+Shared model for the language-dependent capabilities (code-style, testing-quality, dev-setup, dependency-supply-chain, ci-automation, release-versioning, licensing headers, repo-infrastructure `.gitignore`, automation-baseline). This file owns the **detection method** and the **degrade principle** — the parts that are identical everywhere. The **specific supported set is per capability**, declared in each capability's `## Languages` section, because support is bound to the _tool_, not the skill: Dependabot's `package-ecosystem` list, release-please's `release-type` list, and the set of languages with a formatter are all different.
 
 ## Detect first
 
@@ -25,10 +18,7 @@ Report the detected language(s) and which signal identified each.
 - **Recognized** — the capability names the ecosystem and gives generic guidance, but doesn't scaffold specific tool config.
 - **Unknown** — the capability degrades to language-agnostic guidance and says plainly that it has no specific recommendation for this stack.
 
-A language can sit in different tiers across capabilities (e.g. Swift is
-first-class for code-style and has a Dependabot ecosystem, but release-please has
-no Swift `release-type`). That's expected — each capability's `## Languages`
-section is the source of truth for its own tiers.
+A language can sit in different tiers across capabilities (e.g. Swift is first-class for code-style and has a Dependabot ecosystem, but release-please has no Swift `release-type`). That's expected — each capability's `## Languages` section is the source of truth for its own tiers.
 
 ## Degrade principle (never fabricate)
 
