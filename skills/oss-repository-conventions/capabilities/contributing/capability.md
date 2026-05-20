@@ -36,6 +36,7 @@ Sources (catalog: `../../references/convention-files.md`), citing each:
 2. Legal basis: a DCO bot (`.github/workflows/*dco*`, the DCO app), `Signed-off-by` trailers in `git log`, or a CLA (`.github/workflows/*cla*`, a CLA-assistant config).
 3. Setup pointers: does the guide reference the real dev setup (deep coverage lives in the dev-setup capability) and the real test command.
 4. Newcomer affordances: `good first issue` / `help wanted` labels via `gh label list` when `gh` is available.
+5. Commit convention: a `.commitlintrc*` / `commitlint.config.*` / `.czrc` / commitizen config, or a convention stated in the guide (e.g. Conventional Commits).
 
 ## Audit
 
@@ -46,6 +47,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `contribution-basis-clear` — **should**. Fail when sign-off/DCO or a CLA is enforced in CI but undocumented, or claimed in docs but unenforced. Contributors must know the legal terms up front.
 - `pr-process-documented` — **could**. Pass when the guide explains branch/PR expectations and review flow. Sets expectations and reduces churn.
 - `newcomer-labels` — **could**. Pass when `good first issue` / `help wanted` labels exist. Lowers the barrier to a first contribution.
+- `commit-convention-declared` — **could**. Pass when the repo declares a commit-message convention (e.g. Conventional Commits via commitlint/commitizen, or stated in CONTRIBUTING). Report only what's declared — authoring or validating individual commit messages is the change-narration domain and out of scope here.
 
 ## Scaffold
 

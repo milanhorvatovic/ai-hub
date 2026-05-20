@@ -48,7 +48,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `readme-complete` — **should**. Fail when the README lacks what-it-is, install, or usage. A title-only README doesn't let anyone adopt the project.
 - `examples-present` — **could** (→ **should** for libraries). Pass when runnable usage examples exist. Examples are how most people learn an API.
 - `agent-instructions` — **could**. Pass when agent-instruction files exist (house style: `AGENTS.md` canonical, `CLAUDE.md` / `.github/copilot-instructions.md` as pointers). Sets the repo up for agent contributors.
-- `docs-site` — **could** (non-trivial projects). Pass when a docs site exists beyond the README. Scales documentation past one file.
+- `docs-site` — **could** (non-trivial projects). Pass when a docs site exists beyond the README, ideally organized by the **Diátaxis** taxonomy (tutorials / how-to guides / reference / explanation). Scales documentation past one file and gives readers a predictable structure.
 - `adrs` — **could** (non-trivial projects). Pass when significant decisions are recorded. Preserves the "why" behind the architecture.
 - `citation-cff` — **could** (→ **should** for academic / citable software). Pass when a valid `CITATION.cff` exists, giving users a correct, machine-readable citation (GitHub surfaces a "Cite this repository" button).
 
