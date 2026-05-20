@@ -68,18 +68,23 @@ Shared references at the skill root hold the scan catalog, the audit rubric, the
 
 Each row routes to a self-sufficient capability. The path column is the file to load.
 
-### Legal, community & governance
+### Legal, security & governance
 
 | Capability | Covers | Path |
 |---|---|---|
 | licensing | LICENSE selection & SPDX, dual/multi-licensing, per-file headers, REUSE compliance, NOTICE, license compatibility | capabilities/licensing/capability.md |
 | security-policy | SECURITY.md & private disclosure, advisories, signed commits/tags, provenance/SLSA, OpenSSF Scorecard signals, branch protection | capabilities/security-policy/capability.md |
 
+### Contribution & community
+
+| Capability | Covers | Path |
+|---|---|---|
+| contributing | CONTRIBUTING, DCO/CLA & sign-off, dev onboarding, good-first-issue labels | capabilities/contributing/capability.md |
+
 ### Roadmap (planned, not yet built)
 
 Listed by name only — not yet routable. Built capabilities graduate into the tables above.
 
-- `contributing` — CONTRIBUTING, DCO/CLA & sign-off, onboarding, good-first-issue
 - `code-of-conduct` — Contributor Covenant, enforcement contact
 - `governance` — GOVERNANCE, MAINTAINERS/OWNERS, CODEOWNERS, AUTHORS
 - `community-health` — issue/PR templates, SUPPORT, FUNDING, discussions, labels
