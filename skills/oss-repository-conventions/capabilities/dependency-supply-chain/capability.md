@@ -1,0 +1,81 @@
+---
+name: dependency-supply-chain
+description: >
+  Scans, audits, and scaffolds a repository's dependency and supply-chain
+  hygiene — automated dependency updates (Dependabot/Renovate), committed
+  lockfiles, dependency pinning/constraints, vulnerability monitoring, and SBOM
+  generation. Audit flags no update automation, unmonitored vulnerable deps, and
+  wildcard versions; scaffold writes a Dependabot config (house style) or a
+  Renovate config. Workflow action-pinning lives in the ci-automation capability.
+  Triggers on "set up Dependabot/Renovate", "are my deps up to date", "add an
+  SBOM", "monitor vulnerable dependencies", or a full-repo audit.
+allowed-tools: Bash Read Grep Glob Write
+---
+
+# dependency-supply-chain capability
+
+Governs the trustworthiness of what the project depends on: are updates
+automated, is the dependency graph pinned and reproducible, are known
+vulnerabilities surfaced, and can consumers see a bill of materials. Reads and
+judges by default; writes dependency config only on confirmation.
+
+## Modes
+
+- **scan** — report the update automation, lockfiles, and supply-chain tooling present.
+- **audit** — judge hygiene against `../../references/oss-health-rubric.md` and OpenSSF Scorecard.
+- **scaffold** — write a Dependabot or Renovate config after confirmation.
+
+## Inputs & guards
+
+- Not a git repo → stop.
+- Workflow action-pinning (`uses:` SHAs) is the ci-automation capability; here, cover package dependencies and update bots (don't double-report action pinning).
+- Detect package ecosystems first (npm, pip/uv, cargo, go, bundler, …) so config targets the right manifests.
+- Don't run dependency updates or installs — propose config and commands.
+
+## Scan
+
+Sources (catalog: `../../references/convention-files.md`, CI/CD + Security sections), citing each:
+
+1. Update automation: `.github/dependabot.yml` / `.yaml`, `renovate.json` / `.renovaterc*` / `renovate` key in `package.json`.
+2. Lockfiles: `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock`, `poetry.lock` / `uv.lock`, `Cargo.lock`, `go.sum`, `Gemfile.lock`.
+3. Version constraints: scan manifests for wildcard / unconstrained versions (`*`, `latest`).
+4. Vulnerability monitoring: Dependabot alerts (`gh api repos/{owner}/{repo}/vulnerability-alerts` returns 204 when enabled), secret/dependency scanning settings.
+5. SBOM/provenance: CycloneDX / Syft / `actions/dependency-review-action` steps in workflows.
+
+## Audit
+
+Checks follow the schema in `../../references/oss-health-rubric.md`
+(`id` — **severity** [· scorecard: Name]. criterion. why):
+
+- `updates-automated` — **should** · scorecard: Dependency-Update-Tool. Fail when no Dependabot/Renovate config exists. Without it, dependencies rot and CVE fixes are missed.
+- `vulnerabilities-monitored` — **should** · scorecard: Vulnerabilities. Fail when Dependabot alerts / dependency scanning are off. Known-vulnerable deps go unnoticed.
+- `lockfile-committed` — **should** (apps; nuanced for libraries). Fail when an application has no committed lockfile. Without it, installs and CI aren't reproducible.
+- `deps-pinned` — **could**. Pass when dependencies are constrained (no `*` / `latest`). Wildcards make builds non-deterministic and widen the attack surface.
+- `sbom-published` — **could** (→ **should** for distributed artifacts). Pass when an SBOM is generated/attached to releases. Lets consumers audit the supply chain.
+
+## Scaffold
+
+Templates live in `references/scaffold-templates.md` (Dependabot config, Renovate
+config, a dependency-review CI step). Write after confirmation, targeting the
+detected ecosystems. House style uses **Dependabot** at `.github/dependabot.yaml`
+with a weekly cadence and grouped updates; offer Renovate if the maintainer
+prefers it. Enabling Dependabot alerts is a repo *setting* — propose the command,
+don't apply it.
+
+## Output
+
+Report per `../../references/output-format.md`: scan emits the dependency/supply-chain inventory with sources; audit emits severity-tagged (Scorecard-aligned) findings, the domain score, and a `scaffold` offer or the exact command for each unmet check.
+
+## Edge cases
+
+- **Library vs application** — a library may intentionally not commit a lockfile (it tests a range); treat `lockfile-committed` as nuanced, not an automatic fail.
+- **Monorepo / multiple ecosystems** — Dependabot needs one `package-ecosystem` entry per manifest directory; a single entry under-covers.
+- **Vendored dependencies** — note that vendored trees bypass the update bot; flag if they're stale.
+- **`gh` unavailable** — alert/scanning settings are `unknown`; still audit on-disk config and lockfiles.
+
+## Anti-patterns
+
+- Don't run installs or dependency upgrades — propose config and commands.
+- Don't duplicate workflow action-pinning here — that's ci-automation.
+- Don't treat a missing library lockfile as an automatic failure.
+- Don't overwrite an existing Dependabot/Renovate config without a diff.

@@ -98,12 +98,12 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | Capability | Covers | Path |
 |---|---|---|
 | ci-automation | Actions workflows, build/test on PRs, least-privilege tokens, SHA-pinned actions, OIDC, scheduled jobs | capabilities/ci-automation/capability.md |
+| dependency-supply-chain | Dependabot/Renovate, lockfiles, dependency pinning, vulnerability monitoring, SBOM | capabilities/dependency-supply-chain/capability.md |
 
 ### Roadmap (planned, not yet built)
 
 Listed by name only — not yet routable. Built capabilities graduate into the tables above.
 
-- `dependency-supply-chain` — Dependabot/Renovate, lockfiles, SBOM, action/dependency pinning, supply-chain policy
 - `release-versioning` — SemVer policy, Keep-a-Changelog, release automation, tags, signed releases, deprecation/support policy
 - `documentation` — README structure & badges, docs site, ADRs, examples, agent-instruction files
 
