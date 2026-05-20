@@ -1,6 +1,6 @@
 # TypeScript — anti-patterns
 
-Language-specific anti-patterns and smells. Complements the language-agnostic `../../references/smells.md`. The positive rules these anti-patterns negate live in `capability.md` (sibling).
+Language-specific anti-patterns and smells. Complements the language-agnostic `../../../references/smells.md`. The positive rules these anti-patterns negate live in `../capability.md`.
 
 - **`enum`** — produces runtime objects, has odd reverse-mapping behavior. Prefer `as const` objects or string-literal unions.
 - **`namespace`** — legacy, use modules.

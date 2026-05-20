@@ -1,6 +1,6 @@
 # TypeScript — project structure & mechanics
 
-Language-specific *mechanics* for the architecture concepts in `../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the TypeScript *how*. Load when structuring or restructuring a TS project or monorepo.
+Language-specific *mechanics* for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the TypeScript *how*. Load when structuring or restructuring a TS project or monorepo.
 
 ## Unit of modularity
 

@@ -1,6 +1,6 @@
 # Rust — project structure & mechanics
 
-Language-specific *mechanics* for the architecture concepts in `../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the Rust *how*. Load when structuring or restructuring a Rust crate or workspace.
+Language-specific *mechanics* for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the Rust *how*. Load when structuring or restructuring a Rust crate or workspace.
 
 ## Unit of modularity
 

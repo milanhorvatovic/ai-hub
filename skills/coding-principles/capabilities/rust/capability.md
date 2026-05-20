@@ -15,7 +15,7 @@ allowed-tools: Read Grep
 
 Language-specific rules layered on top of the parent `coding-principles` skill. Apply when editing `*.rs` files.
 
-> **Industry best practices** — Rust API Guidelines reference, edition discipline + MSRV, modern toolchain consensus (cargo fmt/clippy/nextest/machete, cargo-audit, cargo-deny), error-library decision tree (thiserror / anyhow / snafu), `tracing` over `log`, idiomatic patterns (newtype, builder, typestate, sealed traits), async Send+Sync discipline, supply-chain hygiene, and documentation conventions live in `best-practices.md` in this directory. Load it alongside this file when the task warrants justifying choices against industry standards.
+> **Industry best practices** — Rust API Guidelines reference, edition discipline + MSRV, modern toolchain consensus (cargo fmt/clippy/nextest/machete, cargo-audit, cargo-deny), error-library decision tree (thiserror / anyhow / snafu), `tracing` over `log`, idiomatic patterns (newtype, builder, typestate, sealed traits), async Send+Sync discipline, supply-chain hygiene, and documentation conventions live in `references/best-practices.md` in this directory. Load it alongside this file when the task warrants justifying choices against industry standards.
 
 ## Floor
 
@@ -68,7 +68,7 @@ Language-specific rules layered on top of the parent `coding-principles` skill. 
 
 ## Anti-patterns
 
-Language-specific anti-patterns live in `anti-patterns.md` (sibling). Load it for review-mode scans or pre-commit smell checks; the language-agnostic catalog is in `../../references/smells.md`.
+Language-specific anti-patterns live in `references/anti-patterns.md`. Load it for review-mode scans or pre-commit smell checks; the language-agnostic catalog is in `../../references/smells.md`.
 
 ## Tests
 
@@ -86,23 +86,23 @@ Language-specific anti-patterns live in `anti-patterns.md` (sibling). Load it fo
 
 ## Examples by principle
 
-Concrete before/after code for high-leverage principles (5, 11, 16, 19) lives in `examples.md` (sibling). Load it when matching patterns at write-time or validating suggested fixes at review-time.
+Concrete before/after code for high-leverage principles (5, 11, 16, 19) lives in `references/examples.md`. Load it when matching patterns at write-time or validating suggested fixes at review-time.
 
 ## Performance
 
-Performance idioms (and the "measure first" discipline) live in `performance.md` (sibling). Load it when working on a hot path or large-data code — not for routine changes.
+Performance idioms (and the "measure first" discipline) live in `references/performance.md`. Load it when working on a hot path or large-data code — not for routine changes.
 
 ## Concurrency
 
-Concurrency model, decision matrix, and correctness traps live in `concurrency.md` (sibling). Load it when the task involves parallelism, async, or shared state.
+Concurrency model, decision matrix, and correctness traps live in `references/concurrency.md`. Load it when the task involves parallelism, async, or shared state.
 
 ## Project structure
 
-Language-specific structure mechanics (modularity unit, visibility/boundary enforcement, ports & adapters, dependency injection, layout) live in `project-structure.md` (sibling). It is the *how* for this language; `../../references/architecture.md` is the cross-language *why*. Load when structuring or restructuring a project.
+Language-specific structure mechanics (modularity unit, visibility/boundary enforcement, ports & adapters, dependency injection, layout) live in `references/project-structure.md`. It is the *how* for this language; `../../references/architecture.md` is the cross-language *why*. Load when structuring or restructuring a project.
 
 ## Dependencies
 
-Dependency-management mechanics (version pinning, lockfiles, audit tools, update cadence, minimal footprint) live in `dependencies.md` (sibling). Default stance: **pin explicit exact versions** for applications/binaries (reproducibility); ranges only for published libraries. Load when adding, updating, or auditing dependencies.
+Dependency-management mechanics (version pinning, lockfiles, audit tools, update cadence, minimal footprint) live in `references/dependencies.md`. Default stance: **pin explicit exact versions** for applications/binaries (reproducibility); ranges only for published libraries. Load when adding, updating, or auditing dependencies.
 
 ## Cross-cutting references
 

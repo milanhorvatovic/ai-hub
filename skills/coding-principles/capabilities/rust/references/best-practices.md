@@ -1,6 +1,6 @@
 # Rust — industry best practices
 
-External standards, modern toolchain consensus, idiomatic patterns, error/async/supply-chain conventions. Complements the principle-anchored content in `capability.md`.
+External standards, modern toolchain consensus, idiomatic patterns, error/async/supply-chain conventions. Complements the principle-anchored content in `../capability.md`.
 
 ## External standards
 

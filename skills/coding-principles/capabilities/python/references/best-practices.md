@@ -1,6 +1,6 @@
 # Python — industry best practices
 
-External standards (PEPs), modern toolchain consensus, language features by version, security and operational conventions. Complements the principle-anchored content in `capability.md`.
+External standards (PEPs), modern toolchain consensus, language features by version, security and operational conventions. Complements the principle-anchored content in `../capability.md`.
 
 ## External standards (PEPs)
 

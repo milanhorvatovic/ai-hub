@@ -1,6 +1,6 @@
 # Review — industry best practices
 
-External standards, comment conventions, reviewer discipline. Complements the principle-anchored workflow in `capability.md`.
+External standards, comment conventions, reviewer discipline. Complements the principle-anchored workflow in `../capability.md`.
 
 ## External standards
 

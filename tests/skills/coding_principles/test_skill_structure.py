@@ -11,13 +11,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-# The four language capability directories each carry the same eight-file set
-# (see the "File layout" section of SKILL.md). `review` is a workflow
-# capability, not a language one, so it is exempt from this invariant.
+# Each language capability is `capability.md` plus a `references/` subdir
+# holding the same seven supporting files (see the "File layout" section of
+# SKILL.md). `review` is a workflow capability, not a language one, so it is
+# exempt from this invariant.
 LANGUAGE_CAPABILITIES = ("bash", "python", "rust", "typescript")
-LANGUAGE_CAPABILITY_FILES = frozenset(
+LANGUAGE_REFERENCE_FILES = frozenset(
     {
-        "capability.md",
         "anti-patterns.md",
         "examples.md",
         "best-practices.md",
@@ -133,21 +133,26 @@ def test_no_orphan_capabilities(skill_md: Path, capabilities_dir: Path) -> None:
     assert not orphans, f"capabilities on disk but not in router table: {orphans}"
 
 
-def test_language_capabilities_carry_the_eight_file_set(
+def test_language_capabilities_carry_the_documented_file_set(
     capabilities_dir: Path,
 ) -> None:
-    """Each language capability directory must carry exactly the documented
-    eight-file set. A missing file means a capability load silently degrades;
-    an extra one means the layout drifted from what SKILL.md advertises."""
+    """Each language capability must be `capability.md` plus a `references/`
+    subdir holding exactly the seven supporting files. A missing file means a
+    capability load silently degrades; an extra one means the layout drifted
+    from what SKILL.md advertises."""
     mismatches: list[str] = []
     for lang in LANGUAGE_CAPABILITIES:
         lang_dir = capabilities_dir / lang
-        assert lang_dir.is_dir(), f"language capability missing: {lang}"
-        present = {p.name for p in lang_dir.iterdir() if p.is_file()}
-        if present != set(LANGUAGE_CAPABILITY_FILES):
-            missing = sorted(LANGUAGE_CAPABILITY_FILES - present)
-            extra = sorted(present - LANGUAGE_CAPABILITY_FILES)
-            mismatches.append(f"{lang}: missing={missing} extra={extra}")
+        assert (lang_dir / "capability.md").is_file(), (
+            f"{lang}: missing capability.md entry point"
+        )
+        refs = lang_dir / "references"
+        assert refs.is_dir(), f"{lang}: missing references/ subdir"
+        present = {p.name for p in refs.iterdir() if p.is_file()}
+        if present != set(LANGUAGE_REFERENCE_FILES):
+            missing = sorted(LANGUAGE_REFERENCE_FILES - present)
+            extra = sorted(present - LANGUAGE_REFERENCE_FILES)
+            mismatches.append(f"{lang}/references: missing={missing} extra={extra}")
     assert not mismatches, "language capability file-set drift:\n" + "\n".join(
         mismatches
     )

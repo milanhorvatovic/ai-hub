@@ -1,6 +1,6 @@
 # TypeScript — industry best practices
 
-Modern toolchain consensus, idiomatic patterns the community has converged on, security and operational conventions. Complements the principle-anchored content in `capability.md`.
+Modern toolchain consensus, idiomatic patterns the community has converged on, security and operational conventions. Complements the principle-anchored content in `../capability.md`.
 
 ## External standards
 

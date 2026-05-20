@@ -18,7 +18,7 @@ allowed-tools: Read Grep
 
 How to apply the parent `coding-principles` skill to a diff or PR — *finding* violations, not *avoiding* them. Load this capability when the task is to review existing code rather than write new code.
 
-> **Industry best practices** — Conventional Comments format with labeled prefixes (`praise:` / `nitpick:` / `suggestion:` / `question:` / `issue:` / `thought:` / `todo:` / `chore:`) and `(blocking)` / `(non-blocking)` decorators, approve-vs-request-changes decision rule, severity → label map, reviewer load discipline (~400 LOC limit per session), constructive phrasing, and review-specific anti-patterns live in `best-practices.md` in this directory. Load it alongside this file when phrasing review findings or judging merge gates.
+> **Industry best practices** — Conventional Comments format with labeled prefixes (`praise:` / `nitpick:` / `suggestion:` / `question:` / `issue:` / `thought:` / `todo:` / `chore:`) and `(blocking)` / `(non-blocking)` decorators, approve-vs-request-changes decision rule, severity → label map, reviewer load discipline (~400 LOC limit per session), constructive phrasing, and review-specific anti-patterns live in `references/best-practices.md` in this directory. Load it alongside this file when phrasing review findings or judging merge gates.
 
 ## When to use this lens
 

@@ -42,19 +42,17 @@ def _collect_relative_links(md_path: Path) -> list[tuple[str, int]]:
 def test_capability_links_resolve(
     skill_root: Path, capabilities_dir: Path
 ) -> None:
-    """Every relative path linked from a capability.md must resolve to a file
-    that stays inside the skill tree. A link that escapes the tree via `../`
-    (e.g. `../../../../README.md`) is reported as broken even if it exists —
-    the test validates *skill-internal* links only."""
+    """Every relative path linked from any capability file — `capability.md`
+    or a file in its `references/` subdir — must resolve to a file that stays
+    inside the skill tree. A link that escapes the tree via `../` (e.g.
+    `../../../../README.md`) is reported as broken even if it exists — the test
+    validates *skill-internal* links only."""
     broken: list[str] = []
     skill_root_resolved = skill_root.resolve()
-    for cap_dir in sorted(capabilities_dir.iterdir()):
-        cap_md = cap_dir / "capability.md"
-        if not cap_md.is_file():
-            continue
-        for link, lineno in _collect_relative_links(cap_md):
-            target = (cap_md.parent / link).resolve()
-            rel = f"{cap_md.relative_to(skill_root)}:{lineno} -> {link}"
+    for md in sorted(capabilities_dir.rglob("*.md")):
+        for link, lineno in _collect_relative_links(md):
+            target = (md.parent / link).resolve()
+            rel = f"{md.relative_to(skill_root)}:{lineno} -> {link}"
             if not target.is_relative_to(skill_root_resolved):
                 broken.append(f"{rel} (escapes skill tree)")
             elif not target.is_file():

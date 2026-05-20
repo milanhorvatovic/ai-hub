@@ -1,6 +1,6 @@
 # Python — project structure & mechanics
 
-Language-specific *mechanics* for the architecture concepts in `../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the Python *how*. Load when structuring or restructuring a Python project.
+Language-specific *mechanics* for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the Python *how*. Load when structuring or restructuring a Python project.
 
 ## Unit of modularity
 

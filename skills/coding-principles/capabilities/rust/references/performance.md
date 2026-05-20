@@ -22,7 +22,7 @@ fn label(id: u64) -> String { format!("id-{id}") }
 fn write_label(out: &mut String, id: u64) { use std::fmt::Write; let _ = write!(out, "id-{id}"); }
 ```
 
-- `&str` parameters over `String`; `&[T]` over `&Vec<T>` (see `capability.md`).
+- `&str` parameters over `String`; `&[T]` over `&Vec<T>` (see `../capability.md`).
 - Avoid `.clone()` to dodge the borrow checker — usually the design needs adjustment, not a clone.
 - `.collect::<Vec<_>>()` only when you need the materialized collection; otherwise keep the iterator lazy.
 - Reuse buffers across iterations (`Vec::clear` + refill) instead of allocating a fresh one each loop.
@@ -42,7 +42,7 @@ fn write_label(out: &mut String, id: u64) { use std::fmt::Write; let _ = write!(
 ## Parallelism
 
 - **`rayon`** for data parallelism — `par_iter()` turns a sequential iterator parallel with near-zero code change. The first reach for CPU-bound work over large collections.
-- Channels (`std::sync::mpsc`, `crossbeam`) for message passing; `Arc<Mutex<_>>` only when genuinely shared mutable state (see `capability.md`).
+- Channels (`std::sync::mpsc`, `crossbeam`) for message passing; `Arc<Mutex<_>>` only when genuinely shared mutable state (see `../capability.md`).
 - See `concurrency.md` for the full model.
 
 ## Const / compile-time

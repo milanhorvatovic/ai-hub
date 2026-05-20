@@ -1,6 +1,6 @@
 # Bash — industry best practices
 
-External standards, modern toolchain consensus, security and operational conventions that complement the principle-anchored content in `capability.md`. Cite these references when the agent's choices need justification beyond the parent skill's principles.
+External standards, modern toolchain consensus, security and operational conventions that complement the principle-anchored content in `../capability.md`. Cite these references when the agent's choices need justification beyond the parent skill's principles.
 
 ## External standards
 

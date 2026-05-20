@@ -43,7 +43,7 @@ const result = items.map(transform);
 - **Code-split** by route; lazy-load heavy components (`React.lazy`, dynamic `import()`).
 - **Tree-shaking** requires ESM and side-effect-free modules (`"sideEffects": false` in `package.json` when true).
 - Prefer small focused dependencies; a date library should not be 70KB. Check before adding.
-- **Avoid re-renders** (React): stable props, `useMemo`/`useCallback` *only when measured* (they have cost — see `capability.md` React notes), `key` stability.
+- **Avoid re-renders** (React): stable props, `useMemo`/`useCallback` *only when measured* (they have cost — see `../capability.md` React notes), `key` stability.
 
 ## V8 / engine notes
 

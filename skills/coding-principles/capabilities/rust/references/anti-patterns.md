@@ -1,6 +1,6 @@
 # Rust — anti-patterns
 
-Language-specific anti-patterns and smells. Complements the language-agnostic `../../references/smells.md`. The positive rules these anti-patterns negate live in `capability.md` (sibling).
+Language-specific anti-patterns and smells. Complements the language-agnostic `../../../references/smells.md`. The positive rules these anti-patterns negate live in `../capability.md`.
 
 - **`unwrap()` in library code** — panic from a library is almost never the right contract.
 - **`Box<dyn Error>` in library APIs** — opaque to callers. Use a specific error enum.

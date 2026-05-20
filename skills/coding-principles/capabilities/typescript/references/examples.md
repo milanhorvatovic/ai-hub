@@ -1,6 +1,6 @@
 # TypeScript — examples by principle
 
-Concrete before/after code anchored to numbered principles from the parent skill. The principle prose lives in `../../references/principles.md`; the language idioms and rules live in `capability.md` (sibling). This file holds only the code.
+Concrete before/after code anchored to numbered principles from the parent skill. The principle prose lives in `../../../references/principles.md`; the language idioms and rules live in `../capability.md`. This file holds only the code.
 
 ## Principle 16 — Inject time, randomness, and external state
 

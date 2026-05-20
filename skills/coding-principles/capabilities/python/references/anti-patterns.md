@@ -1,6 +1,6 @@
 # Python — anti-patterns
 
-Language-specific anti-patterns and smells. Complements the language-agnostic `../../references/smells.md`. The positive rules these anti-patterns negate live in `capability.md` (sibling).
+Language-specific anti-patterns and smells. Complements the language-agnostic `../../../references/smells.md`. The positive rules these anti-patterns negate live in `../capability.md`.
 
 - **Mutable default args** — `def f(x=[]):` is a bug factory. Default to `None` and assign inside.
 - **`from x import *`** — pollutes the namespace, breaks tooling.
