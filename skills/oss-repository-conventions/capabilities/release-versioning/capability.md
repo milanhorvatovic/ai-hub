@@ -1,0 +1,81 @@
+---
+name: release-versioning
+description: >
+  Scans, audits, and scaffolds a repository's release process — the versioning
+  policy (SemVer), the changelog (Keep a Changelog), release automation
+  (release-please / semantic-release), tag/release consistency, and a supported-
+  versions/deprecation policy. It governs the release *process*, not the prose of
+  any one release's notes (that is the change-narration domain). Audit flags a
+  missing changelog and ad-hoc versioning; scaffold writes a CHANGELOG, a
+  release-automation config, and a release-notes template. Triggers on "set up
+  releases", "add a changelog", "automate releases", "what's our versioning
+  policy", or a full-repo audit.
+allowed-tools: Bash Read Grep Glob Write
+---
+
+# release-versioning capability
+
+Governs how the project ships versions: is versioning predictable, is there a
+changelog, are releases repeatable, and do tags/releases/version sources agree.
+Reads and judges by default; writes release-process files only on confirmation.
+
+## Modes
+
+- **scan** — report the versioning, changelog, and release automation present.
+- **audit** — judge the release process against `../../references/oss-health-rubric.md`.
+- **scaffold** — write CHANGELOG / release-automation config / release-notes template after confirmation.
+
+## Inputs & guards
+
+- Not a git repo → stop.
+- This capability covers the release *process and conventions*, not writing the notes for a specific version — that's the change-narration domain. Scaffold a changelog *structure* and a notes *template*, not a particular release's content.
+- Cryptographic signing of tags/releases is scored by the security-policy capability; here, note signing as part of the process and defer the security check.
+- Don't create tags or publish releases — propose the commands.
+
+## Scan
+
+Sources (catalog: `../../references/convention-files.md`, Releases section), citing each:
+
+1. Changelog: `CHANGELOG.md` / `CHANGES.md` / `HISTORY.md`; does it follow Keep a Changelog (Unreleased + dated, categorized sections)?
+2. Version source: `version` in `package.json` / `pyproject.toml` / `Cargo.toml`, `VERSION`, `__version__`.
+3. Release automation: `release-please-config.json` + `.release-please-manifest.json`, `.releaserc*` / `release.config.js` (semantic-release), `.github/release.yml` (auto-notes config), house-style `.github/RELEASE_NOTES_TEMPLATE.md`.
+4. Tags & releases: `git tag --sort=-creatordate | head`, signed? (`git tag -v`); GitHub Releases via `gh release list`; consistency between tags, releases, and the version source.
+5. Support policy: a documented supported-versions / deprecation policy (often in README, SECURITY.md, or a SUPPORT/POLICY doc).
+
+## Audit
+
+Checks follow the schema in `../../references/oss-health-rubric.md`
+(`id` — **severity** [· scorecard: Name]. criterion. why):
+
+- `changelog-present` — **should**. Fail when there's no changelog, or it isn't kept up to date. Consumers can't tell what changed between versions otherwise.
+- `semver-followed` — **should**. Fail when versions/tags don't follow SemVer (`vMAJOR.MINOR.PATCH`) or break it (e.g. breaking changes in a patch). Predictable versioning is the contract with consumers.
+- `version-sources-consistent` — **should**. Fail when the latest tag, the GitHub Release, and the manifest `version` disagree. Drift confuses consumers and tooling.
+- `release-automated` — **could** (→ **should** for active libraries). Pass when releases are automated (release-please / semantic-release). Repeatable releases avoid manual mistakes.
+- `support-policy-documented` — **could**. Pass when supported versions / deprecation policy is written down. Sets maintenance expectations.
+
+## Scaffold
+
+Templates live in `references/scaffold-templates.md` (Keep-a-Changelog skeleton,
+release-please config, a release-notes template). Write after confirmation:
+
+- **CHANGELOG.md** — Keep a Changelog structure with an `Unreleased` section; backfill recent entries from tags/PRs if asked, but don't fabricate history.
+- **release automation** — release-please (house-friendly) or semantic-release config matched to the commit convention the repo uses.
+- **release-notes template** — house style: `.github/RELEASE_NOTES_TEMPLATE.md` (the *shape*; the prose of a given release is the change-narration domain).
+
+## Output
+
+Report per `../../references/output-format.md`: scan emits the release-process inventory (changelog, version sources, automation, tag/release consistency); audit emits severity-tagged findings, the domain score, and a `scaffold` offer for each unmet check.
+
+## Edge cases
+
+- **Pre-1.0 project** — SemVer allows breaking changes in `0.x`; judge against that, don't demand stability guarantees.
+- **App vs library** — release automation matters more for a consumed library; relax to `could` for an app/CLI.
+- **Calendar versioning by intent** — honor a documented CalVer choice instead of forcing SemVer; only flag undocumented inconsistency.
+- **Monorepo** — multiple independently-versioned packages need per-package changelogs/automation; a single root version under-covers.
+
+## Anti-patterns
+
+- Don't create tags or publish releases — propose the commands.
+- Don't write the notes for a specific release — only the changelog structure and the notes template.
+- Don't fabricate changelog history — backfill only from real tags/PRs.
+- Don't double-score signing here — that's the security-policy capability.
