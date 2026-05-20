@@ -1,43 +1,55 @@
-# ci-automation — scaffold templates
+# ci-automation — hardening patterns
 
-Workflow starting points for the `ci-automation` capability. Pin every
-third-party action to a full commit SHA (resolve the SHA for the version you
-want) and keep `permissions` minimal. Tailor the matrix and commands to the stack.
+This capability *hardens* workflows. The base composable CI shape — the `setup`
+composite action, the thin `ci.yml` caller, and the CodeQL workflow — comes from
+the automation-baseline capability's building blocks; harden whatever it (or the
+repo) produces using the patterns below. Pin every third-party action to a full
+commit SHA.
 
-## CI workflow — `.github/workflows/ci.yml`
+## Least-privilege permissions
+
+Default the whole workflow to read-only; elevate only the jobs that need more.
 
 ```yaml
-name: CI
-
-on:
-  pull_request:
-  push:
-    branches: [main]
-
-# Least privilege by default; elevate per-job only when needed.
 permissions:
-  contents: read
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  contents: read          # workflow-wide default
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      matrix:
-        version: ["<v1>", "<v2>"]   # language versions to support
+  release:
+    permissions:          # elevate only this job
+      contents: write
+      id-token: write     # OIDC, instead of a long-lived secret
+```
+
+## SHA-pinning third-party actions
+
+```yaml
+# Pin to a full commit SHA; the trailing comment records the human version.
+- uses: actions/checkout@<40-char-sha>          # v4
+- uses: ossf/scorecard-action@<40-char-sha>     # v2
+```
+
+First-party `actions/*` are lower risk but still better pinned. Tools like
+`ratchet` or a pin-verification CI step keep this honest.
+
+## OIDC for deploy/publish (no long-lived secrets)
+
+```yaml
+  publish:
+    permissions:
+      id-token: write
     steps:
-      # Pin to a commit SHA; the comment records the human-readable version.
-      - uses: actions/checkout@<sha>          # v4
-      - uses: <setup-action>@<sha>            # vX
-        with:
-          version: ${{ matrix.version }}
-      - run: <install command>
-      - run: <lint command>
-      - run: <test command>
+      - uses: <cloud-login-action>@<sha>   # exchanges the OIDC token for short-lived creds
+```
+
+## Concurrency and timeouts
+
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true   # cancel superseded runs
+# per job:
+    timeout-minutes: 15        # cap stuck runs
 ```
 
 ## OpenSSF Scorecard — `.github/workflows/scorecard.yml` (optional)

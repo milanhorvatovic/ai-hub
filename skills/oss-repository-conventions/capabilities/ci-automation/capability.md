@@ -6,10 +6,12 @@ description: >
   test matrix, least-privilege workflow token permissions, third-party action
   pinning (to a commit SHA), OIDC for deploys, concurrency and timeouts, and
   scheduled maintenance jobs. Audit flags no CI on PRs, over-privileged tokens,
-  and unpinned actions; scaffold writes a CI workflow with minimal permissions
-  and pinned actions. Dependency bots live in the dependency-supply-chain
-  capability. Triggers on "set up CI", "harden my workflows", "pin my actions",
-  "do my workflows have least privilege", or a full-repo audit.
+  and unpinned actions; scaffold hardens workflows with least-privilege
+  permissions and SHA-pinned actions and adds a Scorecard workflow (the base
+  composable CI shape comes from the automation baseline). Dependency bots live
+  in the dependency-supply-chain capability. Triggers on "harden my workflows",
+  "pin my actions", "do my workflows have least privilege", "lock down CI
+  permissions", or a full-repo audit.
 allowed-tools: Bash Read Grep Glob Write
 ---
 
@@ -56,12 +58,13 @@ Checks follow the schema in `../../references/oss-health-rubric.md`
 
 ## Scaffold
 
-Templates live in `references/scaffold-templates.md` (a CI workflow with
-least-privilege permissions + SHA-pinned actions; an OpenSSF Scorecard workflow).
-Write after confirmation, tailored to the stack and the test command (from the
-testing-quality capability). Default `permissions: contents: read`, elevate only
-the jobs that need more. Pin every third-party action to a commit SHA with a
-trailing `# vX.Y.Z` comment.
+The base composable CI shape (setup action, thin caller, CodeQL) comes from the
+automation-baseline capability; this capability *hardens* it. Apply the patterns
+in `references/scaffold-templates.md`: default `permissions: contents: read` and
+elevate per job, pin every third-party action to a commit SHA with a trailing
+`# vX.Y.Z` comment, use OIDC for deploy/publish, and set concurrency cancellation
+and job timeouts. Scaffold the optional OpenSSF Scorecard workflow from the same
+file. Modify workflows only on confirmation, showing a diff for existing files.
 
 ## Output
 
