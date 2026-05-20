@@ -12,7 +12,8 @@ The user's pin-explicit preference manifests differently here — there's no ver
   require jq
   require curl
 
-  # version check when a minimum matters
+  # version check when a minimum matters (sort -V is GNU coreutils — on macOS,
+  # `brew install coreutils` and use gsort, or pin the toolchain as below)
   jq_ver=$(jq --version | sed 's/jq-//')
   [[ "$(printf '%s\n1.6\n' "$jq_ver" | sort -V | head -1)" == "1.6" ]] || { echo "jq >= 1.6 required" >&2; exit 69; }
   ```

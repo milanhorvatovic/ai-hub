@@ -20,7 +20,8 @@ wait "$pid_a" "$pid_b"      # block until both finish
 
 ```bash
 # process files N-at-a-time, bounded to CPU count
-printf '%s\0' *.txt | xargs -0 -P "$(nproc)" -n 1 process_one
+# getconf _NPROCESSORS_ONLN is portable (Linux/macOS/BSD); GNU `nproc` is Linux-only
+printf '%s\0' *.txt | xargs -0 -P "$(getconf _NPROCESSORS_ONLN)" -n 1 process_one
 ```
 
 - `xargs -P` is the simplest bounded-parallel primitive. `-0` / `printf '%s\0'` handles filenames with spaces.

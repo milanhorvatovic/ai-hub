@@ -47,7 +47,8 @@ For huge files that won't fit in memory, `while read -r line; do ...; done < fil
 
 ```bash
 # process files in parallel, bounded to CPU count
-printf '%s\0' *.txt | xargs -0 -P "$(nproc)" -n 1 process_one
+# getconf _NPROCESSORS_ONLN is portable (Linux/macOS/BSD); GNU `nproc` is Linux-only
+printf '%s\0' *.txt | xargs -0 -P "$(getconf _NPROCESSORS_ONLN)" -n 1 process_one
 ```
 
 `xargs -P` or GNU `parallel` for embarrassingly-parallel tasks. See `concurrency.md` for correctness caveats.
