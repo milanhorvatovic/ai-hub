@@ -33,8 +33,11 @@ def _parse_frontmatter(md_path: Path) -> dict[str, str]:
     """Parse a leading YAML frontmatter block into a flat dict.
 
     Hand-rolled because the skill's tests run with Python stdlib only — no
-    PyYAML dependency. Handles flat key: value pairs and the multi-line `>`
-    folded string used in skill descriptions.
+    PyYAML dependency. Supports exactly what skill frontmatter uses: flat
+    `key: value` pairs and the multi-line `>` folded scalar (descriptions).
+    Nested mappings are NOT parsed — an indented child of a plain key (e.g.
+    `metadata:` -> `version:`) is skipped, not turned into a sub-key, so
+    callers must not rely on this for nested data.
     """
     text = md_path.read_text(encoding="utf-8")
     if not text.startswith("---\n"):
@@ -50,6 +53,12 @@ def _parse_frontmatter(md_path: Path) -> dict[str, str]:
     for raw in body.splitlines():
         if raw.startswith("  ") and current_key is not None:
             current_lines.append(raw.strip())
+            continue
+        if raw.startswith("  "):
+            # Indented line that is not a folded/literal continuation — i.e. a
+            # nested mapping child like `metadata:` -> `version:`. Skipped on
+            # purpose: this parser supports only flat keys plus `>`/`|` scalars
+            # (see docstring), so nested keys are dropped, not mis-parsed.
             continue
         if current_key is not None:
             result[current_key] = (
