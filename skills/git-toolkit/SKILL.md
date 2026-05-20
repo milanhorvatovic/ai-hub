@@ -146,6 +146,8 @@ Grouped by scope so capabilities can pull only what their side needs.
 | `references/trailer-semantics.md` | Where each trailer type lives (commit vs body), what tooling reads it, how merge mode changes that — including harness-pressure conflict resolution |
 | `references/secret-patterns.md` | Pre-publication scan catalog |
 | `references/review-output.md` | Canonical markdown + NDJSON output schema for REVIEW-mode reports across capabilities |
+| `references/review-output.schema.json` | JSON Schema (Draft 2020-12) for the REVIEW-mode NDJSON findings — the machine-checkable contract behind `review-output.md` |
+| `references/review-output.example.ndjson` | Worked example NDJSON findings stream, used as a schema-validation fixture and a reference for new consumers |
 | `references/harness-safety-nets.md` | Operations routinely blocked by agent-harness classifiers, with the proposal phrasing that gives reviewers and classifiers enough context |
 | `references/worked-example.md` | End-to-end walkthrough of one fictional change through every capability — onboarding and "how do these chain" doc |
 | `references/commit-smells.md` | Catalog of subject / body / PR-body anti-patterns with kebab-case rule ids, detection patterns, fixes, and before/after examples — feeds REVIEW-mode findings |
