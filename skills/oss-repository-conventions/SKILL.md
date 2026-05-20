@@ -141,10 +141,11 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | `references/house-style.md` | The maintainer's distilled conventions and recurring gaps, used to bias audit recommendations |
 | `references/output-format.md` | Canonical markdown report shape for scan and audit output, with a per-finding NDJSON line |
 | `references/language-support.md` | Shared language detection method + degrade principle for the language-dependent capabilities (each declares its own tool-bound supported set) |
+| `references/maturity-benchmarks.md` | Maps the rubric to recognized external benchmarks (OpenSSF Best Practices Badge, Scorecard, GitHub community profile, SLSA, CNCF/Apache maturity) for the audit roll-up |
 
 ## Full-repo audit
 
-When the user asks to audit / level-up / score the whole repo (not one domain), run each built capability in `audit` mode, then aggregate per `references/output-format.md`: one section per domain, a roll-up health score from `references/oss-health-rubric.md`, and a prioritized `must` → `should` → `could` action list. Offer to `scaffold` the `must` items.
+When the user asks to audit / level-up / score the whole repo (not one domain), run each built capability in `audit` mode, then aggregate per `references/output-format.md`: one section per domain, a roll-up health score from `references/oss-health-rubric.md`, and a prioritized `must` → `should` → `could` action list. Close with a **benchmark roll-up** per `references/maturity-benchmarks.md` — the GitHub community-profile %, the OpenSSF Best Practices Badge tier the repo would currently pass (and the gap to the next), the Scorecard score when run, and the SLSA level for repos that ship artifacts. Offer to `scaffold` the `must` items.
 
 ## Anti-patterns
 
