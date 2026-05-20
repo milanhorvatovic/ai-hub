@@ -31,7 +31,7 @@ The power is correlation: a log line carries the `trace_id`, so from a metric sp
 
 ## Metrics
 
-Two canonical method-method frameworks:
+Two canonical monitoring methods:
 
 - **RED** (request-driven services): **R**ate (requests/sec), **E**rrors (failed requests/sec), **D**uration (latency distribution). Instrument every endpoint with these three.
 - **USE** (resources): **U**tilization, **S**aturation, **E**rrors. For thread pools, connection pools, queues, caches.
