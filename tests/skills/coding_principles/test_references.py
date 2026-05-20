@@ -86,41 +86,43 @@ def test_skill_md_capability_links_resolve(
 
 
 def test_reference_file_pointers_resolve(skill_root: Path) -> None:
-    """Pointers inside reference prose must resolve too.
+    """Backtick-quoted file pointers inside reference prose must resolve.
 
-    Reference files use two link conventions: skill-root-relative pointers
-    (`capabilities/<x>.md`, `references/<x>.md` — resolved from the skill root,
-    the way SKILL.md writes them) and `../`-traversal links (resolved from the
-    file's own directory). Both are checked here so a stale pointer buried in a
-    reference — e.g. a link to a since-promoted file — fails at change time
-    rather than degrading silently at load. Two backtick-quoted forms are
-    treated as pointers: a bare same-directory filename (`observability.md`)
-    and a `../`-traversal link (`../capabilities/<lang>/references/foo.md`).
-    Both resolve relative to the file that contains them (standard markdown,
-    per the foundry path-resolution rule), so a renamed or deleted sibling is
-    caught at change time. Non-backtick prose mentions are ignored — only
-    backtick-quoted paths are pointers — and a pointer that resolves outside
-    the skill tree is reported as an escape, so a stray `../../../something.md`
-    cannot pass just because it exists."""
-    refs_dir = skill_root / "references"
+    Reference files link with standard-markdown, file-relative paths: bare
+    same-directory filenames (`observability.md`) and `../`-traversal links
+    (`../capabilities/<lang>/references/foo.md`). Both resolve relative to the
+    file that contains them, per the foundry path-resolution rule — there is no
+    skill-root base.
+
+    A backtick-quoted `*.md`/`*.json` token is checked as a pointer when it is
+    unambiguous:
+
+    - any token containing `/` (a `../`-traversal or directory-bearing path) is
+      always a pointer — resolved file-relative and required to exist; this
+      catches a stale skill-root-relative leftover like `references/foo.md`
+      (which resolves to `references/references/foo.md` and fails), and a
+      `../`-chain that escapes the skill tree is reported as an escape;
+    - a bare filename (no `/`) is checked only when it names an actual
+      reference sibling, so prose mentions of external files (`package.json`,
+      `CLAUDE.md`, …) and of capability files (`best-practices.md`) are not
+      mistaken for same-directory pointers.
+
+    Non-backtick prose mentions are ignored entirely."""
     skill_root_resolved = skill_root.resolve()
-    # Bare mentions of external convention files are prose, not skill-internal
-    # pointers (these files don't live in the skill tree), so they're skipped.
-    external = frozenset(
-        {"CLAUDE.md", "AGENTS.md", "README.md", "CONTRIBUTING.md", "CHANGELOG.md"}
-    )
+    ref_siblings = {p.name for p in (skill_root / "references").glob("*.md")}
     broken: list[str] = []
-    # `../`-traversal link OR a bare same-dir filename (no slash), backtick-quoted.
-    link_re = re.compile(r"`((?:\.\./[A-Za-z0-9_./-]+|[A-Za-z0-9_-]+)\.(?:md|json))`")
-    for md in sorted(refs_dir.glob("*.md")):
+    # Any backtick-quoted path ending in .md/.json (bare, ../-traversal, or
+    # directory-bearing); the gate below decides which are skill-internal.
+    link_re = re.compile(r"`([A-Za-z0-9_./-]+\.(?:md|json))`")
+    for md in sorted((skill_root / "references").glob("*.md")):
         for lineno, line in enumerate(
             md.read_text(encoding="utf-8").splitlines(), start=1
         ):
             for m in link_re.finditer(line):
                 link = m.group(1)
-                if link in external:
-                    continue
-                target = (md.parent / link).resolve()  # always file-relative
+                if "/" not in link and link not in ref_siblings:
+                    continue  # bare external / capability-file prose mention
+                target = (md.parent / link).resolve()  # standard-markdown, file-relative
                 rel = f"{md.relative_to(skill_root)}:{lineno} -> {link}"
                 if not target.is_relative_to(skill_root_resolved):
                     broken.append(f"{rel} (escapes skill tree)")
