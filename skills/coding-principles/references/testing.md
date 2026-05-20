@@ -1,6 +1,6 @@
 # Testing strategy — industry conventions
 
-Language-agnostic testing *strategy*. The per-language *tactics* (pytest/vitest/cargo-test, hypothesis/proptest, mocking libs) live in each capability's `best-practices.md` and `capability.md`; this file is the strategy layer above them. Load when deciding what to test, at what level, with what doubles.
+Language-agnostic testing *strategy*. The per-language *tactics* (pytest/vitest/cargo-test, hypothesis/proptest, mocking libs) live in each language capability's best-practices and capability-entry docs; this file is the strategy layer above them. Load when deciding what to test, at what level, with what doubles.
 
 Anchored to principle 2 (bug fixes need a failing-first test) and principle 15 (tests describe behavior, mock at boundaries) — this file is the strategy those rules operate within.
 

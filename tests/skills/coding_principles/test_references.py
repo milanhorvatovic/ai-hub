@@ -93,25 +93,34 @@ def test_reference_file_pointers_resolve(skill_root: Path) -> None:
     the way SKILL.md writes them) and `../`-traversal links (resolved from the
     file's own directory). Both are checked here so a stale pointer buried in a
     reference — e.g. a link to a since-promoted file — fails at change time
-    rather than degrading silently at load. Bare prose mentions without a
-    `capabilities/`, `references/`, or `../` prefix are intentionally ignored.
-    A pointer that resolves outside the skill tree is reported as an escape, so
-    a stray `../../../../something.md` cannot pass just because it exists."""
+    rather than degrading silently at load. Two backtick-quoted forms are
+    treated as pointers: a bare same-directory filename (`observability.md`)
+    and a `../`-traversal link (`../capabilities/<lang>/references/foo.md`).
+    Both resolve relative to the file that contains them (standard markdown,
+    per the foundry path-resolution rule), so a renamed or deleted sibling is
+    caught at change time. Non-backtick prose mentions are ignored — only
+    backtick-quoted paths are pointers — and a pointer that resolves outside
+    the skill tree is reported as an escape, so a stray `../../../something.md`
+    cannot pass just because it exists."""
     refs_dir = skill_root / "references"
     skill_root_resolved = skill_root.resolve()
+    # Bare mentions of external convention files are prose, not skill-internal
+    # pointers (these files don't live in the skill tree), so they're skipped.
+    external = frozenset(
+        {"CLAUDE.md", "AGENTS.md", "README.md", "CONTRIBUTING.md", "CHANGELOG.md"}
+    )
     broken: list[str] = []
+    # `../`-traversal link OR a bare same-dir filename (no slash), backtick-quoted.
+    link_re = re.compile(r"`((?:\.\./[A-Za-z0-9_./-]+|[A-Za-z0-9_-]+)\.(?:md|json))`")
     for md in sorted(refs_dir.glob("*.md")):
         for lineno, line in enumerate(
             md.read_text(encoding="utf-8").splitlines(), start=1
         ):
-            for m in re.finditer(
-                r"`((?:\.\./[A-Za-z0-9_./-]+"
-                r"|(?:references|capabilities)/[A-Za-z0-9_./-]+)\.(?:md|json))`",
-                line,
-            ):
+            for m in link_re.finditer(line):
                 link = m.group(1)
-                base = md.parent if link.startswith("../") else skill_root
-                target = (base / link).resolve()
+                if link in external:
+                    continue
+                target = (md.parent / link).resolve()  # always file-relative
                 rel = f"{md.relative_to(skill_root)}:{lineno} -> {link}"
                 if not target.is_relative_to(skill_root_resolved):
                     broken.append(f"{rel} (escapes skill tree)")

@@ -75,7 +75,7 @@ This file is the *concept* layer — the patterns above (dependency direction, h
 - TypeScript → `../capabilities/typescript/references/project-structure.md`
 - Rust → `../capabilities/rust/references/project-structure.md`
 
-Load the matching `project-structure.md` for the concrete how; this file for the why.
+Load the matching capability's project-structure reference (linked above) for the concrete how; this file for the why.
 
 ## Principle alignment
 
