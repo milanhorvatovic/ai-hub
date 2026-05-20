@@ -29,10 +29,11 @@ Use GraphQL (REST doesn't expose `isResolved`):
 
 ```
 gh api graphql -f query='
-query($owner: String!, $repo: String!, $pr: Int!) {
+query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $pr) {
-      reviewThreads(first: 100) {
+      reviewThreads(first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           id
           isResolved
@@ -54,6 +55,8 @@ query($owner: String!, $repo: String!, $pr: Int!) {
   }
 }' -F owner=<o> -F repo=<r> -F pr=<num>
 ```
+
+`reviewThreads` is capped at 100 per page. For PRs with more threads, loop on the cursor: pass `-F cursor=<endCursor>` from the previous page while `pageInfo.hasNextPage` is true, accumulating `nodes` across pages — otherwise threads past the first 100 are silently dropped, which would undercount the "unresolved" total reported in Step 4. (`gh api graphql --paginate` automates this when the query exposes `pageInfo { hasNextPage endCursor }`, as above.)
 
 ### 2. Filter to unresolved
 
