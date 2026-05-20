@@ -1,0 +1,13 @@
+# Normalize line endings on checkin; check out native.
+* text=auto
+
+# Force LF for scripts and configs.
+*.sh   text eol=lf
+*.py   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+# Treat common binaries as binary.
+*.png binary
+*.jpg binary
+*.pdf binary
