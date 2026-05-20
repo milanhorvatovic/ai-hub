@@ -59,10 +59,10 @@ class SelectToolTests(unittest.TestCase):
 
     def test_universal_subset_uses_fallback_order(self) -> None:
         runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2)
-        # FALLBACK_ORDER starts with MARKDOWNLINT_CLI2, so it wins when both available.
-        self.assertEqual(
-            select_tool("universal-subset", runner), Tool.MARKDOWNLINT_CLI2
-        )
+        # FALLBACK_ORDER starts with PRETTIER, so it wins as the no-config
+        # default formatter (carrying the bundled proseWrap:never config);
+        # markdownlint then runs as a complementary lint pass in the CLI.
+        self.assertEqual(select_tool("universal-subset", runner), Tool.PRETTIER)
 
     def test_baseline_matched_but_no_preferred_tool_falls_back(self) -> None:
         # Baseline declares markdownlint but neither markdownlint binary is on PATH.

@@ -26,6 +26,7 @@ from .modes import Mode
 from .paths import is_absolute, posix_join
 from .process import ProcessRunner
 from .selector import baseline_belongs_to_tool, select_tool
+from .tools import Tool
 
 
 _NO_TOOL_HINT = (
@@ -53,6 +54,12 @@ _PREAMBLE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(
         r"^(markdownlint(?:-cli2)?|prettier|mdformat|dprint|remark|yamllint)\s+v?\d+(?:\.\d+)*\s*$",
     ),
+    # markdownlint-cli2's startup banner carries a trailing engine version in
+    # parens (`markdownlint-cli2 v0.22.1 (markdownlint v0.40.0)`), so the
+    # generic version-banner pattern above (anchored `\s*$` after the version)
+    # doesn't catch it. Match it explicitly — specific enough not to swallow a
+    # finding line, which always begins with a `path:line` locator.
+    re.compile(r"^markdownlint-cli2 v[\d.]+\s+\(markdownlint v"),
     re.compile(r"^Finding:\s"),                       # markdownlint-cli2 banner
     re.compile(r"^Linting:\s"),                       # markdownlint-cli2 banner
     re.compile(r"^Summary:\s\d+\serror"),             # markdownlint-cli2 summary
@@ -163,6 +170,7 @@ def run_tool(
     files: Sequence[str] | None = None,
     quiet: bool = False,
     dry_run: bool = False,
+    tool_override: Tool | None = None,
 ) -> tuple[list[Event], int]:
     """Run the selected formatter and emit events.
 
@@ -172,6 +180,11 @@ def run_tool(
     - `quiet`: drop preamble lines from the formatter's output.
     - `dry_run`: in FORMAT mode, run the audit invocation instead and emit
       WOULD_CHANGE events. Ignored in AUDIT mode.
+    - `tool_override`: run this specific tool instead of selecting one from
+      `baseline`. Used for the complementary markdownlint lint pass the CLI
+      runs alongside a non-markdownlint formatter in audit mode (pass
+      `baseline=UNIVERSAL_SUBSET` with the override to pick up the tool's
+      bundled config).
     """
     effective_mode = mode
     # dry_run on FORMAT mode delegates to the AUDIT invocation under the hood
@@ -180,7 +193,7 @@ def run_tool(
     if dry_run and mode == Mode.FORMAT:
         effective_mode = Mode.AUDIT
 
-    tool = select_tool(baseline, runner)
+    tool = tool_override if tool_override is not None else select_tool(baseline, runner)
     if tool is None:
         return (
             [Event(EventType.MISSING, "all", _NO_TOOL_HINT.format(baseline=baseline))],

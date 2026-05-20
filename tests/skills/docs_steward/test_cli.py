@@ -2,22 +2,81 @@
 
 from __future__ import annotations
 
+import argparse
 import io
 import json
 import unittest
 from unittest.mock import patch
 
+from docs_steward.baseline import UNIVERSAL_SUBSET
+from docs_steward.bundled_config import bundled_config_for
 from docs_steward.cli import (
     YAMLLINT_REPO_CANDIDATES,
     _discover_repo_yamllint_config,
+    _markdownlint_lint_pass,
     _resolve_against_root,
     _resolve_config_against_cwd,
     _resolve_config_against_root,
     main,
 )
+from docs_steward.commands import build_command
+from docs_steward.events import EventType
+from docs_steward.modes import Mode
 from docs_steward.process import ProcessResult
+from docs_steward.tools import Tool
 
 from .fakes import FakeFileSystem, FakeProcessRunner
+
+
+class MarkdownlintLintPassTests(unittest.TestCase):
+    """The complementary markdownlint lint pass the audit dispatch runs
+    alongside a non-markdownlint formatter."""
+
+    _ARGS = argparse.Namespace(quiet=False)
+
+    def test_runs_markdownlint_alongside_prettier_in_audit(self) -> None:
+        cfg = bundled_config_for(Tool.MARKDOWNLINT_CLI2)
+        cmd = tuple(
+            build_command(
+                Tool.MARKDOWNLINT_CLI2, Mode.AUDIT, unwrap=False, config_path=cfg
+            )
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier", "markdownlint-cli2": "/x/mdl2"},
+            results={cmd: ProcessResult(1, "foo.md:1 MD040 no language\n", "")},
+        )
+        events, code = _markdownlint_lint_pass(
+            self._ARGS, runner, "/repo", UNIVERSAL_SUBSET, None, Mode.AUDIT
+        )
+        self.assertEqual(code, 1)
+        selected = next(e for e in events if e.event == EventType.SELECTED)
+        self.assertEqual(selected.tool, "markdownlint-cli2")
+        self.assertTrue(any(e.event == EventType.FINDING for e in events))
+
+    def test_skipped_when_formatter_is_markdownlint(self) -> None:
+        # A repo declaring .markdownlint.json selects markdownlint as the
+        # formatter; the lint pass would duplicate it, so it no-ops.
+        runner = FakeProcessRunner(paths={"markdownlint-cli2": "/x/mdl2"})
+        events, code = _markdownlint_lint_pass(
+            self._ARGS, runner, "/repo", ".markdownlint.json", None, Mode.AUDIT
+        )
+        self.assertEqual((events, code), ([], 0))
+
+    def test_noop_in_format_mode(self) -> None:
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier", "markdownlint-cli2": "/x/mdl2"}
+        )
+        events, code = _markdownlint_lint_pass(
+            self._ARGS, runner, "/repo", UNIVERSAL_SUBSET, None, Mode.FORMAT
+        )
+        self.assertEqual((events, code), ([], 0))
+
+    def test_noop_when_no_markdownlint_on_path(self) -> None:
+        runner = FakeProcessRunner(paths={"prettier": "/x/prettier"})
+        events, code = _markdownlint_lint_pass(
+            self._ARGS, runner, "/repo", UNIVERSAL_SUBSET, None, Mode.AUDIT
+        )
+        self.assertEqual((events, code), ([], 0))
 
 
 class CliEndToEndTests(unittest.TestCase):

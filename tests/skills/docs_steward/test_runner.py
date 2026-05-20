@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 from docs_steward.baseline import UNIVERSAL_SUBSET
+from docs_steward.commands import build_command
 from docs_steward.events import EventType
 from docs_steward.modes import Mode
 from docs_steward.process import ProcessResult
@@ -34,6 +35,29 @@ class RunToolTests(unittest.TestCase):
         kinds = [e.event for e in events]
         self.assertIn(EventType.SELECTED, kinds)
         self.assertIn(EventType.CLEAN, kinds)
+
+    def test_tool_override_runs_specified_tool_not_selector_choice(self) -> None:
+        # baseline `.editorconfig` belongs to no tool family (no --config
+        # forwarded); both prettier and markdownlint-cli2 are on PATH so the
+        # selector would normally pick prettier (FALLBACK_ORDER). The override
+        # forces markdownlint-cli2 instead — the mechanism behind the CLI's
+        # complementary lint pass.
+        cmd = tuple(
+            build_command(
+                Tool.MARKDOWNLINT_CLI2, Mode.AUDIT, unwrap=False, config_path=None
+            )
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier", "markdownlint-cli2": "/x/mdl2"},
+            results={cmd: ProcessResult(0, "", "")},
+        )
+        events, code = run_tool(
+            Mode.AUDIT, ".editorconfig", False, runner, ROOT,
+            tool_override=Tool.MARKDOWNLINT_CLI2,
+        )
+        self.assertEqual(code, 0)
+        selected = next(e for e in events if e.event == EventType.SELECTED)
+        self.assertEqual(selected.tool, "markdownlint-cli2")
 
     def test_audit_clean_with_preamble_stdout_returns_exit_0(self) -> None:
         # Regression: markdownlint-cli2 prints version + file count + "Summary: 0 error(s)"
@@ -476,7 +500,10 @@ class QuietFlagTests(unittest.TestCase):
     def test_quiet_drops_markdownlint_cli2_preamble(self) -> None:
         cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
         # Mixed preamble + real findings; quiet should drop preamble only.
+        # Includes the cli2 startup banner (version + parenthetical engine
+        # version) which the generic version-banner pattern misses.
         output = (
+            "markdownlint-cli2 v0.22.1 (markdownlint v0.40.0)\n"
             "Finding: **/*.md\n"
             "Linting: 3 file(s)\n"
             "Summary: 2 error(s)\n"

@@ -23,7 +23,7 @@ import sys
 from collections.abc import Iterable, Sequence
 from typing import Callable
 
-from .baseline import detect_baseline
+from .baseline import UNIVERSAL_SUBSET, detect_baseline
 from .discovery import list_markdown_files
 from .emit import serialize
 from .events import Event
@@ -182,7 +182,56 @@ def _dispatch_run(
         quiet=getattr(args, "quiet", False),
         dry_run=dry_run,
     )
-    return plugin_events + events, code
+    lint_events, lint_code = _markdownlint_lint_pass(
+        args, runner, root, baseline, files, mode
+    )
+    return plugin_events + events + lint_events, max(code, lint_code)
+
+
+_MARKDOWNLINT_TOOLS: tuple[Tool, ...] = (Tool.MARKDOWNLINT_CLI2, Tool.MARKDOWNLINT)
+
+
+def _markdownlint_lint_pass(
+    args: argparse.Namespace,
+    runner: ProcessRunner,
+    root: str,
+    baseline: str,
+    files: Sequence[str] | None,
+    mode: Mode,
+) -> tuple[list[Event], int]:
+    """Complementary markdownlint lint pass, run alongside the formatter.
+
+    In AUDIT mode, when the chosen formatter is not markdownlint and a
+    markdownlint binary is on PATH, run markdownlint lint-only (bundled
+    config) so the semantic `MD###` rules are reported even though prettier
+    (or another formatter) owns formatting — prettier handles wrap/tables/
+    whitespace, markdownlint flags MD040 / MD036 / MD033 / MD034 / … that
+    prettier ignores. Returns `([], 0)` (no-op) outside audit, when no
+    markdownlint binary is available, or when the formatter already IS
+    markdownlint (its own pass covers the rules).
+    """
+    if mode != Mode.AUDIT:
+        return [], 0
+    if select_tool(baseline, runner) in _MARKDOWNLINT_TOOLS:
+        return [], 0
+    linter = next(
+        (t for t in _MARKDOWNLINT_TOOLS if runner.which(t.value)), None
+    )
+    if linter is None:
+        return [], 0
+    # UNIVERSAL_SUBSET routes run_tool to the bundled markdownlint config —
+    # the right choice here, since a repo that declared a markdownlint config
+    # would have selected markdownlint as the formatter (skipped above).
+    return run_tool(
+        mode=Mode.AUDIT,
+        baseline=UNIVERSAL_SUBSET,
+        unwrap=False,
+        runner=runner,
+        root=root,
+        files=files,
+        quiet=getattr(args, "quiet", False),
+        tool_override=linter,
+    )
 
 
 def _dispatch_fix(
