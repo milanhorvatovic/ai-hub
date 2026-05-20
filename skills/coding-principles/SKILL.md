@@ -47,7 +47,7 @@ This SKILL.md is the always-loaded **router** — the mantra/principle summaries
 | `references/testing.md` | needs a testing-strategy decision (what to test, which doubles) |
 | `references/refactoring.md` | is restructuring / cleaning up / modernizing existing code |
 
-- **Language capabilities** (see Capabilities below) — load `capabilities/<lang>/capability.md` for the task's language. Each language directory carries the same on-demand siblings, pulled in as the work calls for them: `anti-patterns.md` (review/smell scans), `examples.md` (before/after code), `best-practices.md` (external standards), `performance.md` (hot paths), `concurrency.md` (async/shared state), `project-structure.md` (layout/DI), `dependencies.md` (pinning/lockfiles/audit). The `capability.md` entry point links them.
+- **Language capabilities** (see Capabilities below) — load `capabilities/<lang>/capability.md` for the task's language. Each language directory holds `capability.md` plus a `references/` subdir of on-demand supporting files, pulled in as the work calls for them: `anti-patterns.md` (review/smell scans), `examples.md` (before/after code), `best-practices.md` (external standards), `performance.md` (hot paths), `concurrency.md` (async/shared state), `project-structure.md` (layout/DI), `dependencies.md` (pinning/lockfiles/audit). The `capability.md` entry point links them.
 
 ## When to apply
 
