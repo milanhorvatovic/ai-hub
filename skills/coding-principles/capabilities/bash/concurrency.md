@@ -25,7 +25,7 @@ printf '%s\0' *.txt | xargs -0 -P "$(nproc)" -n 1 process_one
 
 - `xargs -P` is the simplest bounded-parallel primitive. `-0` / `printf '%s\0'` handles filenames with spaces.
 - GNU `parallel` is more powerful (job logs, retries, `--halt` policies) when available.
-- Don't spawn unbounded background jobs in a loop — `for f in *; do task "$f" &; done` over 10,000 files forks a process bomb.
+- Don't spawn unbounded background jobs in a loop — `for f in *; do task "$f" & done` over 10,000 files forks a process bomb.
 
 ## Correctness traps
 
