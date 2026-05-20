@@ -54,10 +54,10 @@ Strategies:
 
 How each capability normalizes these concerns (load the language capability for detail):
 
-- **Bash** (`../capabilities/bash/`) — most exposed to OS differences. GNU vs BSD coreutils, `#!/usr/bin/env bash` (not `/bin/bash` — macOS bash is 3.2), `mktemp` syntax differs. When portability gets hard, the bash capability's "when to leave bash" rule points at Python.
-- **Python** (`../capabilities/python/`) — `pathlib.Path` normalizes separators; `os.sep` / `os.pathsep` / `os.linesep` for raw access; `sys.platform` / `platform.system()` for branching; `tempfile` for temp dirs; `subprocess` with list-form argv (not `shell=True`) avoids shell-availability issues.
-- **TypeScript/Node** (`../capabilities/typescript/`) — `node:path` (`path.sep`, `path.join`, `path.delimiter`); `os.EOL` for line endings; `process.platform` (`'linux'` / `'darwin'` / `'win32'`) for branching; `os.tmpdir()`; `os.homedir()`.
-- **Rust** (`../capabilities/rust/`) — `std::path::{Path, PathBuf}` (separator-agnostic, use `.join()` not string concat); `std::env::consts::OS` and `cfg!(target_os = "...")` / `#[cfg(...)]` for conditional compilation; `std::env::temp_dir()`; `MAIN_SEPARATOR`.
+- **Bash** (`../capabilities/bash/capability.md`) — most exposed to OS differences. GNU vs BSD coreutils, `#!/usr/bin/env bash` (not `/bin/bash` — macOS bash is 3.2), `mktemp` syntax differs. When portability gets hard, the bash capability's "when to leave bash" rule points at Python.
+- **Python** (`../capabilities/python/capability.md`) — `pathlib.Path` normalizes separators; `os.sep` / `os.pathsep` / `os.linesep` for raw access; `sys.platform` / `platform.system()` for branching; `tempfile` for temp dirs; `subprocess` with list-form argv (not `shell=True`) avoids shell-availability issues.
+- **TypeScript/Node** (`../capabilities/typescript/capability.md`) — `node:path` (`path.sep`, `path.join`, `path.delimiter`); `os.EOL` for line endings; `process.platform` (`'linux'` / `'darwin'` / `'win32'`) for branching; `os.tmpdir()`; `os.homedir()`.
+- **Rust** (`../capabilities/rust/capability.md`) — `std::path::{Path, PathBuf}` (separator-agnostic, use `.join()` not string concat); `std::env::consts::OS` and `cfg!(target_os = "...")` / `#[cfg(...)]` for conditional compilation; `std::env::temp_dir()`; `MAIN_SEPARATOR`.
 
 ## Principle alignment
 

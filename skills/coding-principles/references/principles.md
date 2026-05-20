@@ -59,7 +59,7 @@ This principle is a **check**, not a veto. Modularity, composability, and clear 
 
 When in doubt, ask: *does the current feature, as specified, benefit from this shape?* If yes — earned. If "it'll help later" — speculative.
 
-> **Code examples** — Python: `capabilities/python/capability.md` (Principle 4).
+> **Code examples** — Python: `../capabilities/python/capability.md` (Principle 4).
 
 ## 5. Trust internal code; validate only at boundaries — *should*
 
@@ -67,7 +67,7 @@ Internal functions trust their callers. Frameworks honor their contracts. Do not
 
 Defensive code for impossible states is noise that hides real bugs.
 
-> **Code examples** — Python: `capabilities/python/capability.md` (Principle 5).
+> **Code examples** — Python: `../capabilities/python/capability.md` (Principle 5).
 
 ## 6. No backwards-compatibility shims unless asked — *should*
 
@@ -127,7 +127,7 @@ These rules apply to every change, not only changes labeled "security":
 
 When in doubt about a security-sensitive change, surface the concern and pause rather than ship.
 
-> **Code examples** — Python (logging redaction + error response): `capabilities/python/capability.md` (Principle 13).
+> **Code examples** — Python (logging redaction + error response): `../capabilities/python/capability.md` (Principle 13).
 
 ## 14. Prefer modular, composable, scalable designs — without over-engineering — *should*
 
@@ -155,7 +155,7 @@ Sequence: write the simplest version that has the right *shape* (small functions
 - **Avoid mocking-hell** — if a unit test needs five mocks to construct its subject, the subject has too many responsibilities (see SRP) or the test should be an integration test.
 - **Skip trivial code** — getters, simple imports, type-only declarations, generated code. Test the logic that can be wrong.
 
-> **Code examples** — Python: `capabilities/python/capability.md` (Principle 15).
+> **Code examples** — Python: `../capabilities/python/capability.md` (Principle 15).
 
 ## 16. Inject time, randomness, and external state — *should*
 
@@ -170,7 +170,7 @@ Why: deterministic units are testable without freezing patches, reproducible acr
 
 The thin shell at the edge — `main()`, the request handler entry point, the CLI bootstrap — is where the real clock, real RNG, real env, real I/O get wired in. Everything else gets them passed in.
 
-> **Code examples** — TypeScript: `capabilities/typescript/capability.md` (Principle 16).
+> **Code examples** — TypeScript: `../capabilities/typescript/capability.md` (Principle 16).
 
 ## 17. Naming discipline — *could* (*should* when names are actively misleading)
 
@@ -184,7 +184,7 @@ Names are the cheapest documentation. Spend the effort once at write-time; reade
 - **Reserve `tmp` / `temp` for true throwaways** — local variables whose scope is a few lines. Never a field name, never a module name, never a public symbol.
 - **Match the codebase's existing patterns** for casing (camelCase / snake_case / PascalCase) and noun/verb conventions. Consistency inside a file matters more than your personal preference.
 
-> **Code examples** — Python: `capabilities/python/capability.md` (Principle 17).
+> **Code examples** — Python: `../capabilities/python/capability.md` (Principle 17).
 
 ## 18. Single source of truth for state — *should*
 
@@ -202,7 +202,7 @@ Exceptions are deliberate, measured, and documented:
 
 Default: one source. Derive the rest. If you find yourself debugging a "the two values disagree" bug, the fix is rarely to add a third reconciliation step — it is to delete one of the two and derive it instead.
 
-> **Code examples** — TypeScript: `capabilities/typescript/capability.md` (Principle 18).
+> **Code examples** — TypeScript: `../capabilities/typescript/capability.md` (Principle 18).
 
 ## 19. Boundaries parse input and serialize output — *should* (*must* for security-relevant boundaries)
 
@@ -213,7 +213,7 @@ Data crossing a trust line is *transformed*, not waved through. Generalizes prin
 
 The rule of thumb: at the edge, a function's signature is `(bytes) -> Typed` on the way in and `Typed -> bytes` on the way out. Everything else operates on `Typed`. Combined with strong typing + illegal-states-unrepresentable, this is most of how a codebase stays honest.
 
-> **Code examples** — Python (inbound parse): `capabilities/python/capability.md` (Principle 19). TypeScript (outbound serialize): `capabilities/typescript/capability.md` (Principle 19).
+> **Code examples** — Python (inbound parse): `../capabilities/python/capability.md` (Principle 19). TypeScript (outbound serialize): `../capabilities/typescript/capability.md` (Principle 19).
 
 ## 20. No dead code, no commented-out code — *could*
 

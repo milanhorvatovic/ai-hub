@@ -77,6 +77,6 @@ Severity governs *triage*. Tier (Goals / Design / Pruning, in `mantras.md`) gove
 ## Write-mode vs review-mode
 
 - **Write-mode** — the default; applying the skill while authoring code. Checklist asks *"am I about to violate X?"*. Defined inline in `SKILL.md`.
-- **Review-mode** — applying the skill to an existing diff/PR. Workflow asks *"did the author violate X?"*. Defined in `capabilities/review/capability.md`.
+- **Review-mode** — applying the skill to an existing diff/PR. Workflow asks *"did the author violate X?"*. Defined in `../capabilities/review/capability.md`.
 
 Same rules; opposite vantage.
