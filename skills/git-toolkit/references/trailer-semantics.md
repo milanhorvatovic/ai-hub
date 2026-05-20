@@ -8,9 +8,9 @@ Trailers are `Key: value` lines at the END of a commit message or PR body, after
 
 - **Lives in:** commit messages.
 - **Created by:** `git commit -s` (or `git commit --signoff`) or manually appended.
-- **Checked by:** the DCO bot (typically `dco@github.com` or a GitHub App). Reads commit trailers; ignores the PR body unless the body becomes the commit message (squash with `sm == "PR_BODY"`).
-- **Body relevance:** only matters in the PR body when squash-merge is on AND `squash_merge_commit_message == "PR_BODY"`. In that case the body becomes the commit message, so it needs the sign-off to satisfy DCO.
-- **Otherwise:** do NOT add `Signed-off-by:` to the PR body — it does nothing there. If DCO is failing, direct the user to `git commit --amend -s` (last commit) or `git rebase --signoff <base>` (all commits in the PR).
+- **Checked by:** the DCO bot (typically `dco@github.com` or a GitHub App). It validates the `Signed-off-by:` trailer on each of the PR's **commits, before merge** — it does not read the PR body (at check time the body is not a commit).
+- **Body relevance (post-merge only):** a PR-body `Signed-off-by:` matters only when squash-merge is on AND `squash_merge_commit_message == "PR_BODY"`, and even then only for the **post-merge** squash commit message (it records sign-off on the merged commit). It does **not** satisfy the pre-merge DCO status check, which always validates the PR's individual commits. So a failing DCO check is fixed by signing the commits, never by editing the body.
+- **Therefore:** don't rely on a PR-body `Signed-off-by:` to satisfy DCO — it won't. If DCO is failing, direct the user to `git commit --amend -s` (last commit) or `git rebase --signoff <base>` (all commits in the PR).
 - **Don't add programmatically.** Sign-off is a legal attestation. The author signs; tooling does not sign on their behalf.
 
 ### `Co-authored-by:`
