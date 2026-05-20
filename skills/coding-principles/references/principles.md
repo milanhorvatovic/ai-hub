@@ -161,7 +161,7 @@ Sequence: write the simplest version that has the right *shape* (small functions
 
 Business logic does not reach into globals for non-determinism. Specifically:
 
-- **Time** — never call `time.now()`, `Date.now()`, `new Date()`, `Instant::now()`, `chrono::Utc::now()`, etc. from business code. Take a `clock` / `now` / `time_provider` parameter. The same goes for `time.sleep` / `setTimeout` outside of explicitly time-based primitives.
+- **Time** — never call `time.time()`, `Date.now()`, `new Date()`, `Instant::now()`, `chrono::Utc::now()`, etc. from business code. Take a `clock` / `now` / `time_provider` parameter. The same goes for `time.sleep` / `setTimeout` outside of explicitly time-based primitives.
 - **Randomness** — never call `Math.random()`, `random.random()`, `uuid.uuid4()` from business code. Take a `rng` / `id_generator` parameter, or accept the value as input.
 - **Environment** — never read `os.environ` / `process.env` / `std::env::var` from deep in the call stack. Read it once at startup, pass the resolved value down.
 - **Filesystem and network** — wrap behind an interface or pass the resource in. The function that decides *what* to write should not also call `open()`.

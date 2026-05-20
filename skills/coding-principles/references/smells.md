@@ -137,7 +137,7 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 
 ## I/O and external state
 
-### `Date.now()` / `time.now()` / `Instant::now()` inside business logic
+### `Date.now()` / `time.time()` / `Instant::now()` inside business logic
 
 - **Anchor:** principle 16 (inject time)
 - **Severity:** *should*
