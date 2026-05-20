@@ -13,6 +13,8 @@ A capability that matches either pattern should skip the commit / PR with a one-
 
 ## GitHub-native bots
 
+The email and login values in this table are **exact-string identifiers**, matched literally (case-insensitive) — they are NOT regexes. The `[bot]` here is a literal bracketed substring, not a character class. (The regex form, with `[bot]` escaped, lives in the "Generic noreply patterns" section below.)
+
 | Bot | Email pattern | Login pattern | Notes |
 |---|---|---|---|
 | Dependabot | `dependabot[bot]@users.noreply.github.com`, `49699333+dependabot[bot]@users.noreply.github.com` | `dependabot[bot]`, `dependabot-preview[bot]` (deprecated) | Numeric prefix is the account ID |
