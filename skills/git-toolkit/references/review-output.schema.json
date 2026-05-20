@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "git-toolkit REVIEW output finding",
+  "description": "One JSON object per finding emitted by a git-toolkit capability running in REVIEW mode. Files using this schema are NDJSON: one object per line. See references/review-output.md for the prose spec.",
+  "type": "object",
+  "required": ["rule", "result", "scope"],
+  "additionalProperties": true,
+  "properties": {
+    "rule": {
+      "type": "string",
+      "description": "Kebab-case rule identifier matching a rule section in references/format-conventions.md or another reference. Examples: imperative-mood, subject-length, body-wrap, trailers-preserved.",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["PASS", "MOSTLY-PASS", "FAIL", "N/A"],
+      "description": "Outcome of evaluating the rule against the target. Use N/A for rules that do not apply (e.g., trailer rules on a commit with no trailers)."
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["commit", "branch", "pr", "range"],
+      "description": "The unit the rule was evaluated against."
+    },
+    "ref": {
+      "type": "string",
+      "description": "Branch name or ref this finding pertains to (for scope=branch/range/pr)."
+    },
+    "sha": {
+      "type": "string",
+      "description": "Short or full commit SHA this finding pertains to (for scope=commit).",
+      "pattern": "^[0-9a-f]{7,64}$"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Commit subject line for scope=commit findings; helps readers identify the commit without re-running git log."
+    },
+    "count_checked": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "For aggregate findings (scope=branch/range), how many items were evaluated."
+    },
+    "count_failed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "For aggregate findings, how many failed."
+    },
+    "max_length": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "For length-based PASS findings on aggregates, the maximum observed length."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "For length-based rules, the cap the rule enforces."
+    },
+    "details": {
+      "type": "object",
+      "description": "Rule-specific structured data. Field set varies per rule; excerpt is reserved across rules for a verbatim quote from the target.",
+      "additionalProperties": true,
+      "properties": {
+        "line": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Line number within the target (1-based) where the issue was found."
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Measured length in display columns (not bytes) — see format-conventions.md."
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "Verbatim quote from the target showing the issue."
+        }
+      }
+    },
+    "fix": {
+      "type": "string",
+      "description": "Short imperative describing the corrective action. Never includes an apply command (those belong in the human-facing markdown output, not the NDJSON stream)."
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "scope=commit findings should carry a sha.",
+      "if": { "properties": { "scope": { "const": "commit" } } },
+      "then": { "required": ["sha"] }
+    },
+    {
+      "$comment": "scope=branch / range / pr findings should carry a ref.",
+      "if": {
+        "properties": { "scope": { "enum": ["branch", "range", "pr"] } }
+      },
+      "then": { "required": ["ref"] }
+    },
+    {
+      "$comment": "FAIL and MOSTLY-PASS findings should carry a fix.",
+      "if": { "properties": { "result": { "enum": ["FAIL", "MOSTLY-PASS"] } } },
+      "then": { "required": ["fix"] }
+    }
+  ]
+}
