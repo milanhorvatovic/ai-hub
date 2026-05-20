@@ -142,3 +142,45 @@ def test_rule_id_matches_schema_pattern(rule_id: str, references_dir: Path) -> N
     assert re.fullmatch(pattern, rule_id), (
         f"canonical rule id {rule_id!r} fails schema pattern {pattern!r}"
     )
+
+
+def test_example_ndjson_matches_schema_invariants(references_dir: Path) -> None:
+    """The worked example stream must exist and each line must satisfy the
+    schema's core invariants (stdlib-only, no jsonschema dependency): required
+    keys, the rule-id pattern, the result enum, scope->sha/ref requirements,
+    and FAIL/MOSTLY-PASS->fix. Guards against drift between the example and
+    the schema/prose."""
+    example = references_dir / "review-output.example.ndjson"
+    assert example.is_file(), "review-output.example.ndjson not found"
+    schema = json.loads((references_dir / "review-output.schema.json").read_text(encoding="utf-8"))
+    rule_pattern = schema["properties"]["rule"]["pattern"]
+    result_enum = set(schema["properties"]["result"]["enum"])
+    scope_enum = set(schema["properties"]["scope"]["enum"])
+
+    problems: list[str] = []
+    lines = [
+        ln for ln in example.read_text(encoding="utf-8").splitlines() if ln.strip()
+    ]
+    assert lines, "example stream is empty"
+    for i, line in enumerate(lines, start=1):
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError as exc:
+            problems.append(f"line {i}: invalid JSON ({exc})")
+            continue
+        for key in ("rule", "result", "scope"):
+            if key not in obj:
+                problems.append(f"line {i}: missing required key {key!r}")
+        if "rule" in obj and not re.fullmatch(rule_pattern, obj["rule"]):
+            problems.append(f"line {i}: rule {obj['rule']!r} fails pattern")
+        if "result" in obj and obj["result"] not in result_enum:
+            problems.append(f"line {i}: result {obj['result']!r} not in enum")
+        if "scope" in obj and obj["scope"] not in scope_enum:
+            problems.append(f"line {i}: scope {obj['scope']!r} not in enum")
+        if obj.get("scope") == "commit" and "sha" not in obj:
+            problems.append(f"line {i}: scope=commit requires sha")
+        if obj.get("scope") in {"branch", "range", "pr"} and "ref" not in obj:
+            problems.append(f"line {i}: scope={obj.get('scope')} requires ref")
+        if obj.get("result") in {"FAIL", "MOSTLY-PASS"} and "fix" not in obj:
+            problems.append(f"line {i}: result={obj['result']} requires fix")
+    assert not problems, "example NDJSON violates schema invariants:\n" + "\n".join(problems)
