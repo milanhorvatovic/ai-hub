@@ -27,7 +27,7 @@ Decorators clarify weight further:
 - `(non-blocking)` — author can accept or decline; not a merge gate.
 - `(if-minor)` — fix only if cheap.
 
-Example: `issue (blocking): this query has no `WHERE user_id = ?` — any user can read any record`.
+Example: ``issue (blocking): this query has no `WHERE user_id = ?` — any user can read any record``.
 
 ## Map to severity (parent skill)
 
