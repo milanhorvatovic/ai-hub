@@ -63,9 +63,11 @@ object per finding, newline-delimited:
 {"domain":"security-policy","check":"security-md","severity":"should","status":"pass","file":".github/SECURITY.md","message":"Disclosure policy present"}
 ```
 
-Fields: `domain`, `check` (kebab-case id), `severity` (`must`/`should`/`could`),
+Fields: `domain`, `check` (the kebab-case `id`), `severity` (`must`/`should`/`could`),
 `status` (`pass`/`fail`/`warn`/`skip`), `file` (source path or `null`),
-`message`, and optional `scaffold` (capability that can generate the fix).
+`message`, and optional `scaffold` (capability that can generate the fix). The
+`check`, `severity`, and `status` values come straight from a capability's audit
+checks — see the check schema in `oss-health-rubric.md`.
 
 ## Rules
 

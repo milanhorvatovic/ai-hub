@@ -14,6 +14,28 @@ of how badly the repo wants the feature — don't inflate.
 | `should` | Expected of a well-run project; absence is a real gap reviewers notice | no `SECURITY.md`; no `CONTRIBUTING`; no `CODE_OF_CONDUCT`; no dependency automation; unpinned third-party actions |
 | `could` | Nice-to-have that raises polish or reach | `FUNDING.yml`; issue forms (vs plain templates); README badges; ADRs |
 
+## Check schema
+
+Every capability's `## Audit` section declares its checks in one uniform shape,
+so the aggregator and the NDJSON output stay consistent across all domains.
+
+A check carries:
+
+- **`id`** — kebab-case, unique within the domain (e.g. `license-present`).
+- **severity** — `must` / `should` / `could`, per the table above.
+- **criterion** — the condition that decides `pass` / `warn` / `fail`.
+- **why** — one line on why it matters for an OSS repo.
+- **scorecard** *(optional)* — the OpenSSF Scorecard check it maps to, when one exists.
+
+Capabilities write each check as a single bullet:
+
+```
+- `id` — **severity** [· scorecard: Name]. <criterion>. <why>.
+```
+
+At report time each check resolves to a **status** — `pass` / `warn` / `fail` /
+`skip` — which is what the score and the NDJSON findings record.
+
 ## Score
 
 A repo's health score is the share of *applicable* checks satisfied, weighted

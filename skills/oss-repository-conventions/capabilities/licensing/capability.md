@@ -24,7 +24,7 @@ Reads and judges by default; writes only in scaffold mode, one file at a time.
 - **audit** — judge clarity and compatibility against `../../references/oss-health-rubric.md`.
 - **scaffold** — write a `LICENSE` (and optionally SPDX headers / `NOTICE`) after confirmation.
 
-## Input guards
+## Inputs & guards
 
 - Not a git repo → stop: "not a git repository; nothing to scan."
 - Already has a clear, SPDX-identifiable `LICENSE` and the user asked to scan/audit → report it as solid; don't propose changes unless asked.
@@ -43,18 +43,17 @@ Check, in order, citing each source (catalog: `../../references/convention-files
 
 Identify the SPDX id of the root license by matching its text/title (MIT, Apache-2.0, BSD-3-Clause, GPL-3.0-or-later, MPL-2.0, etc.). Report `unknown / custom` if it doesn't match a standard text.
 
-## Audit checks
+## Audit
 
-Each tagged with a severity for the rubric aggregator:
+Checks follow the schema in `../../references/oss-health-rubric.md`
+(`id` — **severity** [· scorecard: Name]. criterion. why):
 
-- `license-present` — **must**. A public repo with no license is "all rights reserved" — nobody may legally reuse it. Missing → fail.
-- `license-spdx-identifiable` — **must**. The license text matches a known SPDX id, so tooling and consumers can detect it. Custom/edited text → warn.
-- `metadata-matches-license` — **should**. `package.json` / `pyproject.toml` / `Cargo.toml` license field equals the `LICENSE` file's SPDX id. Mismatch (e.g. `LICENSE` is Apache-2.0 but `package.json` says MIT) → fail with both sources cited.
-- `copyright-current` — **could**. Copyright line names a holder and a sensible year/range.
-- `dependency-compatibility` — **should** (when a lockfile/manifest exists). No declared dependency carries a license incompatible with the repo's (e.g. a GPL-3.0 dependency in an Apache-2.0-licensed library). Report the offenders; do not silently pass when licenses are unknown.
-- `reuse-headers` — **could**. SPDX headers present on source files (or REUSE-compliant). Higher bar; only flag when the repo already aims for it.
-
-Score and present per `../../references/output-format.md`.
+- `license-present` — **must** · scorecard: License. Fail when no SPDX-identifiable `LICENSE` sits at repo root. A public repo with no license is "all rights reserved" — nobody may legally reuse it.
+- `license-spdx-identifiable` — **must**. Warn when the license text doesn't match a known SPDX id (custom or hand-edited). Tooling and downstreams can't detect a non-standard license.
+- `metadata-matches-license` — **should**. Fail when the `license` field in `package.json` / `pyproject.toml` / `Cargo.toml` differs from the `LICENSE` file's SPDX id; cite both sources. Mismatched metadata misleads package registries.
+- `dependency-compatibility` — **should** (when a manifest/lockfile exists). Fail when a declared dependency's license is incompatible with the repo's (e.g. a GPL-3.0 dep in an Apache-2.0 library); warn when any dependency license is unknown. Incompatible deps make the stated license unenforceable.
+- `copyright-current` — **could**. Warn when the copyright line lacks a holder or a sensible year/range. Stale copyright reads as unmaintained.
+- `reuse-headers` — **could**. Pass when source files carry `SPDX-License-Identifier` headers or the repo is REUSE-compliant. Per-file clarity for downstream reuse; flag only when the repo aims for it.
 
 ## Scaffold
 
@@ -75,10 +74,14 @@ Then:
 1. Fetch canonical text — prefer `gh api /licenses/{spdx} --jq .body` (authoritative, fills the copyright placeholder), or use the SPDX-listed text. Never hand-edit license bodies beyond the `[year]` / `[fullname]` placeholders.
 2. Write to `LICENSE` at repo root (house style: root, plain `LICENSE`).
 3. Sync metadata: update the `license` field in `package.json` / `pyproject.toml` / `Cargo.toml` to the same SPDX id (Edit, shown first).
-4. Optional on request: add `SPDX-License-Identifier: <id>` headers to source files, and/or set up REUSE with a `LICENSES/` dir.
-5. Dual-licensing: write `LICENSE-MIT` + `LICENSE-APACHE` and state the "either at your option" choice in `README`.
+4. Optional on request: add `SPDX-License-Identifier: <id>` headers to source files (snippet: `references/scaffold-snippets.md`), and/or set up REUSE with a `LICENSES/` dir.
+5. Dual-licensing: write `LICENSE-MIT` + `LICENSE-APACHE` and add the "either at your option" notice from `references/scaffold-snippets.md` to `README`.
 
 One confirmation per file. For an existing `LICENSE`, show a diff before replacing.
+
+## Output
+
+Report per `../../references/output-format.md`: scan emits the license inventory with sources; audit emits severity-tagged findings, the domain score, and a `scaffold` offer for each unmet `must` / `should`.
 
 ## Edge cases
 

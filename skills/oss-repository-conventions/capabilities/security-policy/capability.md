@@ -27,7 +27,7 @@ changes.
 - **audit** — judge posture against `../../references/oss-health-rubric.md` and OpenSSF Scorecard signals.
 - **scaffold** — write `SECURITY.md` after confirmation; output `gh` commands for settings the user runs themselves.
 
-## Input guards
+## Inputs & guards
 
 - Not a git repo → stop.
 - `gh` not authenticated → run the file-based checks (SECURITY.md, signing config) and mark settings-based checks (branch protection, advisories, private reporting) as `unknown — gh not available`; never fail them silently.
@@ -38,7 +38,7 @@ changes.
 Files (catalog: `../../references/convention-files.md`, Security section), citing each source:
 
 1. Disclosure policy: `SECURITY.md`, `.github/SECURITY.md`, `docs/SECURITY.md`.
-2. Dependency/secret tooling: `.github/dependabot.yaml`, `.gitleaks.toml`, `.trufflehog`, `.semgrep.yml` (deep coverage lives in the `dependency-supply-chain` and `ci-automation` capabilities; here, note presence).
+2. Dependency/secret tooling: `.github/dependabot.yaml`, `.gitleaks.toml`, `.trufflehog`, `.semgrep.yml` (deep coverage lives in the dependency-supply-chain and ci-automation capabilities; here, note presence).
 3. Signing intent: `.gitattributes` / git config hints; sample `git log --show-signature -5` for signed commits; `git tag -v` for signed tags.
 4. Provenance: workflow steps using `actions/attest-build-provenance`, SLSA generators, or `cosign`.
 
@@ -48,44 +48,27 @@ Settings (require `gh`):
 - Branch protection on the default branch: `gh api repos/{owner}/{repo}/branches/{default}/protection` (required reviews, required status checks, linear history, no force-push).
 - Open security advisories: `gh api repos/{owner}/{repo}/security-advisories --jq 'length'` when accessible.
 
-## Audit checks
+## Audit
 
-- `security-md` — **should**. A `SECURITY.md` exists with a *private* reporting channel (GitHub private reporting, security@ email, or advisory link). A policy that says "open a public issue" for vulns → fail (defeats responsible disclosure).
-- `private-vuln-reporting` — **should**. GitHub private vulnerability reporting is enabled, or `SECURITY.md` provides an equivalent private path.
-- `default-branch-protected` — **should**. Default branch requires PR review and passing checks, blocks force-push, and isn't directly pushable. Public lib with no protection → fail.
-- `signed-tags` — **could** (→ **should** for repos that publish releases/artifacts). Release tags are signed so consumers can verify provenance.
-- `build-provenance` — **could** (→ **should** for published packages). Releases carry SLSA/attestation provenance.
-- `secret-scanning` — **should**. Secret scanning / push protection enabled, or a `gitleaks`-style check runs in CI.
-- `no-secrets-in-history` — **must**. No live credentials committed. If a scan suggests any, treat as `must` and point to rotation + history-rewrite (don't perform it here).
+Checks follow the schema in `../../references/oss-health-rubric.md`
+(`id` — **severity** [· scorecard: Name]. criterion. why):
 
-Score and present per `../../references/output-format.md`. Mirror OpenSSF Scorecard naming where it overlaps (`Branch-Protection`, `Signed-Releases`, `Vulnerabilities`, `Token-Permissions`).
+- `no-secrets-in-history` — **must** · scorecard: Vulnerabilities. Fail when a scan finds live committed credentials. Leaked secrets are an active compromise; point to rotation + history rewrite (don't perform it here).
+- `security-md` — **should**. Fail when no `SECURITY.md`, or when it routes vulnerabilities to public issues; pass when it gives a *private* channel (GitHub private reporting, security@ email, advisory link). Public disclosure defeats responsible reporting.
+- `private-vuln-reporting` — **should**. Fail when GitHub private vulnerability reporting is off and `SECURITY.md` offers no private path. Reporters need a non-public way in.
+- `default-branch-protected` — **should** · scorecard: Branch-Protection. Fail when the default branch allows direct pushes/force-push or requires no review/checks. Unprotected main lets unreviewed or rewritten history land.
+- `secret-scanning` — **should**. Pass when secret scanning / push protection is on, or a gitleaks-style check runs in CI. Catches credentials before they merge.
+- `signed-tags` — **could** (→ **should** when the repo publishes releases) · scorecard: Signed-Releases. Pass when release tags are signed. Lets consumers verify provenance.
+- `build-provenance` — **could** (→ **should** for published packages) · scorecard: Signed-Releases. Pass when releases carry SLSA/attestation provenance. Tamper-evidence for the artifact supply chain.
 
 ## Scaffold
 
-`SECURITY.md` — write after confirmation, tailored to the repo's reporting choice:
+`SECURITY.md` — write after confirmation from `references/security-md.template.md`,
+tailored to the repo's reporting choice and real supported-versions (don't guess
+the table). House style places it at `.github/SECURITY.md`.
 
-```markdown
-# Security Policy
-
-## Supported versions
-| Version | Supported |
-|---|---|
-| <latest> | ✅ |
-| < <latest> | ❌ |
-
-## Reporting a vulnerability
-Please report vulnerabilities privately via
-<GitHub private vulnerability reporting | security@<domain> | advisory link>.
-Do **not** open a public issue for security problems.
-
-We aim to acknowledge within <N> business days and to provide a fix or
-mitigation timeline after triage. Coordinated disclosure is appreciated.
-```
-
-House style places it at `.github/SECURITY.md`. Fill the supported-versions
-table from the repo's release/branch reality, not a guess.
-
-Settings — **propose, never apply** (the user runs these):
+Settings — **propose, never apply** (the user runs these); show the exact command
+and what it changes:
 
 ```bash
 # Enable private vulnerability reporting
@@ -93,10 +76,14 @@ gh api -X PUT repos/{owner}/{repo}/private-vulnerability-reporting
 
 # Protect the default branch (review + checks + no force-push)
 gh api -X PUT repos/{owner}/{repo}/branches/{default}/protection \
-  --input protection.json   # show the user the JSON first
+  --input branch-protection.example.json   # show + tailor the JSON first
 ```
 
-Always show the exact command and what it changes; let the user execute it.
+The protection payload template is `references/branch-protection.example.json`.
+
+## Output
+
+Report per `../../references/output-format.md`: scan emits the security inventory (files + settings) with sources; audit emits severity-tagged findings (Scorecard-aligned ids), the domain score, and a `scaffold` offer or the exact `gh` command for each unmet `must` / `should`.
 
 ## Edge cases
 
