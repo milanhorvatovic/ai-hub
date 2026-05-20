@@ -33,7 +33,7 @@ Governs how the repository handles vulnerabilities and protects its integrity: i
 
 Files (catalog: `../../references/convention-files.md`, Security section), citing each source:
 
-1. Disclosure policy: `SECURITY.md`, `.github/SECURITY.md`, `docs/SECURITY.md`.
+1. Disclosure policy: `SECURITY.md`, `.github/SECURITY.md`, `docs/SECURITY.md`; and `SECURITY-INSIGHTS.yml` (OpenSSF Security Insights — machine-readable security metadata).
 2. Dependency/secret tooling: `.github/dependabot.yaml`, `.gitleaks.toml`, `.trufflehog`, `.semgrep.yml` (deep coverage lives in the dependency-supply-chain and ci-automation capabilities; here, note presence).
 3. Signing intent: `.gitattributes` / git config hints; sample `git log --show-signature -5` for signed commits; `git tag -v` for signed tags.
 4. Provenance: workflow steps using `actions/attest-build-provenance`, SLSA generators, or `cosign`.
@@ -55,6 +55,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `secret-scanning` — **should**. Pass when secret scanning / push protection is on, or a gitleaks-style check runs in CI. Catches credentials before they merge.
 - `signed-tags` — **could** (→ **should** when the repo publishes releases) · scorecard: Signed-Releases. Pass when release tags are signed. Lets consumers verify provenance.
 - `build-provenance` — **could** (→ **should** for published packages) · scorecard: Signed-Releases. Grade by **SLSA build level**: L0 none → L1 provenance exists (e.g. `actions/attest-build-provenance` / a SLSA generator) → L2 provenance signed by a hosted build service → L3 hardened, non-falsifiable build. Pass the `could` bar at L1+; aim L2+ for distributed artifacts. Tamper-evidence for the artifact supply chain. Report the level, not just present/absent.
+- `security-insights` — **could**. Pass when `SECURITY-INSIGHTS.yml` (OpenSSF Security Insights spec) publishes machine-readable security metadata — policy URL, contacts, dependency/vulnerability practices. Lets tooling and consumers assess posture without scraping prose.
 
 ## Scaffold
 

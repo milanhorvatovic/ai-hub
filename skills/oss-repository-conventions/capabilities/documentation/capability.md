@@ -38,6 +38,7 @@ Sources (catalog: `../../references/convention-files.md`, Documentation + Agent 
 3. Decisions: ADRs under `docs/adr/` / `docs/decisions/`.
 4. Examples: an `examples/` tree or runnable snippets in the README.
 5. Agent-instruction files: `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, `.github/instructions/`, `.cursor/rules/`.
+6. Citation: `CITATION.cff` at repo root (GitHub renders a "Cite this repository" button from it).
 
 ## Audit
 
@@ -49,6 +50,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `agent-instructions` — **could**. Pass when agent-instruction files exist (house style: `AGENTS.md` canonical, `CLAUDE.md` / `.github/copilot-instructions.md` as pointers). Sets the repo up for agent contributors.
 - `docs-site` — **could** (non-trivial projects). Pass when a docs site exists beyond the README. Scales documentation past one file.
 - `adrs` — **could** (non-trivial projects). Pass when significant decisions are recorded. Preserves the "why" behind the architecture.
+- `citation-cff` — **could** (→ **should** for academic / citable software). Pass when a valid `CITATION.cff` exists, giving users a correct, machine-readable citation (GitHub surfaces a "Cite this repository" button).
 
 ## Scaffold
 

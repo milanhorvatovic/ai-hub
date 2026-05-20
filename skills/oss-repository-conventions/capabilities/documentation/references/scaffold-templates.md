@@ -76,3 +76,21 @@ Accepted
 ## Consequences
 <Trade-offs and follow-on effects.>
 ```
+
+## `CITATION.cff` (citable software)
+
+```yaml
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: <project>
+authors:
+  - family-names: <Surname>
+    given-names: <Given>
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+repository-code: "https://github.com/<owner>/<repo>"
+license: <SPDX-id>
+# version: <x.y.z>
+# date-released: YYYY-MM-DD
+```
+
+Validate before committing (e.g. `cffconvert --validate`); GitHub renders a "Cite this repository" button from a valid file.

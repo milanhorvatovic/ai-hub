@@ -37,6 +37,7 @@ Sources (catalog: `../../references/convention-files.md`), citing each:
 3. Support & funding: `SUPPORT.md` / `.github/SUPPORT.md`, `.github/FUNDING.yml`.
 4. Settings (`gh`): Discussions on (`gh api repos/{owner}/{repo} --jq .has_discussions`); triage labels (`gh label list`).
 5. Compare against GitHub's community-profile when available: `gh api repos/{owner}/{repo}/community/profile --jq .health_percentage`.
+6. Recognition: `.all-contributorsrc` (the all-contributors spec for crediting non-code contributors).
 
 ## Audit
 
@@ -47,6 +48,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `labels-triage` — **could**. Pass when triage labels exist (`bug`, `enhancement`, `good first issue`, `help wanted`). Enables sorting and newcomer routing.
 - `support-doc` — **could**. Pass when `SUPPORT.md` directs help-seeking off the issue tracker (discussions, chat, docs). Keeps issues for defects.
 - `funding` — **could** (public repos only). Pass when `FUNDING.yml` is present if the maintainer wants sponsorship. Purely optional.
+- `all-contributors` — **could**. Pass when non-code contributions are recognized (the all-contributors spec/bot, or an equivalent Contributors section). Credits docs, design, and triage, not just commits.
 
 ## Scaffold
 
