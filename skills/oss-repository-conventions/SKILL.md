@@ -105,12 +105,7 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | Capability | Covers | Path |
 |---|---|---|
 | release-versioning | SemVer policy, Keep-a-Changelog, release automation, tag/release consistency, support/deprecation policy | capabilities/release-versioning/capability.md |
-
-### Roadmap (planned, not yet built)
-
-Listed by name only — not yet routable. Built capabilities graduate into the tables above.
-
-- `documentation` — README structure & badges, docs site, ADRs, examples, agent-instruction files
+| documentation | README structure & badges, docs site, ADRs, runnable examples, agent-instruction files | capabilities/documentation/capability.md |
 
 ## Shared references
 
