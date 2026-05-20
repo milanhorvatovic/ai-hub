@@ -53,7 +53,7 @@ After every mass-rewrite, run:
 
 - `git log --oneline main..<branch>` per branch — verify expected commit count and subjects.
 - A focused grep for known artifacts (e.g., `[a-zA-Z0-9]+-\s+[a-zA-Z0-9]+` for kebab-case joins after a flow operation).
-- For a message-only rewrite, `git diff pre-rewrite/<branch> <branch>` should be **empty** — it compares trees, not commit messages, so a message-only change produces no diff. Any tree-content diff indicates the filter tool mis-applied. To verify the rewritten commits themselves (subjects/patches line up), use `git range-diff pre-rewrite/<branch>..<branch>` or compare `git log --format` outputs.
+- For a message-only rewrite, `git diff pre-rewrite/<branch> <branch>` should be **empty** — it compares trees, not commit messages, so a message-only change produces no diff. Any tree-content diff indicates the filter tool mis-applied. To verify the rewritten commits themselves (subjects/patches line up), use `git range-diff pre-rewrite/<branch>...<branch>` (single-argument range-diff needs the three-dot symmetric form) or compare `git log --format` outputs.
 
 ## Recovery
 
