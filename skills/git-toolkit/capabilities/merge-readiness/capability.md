@@ -21,7 +21,7 @@ Checks all the gates that should be green before merging, and reports go/no-go.
 - **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. On non-GitHub remotes (GitLab / Codeberg / Bitbucket), follow the degrade path in `forge-adapters.md` — gate semantics (CI status, approvals, mergeability, threads) map but the API shape differs.
 - Resolve target PR per `pr-description-sync`'s Inputs (PR number/URL provided, OR `gh pr list --head <branch>`).
 - If `state ∈ {MERGED, CLOSED}` → refuse (already merged or closed).
-- If `author.login` matches a pattern in `../../references/bot-signatures.md` → mention but proceed (bots merge bot PRs through their own logic; merge-readiness is informational for bot PRs).
+- If `author.login` matches a pattern in `../../references/bot-signatures.md` → mention but proceed. This is the deliberate read-only/informational carve-out from the router's bot-exemption rule (see `../../SKILL.md` Principles): merge-readiness reports a verdict rather than rewriting bot-controlled content, so it runs on bot PRs instead of skipping.
 - `gh` auth required — on failure, tell the user to `gh auth login`.
 
 ## Workflow
