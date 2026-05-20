@@ -18,7 +18,7 @@ description: >
   /oss-repository-conventions.
 allowed-tools: Bash Read Grep Glob Write Edit
 metadata:
-  version: "0.4.0"
+  version: "0.5.0"
 ---
 
 # oss-repository-conventions
@@ -101,6 +101,7 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | automation-baseline | Entry point: bare-minimum composable automation across testing/scanning/deps/releases — scaffolds building blocks, defers depth to the pillars | capabilities/automation-baseline/capability.md |
 | ci-automation | Actions workflows, build/test on PRs, least-privilege tokens, SHA-pinned actions, OIDC, scheduled jobs | capabilities/ci-automation/capability.md |
 | dependency-supply-chain | Dependabot/Renovate, lockfiles, dependency pinning, vulnerability monitoring, SBOM | capabilities/dependency-supply-chain/capability.md |
+| pr-autonomy | The autonomy ladder (auto-approve → auto-merge → full autonomous flow) and the guardrails that scale with each rung | capabilities/pr-autonomy/capability.md |
 
 ### Release & documentation
 
@@ -124,6 +125,7 @@ Each row routes to a self-sufficient capability. The path column is the file to 
 | documentation | capabilities/documentation/capability.md |
 | governance | capabilities/governance/capability.md |
 | licensing | capabilities/licensing/capability.md |
+| pr-autonomy | capabilities/pr-autonomy/capability.md |
 | release-versioning | capabilities/release-versioning/capability.md |
 | repo-infrastructure | capabilities/repo-infrastructure/capability.md |
 | security-policy | capabilities/security-policy/capability.md |
