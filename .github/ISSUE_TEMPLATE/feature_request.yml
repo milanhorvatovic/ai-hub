@@ -1,0 +1,18 @@
+name: Proposal
+description: Propose a new skill or capability, or an improvement to an existing one
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem would this solve, or what gap does it fill?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed skill / capability / change
+      description: Sketch the scope. For a new skill, note the domain and whether it's a router with capabilities.
+    validations:
+      required: true
