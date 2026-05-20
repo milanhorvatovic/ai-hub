@@ -101,7 +101,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 |---|---|---|
 | merge-readiness | [GitHub-side] Pre-merge gate check — CI status, approvals, mergeability, unresolved threads, no WIP commits, description-in-sync. Outputs READY / NOT-READY with per-gate detail | capabilities/merge-readiness/capability.md |
 | merge-execute | [GitHub-side] Output the canonical `gh pr merge` command per repo merge policy (squash / rebase / merge), with the right `--delete-branch` and `--auto` flags | capabilities/merge-execute/capability.md |
-| release-notes | [GitHub-side] Draft release notes for a new version by aggregating commits + merged PRs since the previous tag, grouped by conventional-commits type, with contributor credit | capabilities/release-notes/capability.md |
+| release-notes | [git-side, optional gh enrichment] Draft release notes for a new version by aggregating commits since the previous tag, grouped by conventional-commits type; enriches with merged-PR metadata and contributor credit when `gh` is authenticated, and degrades to a commit-only draft otherwise | capabilities/release-notes/capability.md |
 
 ### Alphabetic index (fallback)
 
@@ -186,7 +186,7 @@ A typical end-to-end lifecycle for a change. Each step is independent and option
 | Mid-review (CI red) | `pr-checks-summary` to interpret failures and propose fixes | GitHub |
 | Wrapping up review feedback | `pr-conversation-resolve` for unresolved threads | GitHub |
 | Pre-merge gate | `merge-readiness` (verdict) → `merge-execute` (the command) | GitHub |
-| Preparing a release | `release-notes` | GitHub |
+| Preparing a release | `release-notes` | git (gh enrich) |
 
 Each capability runs independently; this flow is a recommendation, not a hard sequence.
 
