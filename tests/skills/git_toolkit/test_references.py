@@ -51,7 +51,10 @@ def _collect_relative_links(md_path: Path) -> list[tuple[str, int]]:
 def test_capability_links_resolve(
     skill_root: Path, capabilities_dir: Path
 ) -> None:
-    """Every relative path linked from a capability.md must resolve."""
+    """Every relative path linked from a capability.md must resolve, and must
+    stay within the skill tree (a link that escapes skill_root, e.g.
+    `../../../../README.md`, is treated as broken even if the target exists)."""
+    skill_root_resolved = skill_root.resolve()
     broken: list[str] = []
     for cap_dir in sorted(capabilities_dir.iterdir()):
         cap_md = cap_dir / "capability.md"
@@ -60,7 +63,9 @@ def test_capability_links_resolve(
         for link, lineno in _collect_relative_links(cap_md):
             target = (cap_md.parent / link).resolve()
             if not target.is_file():
-                broken.append(f"{cap_md.relative_to(skill_root)}:{lineno} -> {link}")
+                broken.append(f"{cap_md.relative_to(skill_root)}:{lineno} -> {link} (missing)")
+            elif not target.is_relative_to(skill_root_resolved):
+                broken.append(f"{cap_md.relative_to(skill_root)}:{lineno} -> {link} (escapes skill tree)")
     assert not broken, "broken relative links in capabilities:\n" + "\n".join(broken)
 
 
