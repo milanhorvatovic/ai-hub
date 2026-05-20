@@ -7,7 +7,7 @@ Consumers should parse one line at a time and dispatch by `event`. Schema is sta
 ## EventType table
 
 | Event | Tool field | Detail shape | When emitted |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `available` | tool name | string (version string) | `probe.py`: each tool found on PATH |
 | `installed` | tool name | string (version string) | `recommend-tools.py`: each tool already installed |
 | `missing` | `"all"` or tool name | string (install hint) | `probe.py` exit 3; `md-audit.py` / `md-format.py` when no usable formatter; `md-audit-frontmatter.py` when yamllint absent |
@@ -35,7 +35,7 @@ Two variants — the markdown formatter pipeline and the yamllint frontmatter pi
 Emitted once per `md-audit` / `md-format` / `md-fix` invocation (and once per phase of fix-cycle).
 
 | Field | Type | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | `baseline` | string | The style-baseline config filename detected (`.markdownlint.json`, etc.) or `"universal-subset"` |
 | `mode` | string | `"audit"` or `"format"` |
 | `unwrap` | bool | Whether `--unwrap` was passed (adds `--prose-wrap=never` / `--wrap=no` to the cmd) |
@@ -49,20 +49,21 @@ Emitted once per `md-audit` / `md-format` / `md-fix` invocation (and once per ph
 Emitted once per `md-audit-frontmatter` invocation by `yaml_audit.audit_frontmatter`. The `tool` field on the event is always `"yamllint"`.
 
 | Field | Type | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | `mode` | string | Always `"audit-frontmatter"` |
 | `config_source` | string | `"repo"` (caller passed `--yamllint-config`), `"bundled"` (bundled fallback yamllint.yaml), or `"tool-default"` (no config available) |
 | `config_path` | string or null | Resolved absolute path of the yamllint config in use, or null when no config could be resolved |
 | `files_scanned` | int | Count of markdown files the audit walked |
 
 Notes:
+
 - The frontmatter variant does NOT include `baseline`, `unwrap`, `cmd`, `files_scoped`, or `dry_run` — those are markdown-pipeline-specific concepts.
 - Field-stability guarantees apply per-variant — adding fields to one variant doesn't imply adding them to the other.
 
 ### `recommend`
 
 | Field | Type | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | `priority_rank` | int | 1-based rank in `INSTALL_PRIORITY` (1 = top priority) |
 | `install_options` | list[str] | Platform-specific install commands the user can run |
 
@@ -107,7 +108,7 @@ Computed by comparing finding-line sets between pre-format audit and post-format
 Uniform across all entry shims:
 
 | Exit | Meaning |
-|---|---|
+| --- | --- |
 | 0 | Clean (no findings or no changes needed) |
 | 1 | Findings present, files changed, or fix-cycle left findings unresolved |
 | 2 | Formatter invocation error (returncode ≥ 2), OR — for `md-audit-frontmatter` — any target file was unreadable (per-file ERROR events emit inline; lint findings, when also present, still appear in the event stream but the aggregate exit code stays 2 so consumers don't misread "audit found problems" as "audit setup is fine") |

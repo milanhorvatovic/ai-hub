@@ -5,7 +5,7 @@ These files are formatter configs the skill uses **only when the target repo dec
 ## What is shipped
 
 | Tool | File | Reason |
-|---|---|---|
+| --- | --- | --- |
 | `markdownlint` / `markdownlint-cli2` | [`markdownlint.json`](markdownlint.json) | Tool accepts `--config <path>` reliably; covers full rule set in one file. |
 | `prettier` | [`prettierrc.json`](prettierrc.json) | Tool accepts `--config <path>`; markdown overrides only, no global side effects. |
 | `yamllint` | [`yamllint.yaml`](yamllint.yaml) | Tool accepts `-c <path>`; used by `audit-frontmatter` for frontmatter + fenced YAML block linting. Disables line-length, relaxes document-start, allows `true`/`false` only for truthy, keeps key-duplicates as error. |
@@ -13,7 +13,7 @@ These files are formatter configs the skill uses **only when the target repo dec
 ## What is intentionally **not** shipped
 
 | Tool | Reason |
-|---|---|
+| --- | --- |
 | `mdformat` | No `--config` flag for arbitrary paths; config must live in `pyproject.toml` or `.mdformat.toml` discovered from CWD upward. Bundling would require symlink hacks or invasive copy-in / copy-out. |
 | `dprint` | Requires the markdown plugin URL pinned in the config (e.g. `https://plugins.dprint.dev/markdown-0.17.8.wasm`). Pinning rots; a stale bundled URL would silently break. |
 | `remark` | Useful behavior requires an installed preset (e.g. `remark-preset-lint-recommended`). The skill cannot guarantee the preset is on the user's machine. |

@@ -26,7 +26,7 @@ For each tool, columns are: **Probe** (one-shot detect + version), **Audit** (re
 Pairs with `.markdownlint.json` / `.markdownlint.jsonc` / `.markdownlint.yaml` / `.markdownlint-cli2.{jsonc,yaml}`.
 
 | Mode | Command |
-|---|---|
+| --- | --- |
 | Probe | `markdownlint-cli2 --version` (or `markdownlint --version`) |
 | Audit | `markdownlint-cli2 "**/*.md" "**/*.markdown" "#node_modules" "#.git" "#dist" "#build" "#.venv" "#venv" "#target"` |
 | Audit (older CLI) | `markdownlint --ignore-path .gitignore "**/*.md" "**/*.markdown"` |
@@ -42,7 +42,7 @@ Pairs with `.markdownlint.json` / `.markdownlint.jsonc` / `.markdownlint.yaml` /
 Pairs with `.prettierrc` / `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}` / `prettier.config.{js,cjs,mjs}`. Prettier itself also reads a `prettier` key out of `package.json`, but `docs_steward.baseline.BASELINE_CANDIDATES` does NOT include `package.json` — selection happens by filename match, so a repo whose only Prettier config lives under `package.json#prettier` falls through to `universal-subset` and the bundled fallback. Add a standalone `.prettierrc` (or any of the other names above) when you want the skill to detect Prettier.
 
 | Mode | Command |
-|---|---|
+| --- | --- |
 | Probe | `prettier --version` |
 | Audit | `prettier --check --parser markdown "**/*.md" "**/*.markdown"` |
 | Audit (unwrap-respecting) | `prettier --check --parser markdown --prose-wrap=never "**/*.md" "**/*.markdown"` |
@@ -60,7 +60,7 @@ Pairs with `.prettierrc` / `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}` / `pret
 Pairs with `.mdformat.toml` at the repo root. mdformat itself also reads a `[tool.mdformat]` section out of `pyproject.toml`, but `docs_steward.baseline.BASELINE_CANDIDATES` only matches by filename — `pyproject.toml` is not in the candidate list (and adding it would require parsing the TOML to confirm the `[tool.mdformat]` table exists, which the rest of baseline detection deliberately avoids). A repo whose only mdformat config lives under `pyproject.toml#[tool.mdformat]` therefore falls through to `universal-subset` and may select a different formatter. Add a standalone `.mdformat.toml` when you want the skill to detect mdformat.
 
 | Mode | Command |
-|---|---|
+| --- | --- |
 | Probe | `mdformat --version` |
 | Audit | `mdformat --check .` (recursive on the working dir) |
 | Audit (single file) | `mdformat --check path/to/file.md` |
@@ -78,11 +78,11 @@ Pairs with `.mdformat.toml` at the repo root. mdformat itself also reads a `[too
 
 Pairs with `dprint.json` containing a `markdown` plugin entry.
 
-| Mode | Command |
-|---|---|
-| Probe | `dprint --version` |
-| Audit | `dprint check` |
-| Format | `dprint fmt` |
+| Mode   | Command            |
+| ------ | ------------------ |
+| Probe  | `dprint --version` |
+| Audit  | `dprint check`     |
+| Format | `dprint fmt`       |
 
 - **Exit 0** = formatted; **non-zero** = changes needed (audit) or error (format).
 - **Output**: file paths only. Each non-empty stdout/stderr line is emitted verbatim as a `finding` event detail string (audit) or `changed` (format); no per-file message synthesis.
@@ -93,11 +93,11 @@ Pairs with `dprint.json` containing a `markdown` plugin entry.
 
 Pairs with `.remarkrc` / `.remarkrc.{json,yaml,yml,js,cjs,mjs}`. Less common today than `prettier` for general markdown but still seen in remark-based pipelines.
 
-| Mode | Command |
-|---|---|
-| Probe | `remark --version` |
-| Audit | `remark --quiet --frail "**/*.md" "**/*.markdown"` |
-| Format | `remark --output "**/*.md" "**/*.markdown"` |
+| Mode   | Command                                            |
+| ------ | -------------------------------------------------- |
+| Probe  | `remark --version`                                 |
+| Audit  | `remark --quiet --frail "**/*.md" "**/*.markdown"` |
+| Format | `remark --output "**/*.md" "**/*.markdown"`        |
 
 - `--frail` forces non-zero exit on any warning; the skill relies on this to flip exit semantics into a usable signal.
 - `--output` rewrites in place; without it `remark` prints to stdout.
@@ -108,9 +108,9 @@ Pairs with `.remarkrc` / `.remarkrc.{json,yaml,yml,js,cjs,mjs}`. Less common tod
 
 Complementary tool — not a markdown formatter. Used by `audit-frontmatter` to lint YAML frontmatter + fenced YAML blocks extracted from markdown files. Pairs with `.yamllint` / `.yamllint.yaml` (any of the canonical yamllint config names); the skill's bundled `assets/configs/yamllint.yaml` is used when the repo declares none and no `--yamllint-config` override is passed.
 
-| Mode | Command |
-|---|---|
-| Probe | `yamllint --version` |
+| Mode                             | Command                                 |
+| -------------------------------- | --------------------------------------- |
+| Probe                            | `yamllint --version`                    |
 | Audit (per block, fed via stdin) | `yamllint -f parsable -s -c <config> -` |
 
 - **Exit 0** = no findings; **exit 1** = findings present; **exit 2** = config / invocation error.
@@ -127,7 +127,7 @@ When no formatter at all is on `PATH` (every tool in `FALLBACK_ORDER` is absent)
 The skill must distinguish the three classes for every tool:
 
 | Class | Action |
-|---|---|
+| --- | --- |
 | **Clean** (exit 0 in audit) | No findings; skip the file in the report. |
 | **Findings** (exit 1 in audit) | Stream each non-empty stdout line verbatim as a `finding` event (and stderr too in AUDIT mode — some tools emit findings there). No rule-code synthesis: consumers that want a `<RULE>` slot should parse the tool's own format from `finding.detail` (e.g. `MD\d{3}` for markdownlint, the rule field in remark's parsable output). The skill stays out of the synthesis business so it doesn't paper over consumer-side variation. |
 | **Tool error** (exit ≥ 2, or unexpected stderr) | Append the tool's stdout/stderr as event-stream lines, then emit a single `ERROR` event with `{"exit": N}` and exit 2. There is no implicit hand-rolled-edits fallback after a tool error — addressing the failing tool is on the caller. |
