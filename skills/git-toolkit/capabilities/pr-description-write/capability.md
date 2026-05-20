@@ -55,7 +55,7 @@ Bucket changed paths (code / tests / docs / config / CI / assets / infra / schem
 
 ### 3. Query merge policy
 
-`gh api repos/{owner}/{repo} --jq '{squash:.allow_squash_merge, sm:.squash_merge_commit_message, rebase:.allow_rebase_merge}'`.
+`gh api repos/{owner}/{repo} --jq '{squash:.allow_squash_merge, sm:.squash_merge_commit_message, st:.squash_merge_commit_title, rebase:.allow_rebase_merge}'`.
 
 This determines the BODY SHAPE:
 

@@ -62,7 +62,7 @@ headRepositoryOwner,baseRepository,author
 
 ### 1.5. Merge policy
 
-`gh api repos/{owner}/{repo} --jq '{squash:.allow_squash_merge, sm:.squash_merge_commit_message, rebase:.allow_rebase_merge}'`.
+`gh api repos/{owner}/{repo} --jq '{squash:.allow_squash_merge, sm:.squash_merge_commit_message, st:.squash_merge_commit_title, rebase:.allow_rebase_merge}'`.
 
 Key rule: **`sm == "PR_BODY"` means the body IS the squash commit message** → shape MAJOR-REWRITE as a flat commit message. Full interpretation in `../../references/merge-policy.md`.
 
