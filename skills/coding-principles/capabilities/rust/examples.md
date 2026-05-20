@@ -32,7 +32,7 @@ fn user_label(user: Option<&User>) -> String {
 
 For fallible operations, propagate with `?` instead of `unwrap()` / `expect()` in non-test code.
 
-## Principle 11 — Make illegal states unrepresentable (mantra; pairs with strong typing)
+## Mantra 11 — Make illegal states unrepresentable (pairs with strong typing)
 
 ```rust
 // bag of optionals — many incoherent combinations compile
