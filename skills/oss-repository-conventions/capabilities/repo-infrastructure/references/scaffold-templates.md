@@ -52,7 +52,7 @@ indent_style = tab
 
 Normalizes contributor names/emails in `git shortlog` and `git log`.
 
-```
+```text
 Proper Name <proper@email> <old@email>
 Proper Name <proper@email> Old Name <old@email>
 ```

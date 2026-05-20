@@ -8,7 +8,7 @@ handles.
 
 Goes at `.github/CODEOWNERS`. Order matters — the last matching pattern wins.
 
-```
+```text
 # Default owners for everything in the repo
 *                       @org/maintainers
 

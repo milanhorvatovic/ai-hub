@@ -7,20 +7,26 @@ guardrails aren't in place.
 ## Rungs
 
 ### L0 — Manual
+
 A human opens, reviews, and merges every PR. No automation.
+
 - **Prerequisites:** none.
 - **When:** tiny/experimental repos; highest-trust changes.
 
 ### L1 — Assisted
+
 Bots/tools *open* PRs (Dependabot, release-please); CI runs on every PR. A human
 still reviews and merges each one.
+
 - **Prerequisites:** CI on `pull_request`.
 - **Guardrails:** required checks visible (even if not enforced yet).
 - **When:** the baseline for any active repo.
 
 ### L2 — Auto-approve
+
 Automation *approves* eligible PRs so they satisfy required review; a human (or
 L3) still merges.
+
 - **Prerequisites:** a least-privilege **App token** (the default `GITHUB_TOKEN`
   cannot approve PRs); an **eligibility gate**.
 - **Guardrails:** eligibility gate, hard stops, scoped identity.
@@ -29,7 +35,9 @@ L3) still merges.
   with required checks so approval alone never lands a change.
 
 ### L3 — Auto-merge
+
 Eligible PRs *merge themselves* once required checks pass.
+
 - **Prerequisites:** **branch protection** with **required status checks**;
   auto-merge enabled on the repo; an update-type/path gate.
 - **Guardrails:** all of L2 + required-checks-are-the-gate.
@@ -40,8 +48,10 @@ Eligible PRs *merge themselves* once required checks pass.
   narrow (e.g. patch/minor deps, docs-only).
 
 ### L4 — Full autonomous flow
+
 End-to-end with no human on the safe path: open → label → approve → merge →
 reconcile, and optionally → release. Humans handle only gated exceptions.
+
 - **Prerequisites:** all of L3 + a **reconciler**, **observability**, and an
   **escape hatch**.
 - **Guardrails:** the full spine below.

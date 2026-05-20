@@ -9,7 +9,7 @@ rather than templated here — only fill the `[year]` / `[fullname]` placeholder
 Prepend to source files when the repo opts into per-file headers (REUSE-style).
 Use the comment syntax of the file's language; keep it as the first lines.
 
-```
+```text
 SPDX-FileCopyrightText: <year> <holder>
 SPDX-License-Identifier: <SPDX-id>
 ```

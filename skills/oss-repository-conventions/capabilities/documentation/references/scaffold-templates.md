@@ -6,7 +6,7 @@ feature claims.
 
 ## `README.md`
 
-```markdown
+````markdown
 # <project>
 
 <One sentence: what it is and who it's for.>
@@ -36,7 +36,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## License
 
 <SPDX id> — see [LICENSE](LICENSE).
-```
+
+````
 
 ## `AGENTS.md` (house-style canonical agent instructions)
 

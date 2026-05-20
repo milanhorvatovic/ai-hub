@@ -58,7 +58,7 @@ Domain scores: licensing <NN>% · security <NN>% · …
 When the user or a calling tool wants machine-readable output, emit one JSON
 object per finding, newline-delimited:
 
-```
+```text
 {"domain":"licensing","check":"license-present","severity":"must","status":"fail","file":null,"message":"No LICENSE at repo root","scaffold":"capabilities/licensing"}
 {"domain":"security-policy","check":"security-md","severity":"should","status":"pass","file":".github/SECURITY.md","message":"Disclosure policy present"}
 ```

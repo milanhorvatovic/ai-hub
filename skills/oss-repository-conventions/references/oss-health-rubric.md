@@ -29,7 +29,7 @@ A check carries:
 
 Capabilities write each check as a single bullet:
 
-```
+```text
 - `id` — **severity** [· scorecard: Name]. <criterion>. <why>.
 ```
 
@@ -42,7 +42,7 @@ A repo's health score is the share of *applicable* checks satisfied, weighted
 by severity. Inapplicable checks are excluded, not failed (a pure-docs repo has
 no test framework to score).
 
-```
+```text
 weight: must = 3, should = 2, could = 1
 score  = sum(weight of satisfied applicable checks)
          / sum(weight of all applicable checks)   -> 0–100%
