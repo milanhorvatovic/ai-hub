@@ -63,7 +63,7 @@ Format: `<type>(<scope>)<!>: <description>`
 | Issue numbers in subject (`Fix retry bug #123`) | Issue refs belong in body or trailers; pollutes `git log --oneline` |
 | File names or paths (`src/foo.py: fix race`) | Reader uses `git log --stat` / `--name-only` for files; subject is for intent |
 | Implementation detail (`Use regex for retry`, `Switch from map() to forEach()`) | The outcome matters, not the technique — reader sees the diff for technique |
-| Author / date / version metadata (`v1.4: add X`, `[Alice] update Y`) | Tags + trailers carry attribution; subjects are for the change itself |
+| Author / date / version metadata (`v1.4: add X`, `[author] update Y`) | Tags + trailers carry attribution; subjects are for the change itself |
 | Emoji prefixes (`✨ Add X`) | Repo-specific style — only use if the repo's last ~20 commits all use them |
 | `!` breaking-change marker without `BREAKING CHANGE:` footer in body | The marker is a claim; the body must explain the breakage and migration |
 
@@ -86,5 +86,5 @@ PR titles follow the same rules as commit subjects: imperative, ≤72 chars, no 
 | `feat!: change auth API` (no body) | Subject + `BREAKING CHANGE: …` in body | `!` requires a body explanation |
 | `Improve performance` | `perf(parser): cache regex compilation` + body with measurement | Generic claim, no specifics |
 | `update deps` | `chore(deps): bump react-router 6.20.0 → 6.21.1` | Generic + lowercase — pick one style |
-| `[WIP][Alice] working on auth` | (don't commit yet) | Status + author + vague |
+| `[WIP][author] working on auth` | (don't commit yet) | Status + author + vague |
 | `🚀 Add streaming JSON parser ✨` | `feat(parser): add streaming JSON reader` | Emoji unless repo-wide convention |

@@ -86,7 +86,7 @@ Subject uses a path prefix or a filename to scope the change.
 
 **Fix**: drop unless the repo's last ~20 commits all use emoji prefixes (gitmoji convention).
 
-### `bracketed-author` — "[Alice] add retry"
+### `bracketed-author` — "[author] add retry"
 
 **Pattern**: subject starts with `[author-name]` or `(author-name)`.
 

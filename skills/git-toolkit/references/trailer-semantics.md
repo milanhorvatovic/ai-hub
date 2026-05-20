@@ -55,8 +55,8 @@ Trailers are `Key: value` lines at the END of a commit message or PR body, after
 
 <body paragraphs>
 
-Co-authored-by: Alice <alice@example.com>
-Signed-off-by: Bob <bob@example.com>
+Co-authored-by: Contributor One <contributor-one@example.com>
+Signed-off-by: Contributor Two <contributor-two@example.com>
 Refs: #123
 ```
 
@@ -81,7 +81,7 @@ This rule applies across every capability:
 - `rebase-cleanup` does not introduce new trailers when squashing — only preserves existing ones byte-for-byte.
 - `release-notes` does not add `Co-authored-by:` trailers; contributors are credited via PR-author handles in a "Contributors" section.
 
-The only exception: when the user explicitly asks to add a trailer ("add Signed-off-by", "add Co-authored-by for Alice"), then add it — verbatim, at the end, after a blank line. Even then, do not synthesize the value (don't guess the email; use what the user provides or `git config user.email`).
+The only exception: when the user explicitly asks to add a trailer ("add Signed-off-by", "add Co-authored-by for <contributor>"), then add it — verbatim, at the end, after a blank line. Even then, do not synthesize the value (don't guess the email; use what the user provides or `git config user.email`).
 
 ## Harness pressure: when the invoking environment mandates a trailer
 

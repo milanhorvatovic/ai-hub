@@ -245,21 +245,21 @@ Three review threads exist. Trigger: "summarize unresolved threads".
 ```
 Unresolved threads: 3
 
-  1. @alice on src/upload/queue.js:42
+  1. @reviewer-1 on src/upload/queue.js:42
      "Should we cap the retry budget per upload OR per queue session?"
      → Addressed by commit a8c2f1d which added the per-upload cap. Propose:
        Response: "Per-upload — see a8c2f1d. Per-queue would be useful for the
        fan-in case (#502) but is out of scope here."
        After reply: gh pr review --comment --body ... ; gh api ... resolve
 
-  2. @bob on README change
+  2. @reviewer-2 on README change
      "Add a metric to track retry exhaustion?"
      → Not yet addressed. Propose:
        Response: "Good catch — opened #503 to add upload_retry_exhausted_total
        in a follow-up since it touches the metrics-conventions ADR."
        (don't auto-resolve; #503 is the closure path)
 
-  3. @carol on package.json
+  3. @reviewer-3 on package.json
      "Why did the package-lock change?"
      → Inspection shows transitive bump in axios from 1.5.1 to 1.5.2 (security
        patch, unrelated to this PR). Propose:
@@ -282,20 +282,20 @@ PR: #729 fix(upload): retry transient failures
 | CI checks | ✅ PASS | 7/7 green |
 | Approvals | ✅ PASS | 2/2 required |
 | Mergeable | ✅ CLEAN | no conflict |
-| Unresolved threads | ⚠️  WARN | 1 (carol, axios bump — see pr-conversation-resolve) |
+| Unresolved threads | ⚠️  WARN | 1 (reviewer-3, axios bump — see pr-conversation-resolve) |
 | Draft state | ✅ ready | |
 | WIP commits | ✅ none | |
 | Description in sync | ✅ IN-SYNC | last sync check passed |
 
 Verdict: NOT-READY (1 warn on unresolved thread).
 
-Resolution: either close @carol's thread with a follow-up answer or accept the
+Resolution: either close @reviewer-3's thread with a follow-up answer or accept the
 risk and merge over it (your call).
 ```
 
 ## Step 14 — `merge-execute` (GitHub-side)
 
-After @carol's thread is resolved, you re-run `merge-readiness` (now READY). Trigger: "what's the merge command?".
+After @reviewer-3's thread is resolved, you re-run `merge-readiness` (now READY). Trigger: "what's the merge command?".
 
 ```
 Repo merge policy: squash-only (detected via gh api repos/<owner>/<repo>).
@@ -318,16 +318,16 @@ Commits: 14 (after squash-merges)
 - (none)
 
 ## Fixes
-- fix(upload): retry transient failures up to 2 times with backoff (#729, @milanh)
-- fix(api): return 422 not 500 for malformed JSON bodies (#734, @alice)
+- fix(upload): retry transient failures up to 2 times with backoff (#729, @author)
+- fix(api): return 422 not 500 for malformed JSON bodies (#734, @reviewer-1)
 
 ## Docs
-- docs(upload): note the retry behavior in README (#729, @milanh)
+- docs(upload): note the retry behavior in README (#729, @author)
 
 ## Chore
 - chore(deps): bump axios 1.5.1 -> 1.5.2 (security patch, transitively via #729)
 
-Contributors: @milanh, @alice, @bob, @carol
+Contributors: @author, @reviewer-1, @reviewer-2, @reviewer-3
 
 Apply with: gh release create v2.4.0 --notes-file <(cat <<'EOF' ... EOF)
 ```
