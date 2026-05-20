@@ -1,19 +1,13 @@
 ---
 name: coding-principles
 description: >
-  Implementation discipline for any coding task — authoring, modifying,
-  fixing, refactoring, reviewing code. Carries the universal mantras in a
-  three-tier hierarchy (goals, design, pruning) and 20 numbered principles
-  with severity tags (must / should / could). Router pattern: SKILL.md
-  loads always; `references/` holds generic prose (mantras, principles,
-  glossary, smell→principle diagnostic catalog); `capabilities/` holds
-  language-specific entry points (bash, python, typescript, rust) and the
-  review-mode workflow, each as `capability.md` per the Agent Skills
-  convention. Load capabilities on
-  demand based on file extensions or task type. Triggers when the user
-  asks to write, implement, add, fix, refactor, clean up, or review code;
-  or via /coding-principles. Skip for docs-only, config-only, pure-data,
-  or ops/infra tasks.
+  Implementation discipline for any coding task — writing, modifying, fixing,
+  refactoring, or reviewing code. Carries 16 universal mantras (tiers: goals,
+  design, pruning) and 20 numbered principles with must/should/could severity,
+  with on-demand language capabilities (bash, python, typescript, rust) and a
+  review workflow. Triggers when the user asks to write, implement, add, fix,
+  refactor, clean up, or review code, or via /coding-principles. Skip for
+  docs-only, config-only, pure-data, or ops/infra tasks.
 allowed-tools: Read Grep
 metadata:
   version: "1.0.0"
@@ -27,97 +21,37 @@ Single source of implementation discipline for coding tasks. Loaded as active co
 
 ## Design philosophy
 
-This skill is built for *AI agents authoring code*, not for human teams iterating toward done. The distinction matters and shapes every choice below:
+Built for *AI agents authoring code*, optimizing for first-pass correctness — right *and* simple *and* tested in one draft — not the human "make it work, then right, then fast" sequence. Two operating rules follow: **severity** (must / should / could) governs triage, and **mantra tier** (Goals > Design > Pruning) governs conflicts. When in doubt, prefer the interpretation that yields simpler, more typed, more testable, more observable code in *this* draft over one that anticipates future flexibility. Full rationale: `references/design-rationale.md`.
 
-- **Optimize for first-pass correctness, not iteration speed.** An AI agent with the right rules can produce correct, modular, observable code in one pass. The classic human-velocity sequencing — "make it work, then right, then fast" — is deliberately *rejected* here because it would license shipping the works-but-ugly version. Each draft is expected to be right *and* simple *and* tested.
-- **Severity (must / should / could) governs triage.** When several violations exist at once, fix musts first, recommend shoulds, apply coulds silently.
-- **Mantra tier (Goals > Design > Pruning) governs design conflicts.** When two principles fight, the higher tier wins. Inside a tier, siblings are case-by-case — they answer different questions and rarely conflict head-on.
-- **YAGNI is a check, not a veto.** Modular shape (small functions, narrow interfaces, isolated I/O, typed boundaries) is free at write-time and earned by the current feature. Infrastructure (one-impl interfaces, plugin points, factories, configuration layers) requires evidence of need and is deferred.
-- **The skill is read-only.** It shapes the Edit/Write calls that follow; it does not run linters, formatters, or refactor tools, and it leaves post-edit cleanup and repo-local style to separate passes — see "Scope boundaries" below.
+## What this skill is
 
-When in doubt about how a rule applies: prefer the interpretation that produces simpler, more typed, more testable, more observable code in *this* draft — not the one that anticipates future flexibility.
-
-## What this skill is and is not
-
-- **Is:** a rulebook the agent reads before and during code changes. Decisions about scope, abstraction, error handling, comments, and compatibility flow through this skill's rules.
-- **Is not:** a linter, a code reviewer, a refactor tool, or a doc generator. It does not modify files. It does not produce a report. It shapes how *other* writes happen.
-
-Adjacent concerns are deliberately out of scope: post-hoc cleanup of changed code, the repo's own declared conventions, and how the change is narrated (commits, PRs, branches). See "Scope boundaries" below.
+A rulebook the agent reads before and during code changes — scope, abstraction, error handling, comments, and compatibility decisions flow through its rules. It does not modify files or emit a report; it shapes how the Edit/Write calls that follow happen. Adjacent concerns (post-edit cleanup, repo-local conventions, change narration) are out of scope — see "Scope boundaries" below.
 
 ## File layout
 
-This SKILL.md is a **router**. Two child trees:
+This SKILL.md is the always-loaded **router** — the mantra/principle summaries, checklist, and anti-patterns below cover routine work. Load deeper material on demand:
 
-| Tree | Purpose |
-| ---- | ------- |
-| `references/` | Generic, language-agnostic content. Prose for mantras + principles + how-to-review. |
-| `capabilities/` | Language-specific content. Idioms + tooling floor + before/after code examples anchored to numbered principles. One file per language. |
-
-| File                                          | Contents                                                          |
-| --------------------------------------------- | ----------------------------------------------------------------- |
-| `references/mantras.md`                       | Full prose for all 16 mantras, organized by tier; mantra→principle reverse map |
-| `references/principles.md`                    | Full prose for all 20 numbered principles, with severity tags; links to capabilities for code examples |
-| `references/glossary.md`                      | Defines terms used throughout (boundary, shape, infrastructure, pure function, trust line, etc.) |
-| `references/smells.md`                        | Diagnostic catalog: observable code smells → anchoring principle(s); used in review mode and write-mode self-check |
-| `references/api-design.md`                    | Language-agnostic API conventions (REST/GraphQL/gRPC): status codes, idempotency, pagination, versioning, error shapes |
-| `references/persistence.md`                   | Language-agnostic DB practices: N+1, pooling, transactions, migrations, prepared statements, caching |
-| `references/observability.md`                 | Language-agnostic telemetry: OpenTelemetry model (traces/metrics/logs), structured logging, RED/USE, correlation IDs |
-| `references/platform-matrix.md`               | OS × concern matrix (Linux/macOS/Windows): paths, line endings, case sensitivity, signals, GNU vs BSD coreutils, CI matrix |
-| `references/resilience.md`                     | Fault-tolerance patterns: timeouts/deadlines, retries+backoff+jitter, circuit breakers, bulkheads, graceful degradation, DLQs |
-| `references/data-handling.md`                  | Cross-language correctness footguns: dates/timezones, numbers/money, text/encoding (UTF-8, normalization) |
-| `references/architecture.md`                  | Project structure & layering: hexagonal/clean, dependency direction, package-by-feature, when NOT to layer |
-| `references/configuration.md`                 | Config & feature flags: source precedence, validate-at-startup, secrets injection, flag lifecycle |
-| `references/testing.md`                        | Testing strategy: test pyramid, double taxonomy (stub/mock/fake/spy), contract/snapshot/mutation/property/fuzz, flaky-test killers, coverage-as-signal |
-| `references/refactoring.md`                    | Safe refactoring: under-green-tests, characterization tests, two-hats, expand-contract / branch-by-abstraction / strangler-fig, refactor-vs-rewrite |
-| `capabilities/<lang>/...`                     | Per-language capability directories (`bash`, `python`, `typescript`, `rust`) — see file-set below |
-| `capabilities/review/capability.md`           | Review-mode workflow: scan diff → tag findings by principle + severity → triage → report |
-| `capabilities/review/best-practices.md`       | Conventional Comments format, approve-vs-request-changes, reviewer load discipline |
-
-Capabilities follow the Agent Skills convention: one directory per capability, with `capability.md` as the entry point and optional frontmatter (used here so each capability is portable / promotable to standalone if reuse demands it). Each **language** capability directory (`bash`, `python`, `typescript`, `rust`) carries the same eight-file set:
-
-| File in `capabilities/<lang>/` | Contents | Load when |
-| ------------------------------ | -------- | --------- |
-| `capability.md`                | Positive *rules* only — idioms, error/style discipline, tooling floor, verification. Pure prose, no code. | Always, for any task in that language |
-| `anti-patterns.md`             | Language-specific smells / what-not-to-do | Review-mode scans, pre-commit smell checks |
-| `examples.md`                  | Before/after code anchored to numbered principles | Matching patterns at write-time, validating fixes |
-| `best-practices.md`            | External standards (PEPs, Rust API Guidelines, Google Shell Style Guide), modern toolchain consensus, documentation conventions | Justifying choices against industry standards |
-| `performance.md`               | Performance idioms + "measure first" discipline | Hot-path / large-data work only |
-| `concurrency.md`               | Concurrency model, decision matrix, correctness traps | Parallelism / async / shared-state work |
-| `project-structure.md`         | Language structure mechanics (modularity unit, visibility, ports/adapters, DI, layout) — the *how* for `references/architecture.md`'s *why* | Structuring / restructuring a project |
-| `dependencies.md`              | Dependency mechanics: version pinning (default: pin exact for apps, range for published libs), lockfiles, audit tools, update cadence | Adding / updating / auditing dependencies |
-
-The entry point `capability.md` carries callouts pointing at every sibling, so the agent always knows what's available. Load just `capability.md` for routine writes; pull in siblings on demand.
-
-Load mantras/principles references when you need nuance; the one-line summaries below are enough for routine application. Load `capabilities/review/capability.md` when reviewing existing code. Load a **cross-language reference** (in `references/`) when the code touches that concern, regardless of language:
+- **Full prose** — `references/mantras.md` (all 16 mantras by tier + reverse map), `references/principles.md` (all 20 principles, full text + severity), `references/glossary.md` (boundary, shape, infrastructure, pure function, trust line, …), `references/smells.md` (observable smell → anchoring principle, for review and write-mode self-check). Background: `references/design-rationale.md`.
+- **Cross-language concern references** — load when the code touches the concern, regardless of language:
 
 | Reference | Load when the code… |
 | --------- | ------------------- |
-| `api-design.md` | exposes or consumes a network API (REST/GraphQL/gRPC) |
-| `persistence.md` | reads or writes a datastore |
-| `observability.md` | runs in production and emits logs/metrics/traces |
-| `platform-matrix.md` | must run on more than one OS (paths, shells, coreutils) |
-| `resilience.md` | makes outbound calls / coordinates distributed work |
-| `data-handling.md` | handles timestamps, money/precise math, or external text |
-| `architecture.md` | is being structured / restructured above the module level |
-| `configuration.md` | reads config, env vars, secrets, or feature flags |
-| `testing.md` | needs a testing-strategy decision (what to test, which doubles, why flaky) |
-| `refactoring.md` | is restructuring / cleaning up / modernizing existing code |
+| `references/api-design.md` | exposes or consumes a network API (REST/GraphQL/gRPC) |
+| `references/persistence.md` | reads or writes a datastore |
+| `references/observability.md` | runs in production and emits logs/metrics/traces |
+| `references/platform-matrix.md` | must run on more than one OS (paths, shells, coreutils) |
+| `references/resilience.md` | makes outbound calls / coordinates distributed work |
+| `references/data-handling.md` | handles timestamps, money/precise math, or external text |
+| `references/architecture.md` | is structured / restructured above the module level |
+| `references/configuration.md` | reads config, env vars, secrets, or feature flags |
+| `references/testing.md` | needs a testing-strategy decision (what to test, which doubles) |
+| `references/refactoring.md` | is restructuring / cleaning up / modernizing existing code |
 
-Load a language capability only when the task touches that language's files.
+- **Language capabilities** (see Capabilities below) — load `capabilities/<lang>/capability.md` for the task's language. Each language directory carries the same on-demand siblings, pulled in as the work calls for them: `anti-patterns.md` (review/smell scans), `examples.md` (before/after code), `best-practices.md` (external standards), `performance.md` (hot paths), `concurrency.md` (async/shared state), `project-structure.md` (layout/DI), `dependencies.md` (pinning/lockfiles/audit). The `capability.md` entry point links them.
 
-## When to trigger
+## When to apply
 
-- User asks to write, implement, add, modify, fix, refactor, or clean up code.
-- User asks to review a diff or PR for quality (not for security — that's a different skill).
-- Any task where the agent will call Edit, Write, or NotebookEdit on source files.
-- Explicit invocation: `/coding-principles`.
-
-Do not trigger when:
-
-- The task is exploratory ("how does X work?", "where is Y defined?") with no edit intent.
-- The change is docs-only, config-only, or pure data (e.g. JSON fixtures).
-- The user is asking for an ops/infra action (deploy, restart, rollback).
-- A more specific skill or tool already owns the task (e.g. authoring commit messages or PR descriptions).
+Applies whenever the agent will write, implement, fix, refactor, or clean up code (any Edit/Write/NotebookEdit on source), or review a diff/PR for quality. Skip it for exploration-only tasks ("how does X work?"), docs-only / config-only / pure-data changes, ops/infra actions (deploy, restart, rollback), and security review (a separate concern).
 
 ## Mantras (one-line summaries)
 
@@ -226,8 +160,6 @@ Apply mentally; do not output the checklist.
 ## Anti-patterns (in the code you write)
 
 - **"While I'm here…"** — opportunistic refactors that balloon the diff. Open a separate PR if it matters.
-- **Defensive null checks on values that cannot be null.** Trust the types.
-- **`try/except` that swallows the exception with a log line.** Either handle it meaningfully or let it propagate.
 - **Renaming things mid-task to match personal preference** when the existing name is clear and consistent with the file.
 - **Adding `TODO` / `FIXME` / `XXX` markers without a ticket or condition** — they become permanent noise.
 - **Writing tests after the implementation only when the tests pass on the first try** — that path tests nothing. Either TDD properly, or write the tests deliberately against the spec.
@@ -254,32 +186,17 @@ The brake on this skill is: when in doubt, write less *about* the code and more 
 
 ## Capabilities
 
-Capabilities load on demand based on either a *file-extension trigger* (language capabilities) or a *task-type trigger* (workflow capabilities). All follow the same `capabilities/<name>/capability.md` layout.
+Load on demand: language capabilities by the file's language, the review capability for review tasks. Load only what the task touches — reading all four languages for a Python change wastes context.
 
-### Language capabilities (file-extension trigger)
+| Capability | Trigger | Entry point |
+| ---------- | ------- | ----------- |
+| Bash | `*.sh`, `*.bash`, bash shebang | `capabilities/bash/capability.md` |
+| Python | `*.py`, `pyproject.toml` | `capabilities/python/capability.md` |
+| TypeScript | `*.ts`, `*.tsx`, `*.mts`, `tsconfig.json` | `capabilities/typescript/capability.md` |
+| Rust | `*.rs`, `Cargo.toml` | `capabilities/rust/capability.md` |
+| Review | reviewing an existing diff / PR / change | `capabilities/review/capability.md` |
 
-For idioms, tooling floor, language-specific anti-patterns, and code examples anchored to numbered principles:
-
-| Language       | Trigger (file extension / shebang)                 | Capability entry point                       |
-| -------------- | -------------------------------------------------- | -------------------------------------------- |
-| Bash           | `*.sh`, `*.bash`, `#!/usr/bin/env bash` shebang    | `capabilities/bash/capability.md`            |
-| Python         | `*.py`, `pyproject.toml` context                   | `capabilities/python/capability.md`          |
-| TypeScript     | `*.ts`, `*.tsx`, `*.mts`, `tsconfig.json` context  | `capabilities/typescript/capability.md`      |
-| Rust           | `*.rs`, `Cargo.toml` context                       | `capabilities/rust/capability.md`            |
-
-Load only when the task touches files in that language. Reading all four for a Python-only change wastes context. When a change spans languages, load both capabilities.
-
-For languages not covered above (Go, Ruby, Java, C/C++, Swift, etc.), fall back to the core principles plus the repo's own declared conventions for the specific repo. Propose a new capability if the language is recurring in this user's work.
-
-### Workflow capabilities (task-type trigger)
-
-| Workflow       | Trigger                                            | Capability entry point                       |
-| -------------- | -------------------------------------------------- | -------------------------------------------- |
-| Review         | Reviewing an existing diff / PR / branch / change  | `capabilities/review/capability.md`          |
-
-Default mode is **write-mode** (avoid violations as you author code) — that workflow is documented inline in this router (the application checklist and anti-patterns sections). **Review-mode** (find violations in someone else's change) loads from `capabilities/review/capability.md`.
-
-Capabilities extend the core principles; they do not override them. If a capability and the core conflict, the conflict is a bug — flag it.
+For languages without a capability (Go, Ruby, Java, C/C++, Swift, …), use the core principles plus the repo's declared conventions; propose a new capability if the language recurs. Capabilities extend the core, never override it — a conflict is a bug, so flag it. Write-mode (avoid violations as you author) is the default and lives in this router; review-mode loads from the review capability.
 
 ## Output behavior
 
