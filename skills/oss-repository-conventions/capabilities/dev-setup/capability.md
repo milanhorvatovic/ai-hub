@@ -36,6 +36,8 @@ Detect per `../../references/language-support.md`. Toolchain-pinning support:
 - **First-class:** anything `mise` / `asdf` pins (Python, Node / JS-TS, Go, Rust, Ruby, …) plus per-language version files (`.python-version`, `.nvmrc` / `.node-version`, `rust-toolchain.toml`, `.ruby-version`); Swift via Xcode / `.swift-version`.
 - **Recognized:** ecosystems without a mise plugin — document the manual install and version source.
 - **Unknown:** document a manual, reproducible setup path; never invent a version manager for the stack.
+- **Compiled languages** need a build toolchain pinned, not just a runtime (Xcode for Swift, the Go/Rust toolchain, a JDK for Java/Kotlin).
+- **Version currency:** flag a toolchain pinned to an end-of-life release (e.g. Python ≤ 3.8, Node ≤ 16, an unsupported Go/Rust) and recommend a supported version — pinned-but-EOL is reproducibly insecure.
 
 ## Scan
 

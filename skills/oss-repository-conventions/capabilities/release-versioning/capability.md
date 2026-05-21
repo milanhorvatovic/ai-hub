@@ -37,6 +37,7 @@ Detect per `../../references/language-support.md`. Bound by release-please's `re
 - **First-class (release-please):** `node`, `python`, `rust`, `go`, `java`, `ruby`, `php`, `dart`, `elixir`, `helm`, `terraform-module`.
 - **Recognized:** stacks without a dedicated type — use the `simple` release-type (tag + changelog, no manifest bump). Swift has no release-please type, so it falls here.
 - **Unknown:** SemVer tags + Keep-a-Changelog by hand; never invent a `release-type`.
+- **Version source (per language):** `package.json` `version` (node), `Cargo.toml` `[package] version` (rust), `pyproject.toml` `[project] version` (python), `go.mod` + tags (go), else a `VERSION` file or git tags — release-please bumps the manifest matching its `release-type`. Swift/Obj-C have no canonical version manifest, so they're tag + CHANGELOG only.
 
 ## Scan
 
