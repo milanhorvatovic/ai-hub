@@ -188,3 +188,42 @@ def test_example_ndjson_matches_schema_invariants(references_dir: Path) -> None:
         if obj.get("result") in {"FAIL", "MOSTLY-PASS"} and "fix" not in obj:
             problems.append(f"line {i}: result={obj['result']} requires fix")
     assert not problems, "example NDJSON violates schema invariants:\n" + "\n".join(problems)
+
+
+# Capabilities that fetch untrusted third-party GitHub content (PR/issue/comment
+# bodies, review threads, CI logs, fork diffs, contributor PR metadata) and feed
+# it into verdicts, drafts, or proposed commands. Each must link the
+# untrusted-content guard so the indirect-prompt-injection defense (Snyk W011)
+# cannot be silently dropped when a capability is edited.
+INGESTION_CAPABILITIES = [
+    "pr-description-sync",
+    "pr-checks-summary",
+    "pr-conversation-resolve",
+    "pr-link-issues",
+    "pr-description-write",
+    "release-notes",
+    "merge-readiness",
+    "commit-message",
+]
+
+
+def test_untrusted_content_reference_exists(references_dir: Path) -> None:
+    assert (references_dir / "untrusted-content.md").is_file(), (
+        "references/untrusted-content.md not found"
+    )
+
+
+@pytest.mark.parametrize("cap_name", INGESTION_CAPABILITIES)
+def test_ingestion_capabilities_link_untrusted_content_guard(
+    cap_name: str, capabilities_dir: Path
+) -> None:
+    """Every untrusted-content-ingesting capability must reference the guard at
+    `../../references/untrusted-content.md`. This converts the platform finding
+    (Snyk W011, indirect prompt injection) into a tested invariant."""
+    cap_md = capabilities_dir / cap_name / "capability.md"
+    assert cap_md.is_file(), f"{cap_name}/capability.md not found"
+    text = cap_md.read_text(encoding="utf-8")
+    assert "../../references/untrusted-content.md" in text, (
+        f"{cap_name} ingests untrusted content but does not link "
+        "../../references/untrusted-content.md (untrusted-content guard)"
+    )
