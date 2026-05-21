@@ -31,6 +31,7 @@ Governs the repository's automation layer: do workflows build and test changes, 
 - Workflow secrets and deploy credentials are sensitive — never echo secret values; reason about _configuration_, not contents.
 - Dependency bots (Dependabot/Renovate) and lockfile/SBOM concerns are the dependency-supply-chain capability; here, cover workflow files and action pinning.
 - Scaffolding a workflow that _runs_ tests relies on the test config from the testing-quality capability — reference it, don't redefine the suite.
+- A workflow's identity, the secret store it reads from (Actions vs Dependabot), and the repo settings its automation depends on are out-of-band **prerequisites**, not workflow YAML — see `../../references/automation-prerequisites.md`; whether they're provisioned is the cross-cutting `automation-prereqs-provisioned` check owned by the automation-baseline capability.
 
 ## Languages
 

@@ -51,7 +51,7 @@ Higher autonomy without these is reckless, not advanced:
 
 - Not a git repo → stop.
 - This is merge-autonomy _configuration and policy_ — not reviewing a specific PR's content (that's the change-narration domain).
-- L2+ needs `gh` and a bot/App token; L3+ needs branch protection with required checks. Detect these; if absent, scaffold them as prerequisites (settings are proposed, not applied).
+- L2+ needs `gh` and a bot/App token; L3+ needs branch protection with required checks. Detect these; if absent, scaffold them as prerequisites (settings are proposed, not applied). The full provisioning surface each rung adds — bot identity, the Actions/Dependabot secret stores, gating labels, the auto-merge repo settings, and the code-owner approval identity — is catalogued in `../../references/automation-prerequisites.md` (its rung table mirrors this ladder); whether it's all in place is the cross-cutting `automation-prereqs-provisioned` check owned by the automation-baseline capability, not re-scored here.
 - Never raise the rung past what the guardrails support — gate the recommendation on the prerequisites being present.
 
 ## Scan
@@ -77,7 +77,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 
 ## Scaffold
 
-Per-rung snippets live in `references/scaffold-templates.md` (native auto-merge, App-token approve, eligibility gate, reconciler, escape hatch). Move **one rung at a time**, after confirmation, installing that rung's guardrails first:
+Per-rung snippets live in `references/scaffold-templates.md` (native auto-merge, App-token approve, eligibility gate, reconciler, escape hatch); the out-of-band prerequisites each rung needs first (identity, secret stores, labels, repo settings) are in `../../references/automation-prerequisites.md`. Move **one rung at a time**, after confirmation, installing that rung's guardrails and prerequisites first:
 
 - **→ L2 auto-approve** — mint an App token; approve only eligibility-gated PRs.
 - **→ L3 auto-merge** — require branch protection + required checks (propose the settings), then enable native `gh pr merge --auto` or a third-party merger; gate by update-type/path.

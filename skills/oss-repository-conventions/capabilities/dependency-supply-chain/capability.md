@@ -75,6 +75,8 @@ For hands-off updates, scaffold the **autonomous Dependabot recipe** in the same
 - for **built artifacts** (e.g. a bundled action's `dist/`), an auto-merge step that rebuilds and commits the artifact as the bot before merging;
 - a **reconciler** (scheduled + event-driven) that catches dropped events and re-drives stuck PRs.
 
+Stand up the identity, secret stores, gating labels, and repo settings these depend on per `../../references/automation-prerequisites.md` — for a Dependabot-triggered flow the usual missing piece is **mirroring the bot/approver secret into the Dependabot secret store**, which those workflows read instead of the Actions store. Don't re-score the prerequisites here; that's the cross-cutting `automation-prereqs-provisioned` check owned by the automation-baseline capability.
+
 This recipe instantiates the autonomy ladder at L3/L4 for Dependabot; the pr-autonomy capability owns the general ladder, the guardrail spine, and the other rungs/approaches — apply its guardrails here rather than re-deriving them.
 
 ## Output
