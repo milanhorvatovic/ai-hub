@@ -59,6 +59,8 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `build-provenance` — **could** (→ **should** for published packages) · scorecard: Signed-Releases. Grade by **SLSA build level**: L0 none → L1 provenance exists (e.g. `actions/attest-build-provenance` / a SLSA generator) → L2 provenance signed by a hosted build service → L3 hardened, non-falsifiable build. Pass the `could` bar at L1+; aim L2+ for distributed artifacts. Tamper-evidence for the artifact supply chain. Report the level, not just present/absent.
 - `security-insights` — **could**. Pass when `SECURITY-INSIGHTS.yml` (OpenSSF Security Insights spec) publishes machine-readable security metadata — policy URL, contacts, dependency/vulnerability practices. Lets tooling and consumers assess posture without scraping prose.
 - `two-factor-enforced` — **should**. Pass when 2FA is required for the org/repo and for publishing where the registry supports it (npm and PyPI now require it for many packages). Account takeover is a top supply-chain attack vector. Org-level setting via `gh api` — mark `unknown` without org access; don't pass it silently.
+- `container-image-hardening` — **could** (when the repo ships a container image). Pass when the image pins its base by digest, runs as non-root, is scanned (Trivy / Grype), and is signed (cosign) with an attached SBOM. A published image is its own artifact supply chain.
+- `iac-scanning` — **could** (when the repo contains infrastructure-as-code). Pass when IaC (Terraform / CloudFormation / Kubernetes manifests) is scanned for misconfiguration (checkov / tfsec / KICS) in CI. Misconfigured IaC is a common breach vector.
 
 ## Scaffold
 
