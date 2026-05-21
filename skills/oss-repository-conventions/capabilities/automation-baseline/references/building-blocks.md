@@ -94,6 +94,9 @@ jobs:
       - uses: actions/checkout@<sha>                  # v4
       - uses: github/codeql-action/init@<sha>         # v3
         with: { languages: ${{ matrix.language }} }
+      # autobuild works for interpreted langs (Python/JS/Ruby). For compiled
+      # langs (Swift/Go/Rust/Java/C/C++) it often fails — replace with the
+      # project's real build commands.
       - uses: github/codeql-action/autobuild@<sha>    # v3
       - uses: github/codeql-action/analyze@<sha>      # v3
 ```

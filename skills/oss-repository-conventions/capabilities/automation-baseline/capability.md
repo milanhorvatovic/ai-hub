@@ -61,7 +61,7 @@ Detect per `../../references/language-support.md`. The composable building block
 
 - The `setup` action installs the **detected toolchain** (via mise or a language setup action) — see the dev-setup capability.
 - The `static` / `test` jobs run the project's commands — see code-style and testing-quality for the per-language tool sets.
-- CodeQL covers its supported languages (C/C++, C#, Go, Java/Kotlin, JS/TS, Python, Ruby, Swift); for others, skip code scanning rather than fabricate it.
+- CodeQL covers its supported languages (C/C++, C#, Go, Java/Kotlin, JS/TS, Python, Ruby, Swift); for others, skip code scanning rather than fabricate it. **Compiled languages** (Swift, Go, Rust, Java, C/C++) need an explicit build step and a real build for CodeQL — its `autobuild` often fails for them; interpreted languages (Python, JS/TS, Ruby) need none.
 
 ## Scan
 
