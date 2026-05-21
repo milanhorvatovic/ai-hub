@@ -34,6 +34,8 @@ Detect per `../../references/language-support.md`. Test-framework support:
 - **First-class:** Python (pytest), JS/TS (vitest / jest), Go (`go test`), Rust (`cargo test`), Swift (XCTest / swift-testing), Ruby (rspec).
 - **Recognized:** Java / Kotlin (JUnit), PHP (phpunit) — name the framework, don't scaffold its config.
 - **Unknown:** detect a test directory if present and give generic coverage / CI-gating guidance; never invent a test runner.
+- **Coverage tooling (per language):** Python `coverage.py` / pytest-cov, JS/TS `c8` / vitest coverage, Go `go test -cover`, Rust `cargo-llvm-cov`, Swift `xccov` (Xcode), Ruby SimpleCov — recommend the language's coverage tool, not a generic one.
+- **Compiled languages compile before tests run** (Swift, Go, Rust, Java): a compile failure is a test failure, and CI must budget build time — interpreted languages (Python, JS/TS, Ruby) skip the build.
 
 ## Scan
 
