@@ -61,6 +61,8 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `two-factor-enforced` — **should**. Pass when 2FA is required for the org/repo and for publishing where the registry supports it (npm and PyPI now require it for many packages). Account takeover is a top supply-chain attack vector. Org-level setting via `gh api` — mark `unknown` without org access; don't pass it silently.
 - `container-image-hardening` — **could** (when the repo ships a container image). Pass when the image pins its base by digest, runs as non-root, is scanned (Trivy / Grype), and is signed (cosign) with an attached SBOM. A published image is its own artifact supply chain.
 - `iac-scanning` — **could** (when the repo contains infrastructure-as-code). Pass when IaC (Terraform / CloudFormation / Kubernetes manifests) is scanned for misconfiguration (checkov / tfsec / KICS) in CI. Misconfigured IaC is a common breach vector.
+- `fuzzing` — **could** (→ **should** for libraries parsing untrusted input) · scorecard: Fuzzing. Pass when continuous fuzzing is set up (OSS-Fuzz, cargo-fuzz, go-fuzz, atheris, libFuzzer). Fuzzing catches memory/parsing bugs that example-based tests miss.
+- `threat-model` — **could** (security-maturity / gold-tier). Pass when a threat model is documented (assets, trust boundaries, mitigations). Surfaces design-level risk that file/setting checks can't.
 
 ## Scaffold
 

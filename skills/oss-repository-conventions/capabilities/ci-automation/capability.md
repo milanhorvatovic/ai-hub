@@ -61,6 +61,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `oidc-for-deploy` — **could**. Pass when deploy/publish jobs use OIDC instead of long-lived cloud secrets. Removes a class of leakable credentials. For the workflow's own identity (App vs PAT vs default token), see `../../references/automation-identity.md`.
 - `concurrency-and-timeouts` — **could**. Pass when workflows cancel superseded runs and cap job time. Avoids stuck and duplicated runs.
 - `scheduled-maintenance` — **could**. Pass when useful scheduled jobs exist (stale triage, link-check, Scorecard). Keeps the repo tended automatically.
+- `runner-hardening` — **could**. Pass when CI runners restrict egress / are hardened (e.g. step-security/harden-runner) so a compromised step or dependency can't exfiltrate secrets or tamper with the build. Defense-in-depth on top of least-privilege tokens and SHA-pinned actions.
 
 ## Scaffold
 
