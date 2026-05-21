@@ -54,6 +54,7 @@ The skill provides the toolkit and wiring; the project owns its domain content.
 - This capability orchestrates; it does not duplicate per-pillar audits. For deep single-domain work, route to the pillar capability instead.
 - Detect the stack first so the building blocks fit (Node, Python, …).
 - Workflow hardening (least-privilege `permissions:`, SHA-pinning, OIDC) is the ci-automation capability — scaffold the baseline here, harden there.
+- Automation has **out-of-band prerequisites** the workflow YAML alone doesn't establish — bot identity, the Actions/Dependabot secret stores, gating labels, and the repo settings that let auto-merge run. They live in `../../references/automation-prerequisites.md`; this capability checks they're in place and proposes the provisioning commands (never applies), so committed automation doesn't silently no-op.
 
 ## Languages
 
@@ -71,14 +72,16 @@ Report presence across the four pillars, citing sources (catalog: `../../referen
 2. Code scanning: a CodeQL workflow (`.github/workflows/codeql*`) or `github/codeql-action` usage.
 3. Dependencies: `.github/dependabot.yaml` / Renovate, plus any auto-merge/reconcile automation.
 4. Releases: release automation (release-please / semantic-release) and changelog generation.
+5. Prerequisites: the provisioning each present automation depends on — identity, the Actions/Dependabot secret stores, gating labels, and the auto-merge repo settings — per `../../references/automation-prerequisites.md` (`gh secret list`, `gh variable list`, `gh label list`, `allow_auto_merge`).
 
 ## Audit
 
 Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **severity** [· scorecard: Name]. criterion. why):
 
-- `ci-composable` — **could**. Pass when CI is assembled from reusable building blocks (composite actions / reusable workflows) rather than one monolithic job. Composable CI is maintainable and shareable across repos. _(This is the only check unique to this capability.)_
+- `ci-composable` — **could**. Pass when CI is assembled from reusable building blocks (composite actions / reusable workflows) rather than one monolithic job. Composable CI is maintainable and shareable across repos.
+- `automation-prereqs-provisioned` — **should** (when any committed automation reads a secret, variable, label, or auto-merge setting). Fail when an automation references a prerequisite that doesn't exist — a secret only in the wrong store (Actions vs Dependabot), a gating label that was never created, or `allow_auto_merge` left off. Committed automation that's missing its prerequisites silently no-ops or 403s rather than failing loudly. This is the **cross-cutting** prerequisites check, owned here per `../../references/automation-prerequisites.md`; the other automation capabilities point at it rather than re-scoring it (avoid double-counting), the same way pillar checks are scored once via their owner.
 
-Then present a **baseline-readiness roll-up** that aggregates the owning pillars' checks (cite each): testing-quality `tests-run-in-ci`, security-policy code-scanning, dependency-supply-chain `updates-automated`, release-versioning `release-automated`. In a full-repo audit, **score each of those once via its owning pillar** — this capability only contributes `ci-composable` to the score, to avoid double-counting.
+Then present a **baseline-readiness roll-up** that aggregates the owning pillars' checks (cite each): testing-quality `tests-run-in-ci`, security-policy code-scanning, dependency-supply-chain `updates-automated`, release-versioning `release-automated`. In a full-repo audit, **score each of those once via its owning pillar** — this capability contributes only `ci-composable` and the cross-cutting `automation-prereqs-provisioned` to the score, to avoid double-counting.
 
 ## Scaffold
 
@@ -89,10 +92,11 @@ Building blocks live in `references/building-blocks.md` (setup composite action,
 - Testing: the runner/coverage toolkit + per-test-type guidance in the testing-quality capability (the project supplies the tests).
 - Hardening: pass the scaffolded workflows through the ci-automation capability (permissions, SHA-pins, OIDC).
 - Merge autonomy: choose the rung (auto-approve / auto-merge / full flow) via the pr-autonomy capability, which installs the guardrails for that level.
+- Prerequisites: emit the provisioning checklist from `../../references/automation-prerequisites.md` (bot identity, secret stores, gating labels, repo settings) as proposed commands — one surface at a time — so the scaffolded workflows actually run.
 
 ## Output
 
-Report per `../../references/output-format.md`: scan emits the four-pillar presence map + composability; audit emits the `ci-composable` finding plus the baseline-readiness roll-up (which pillars meet the baseline and which don't), with a `scaffold` offer for the gaps.
+Report per `../../references/output-format.md`: scan emits the four-pillar presence map + composability; audit emits the `ci-composable` and `automation-prereqs-provisioned` findings plus the baseline-readiness roll-up (which pillars meet the baseline and which don't), with a `scaffold` offer for the gaps.
 
 ## Edge cases
 
