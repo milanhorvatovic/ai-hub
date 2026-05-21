@@ -36,6 +36,7 @@ Detect per `../../references/language-support.md`. Bound by Dependabot's `packag
 - **First-class (Dependabot):** `npm`, `pip`, `uv`, `cargo`, `gomod`, `bundler`, `composer`, `gradle`, `maven`, `nuget`, `mix`, `pub`, `swift`, `docker`, `github-actions`, `terraform`, `gitsubmodule`.
 - **Recognized:** ecosystems Dependabot lacks but Renovate covers — propose Renovate instead.
 - **Unknown:** no update-bot config; flag dependencies as manually maintained. Never invent a `package-ecosystem` value.
+- **Hash-pinning mechanism (per ecosystem):** pip `--require-hashes` / `uv.lock` / `poetry.lock`; `package-lock.json` + `npm ci`; `Cargo.lock`; `go.sum` (hashes built in); `Gemfile.lock` — name the right mechanism for the detected ecosystem rather than a generic one.
 
 ## Scan
 

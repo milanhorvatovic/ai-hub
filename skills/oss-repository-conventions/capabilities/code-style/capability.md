@@ -36,6 +36,7 @@ Detect per `../../references/language-support.md`. Formatter/linter support:
 - **First-class:** Python (ruff / black), JS/TS (prettier, eslint or biome), Go (gofmt / golangci-lint), Rust (rustfmt / clippy), Swift (swift-format / swiftlint), Objective-C / C / C++ (clang-format), Ruby (rubocop).
 - **Recognized:** Java / Kotlin (spotless / ktlint), PHP (php-cs-fixer) — name the tool, don't scaffold its config.
 - **Unknown:** recommend only `.editorconfig` (whitespace/charset baseline) and pre-commit hygiene hooks; never invent a language-specific formatter.
+- **Infra & config (lint these too when present):** shell (shellcheck + shfmt), `Dockerfile` (hadolint), GitHub Actions workflows (actionlint), YAML (yamllint), TOML (taplo) — most repos carry these alongside the primary language.
 
 ## Scan
 

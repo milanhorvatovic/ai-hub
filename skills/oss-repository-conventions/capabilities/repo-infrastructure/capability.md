@@ -37,6 +37,7 @@ Detect per `../../references/language-support.md`. `.gitignore` scaffolding is b
 - **First-class:** any name in `gh api /gitignore/templates` (Python, Node, Go, Rust, Swift, Objective-C, Ruby, Java, …) — fetched and merged.
 - **Recognized:** stacks without a template — hand-assemble ignores from detected build / output / dependency directories.
 - **Unknown:** ignore only the obvious local / secret paths; never fabricate stack-specific ignores.
+- **Vendored marks:** mark vendored/build trees in `.gitattributes` (`node_modules/`, `vendor/`, `Pods/`, `.build/`, `target/`, `dist/`) as `linguist-vendored` / `linguist-generated` so they don't skew language detection or get linted.
 
 ## Scan
 
