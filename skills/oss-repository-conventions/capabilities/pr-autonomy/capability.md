@@ -77,7 +77,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 
 ## Scaffold
 
-Per-rung snippets live in `references/scaffold-templates.md` (native auto-merge, App-token approve, eligibility gate, reconciler, escape hatch); the out-of-band prerequisites each rung needs first (identity, secret stores, labels, repo settings) are in `../../references/automation-prerequisites.md`. Move **one rung at a time**, after confirmation, installing that rung's guardrails and prerequisites first:
+Per-rung snippets live in `references/scaffold-templates.md` (native auto-merge, App-token approve, eligibility gate, reconciler, escape hatch); the out-of-band prerequisites each rung needs first (identity, secret stores, labels, repo settings) are in `../../references/automation-prerequisites.md`; the ordered end-to-end flow (flow 5) is in `../../references/automation-playbooks.md`. Move **one rung at a time**, after confirmation, installing that rung's guardrails and prerequisites first:
 
 - **→ L2 auto-approve** — mint an App token; approve only eligibility-gated PRs.
 - **→ L3 auto-merge** — require branch protection + required checks (propose the settings), then enable native `gh pr merge --auto` or a third-party merger; gate by update-type/path.

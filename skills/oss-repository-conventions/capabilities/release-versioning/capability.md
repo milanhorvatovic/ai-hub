@@ -70,7 +70,7 @@ Templates live in `references/scaffold-templates.md` (Keep-a-Changelog skeleton,
 - **release automation** — release-please (house-friendly) or semantic-release, matched to the repo's commit convention; configure it to cut the version, generate the changelog entry, create the GitHub Release, and attach build artifacts + supplementary files (SBOM, checksums).
 - **release-notes template** — house style: `.github/RELEASE_NOTES_TEMPLATE.md` (the _shape_; the prose of a given release is the change-narration domain).
 
-This is the release pillar of the automation baseline; the automation-baseline capability references it. Release automation that tags, publishes, or auto-merges a release PR needs out-of-band prerequisites — a (preferably separate, higher-risk) release identity, OIDC for keyless publish, tag protection, and the code-owner approval identity if the ruleset requires it — provisioned per `../../references/automation-prerequisites.md`.
+This is the release pillar of the automation baseline; the automation-baseline capability references it. Release automation that tags, publishes, or auto-merges a release PR needs out-of-band prerequisites — a (preferably separate, higher-risk) release identity, OIDC for keyless publish, tag protection, and the code-owner approval identity if the ruleset requires it — provisioned per `../../references/automation-prerequisites.md`. For the ordered end-to-end setup (flow 4), follow `../../references/automation-playbooks.md`.
 
 ## Output
 

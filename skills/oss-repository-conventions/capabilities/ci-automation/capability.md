@@ -66,7 +66,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 
 ## Scaffold
 
-The base composable CI shape (setup action, thin caller, CodeQL) comes from the automation-baseline capability; this capability _hardens_ it. Apply the patterns in `references/scaffold-templates.md`: default `permissions: contents: read` and elevate per job, pin every third-party action to a commit SHA with a trailing `# vX.Y.Z` comment, use OIDC for deploy/publish, and set concurrency cancellation and job timeouts. Scaffold the optional OpenSSF Scorecard workflow from the same file. Modify workflows only on confirmation, showing a diff for existing files.
+The base composable CI shape (setup action, thin caller, CodeQL) comes from the automation-baseline capability; this capability _hardens_ it. For the ordered end-to-end hardening pass (flow 3), follow `../../references/automation-playbooks.md`. Apply the patterns in `references/scaffold-templates.md`: default `permissions: contents: read` and elevate per job, pin every third-party action to a commit SHA with a trailing `# vX.Y.Z` comment, use OIDC for deploy/publish, and set concurrency cancellation and job timeouts. Scaffold the optional OpenSSF Scorecard workflow from the same file. Modify workflows only on confirmation, showing a diff for existing files.
 
 ## Output
 
