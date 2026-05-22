@@ -1,0 +1,72 @@
+"""Enforce the locked capability shape.
+
+Every capability follows the same skeleton (Modes → … → Anti-patterns) and
+declares its audit checks in one uniform bullet form
+(`- \\`id\\` — **severity**. criterion. why`). These tests lock that shape so a
+new or edited capability can't silently drift from the contract recorded in
+`references/oss-health-rubric.md`. `## Languages` is intentionally optional —
+language-agnostic domains (governance, security-policy, …) omit it.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+REQUIRED_SECTIONS = (
+    "Modes",
+    "Inputs & guards",
+    "Scan",
+    "Audit",
+    "Scaffold",
+    "Output",
+    "Edge cases",
+    "Anti-patterns",
+)
+
+# `- `kebab-id` — **severity**` … (tolerates trailing `(→ **x** …)` and `· scorecard: …`)
+_CHECK_RE = re.compile(r"^- `([a-z][a-z0-9-]*)` — \*\*(must|should|could)\*\*")
+
+
+def _sections(text: str) -> set[str]:
+    return {m.group(1).strip() for m in re.finditer(r"^## (.+)$", text, re.MULTILINE)}
+
+
+def _capabilities(capabilities_dir: Path) -> list[Path]:
+    return sorted(capabilities_dir.glob("*/capability.md"))
+
+
+def test_every_capability_has_required_sections(capabilities_dir: Path) -> None:
+    bad: list[str] = []
+    for cap in _capabilities(capabilities_dir):
+        present = _sections(cap.read_text(encoding="utf-8"))
+        missing = set(REQUIRED_SECTIONS) - present
+        if missing:
+            bad.append(f"{cap.parent.name}: missing {sorted(missing)}")
+    assert not bad, "capabilities missing required sections:\n" + "\n".join(bad)
+
+
+def test_audit_check_bullets_are_well_formed(capabilities_dir: Path) -> None:
+    """Every audit-check bullet uses a kebab-case id and a canonical severity,
+    and ids are unique within a capability (the rubric's check schema)."""
+    problems: list[str] = []
+    total = 0
+    for cap in _capabilities(capabilities_dir):
+        seen: set[str] = set()
+        for raw in cap.read_text(encoding="utf-8").splitlines():
+            if not raw.startswith("- `"):
+                continue
+            m = _CHECK_RE.match(raw)
+            if not m:
+                # A backtick bullet that isn't a check (e.g. a plain list item)
+                # is fine; only lines shaped like a check must parse cleanly.
+                if re.match(r"^- `[a-z][a-z0-9-]*` — \*\*", raw):
+                    problems.append(f"{cap.parent.name}: malformed check: {raw}")
+                continue
+            check_id = m.group(1)
+            total += 1
+            if check_id in seen:
+                problems.append(f"{cap.parent.name}: duplicate check id {check_id!r}")
+            seen.add(check_id)
+    assert total > 0, "no audit checks found across capabilities"
+    assert not problems, "audit-check problems:\n" + "\n".join(problems)
