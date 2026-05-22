@@ -60,7 +60,7 @@ When the user or a calling tool wants machine-readable output, emit one JSON obj
 {"domain":"security-policy","check":"security-md","severity":"should","status":"pass","file":".github/SECURITY.md","message":"Disclosure policy present"}
 ```
 
-Fields: `domain`, `check` (the kebab-case `id`), `severity` (`must`/`should`/`could`), `status` (`pass`/`fail`/`warn`/`skip`), `file` (source path or `null`), `message`, and optional `scaffold` (capability that can generate the fix). The `check`, `severity`, and `status` values come straight from a capability's audit checks — see the check schema in `oss-health-rubric.md`.
+Fields: `domain`, `check` (the kebab-case `id`), `severity` (`must`/`should`/`could`), `status` (`pass`/`fail`/`warn`/`skip`), `file` (source path or `null`), `message`, and optional `scorecard` (mapped OpenSSF Scorecard check) and `scaffold` (capability that can generate the fix). The `check`, `severity`, and `status` values come straight from a capability's audit checks — see the check schema in `oss-health-rubric.md`. The machine-checkable contract is `output-format.schema.json` (JSON Schema, Draft 2020-12); `output-format.example.ndjson` is a worked fixture validated against it in the skill's tests.
 
 ## Rules
 

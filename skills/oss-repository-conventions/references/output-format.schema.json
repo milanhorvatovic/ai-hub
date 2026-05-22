@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "oss-repository-conventions audit finding",
+  "description": "One JSON object per finding emitted in audit mode. Files using this schema are NDJSON: one object per line. See output-format.md for the prose spec.",
+  "type": "object",
+  "required": ["domain", "check", "severity", "status", "message"],
+  "additionalProperties": false,
+  "properties": {
+    "domain": {
+      "type": "string",
+      "description": "The capability that owns the check (its directory name).",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    },
+    "check": {
+      "type": "string",
+      "description": "Kebab-case check id, unique within the domain, matching a check in the owning capability's Audit section.",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["must", "should", "could"],
+      "description": "Severity from oss-health-rubric.md — a property of the check, not the repo's enthusiasm."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pass", "fail", "warn", "skip"],
+      "description": "Outcome against the criterion. skip = the check is inapplicable to this repo (excluded from the score, not failed)."
+    },
+    "file": {
+      "type": ["string", "null"],
+      "description": "Source path the finding was read from, or null when not declared / inferred."
+    },
+    "message": {
+      "type": "string",
+      "description": "One-line human-readable finding."
+    },
+    "scorecard": {
+      "type": "string",
+      "description": "Optional OpenSSF Scorecard check name this maps to, when one exists."
+    },
+    "scaffold": {
+      "type": "string",
+      "description": "Optional capability directory that can generate the fix (e.g. capabilities/licensing)."
+    }
+  }
+}

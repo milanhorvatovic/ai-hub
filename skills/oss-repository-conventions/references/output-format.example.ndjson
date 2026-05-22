@@ -1,0 +1,7 @@
+{"domain": "licensing", "check": "license-present", "severity": "must", "status": "fail", "file": null, "message": "No LICENSE at repo root", "scaffold": "capabilities/licensing"}
+{"domain": "documentation", "check": "readme-present", "severity": "must", "status": "pass", "file": "README.md", "message": "README states what/install/usage up top"}
+{"domain": "security-policy", "check": "security-md", "severity": "should", "status": "fail", "file": null, "message": "No private vulnerability-disclosure policy", "scaffold": "capabilities/security-policy"}
+{"domain": "dependency-supply-chain", "check": "updates-automated", "severity": "should", "status": "fail", "file": null, "message": "No Dependabot/Renovate config", "scorecard": "Dependency-Update-Tool", "scaffold": "capabilities/dependency-supply-chain"}
+{"domain": "ci-automation", "check": "actions-pinned", "severity": "should", "status": "warn", "file": ".github/workflows/ci.yml", "message": "3 third-party actions pinned to moving tags, not SHAs", "scorecard": "Pinned-Dependencies", "scaffold": "capabilities/ci-automation"}
+{"domain": "automation-baseline", "check": "ci-composable", "severity": "could", "status": "pass", "file": ".github/workflows/ci.yml", "message": "CI assembled from a setup composite action + thin caller"}
+{"domain": "testing-quality", "check": "coverage-measured", "severity": "could", "status": "skip", "file": null, "message": "No source to test (docs-only repo); check inapplicable"}
