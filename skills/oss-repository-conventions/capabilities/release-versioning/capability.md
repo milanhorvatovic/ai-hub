@@ -48,6 +48,7 @@ Sources (catalog: `../../references/convention-files.md`, Releases section), cit
 3. Release automation: `release-please-config.json` + `.release-please-manifest.json`, `.releaserc*` / `release.config.js` (semantic-release), `.github/release.yml` (auto-notes config), house-style `.github/RELEASE_NOTES_TEMPLATE.md`.
 4. Tags & releases: `git tag --sort=-creatordate | head`, signed? (`git tag -v`); GitHub Releases via `gh release list`; consistency between tags, releases, and the version source.
 5. Support policy: a documented supported-versions / deprecation policy (often in README, SECURITY.md, or a SUPPORT/POLICY doc).
+6. Branching model: trunk-based vs long-lived release/maintenance branches (`git branch -r` for `release/*`, `N.x`, `maintenance/*` patterns); whether a backport policy for fixes onto supported lines is written down (CONTRIBUTING / a branching doc).
 
 ## Audit
 
@@ -61,6 +62,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `artifacts-attached` — **could** (→ **should** for distributed artifacts). Pass when the release attaches the built artifacts and supplementary files (binaries/packages, SBOM, checksums). Consumers get verifiable, ready-to-use outputs.
 - `publish-provenance` — **could** (→ **should** for published packages). Pass when the package is published via a Trusted Publisher / OIDC keyless flow (PyPI Trusted Publishers, npm `--provenance`, crates.io trusted publishing) rather than a long-lived registry token — consumers get publish provenance and there's no token to leak. Distinct from security-policy's `build-provenance` (that attests the build; this attests the publish).
 - `support-policy-documented` — **could**. Pass when supported versions / deprecation policy is written down. Sets maintenance expectations.
+- `branching-model-documented` — **could**. Pass when the branching model is written down — trunk-based, or long-lived release/maintenance branches with a stated backport policy (which fixes land on which supported lines, and how). Contributors otherwise guess where a fix belongs. For a single-line trunk-based repo, a one-line "we release from `main`" statement satisfies it; this scores the *model/policy*, not branch _names_ (naming is the change-narration domain). Treat as **should** for a project actively maintaining more than one major line, where an absent backport policy means security fixes can silently miss a supported version (pairs with protecting release branches — `../../references/branch-protection.md`).
 
 ## Scaffold
 
@@ -69,6 +71,7 @@ Templates live in `references/scaffold-templates.md` (Keep-a-Changelog skeleton,
 - **CHANGELOG.md** — Keep a Changelog structure with an `Unreleased` section; once release tooling is in place it owns new entries (generated from commits/PRs). Backfill recent entries from tags/PRs if asked, but don't fabricate history.
 - **release automation** — release-please (house-friendly) or semantic-release, matched to the repo's commit convention; configure it to cut the version, generate the changelog entry, create the GitHub Release, and attach build artifacts + supplementary files (SBOM, checksums).
 - **release-notes template** — house style: `.github/RELEASE_NOTES_TEMPLATE.md` (the _shape_; the prose of a given release is the change-narration domain).
+- **branching / backport policy** — when the model isn't documented, scaffold a short statement (trunk-based "release from `main`", or the release/maintenance-branch set + which fixes get backported to which supported lines and how). Document the policy and where branches are protected; don't prescribe branch _names_ (that's the change-narration domain).
 
 This is the release pillar of the automation baseline; the automation-baseline capability references it. Release automation that tags, publishes, or auto-merges a release PR needs out-of-band prerequisites — a (preferably separate, higher-risk) release identity, OIDC for keyless publish, tag protection, and the code-owner approval identity if the ruleset requires it — provisioned per `../../references/automation-prerequisites.md`. For the ordered end-to-end setup (flow 4), follow `../../references/automation-playbooks.md`.
 
