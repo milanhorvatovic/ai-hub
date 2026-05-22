@@ -17,7 +17,7 @@ The out-of-band wiring an automation needs before its workflows can run at all. 
 
 ## 1. Bot identity
 
-`automation-identity.md` covers the choice (App preferred over a fine-grained PAT; never a classic PAT). To provision the chosen App: create a GitHub App with the **minimum** fine-grained permissions for its task (e.g. `contents: write` to push an artifact, `pull-requests: write` to approve/merge), install it on the repo, store its **App/client id as a variable** and its **private key as a secret** (ids aren't sensitive; keys are), and mint a short-lived token **per job** with `actions/create-github-app-token` rather than storing a long-lived token.
+`automation-identity.md` covers the choice (App preferred over a fine-grained PAT; never a classic PAT). To provision the chosen App: create a GitHub App with the **minimum** fine-grained permissions for its task (e.g. `contents: write` to push an artifact, `pull-requests: write` to approve/merge), install it on the repo, store its **client ID as a variable** and its **private key as a secret** (ids aren't sensitive; keys are), and mint a short-lived token **per job** with `actions/create-github-app-token` rather than storing a long-lived token. Use the App's **client ID** (`create-github-app-token`'s `client-id` input), and keep the same `AUTOMATION_CLIENT_ID` / `AUTOMATION_PRIVATE_KEY` names the scaffold snippets consume so a copy/paste setup wires up cleanly.
 
 ```bash
 gh variable set AUTOMATION_CLIENT_ID --body "<client-id>"

@@ -16,8 +16,8 @@ gh repo edit {owner}/{repo} --enable-auto-merge
       - id: app-token
         uses: actions/create-github-app-token@<sha>   # v2
         with:
-          app-id: ${{ vars.AUTOMATION_APP_ID }}
-          private-key: ${{ secrets.AUTOMATION_APP_KEY }}
+          client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
       # use steps.app-token.outputs.token for gh review/merge — NOT GITHUB_TOKEN
 ```
 
@@ -26,16 +26,18 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 ```yaml
       - id: meta
         uses: dependabot/fetch-metadata@<sha>          # v2  (deps); or derive from labels/paths
-      - name: Decide eligibility
+      - id: gate
+        name: Decide eligibility
         run: |
           # ELIGIBLE: bot author AND patch|minor AND path allowlist AND size cap
           # HARD STOP (require human): major | security | breaking | touches CI/release/secrets
+          echo "eligible=true" >> "$GITHUB_OUTPUT"     # write false on a hard stop
 ```
 
 ## → L2: auto-approve eligible PRs
 
 ```yaml
-      - if: steps.meta.outputs.eligible == 'true'
+      - if: steps.gate.outputs.eligible == 'true'
         env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
         run: gh pr review --approve "$PR_URL"
 ```
@@ -43,7 +45,7 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 ## → L3: auto-merge on green (native)
 
 ```yaml
-      - if: steps.meta.outputs.eligible == 'true'
+      - if: steps.gate.outputs.eligible == 'true'
         env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
         run: gh pr merge --squash --auto "$PR_URL"   # lands only when required checks pass
 ```

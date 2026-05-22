@@ -94,7 +94,13 @@ jobs:
     if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
-      - uses: dependabot/fetch-metadata@<sha>   # v2
+      - id: app-token
+        uses: actions/create-github-app-token@<sha>   # v2
+        with:
+          client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
+      - id: meta
+        uses: dependabot/fetch-metadata@<sha>   # v2
       - name: Approve and enable auto-merge for patch/minor
         if: contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
         env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
