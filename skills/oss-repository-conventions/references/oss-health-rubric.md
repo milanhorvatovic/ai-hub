@@ -61,4 +61,4 @@ The minimum a public OSS repo needs before any domain polish matters:
 3. No secrets in history; a way to report vulnerabilities privately — see `security-policy`.
 4. CI that builds and tests on PRs, if the repo ships code.
 
-Per-domain checks live in each capability under its `## Audit checks` section, each tagged with one of the severities above so the aggregator can weight them.
+Per-domain checks live in each capability under its `## Audit` section, each tagged with one of the severities above so the aggregator can weight them.
