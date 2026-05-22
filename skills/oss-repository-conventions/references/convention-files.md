@@ -114,6 +114,15 @@ The full inventory of file paths the scanner checks. Add to this list when you e
 - `RSpec`, `.rspec`
 - `spec.opts`
 
+## Dev setup / toolchain
+
+- `mise.toml`, `.mise.toml` (mise tool pinning)
+- `.tool-versions` (asdf / mise)
+- `.nvmrc`, `.node-version`
+- `.python-version`, `.ruby-version`
+- `.devcontainer/`, `.devcontainer/devcontainer.json`, `.devcontainer.json`
+- `.env.example`, `.env.sample`, `.env.template`
+
 ## CI/CD
 
 - `.github/workflows/*.yml`, `.github/workflows/*.yaml`
@@ -127,7 +136,7 @@ The full inventory of file paths the scanner checks. Add to this list when you e
 - `.drone.yml`
 - `.travis.yml`
 - `appveyor.yml`, `.appveyor.yml`
-- `.github/dependabot.yml`, `.github/renovate.json`, `renovate.json`
+- `.github/dependabot.yml`, `.github/dependabot.yaml`, `.github/renovate.json`, `renovate.json`
 
 ## Releases
 
@@ -145,7 +154,8 @@ The full inventory of file paths the scanner checks. Add to this list when you e
 ## Security
 
 - `SECURITY.md`, `.github/SECURITY.md`, `docs/SECURITY.md`
-- `.github/dependabot.yml`
+- `SECURITY-INSIGHTS.yml`, `.github/SECURITY-INSIGHTS.yml`
+- `.github/dependabot.yml`, `.github/dependabot.yaml`
 - `.gitleaks.toml`, `.gitleaks.yml`
 - `.trufflehog`
 - `.snyk`
@@ -160,6 +170,7 @@ The full inventory of file paths the scanner checks. Add to this list when you e
 - `_config.yml` (Jekyll)
 - `book.toml` (mdBook)
 - `docusaurus.config.js`
+- `CITATION.cff` (citation metadata)
 
 ## License
 
@@ -175,12 +186,17 @@ The full inventory of file paths the scanner checks. Add to this list when you e
 - `.crowdin.yml`, `crowdin.yml`
 - `transifex.config`, `.tx/config`
 
+## Community health
+
+- `SUPPORT.md`, `.github/SUPPORT.md`, `docs/SUPPORT.md`
+- `funding.yml`, `.github/FUNDING.yml`
+- `.all-contributorsrc`, `.all-contributorsrc.json` (all-contributors)
+
 ## Misc
 
 - `.gitignore` (patterns hint at what's expected in the repo)
 - `.gitattributes` (line-ending, merge-driver, language-detection rules)
 - `.mailmap` (commit-author normalization)
-- `funding.yml`, `.github/FUNDING.yml`
 
 ## Adding to this catalog
 
