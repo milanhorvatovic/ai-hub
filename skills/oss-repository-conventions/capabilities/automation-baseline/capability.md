@@ -85,7 +85,9 @@ Then present a **baseline-readiness roll-up** that aggregates the owning pillars
 
 ## Scaffold
 
-Building blocks live in `references/building-blocks.md` (setup composite action, thin `ci.yml` caller with `static`/`test`/`coverage` jobs, CodeQL workflow). Write after confirmation, tailored to the stack. Then point the maintainer at the pillar recipes for the rest of the baseline:
+For a **"set up &lt;automation&gt;" request that spans multiple files** — not a single template — follow the matching ordered flow in `../../references/automation-playbooks.md` (CI baseline, assisted/autonomous dependency updates, CI hardening, releases, PR autonomy). Each playbook chains **detect → prerequisites → artifacts → enable → verify → rollback**, sequencing this capability's building blocks, the prerequisites runbook, and the owning pillar's templates so steps land in the right order (prerequisites before the artifacts that depend on them). This capability is the entry point for that guided setup; it still proposes settings and writes files one-confirmation-at-a-time.
+
+Building blocks live in `references/building-blocks.md` (setup composite action, thin `ci.yml` caller with `static`/`test`/`coverage` jobs, CodeQL workflow) — these are the artifacts for the CI-baseline flow. Write after confirmation, tailored to the stack. Then point the maintainer at the pillar recipes for the rest of the baseline:
 
 - Dependencies: the autonomous recipe in the dependency-supply-chain capability.
 - Releases: the changelog + artifacts recipe in the release-versioning capability.
