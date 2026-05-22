@@ -45,7 +45,7 @@ Goal: workflows run least-privilege, pin third-party actions, use OIDC, and repo
 
 1. **Detect** — current `permissions:` blocks, `uses:` pins (moving tag vs full SHA), deploy/publish auth.
 2. **Prerequisites** — for OIDC publish, a cloud/registry trust relationship configured out of band; no secrets to store.
-3. **Artifacts** (ci-automation hardening patterns): default `permissions: contents: read` + per-job elevation → SHA-pin every third-party action with a `# vX.Y.Z` comment → OIDC for deploy/publish → concurrency + job timeouts → the optional Scorecard workflow.
+3. **Artifacts** (ci-automation hardening patterns): default `permissions: contents: read` + per-job elevation → SHA-pin every third-party action with a `# vX.Y.Z` comment → the fork-PR safety guard (refuse fork PRs for any secret-bearing / write job; never run the PR head under `pull_request_target`) → OIDC for deploy/publish → concurrency + job timeouts → an artifact/invariant verification gate (rebuild a committed `dist/` and fail on drift) → the optional Scorecard workflow.
 4. **Enable** — nothing beyond the file edits.
 5. **Verify** — re-run CI; confirm jobs still pass under reduced permissions and that Scorecard uploads results.
 6. **Rollback** — revert the workflow edits.
@@ -67,9 +67,9 @@ Goal: an eligible PR class self-approves and merges on green, with no human on t
 
 1. **Detect** — current rung (`pr-autonomy` scan); branch protection + required checks; the auto-merge setting; the eligible class (bot author? patch/minor? path allowlist? size cap?).
 2. **Prerequisites** (in order): a scoped App identity (`automation-prerequisites.md` §1) → gating labels for eligibility + hard stops (§4) → `allow_auto_merge` on + required checks via branch protection (§5, `branch-protection.md`) → the code-owner approval identity if the ruleset requires it (§6).
-3. **Artifacts** (pr-autonomy snippets): the eligibility gate + hard stops → the L2 auto-approve step (App-token `gh pr review`) → the L3 auto-merge step (`gh pr merge --auto`).
+3. **Artifacts** (pr-autonomy snippets): the eligibility gate + hard stops → the L2 auto-approve step (App-token `gh pr review`) → the L3 auto-merge step (`gh pr merge --auto`) → per-PR concurrency control so the flow can't race itself. For high-traffic repos consider a merge queue instead of immediate squash (`branch-protection.md`).
 4. **Enable** — the settings from step 2; one rung at a time, guardrails before the rung.
-5. **Verify** — open an eligible PR and confirm it's approved and auto-merges on green; open a hard-stop PR (major / security / CI-touching) and confirm it's held for a human.
+5. **Verify** — open an eligible PR and confirm it's approved and auto-merges on green; open a hard-stop PR (major / security / CI-touching) and confirm it's held for a human; confirm an unrecoverable automation state fails the run **red** (not warn-and-pass) so failures surface.
 6. **Rollback** — the escape hatch: flip the gating variable off; `gh pr merge --disable-auto` on open PRs.
 
 ## 6. Autonomous dependency updates — Dependabot (L3/L4)
@@ -78,10 +78,10 @@ Goal: patch/minor dependency PRs flow label → approve → merge → reconcile 
 
 1. **Detect** — flows 1, 2, 3, 5 in place; the existing Dependabot config; branch protection with required checks.
 2. **Prerequisites** (the failure-prone part — `automation-prerequisites.md`): App identity (§1) → **the bot/approver secret mirrored into BOTH the Actions and Dependabot stores** (§2 — it's unreadable in Dependabot-triggered runs otherwise; this is the usual missing piece) → release + hard-stop labels (§4) → `allow_auto_merge` + required checks (§5) → the code-owner approval identity (§6).
-3. **Artifacts** (dependency-supply-chain autonomous recipe): the release-label mapping → the `fetch-metadata` update-type gate (auto-merge patch/minor, hold major/security) → auto-approve + auto-merge → for built artifacts, a rebuild-and-commit-as-bot step → a scheduled + event-driven reconciler → an escape hatch.
+3. **Artifacts** (dependency-supply-chain autonomous recipe): the release-label mapping → the `fetch-metadata` update-type gate (auto-merge patch/minor, hold major/security) → auto-approve + auto-merge → for built artifacts, a rebuild-and-commit-**as-App** step (`createCommitOnBranch` → Verified + re-triggers checks; a `GITHUB_TOKEN` push lands Unverified and is anti-loop-suppressed) backstopped by a `built-artifact-verified` CI gate → per-PR concurrency + a singleton reconciler (failures fail red) → an escape hatch. **On Renovate**, this whole recipe collapses to native config (`automerge: true` + `platformAutomerge: true` scoped to patch/minor) — no workflows to maintain.
 4. **Enable** — all the settings plus the dual-store secrets from step 2.
-5. **Verify** — let a patch PR run end to end (approved, merged, branch deleted); confirm a major/security PR is held; drop an event mid-flight and confirm the reconciler re-drives the PR.
-6. **Rollback** — escape-hatch variable off; `gh pr merge --disable-auto` on open PRs; the Dependabot config can stay (the repo drops back to L1).
+5. **Verify** — let a patch PR run end to end (approved, merged, branch deleted); confirm a major/security PR is held; drop an event mid-flight and confirm the reconciler re-drives the PR; confirm a rebuilt-artifact commit lands Verified and re-runs checks.
+6. **Rollback** — escape-hatch variable off; `gh pr merge --disable-auto` on open PRs; the Dependabot/Renovate config can stay (the repo drops back to L1).
 
 ## Using a playbook
 
