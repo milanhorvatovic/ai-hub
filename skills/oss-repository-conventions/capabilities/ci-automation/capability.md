@@ -29,6 +29,7 @@ Governs the repository's automation layer: do workflows build and test changes, 
 
 - Not a git repo → stop.
 - Workflow secrets and deploy credentials are sensitive — never echo secret values; reason about _configuration_, not contents.
+- **Fork-PR safety is a trust boundary.** A workflow that runs on PRs and exposes secrets or write permission to fork-controlled code is the classic "pwn request". `pull_request` runs fork code but withholds secrets and defaults the token to read-only; `pull_request_target` runs in the base context _with_ secrets, so it must never check out or execute the PR head. Treat any secret-bearing or write-scoped PR job as fork-exposed unless it's gated on `head.repo.full_name == github.repository`.
 - Dependency bots (Dependabot/Renovate) and lockfile/SBOM concerns are the dependency-supply-chain capability; here, cover workflow files and action pinning.
 - Scaffolding a workflow that _runs_ tests relies on the test config from the testing-quality capability — reference it, don't redefine the suite.
 - A workflow's identity, the secret store it reads from (Actions vs Dependabot), and the repo settings its automation depends on are out-of-band **prerequisites**, not workflow YAML — see `../../references/automation-prerequisites.md`; whether they're provisioned is the cross-cutting `automation-prereqs-provisioned` check owned by the automation-baseline capability.
@@ -63,6 +64,9 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `concurrency-and-timeouts` — **could**. Pass when workflows cancel superseded runs and cap job time. Avoids stuck and duplicated runs.
 - `scheduled-maintenance` — **could**. Pass when useful scheduled jobs exist (stale triage, link-check, Scorecard). Keeps the repo tended automatically.
 - `runner-hardening` — **could**. Pass when CI runners restrict egress / are hardened (e.g. step-security/harden-runner) so a compromised step or dependency can't exfiltrate secrets or tamper with the build. Defense-in-depth on top of least-privilege tokens and SHA-pinned actions.
+- `fork-pr-safe` — **should** (→ **must** when a PR-triggered workflow exposes secrets or write scope). Fail when a workflow runs fork-controlled code with secrets or write permission in scope — `pull_request_target` that checks out / runs the PR head, or a secret-bearing PR job not gated on `head.repo.full_name == github.repository`. A fork PR can otherwise exfiltrate secrets or push to the repo (the "pwn request").
+- `built-artifact-verified` — **should** (when the repo commits a generated artifact — a bundled `dist/`, generated clients/docs). Fail when CI doesn't rebuild the artifact and fail on drift from the committed copy (a `verify-dist`-style gate), and likewise gate lockfile-vs-manifest and SHA-pin invariants rather than only linting them. A stale or hand-edited generated artifact ships code that doesn't match source; the autonomous-update rebuild step assumes this gate exists.
+- `metered-automation-bounded` — **could**. Pass when metered automation (paid API calls, AI review, large matrices) bounds cost — path-excludes, draft-skip, author allowlists, concurrency cancellation, explicit caps. Unbounded metered automation runs up cost and queue time on every push.
 
 ## Scaffold
 
