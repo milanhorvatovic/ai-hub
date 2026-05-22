@@ -72,10 +72,12 @@ For hands-off updates, scaffold the **autonomous Dependabot recipe** in the same
 - a **GitHub App token or bot PAT** — the default `GITHUB_TOKEN` can't approve PRs or trigger the downstream required checks; pick per `../../references/automation-identity.md` (App token preferred);
 - **branch protection with required status checks**, so `gh pr merge --auto` lands a PR only when it's green;
 - an **update-type gate** (`dependabot/fetch-metadata`) that auto-merges patch/minor but holds major and security-flagged PRs for a human;
-- for **built artifacts** (e.g. a bundled action's `dist/`), an auto-merge step that rebuilds and commits the artifact as the bot before merging;
+- for **built artifacts** (e.g. a bundled action's `dist/`), an auto-merge step that rebuilds and commits the artifact **as the App** (via `createCommitOnBranch`, so the commit is Verified and the resulting `synchronize` re-triggers required checks — a `GITHUB_TOKEN` push lands Unverified and is anti-loop-suppressed, leaving the PR stranded on stale checks), backstopped by a `built-artifact-verified` CI gate (ci-automation) so a missed rebuild fails loudly;
 - a **reconciler** (scheduled + event-driven) that catches dropped events and re-drives stuck PRs.
 
 Stand up the identity, secret stores, gating labels, and repo settings these depend on per `../../references/automation-prerequisites.md` — for a Dependabot-triggered flow the usual missing piece is **mirroring the bot/approver secret into the Dependabot secret store**, which those workflows read instead of the Actions store. Don't re-score the prerequisites here; that's the cross-cutting `automation-prereqs-provisioned` check owned by the automation-baseline capability.
+
+On **Renovate** the equivalent is its native auto-merge — `automerge: true` with `platformAutomerge: true`, scoped by `packageRules` to patch/minor — which needs no separate approve/merge/reconcile workflows (Renovate runs its own loop), but still depends on the same prerequisites (branch protection with required checks; a bot identity if your ruleset requires a non-default approver).
 
 This recipe instantiates the autonomy ladder at L3/L4 for Dependabot; the pr-autonomy capability owns the general ladder, the guardrail spine, and the other rungs/approaches — apply its guardrails here rather than re-deriving them. For the ordered end-to-end setup — assisted updates (flow 2) and the full autonomous flow (flow 6) — follow `../../references/automation-playbooks.md`.
 

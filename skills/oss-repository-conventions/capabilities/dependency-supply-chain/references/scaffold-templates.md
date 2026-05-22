@@ -84,7 +84,12 @@ jobs:
 ```yaml
 permissions: { contents: read, pull-requests: read }
 jobs:
-  # For a built artifact (e.g. dist/), rebuild and commit it as the bot first.
+  # For a built artifact (e.g. dist/): rebuild, then commit it AS THE APP via the
+  # GraphQL createCommitOnBranch mutation — that lands a Verified commit and the
+  # resulting `synchronize` re-triggers required checks. A plain `git push` with
+  # GITHUB_TOKEN lands Unverified AND is anti-loop-suppressed, so checks never
+  # re-run and the PR strands. A `built-artifact-verified` CI gate (ci-automation)
+  # backstops a missed rebuild.
   auto-merge:
     if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
@@ -114,3 +119,22 @@ jobs:
 ```
 
 Pin every action to a SHA; mint the bot token per job; never auto-merge major or security-flagged updates unattended.
+
+## Autonomous Renovate (alternative to the recipe above)
+
+Renovate runs its own merge loop, so its autonomous path is config, not workflows — no label/approve/merge/reconcile YAML to maintain.
+
+```json
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "platformAutomerge": true,
+  "packageRules": [
+    { "matchUpdateTypes": ["minor", "patch"], "automerge": true },
+    { "matchUpdateTypes": ["major"], "automerge": false },
+    { "matchDepTypes": ["engines"], "automerge": false }
+  ]
+}
+```
+
+Same prerequisites as the Dependabot recipe: branch protection with required checks (Renovate merges only on green), and a bot identity if the ruleset requires a non-default approver. Security updates still surface for review rather than silent auto-merge.
