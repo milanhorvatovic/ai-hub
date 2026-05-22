@@ -2,14 +2,14 @@
 
 ## Supported versions
 
-| Version    | Supported |
-| ---------- | --------- |
-| <latest>   | ✅        |
-| < <latest> | ❌        |
+| Version         | Supported |
+| --------------- | --------- |
+| `x.y` (latest)  | ✅        |
+| `< x.y` (older) | ❌        |
 
 ## Reporting a vulnerability
 
-Please report vulnerabilities **privately** via <GitHub private vulnerability reporting | security@<domain> | advisory link>.
+Please report vulnerabilities **privately** through the channel this project offers (keep the one you use): GitHub private vulnerability reporting (the repo's **Security → Report a vulnerability** tab), email to `security@EXAMPLE`, or a private GitHub Security Advisory.
 
 Do **not** open a public issue for security problems.
 
