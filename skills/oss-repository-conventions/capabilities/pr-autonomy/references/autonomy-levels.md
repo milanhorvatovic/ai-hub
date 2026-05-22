@@ -34,7 +34,7 @@ Eligible PRs _merge themselves_ once required checks pass.
 
 - **Prerequisites:** **branch protection** with **required status checks**; auto-merge enabled on the repo; an update-type/path gate.
 - **Guardrails:** all of L2 + required-checks-are-the-gate.
-- **Approaches:** native `gh pr merge --auto` (+ branch protection); third-party mergers (**Mergify** `.mergify.yml`, **Kodiak** `.kodiak.toml`) that queue and merge on green.
+- **Approaches:** native `gh pr merge --auto` (+ branch protection); a **merge queue** (re-tests each PR against the latest base before merging — best for high-traffic repos, and it removes the BEHIND-then-`update-branch` churn); third-party mergers (**Mergify** `.mergify.yml`, **Kodiak** `.kodiak.toml`) that queue and merge on green.
 - **Risk:** a too-broad eligibility gate merges things no one looked at — keep it narrow (e.g. patch/minor deps, docs-only).
 
 ### L4 — Full autonomous flow
@@ -54,8 +54,9 @@ End-to-end with no human on the safe path: open → label → approve → merge 
 | Hard stops (major / security / breaking / CI-touching → human) | ✅ | ✅ | ✅ |
 | Scoped App-token identity (least privilege) | ✅ | ✅ | ✅ |
 | Required checks are the merge gate | — | ✅ | ✅ |
+| Concurrency control (serialize per PR; singleton reconciler) | — | ✅ | ✅ |
 | Reconciler / scheduled catch-up | — | optional | ✅ |
-| Observability / alerting on autonomous actions | — | optional | ✅ |
+| Observability — failures surface red, not warn-and-pass | — | optional | ✅ |
 | Escape hatch (one-switch disable, auto-disable on security review) | optional | ✅ | ✅ |
 
 ## Choosing a target rung

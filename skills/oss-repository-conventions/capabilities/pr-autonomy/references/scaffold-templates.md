@@ -57,11 +57,29 @@ pull_request_rules:
     actions: { queue: { method: squash } }
 ```
 
+## Concurrency control (L3+)
+
+Serialize per PR so the flow can't race itself; run the reconciler as a singleton.
+
+```yaml
+# auto-merge.yml — one in-flight run per PR
+concurrency:
+  group: auto-merge-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# reconciler.yml — never two reconcile passes at once; don't cancel a pass mid-flight
+concurrency:
+  group: dependabot-reconciler
+  cancel-in-progress: false
+```
+
 ## → L4: reconciler + escape hatch
 
 ```yaml
 # reconciler.yml — on: { schedule: [{cron: "0 * * * *"}], workflow_run: {...}, workflow_dispatch: }
 #   re-apply labels, re-enable auto-merge, update-branch if behind; the cron backstops dropped events.
+#   `workflow_run` is required because a GITHUB_TOKEN-driven merge's push:main is anti-loop-suppressed
+#   (see automation-identity.md) — so a push:main trigger alone would miss it.
 
 # escape hatch: gate the whole flow behind a repo variable
 on: ...
@@ -70,4 +88,30 @@ jobs:
     if: vars.AUTONOMY_ENABLED == 'true'   # flip to 'false' to stop everything
     ...
   # also: a step that disables auto-merge when a security review is requested
+```
+
+## Observability: fail loud, don't warn-and-pass (L4)
+
+An unrecoverable autonomous action must turn the run red so it's noticed; optionally raise an alert.
+
+```yaml
+      - name: Reconcile (fail the run on an unrecoverable state)
+        run: |
+          if ! reconcile_all; then
+            echo "::error::Reconciler could not drive PR #$PR to a known state"
+            exit 1                      # red run — not a silent warning
+          fi
+      - name: Notify on failure
+        if: failure()
+        run: gh issue create --title "Autonomy reconciler failed on $(date -u +%F)" --label automation
+        # or post to Slack/Teams via a webhook secret
+```
+
+## Merge queue (alternative to the BEHIND/update-branch dance, L3+)
+
+For high-traffic repos, enable a merge queue in the branch ruleset (`branch-protection.md`) and target it instead of an immediate squash:
+
+```yaml
+      - run: gh pr merge --auto --squash "$PR_URL"   # with a merge queue configured, this queues the PR;
+                                                      # the queue re-tests against latest base before landing
 ```

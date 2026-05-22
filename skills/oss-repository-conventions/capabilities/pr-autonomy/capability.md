@@ -43,9 +43,10 @@ Higher autonomy without these is reckless, not advanced:
 - **Eligibility gate** — only a defined subset qualifies (bot author, patch/minor, path allowlist, size cap); never the whole PR population.
 - **Hard stops** — major bumps, security-flagged PRs, breaking changes, and edits to CI/release/secret paths always require a human.
 - **Scoped identity** — a least-privilege App token (the default `GITHUB_TOKEN` can neither approve PRs nor trigger the downstream required checks). Choose the identity per `../../references/automation-identity.md` (App token preferred over a fine-grained PAT; never a classic PAT).
-- **Required checks are the gate** — autonomy only ever lands a _green_ PR; branch protection enforces it.
-- **Reconciler + observability** — a scheduled/event-driven catch-up for dropped events, and alerting on stuck or failed autonomous actions.
-- **Escape hatch** — one switch to disable, plus auto-disable on a security review.
+- **Required checks are the gate** — autonomy only ever lands a _green_ PR; branch protection enforces it. For high-traffic repos a **merge queue** (`branch-protection.md`) re-tests each PR against the latest base, removing the BEHIND-then-`update-branch` reconciliation the recipe otherwise needs.
+- **Concurrency control** — serialize per-PR so an automation can't race itself (`concurrency: { group: …-pr-${{ pr.number }} }`), and run the reconciler as a singleton (`cancel-in-progress: false`). Without it, overlapping `synchronize`/`labeled` events double-merge or strand PRs. Mechanism in the ci-automation capability.
+- **Reconciler + observability** — a scheduled/event-driven catch-up for dropped events, _and_ failures that surface: an unrecoverable autonomous action must fail the run **red** (`exit 1` + `::error::`), not warn-and-pass, and ideally notify or open-an-issue-on-failure so a broken reconciler isn't silent. Silent failure is the failure mode autonomy is most prone to.
+- **Escape hatch** — one switch to disable (a gating repo variable), plus auto-disable on a security review.
 
 ## Inputs & guards
 
