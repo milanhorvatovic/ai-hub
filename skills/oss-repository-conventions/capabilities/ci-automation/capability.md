@@ -41,7 +41,7 @@ Detect per `../../references/language-support.md`. The workflow shell is languag
 - **First-class:** languages with a maintained setup action — `actions/setup-node`, `actions/setup-python`, `actions/setup-go`, `actions-rust-lang/setup-rust-toolchain`, `swift-actions/setup-swift`, `ruby/setup-ruby`.
 - **Recognized:** other stacks — use a generic toolchain step (mise / container) in the job.
 - **Unknown:** scaffold the job skeleton with a placeholder toolchain step; never invent a setup action.
-- **Compiled vs interpreted:** compiled languages (Swift, Go, Rust, Java, C/C++) need a build/compile step in the job; interpreted languages (Python, JS/TS, Ruby) don't. This also drives the CodeQL build — see the automation-baseline capability.
+- **Compiled vs interpreted:** compiled languages (Swift, Go, Rust, Java, C/C++) need a build/compile step in the job; interpreted languages (Python, JS/TS, Ruby) don't. For the compiled languages CodeQL supports (Swift, Go, Java, C/C++ — not Rust) this build step also drives the CodeQL analysis — see the automation-baseline capability.
 
 ## Scan
 
