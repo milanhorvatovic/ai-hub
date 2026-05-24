@@ -94,3 +94,41 @@ def test_skill_dirs_contain_only_distributable_content() -> None:
         "non-distributable files tracked under skills/ — move them to the repo "
         f"root or tests/: {offenders}"
     )
+
+
+@pytest.mark.parametrize(
+    "rel_path",
+    [
+        "skills/x/conftest.py",
+        "skills/x/test_thing.py",
+        "skills/x/thing_test.py",
+        "skills/x/.gitignore",
+        "skills/x/pyproject.toml",
+        "skills/x/requirements-dev.txt",
+        "skills/x/module.pyc",
+        "skills/x/.coverage",
+        "skills/x/coverage.xml",
+        "skills/x/.coverage.host.12345",
+        "skills/x/results.cover",
+        "skills/x/__pycache__/m.pyc",
+        "skills/x/htmlcov/index.html",
+        "skills/x/.hypothesis/examples/abc",
+    ],
+)
+def test_predicate_flags_non_distributable(rel_path: str) -> None:
+    assert _is_non_distributable(rel_path)
+
+
+@pytest.mark.parametrize(
+    "rel_path",
+    [
+        "skills/x/SKILL.md",
+        "skills/x/capabilities/y/capability.md",
+        "skills/x/references/z.md",
+        "skills/x/assets/diagram.png",
+        "skills/x/scripts/docs_steward/cli.py",
+        "skills/x/scripts/md-audit.py",
+    ],
+)
+def test_predicate_allows_distributable_content(rel_path: str) -> None:
+    assert not _is_non_distributable(rel_path)
