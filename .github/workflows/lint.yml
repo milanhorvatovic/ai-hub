@@ -2,11 +2,7 @@ name: lint
 
 on:
   pull_request:
-    paths:
-      - "**/*.py"
-      - "pyproject.toml"
-      - ".python-version"
-      - ".github/workflows/lint.yml"
+    branches: [main]
   push:
     branches: [main]
     paths:
