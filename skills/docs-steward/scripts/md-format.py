@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Entry shim — delegates to docs_steward.cli with 'md-format' prepended."""
+"""Entry shim — runs docs_steward.cli as `md-format`."""
 
-import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Import after the sys.path insert so the bundled docs_steward package resolves.
-from docs_steward.cli import main
+def main() -> int:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from docs_steward.cli import main as cli_main  # deferred: needs sys.path first
+    return cli_main(["md-format", *sys.argv[1:]])
 
-sys.exit(main(["md-format", *sys.argv[1:]]))
+
+if __name__ == "__main__":
+    raise SystemExit(main())
