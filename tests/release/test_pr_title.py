@@ -58,7 +58,7 @@ def test_invalid_titles(title: str) -> None:
     assert validator.validate(title, SKILLS) != []
 
 
-def test_subject_length_cap() -> None:
+def test_title_length_cap() -> None:
     long_title = "feat(git-toolkit): " + ("x" * 80)
     errors = validator.validate(long_title, SKILLS)
     assert any("cap is" in error for error in errors)

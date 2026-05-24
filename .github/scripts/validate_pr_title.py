@@ -35,8 +35,9 @@ TYPES = {
 # Keep this in sync with the set documented in CONTRIBUTING.md and AGENTS.md.
 AREA_SCOPES = {"release", "repo", "deps", "ci"}
 
-# Cap the whole subject (matches the git-toolkit ≤72-char rule).
-SUBJECT_MAX = 72
+# Cap the whole title line — the Conventional-Commit header `type(scope): subject`
+# (the git-toolkit ≤72-char rule applies to the first line, not just the description).
+TITLE_MAX = 72
 
 HEADER = re.compile(
     r"^(?P<type>[a-z]+)(?:\((?P<scope>[^)]+)\))?(?P<bang>!)?: (?P<subject>.+)$"
@@ -77,8 +78,8 @@ def validate(title: str, skills: set[str]) -> list[str]:
     if not match["subject"].strip():
         errors.append("subject is empty")
 
-    if len(title) > SUBJECT_MAX:
-        errors.append(f"title is {len(title)} chars; the cap is {SUBJECT_MAX}")
+    if len(title) > TITLE_MAX:
+        errors.append(f"title is {len(title)} chars; the cap is {TITLE_MAX} for the whole title")
 
     return errors
 
