@@ -20,7 +20,6 @@ import os.path
 
 from .fs import FileSystem
 
-
 UNIVERSAL_SUBSET = "universal-subset"
 """Sentinel returned when no baseline config is detected. Downstream code
 checks for equality with this constant; do not parse it as a path."""

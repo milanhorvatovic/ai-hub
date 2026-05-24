@@ -6,6 +6,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from docs_steward.cli import main  # noqa: E402 — sys.path manipulation must precede import
+from docs_steward.cli import (
+    main,  # noqa: E402 — sys.path manipulation must precede import
+)
 
 sys.exit(main(["md-audit", *sys.argv[1:]]))

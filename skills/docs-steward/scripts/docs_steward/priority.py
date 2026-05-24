@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from .tools import Tool
 
-
 INSTALL_PRIORITY: tuple[Tool, ...] = (
     Tool.PRETTIER,            # widest ecosystem; --prose-wrap=never matches preference
     Tool.MDFORMAT,            # pure-Python alternative when Node is undesirable

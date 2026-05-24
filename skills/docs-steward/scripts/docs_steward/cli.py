@@ -20,8 +20,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from collections.abc import Iterable, Sequence
-from typing import Callable
+from collections.abc import Callable, Iterable, Sequence
 
 from .baseline import UNIVERSAL_SUBSET, detect_baseline
 from .discovery import list_markdown_files

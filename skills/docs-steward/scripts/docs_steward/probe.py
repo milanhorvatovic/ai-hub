@@ -22,7 +22,6 @@ from .plugins import probe_mdformat_plugins
 from .process import ProcessRunner
 from .tools import REGISTRY, SUPPORTED_TOOLS, Tool
 
-
 _MISSING_HINT = (
     "No supported formatter on PATH. Install one of (binary name shown; "
     "the npm package name is in parens where it differs): "

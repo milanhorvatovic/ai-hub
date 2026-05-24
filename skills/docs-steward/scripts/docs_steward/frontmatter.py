@@ -22,7 +22,6 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
-
 BlockKind = Literal["frontmatter", "fenced"]
 
 # YAML 1.2 (and CommonMark frontmatter convention) distinguish the two

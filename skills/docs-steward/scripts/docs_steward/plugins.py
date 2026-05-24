@@ -30,7 +30,6 @@ from collections.abc import Callable, Sequence
 from .events import Event, EventType
 from .process import ProcessRunner
 
-
 _PYTHON_INTERP_NAMES: frozenset[str] = frozenset({
     "python", "python3", "python2",
     # Versioned (python3.12 etc.) handled via a startswith fallback below.

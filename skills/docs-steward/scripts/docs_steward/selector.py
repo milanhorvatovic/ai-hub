@@ -22,7 +22,6 @@ import os.path
 from .process import ProcessRunner
 from .tools import Tool
 
-
 # `.markdownlint-cli2.{jsonc,yaml}` is a cli2-specific configuration
 # format the legacy `markdownlint` CLI cannot parse. Match cli2 configs
 # to CLI2 *only* — order is significant: this prefix must come BEFORE
