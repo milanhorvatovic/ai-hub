@@ -16,7 +16,8 @@ ai-hub is a repository of AI-agnostic artifacts — primarily **skills** under `
 - **Skills are decoupled:** a skill never references another skill by name; express relationships as concepts.
 - **Capabilities declare their own `allowed-tools`;** a router's `allowed-tools` is the union of its capabilities'.
 - **Tests are stdlib-only** and validate on-disk shape (frontmatter, semver, capability/reference resolution) — keep them passing for any skill-shape change.
-- **Commits:** author-only (no `Co-Authored-By` / trailers); imperative subjects ≤72 chars. PRs are squash-merged.
+- **Commits / PR titles:** [Conventional Commits](https://www.conventionalcommits.org/), scope = skill name (`fix(git-toolkit): …`) or a repo area (`release`, `repo`, `deps`, `ci`); imperative ≤72 chars; author-only (no `Co-Authored-By` / trailers). PRs are squash-merged, so the PR title is the subject release-please parses — a CI gate validates it.
+- **Versioning:** per-skill SemVer in `SKILL.md` `metadata.version`; bump it for behavior-affecting changes (not internal-only edits). release-please cuts per-skill `<skill>-v<x.y.z>` releases; `Release-As: x.y.z` forces a version. See `docs/adr/0001-release-and-versioning.md`.
 
 ## Don't
 
