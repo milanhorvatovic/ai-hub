@@ -32,7 +32,8 @@ TYPES = {
 }
 
 # Non-skill scopes allowed for repository-wide changes.
-AREA_SCOPES = {"release", "repo", "deps", "ci", "docs", "tests"}
+# Keep this in sync with the set documented in CONTRIBUTING.md and AGENTS.md.
+AREA_SCOPES = {"release", "repo", "deps", "ci"}
 
 # Cap the whole subject (matches the git-toolkit ≤72-char rule).
 SUBJECT_MAX = 72
