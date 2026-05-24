@@ -3,7 +3,7 @@
 Everything under a skill directory ships to consumers via `npx skills` (and the
 planned zip bundles), so a skill directory must contain only distributable skill
 content — never repo-development artifacts (tests, tool configs, VCS dotfiles,
-build caches). This test fails if any such file is *tracked* under
+build/coverage artifacts). This test fails if any such file is *tracked* under
 `skills/<name>/`, so the constraint can't silently regress.
 
 It inspects tracked files (`git ls-files`) rather than the working tree: that is
@@ -34,6 +34,8 @@ _DENY_BASENAMES = {
     "setup.cfg",
     "tox.ini",
     ".coveragerc",
+    ".coverage",
+    "coverage.xml",
     ".DS_Store",
 }
 _DENY_NAME_PATTERNS = (
@@ -41,8 +43,18 @@ _DENY_NAME_PATTERNS = (
     re.compile(r".*_test\.py$"),
     re.compile(r"^requirements.*\.txt$"),
     re.compile(r".*\.py[co]$"),
+    re.compile(r"^\.coverage\..+$"),  # parallel coverage data files (.coverage.host.pid)
+    re.compile(r".*\.cover$"),  # *.cover / *.py.cover
 )
-_DENY_PATH_COMPONENTS = {"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache"}
+_DENY_PATH_COMPONENTS = {
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+    ".hypothesis",
+    "htmlcov",
+    "cover",
+}
 
 
 def _tracked_skill_files() -> list[str]:
