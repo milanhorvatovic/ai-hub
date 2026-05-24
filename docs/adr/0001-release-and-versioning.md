@@ -43,7 +43,7 @@ A single root `CHANGELOG.md` (Keep a Changelog format) is the human history surf
 
 ### Bundling manifest
 
-`.gitattributes export-ignore` marks non-shipping paths (`tests/`, `docs/`, `.github/`, dev dotfiles, top-level config) so `git archive` of the repo or a skill subtree excludes repo machinery. This is the manifest the future zip-bundle work (PR C) builds on; the existing distribution-hygiene guard already keeps `skills/<name>/` itself clean.
+`.gitattributes export-ignore` marks repo machinery (`tests/`, `.github/`, dev dotfiles, top-level config) as non-shipping so `git archive` of the repo or a skill subtree excludes it, while documentation under `docs/` (the ADRs that shipped docs link to) stays exportable. This is the manifest the future zip-bundle work (PR C) builds on; the existing distribution-hygiene guard already keeps `skills/<name>/` itself clean.
 
 ## Consequences
 
