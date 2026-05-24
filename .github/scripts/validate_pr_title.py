@@ -2,11 +2,11 @@
 """Validate a pull-request title as a Conventional Commit — the "change-intent" gate.
 
 PRs are squash-merged, so the PR title becomes the commit subject that release-please
-parses to compute per-skill version bumps. The scope, when present, must name a skill
-directory (so the change maps to the right release-please component) or a known
-repo-wide area. The title is read from the PR_TITLE environment variable and never
-interpolated into a shell command, because PR titles are attacker-controllable on
-fork PRs.
+reads: the type drives the version bump, while component membership is by file path.
+The scope, when present, must name a skill directory (it groups the changelog by skill
+and keeps the PR focused) or a known repo-wide area. The title is read from the
+PR_TITLE environment variable and never interpolated into a shell command, because
+PR titles are attacker-controllable on fork PRs.
 """
 
 from __future__ import annotations
