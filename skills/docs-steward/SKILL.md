@@ -17,7 +17,7 @@ description: >
   formatter applies, does not auto-install any tool.
 allowed-tools: Bash Read Grep Edit Write
 metadata:
-  version: "1.1.0"
+  version: "1.1.0" # x-release-please-version
 ---
 
 # docs-steward

@@ -1,0 +1,46 @@
+name: change-intent
+
+# Gate: every PR must declare its change intent as a Conventional-Commit title.
+# The squash-merge subject is the PR title, which release-please parses to compute
+# per-skill version bumps — so the title must be parseable and correctly scoped.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: change-intent-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    name: pr-title
+    runs-on: ubuntu-latest
+    steps:
+      # actions/checkout v4.3.0
+      # Check out the BASE branch, not the PR head: the validator that judges the PR
+      # must be the trusted copy from the base branch, so a PR cannot edit the script
+      # to make itself pass. Only the PR title (from the event payload) is under review.
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      # actions/setup-python v5.6.0
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version-file: ".python-version"
+
+      - name: Validate PR title
+        # PR title is untrusted input — pass it via env, never interpolated into the shell.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [ ! -f .github/scripts/validate_pr_title.py ]; then
+            echo "::warning::base branch has no validator yet; skipping until it lands on the base branch (bootstrap only)"
+            exit 0
+          fi
+          python .github/scripts/validate_pr_title.py

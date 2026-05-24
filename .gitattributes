@@ -11,3 +11,22 @@
 *.png binary
 *.jpg binary
 *.pdf binary
+
+# Bundling manifest — exclude repo machinery from `git archive` exports.
+# Skills ship as tracked content; repo tooling, tests, and dev configs do not. Root
+# distributable/legal files (LICENSE, README, CHANGELOG, CODE_OF_CONDUCT) stay
+# exportable, as does docs/ (e.g. docs/adr/, which shipped docs link to). The .github/
+# tree — including the security policy — is intentionally NOT shipped, so README links
+# to the security policy by its canonical GitHub URL.
+/.github                    export-ignore
+/tests                      export-ignore
+/.editorconfig              export-ignore
+/.gitattributes             export-ignore
+/.gitignore                 export-ignore
+/.pre-commit-config.yaml    export-ignore
+/.prettierrc.json           export-ignore
+/.python-version            export-ignore
+/pyproject.toml             export-ignore
+/requirements-test.txt      export-ignore
+/release-please-config.json export-ignore
+/.release-please-manifest.json export-ignore

@@ -14,6 +14,23 @@ Incubator hub for AI-agnostic artifacts of every shape — skills, docs, MCP ser
 - **docs-steward** — orchestrates markdown formatters + yamllint over a repo's docs.
 - **oss-repository-conventions** — scans, audits, and scaffolds an open-source repository toward and along a top-notch standard.
 
+## Install
+
+Skills install with [`npx skills`](https://github.com/vercel-labs/skills), which copies a skill into your agent's config directory.
+
+```sh
+# One skill (project scope, the default):
+npx skills add https://github.com/milanhorvatovic/ai-hub/tree/main/skills/git-toolkit
+
+# Every skill in the repo:
+npx skills add milanhorvatovic/ai-hub --all
+
+# Global scope (your user directory instead of the project): add -g
+npx skills add https://github.com/milanhorvatovic/ai-hub/tree/main/skills/git-toolkit -g
+```
+
+`npx skills` installs the current `main`. Each skill also carries a SemVer in its `SKILL.md` (`metadata.version`) and is cut as a `<skill>-v<x.y.z>` tag and GitHub Release; the repository publishes dated CalVer (`vYYYY.MM.MICRO`) catalog snapshots over the set. See [CHANGELOG.md](CHANGELOG.md) for what changed and [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md) for the versioning model.
+
 ## Develop
 
 ```sh
@@ -26,7 +43,7 @@ Markdown is formatted with Prettier (`proseWrap: never`) — see `.prettierrc.js
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately per [SECURITY.md](.github/SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately per the [security policy](https://github.com/milanhorvatovic/ai-hub/security/policy).
 
 ## License
 

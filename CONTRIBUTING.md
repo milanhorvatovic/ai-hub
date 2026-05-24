@@ -30,10 +30,20 @@ Thanks for your interest! ai-hub is an incubator for AI-agnostic artifacts — s
 - Add or update a skill's structural tests for any change to its shape.
 - Run `./venv/bin/pytest -q` before pushing. Markdown is formatted with Prettier (`proseWrap: never`) per `.prettierrc.json` — author prose as one line per paragraph and let it wrap.
 
+## Versioning
+
+Each skill is versioned independently with [Semantic Versioning](https://semver.org/) in its `SKILL.md` `metadata.version`. Bump it as part of a behavior-affecting change to that skill:
+
+- **major** — a breaking change to the skill's contract (router behavior, capability removal/rename).
+- **minor** — a backward-compatible addition (new capability, new trigger).
+- **patch** — a backward-compatible fix.
+
+Internal-only, behavior-preserving edits (refactors, comment/wording fixes, test-only changes) do not require a bump. When in doubt, prefer a patch. Releases are cut by [release-please](https://github.com/googleapis/release-please) from merged PR titles. To force a specific version, add a `Release-As: x.y.z` footer to a branch commit: this repo squashes with the `COMMIT_MESSAGES` setting, so branch commit messages are concatenated into the merge commit on `main`, where release-please reads the footer (you can also add it when editing the squash message at merge time). This is a release-please control footer, not an attribution trailer. The repository's release model is recorded in [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md).
+
 ## Pull requests
 
 - Fill in the PR template; describe what changed and why, and which skill it touches.
-- PRs are squash-merged — write a clear, imperative PR title (it becomes the squash commit subject).
+- PRs are squash-merged, so the **PR title becomes the commit subject** — write it as a [Conventional Commit](https://www.conventionalcommits.org/) with the **skill name as the scope** (e.g. `fix(git-toolkit): handle an empty diff`). Repo-wide changes use an area scope (`release`, `repo`, `deps`, `ci`) or none. A CI gate validates the title. release-please then bumps each skill whose files the PR touched, using the commit **type** (`feat` → minor, `fix` → patch); the scope keeps the changelog grouped by skill. Keep one skill per PR so the squashed commit doesn't bump several skills at once. The gate runs from the base branch (so a PR can't edit the validator that judges it); a PR that introduces a brand-new skill therefore scopes its title `repo` until the skill exists on the base branch.
 
 ## Contribution basis
 
