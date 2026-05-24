@@ -25,7 +25,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-
 _SHIM_FALLBACK_DIRS: tuple[str, ...] = (
     "~/.local/share/mise/shims",   # mise (formerly rtx)
     "~/.asdf/shims",                # asdf

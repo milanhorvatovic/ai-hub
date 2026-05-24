@@ -1,0 +1,25 @@
+name: Bug report
+description: Report something wrong with a skill or its tests
+labels: ["bug"]
+body:
+  - type: input
+    id: skill
+    attributes:
+      label: Skill / area
+      description: Which skill or part of the repo is affected?
+      placeholder: e.g. oss-repository-conventions / docs-steward / tests
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected vs. what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true

@@ -14,7 +14,6 @@ from docs_steward.tools import Tool
 
 from .fakes import FakeProcessRunner
 
-
 ROOT = "/repo"
 
 

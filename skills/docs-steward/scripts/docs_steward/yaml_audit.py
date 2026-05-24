@@ -33,7 +33,6 @@ from .hints import install_hints
 from .process import ProcessRunner
 from .tools import Tool
 
-
 _TOOL = Tool.YAMLLINT
 _YAMLLINT_LINE = re.compile(
     r"^(?P<source>[^:]+):(?P<line>\d+):(?P<col>\d+):\s*\[(?P<level>\w+)\]\s*"

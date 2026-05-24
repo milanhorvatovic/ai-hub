@@ -22,7 +22,7 @@ def _section(text: str, header_prefix: str) -> str:
     `header_prefix`, up to the next `## ` header (or end of file)."""
     lines = text.splitlines()
     start = next(
-        (i for i, l in enumerate(lines) if l.startswith(header_prefix)), None
+        (i for i, line in enumerate(lines) if line.startswith(header_prefix)), None
     )
     assert start is not None, f"section not found: {header_prefix!r}"
     end = next(

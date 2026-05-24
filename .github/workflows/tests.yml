@@ -2,13 +2,7 @@ name: tests
 
 on:
   pull_request:
-    paths:
-      - "skills/**"
-      - "tests/**"
-      - "pyproject.toml"
-      - "requirements-test.txt"
-      - ".python-version"
-      - ".github/workflows/tests.yml"
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -18,6 +12,9 @@ on:
       - "requirements-test.txt"
       - ".python-version"
       - ".github/workflows/tests.yml"
+
+permissions:
+  contents: read
 
 concurrency:
   group: tests-${{ github.ref }}

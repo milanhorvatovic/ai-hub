@@ -2,3 +2,18 @@
 minversion = "7.0"
 testpaths = ["tests"]
 addopts = "-ra"
+
+[tool.ruff]
+# Minimum supported Python — CI tests 3.12 and 3.13, so target the floor.
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"] # line length is left to the formatter / no-hard-wrap policy
+
+[tool.coverage.run]
+branch = true
+source = ["skills/docs-steward/scripts/docs_steward"]
+
+[tool.coverage.report]
+show_missing = true

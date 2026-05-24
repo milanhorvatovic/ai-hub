@@ -16,7 +16,6 @@ import os.path
 
 from .tools import Tool
 
-
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _CONFIGS_DIR = os.path.abspath(os.path.join(_HERE, "..", "..", "assets", "configs"))
 

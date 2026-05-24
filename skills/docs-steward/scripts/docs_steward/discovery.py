@@ -17,7 +17,6 @@ import os
 from .fs import FileSystem
 from .process import ProcessRunner
 
-
 _MARKDOWN_EXTENSIONS = (".md", ".markdown")
 _SKIP_DIRS = frozenset(
     ("node_modules", ".git", "dist", "build", ".venv", "venv", "target")

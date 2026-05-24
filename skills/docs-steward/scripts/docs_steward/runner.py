@@ -28,7 +28,6 @@ from .process import ProcessRunner
 from .selector import baseline_belongs_to_tool, select_tool
 from .tools import Tool
 
-
 _NO_TOOL_HINT = (
     "No usable formatter on PATH. Style baseline: {baseline}. "
     "Run `recommend-tools.py` for platform-specific install commands."

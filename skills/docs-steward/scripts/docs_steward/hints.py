@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from .tools import Tool
 
-
 _HINTS: dict[Tool, tuple[str, ...]] = {
     Tool.PRETTIER: (
         "npm install --global prettier             # canonical: via npm",
