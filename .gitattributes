@@ -13,10 +13,11 @@
 *.pdf binary
 
 # Bundling manifest — exclude repo machinery from `git archive` exports.
-# Skills ship as tracked content; repo tooling, tests, and internal planning docs
-# do not. Distributable/legal files (LICENSE, README, CHANGELOG, the community docs)
-# stay exportable — as does docs/adr/, which those shipped docs link to (ignore only
-# the internal planning files under docs/, so the ADR references don't dangle).
+# Skills ship as tracked content; repo tooling, tests, and internal planning docs do
+# not. Root distributable/legal files (LICENSE, README, CHANGELOG, CODE_OF_CONDUCT)
+# stay exportable, as does docs/adr/ (shipped docs link to it, so ignore only the
+# internal planning files under docs/). The .github/ tree — including the security
+# policy — is intentionally NOT shipped, so README links to SECURITY.md by absolute URL.
 /.github                    export-ignore
 /docs/delivery-plan.md      export-ignore
 /docs/patches               export-ignore
