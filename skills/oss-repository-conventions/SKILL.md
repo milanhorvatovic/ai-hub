@@ -18,7 +18,7 @@ description: >
   /oss-repository-conventions.
 allowed-tools: Bash Read Grep Glob Write Edit
 metadata:
-  version: "1.0.0"
+  version: "1.0.0" # x-release-please-version
 ---
 
 # oss-repository-conventions

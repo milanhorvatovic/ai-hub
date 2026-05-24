@@ -10,7 +10,7 @@ description: >
   docs-only, config-only, pure-data, or ops/infra tasks.
 allowed-tools: Read Grep
 metadata:
-  version: "1.0.0"
+  version: "1.0.0" # x-release-please-version
 ---
 
 # coding-principles

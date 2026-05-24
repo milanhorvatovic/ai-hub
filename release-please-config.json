@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "include-component-in-tag": true,
+  "separate-pull-requests": false,
+  "packages": {
+    "skills/coding-principles": {
+      "component": "coding-principles",
+      "changelog-path": "../../CHANGELOG.md",
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
+    },
+    "skills/docs-steward": {
+      "component": "docs-steward",
+      "changelog-path": "../../CHANGELOG.md",
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
+    },
+    "skills/git-toolkit": {
+      "component": "git-toolkit",
+      "changelog-path": "../../CHANGELOG.md",
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
+    },
+    "skills/oss-repository-conventions": {
+      "component": "oss-repository-conventions",
+      "changelog-path": "../../CHANGELOG.md",
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
+    }
+  }
+}
