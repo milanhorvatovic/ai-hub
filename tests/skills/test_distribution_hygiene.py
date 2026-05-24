@@ -115,6 +115,7 @@ def test_skill_dirs_contain_only_distributable_content() -> None:
         "skills/x/__pycache__/m.pyc",
         "skills/x/htmlcov/index.html",
         "skills/x/.hypothesis/examples/abc",
+        "skills/x/tests/helpers.py",
     ],
 )
 def test_predicate_flags_non_distributable(rel_path: str) -> None:
