@@ -4,17 +4,43 @@
 `.release-please-manifest.json` mirrors it as release-please's bump baseline. release-please
 keeps them in sync on release, but a manual edit to one could silently desync the other —
 this test fails fast if they diverge, and if the manifest gains or loses a skill.
+
+Skills are resolved from *tracked* files (`git ls-files`), like
+`tests/skills/test_distribution_hygiene.py`, so a local untracked scratch skill in the
+working tree can't perturb the result — the manifest must match what actually ships.
 """
 
 import json
 import re
+import subprocess
 from pathlib import Path
+
+import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _MANIFEST = _REPO_ROOT / ".release-please-manifest.json"
-_SKILLS_DIR = _REPO_ROOT / "skills"
 
 _VERSION = re.compile(r'^\s+version:\s*"([^"]+)"', flags=re.MULTILINE)
+
+
+def _tracked_skill_paths() -> set[str]:
+    """Return `skills/<name>` for every tracked `skills/<name>/SKILL.md`."""
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "skills"],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:  # pragma: no cover
+        pytest.skip(f"git unavailable; cannot resolve tracked skills: {exc}")
+    paths = set()
+    for line in result.stdout.splitlines():
+        parts = line.split("/")
+        if len(parts) == 3 and parts[0] == "skills" and parts[2] == "SKILL.md":
+            paths.add(f"skills/{parts[1]}")
+    return paths
 
 
 def _skill_version(skill_md: Path) -> str:
@@ -25,11 +51,7 @@ def _skill_version(skill_md: Path) -> str:
 
 def test_manifest_covers_exactly_the_skills() -> None:
     manifest = json.loads(_MANIFEST.read_text(encoding="utf-8"))
-    manifest_paths = set(manifest)
-    skill_paths = {
-        f"skills/{p.name}" for p in _SKILLS_DIR.iterdir() if (p / "SKILL.md").is_file()
-    }
-    assert manifest_paths == skill_paths
+    assert set(manifest) == _tracked_skill_paths()
 
 
 def test_manifest_versions_match_skill_md() -> None:
