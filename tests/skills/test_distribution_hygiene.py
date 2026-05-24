@@ -54,6 +54,8 @@ _DENY_PATH_COMPONENTS = {
     ".hypothesis",
     "htmlcov",
     "cover",
+    "tests",
+    "test",
 }
 
 
