@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import unittest
-
 import os
 import tempfile
+import unittest
 
 from docs_steward.events import EventType
 from docs_steward.plugins import (
@@ -20,7 +19,6 @@ from docs_steward.plugins import (
 from docs_steward.process import ProcessResult
 
 from .fakes import FakeProcessRunner
-
 
 # ============================================================
 # needs_gfm sniffer
@@ -89,7 +87,7 @@ class ProbeMdformatPluginsTests(unittest.TestCase):
         runner = FakeProcessRunner(
             paths={"pip": "/usr/bin/pip"},
             results={
-                ("/usr/bin/pip", "show", pkg): ProcessResult(0, f"Version: 1.0.0\n", "")
+                ("/usr/bin/pip", "show", pkg): ProcessResult(0, "Version: 1.0.0\n", "")
                 for pkg, _ in KNOWN_PLUGINS
             },
         )

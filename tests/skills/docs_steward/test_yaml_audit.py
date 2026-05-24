@@ -12,7 +12,6 @@ from docs_steward.yaml_audit import audit_frontmatter
 
 from .fakes import FakeFileSystem, FakeProcessRunner
 
-
 _BUNDLED = bundled_config_for(Tool.YAMLLINT)
 assert _BUNDLED is not None  # tests assume bundled config is reachable
 _BASE_ARGV = ("yamllint", "-f", "parsable", "-s", "-c", _BUNDLED, "-")

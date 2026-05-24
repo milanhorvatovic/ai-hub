@@ -13,7 +13,6 @@ from docs_steward.baseline import (
 
 from .fakes import FakeFileSystem
 
-
 ROOT = "/repo"
 
 
