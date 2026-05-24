@@ -22,7 +22,7 @@ python -m venv venv
 ./venv/bin/pytest -q
 ```
 
-Markdown is formatted with Prettier (`proseWrap: never`) — see `.prettierrc.json`. Python lint config lives in `pyproject.toml` (`[tool.ruff]`); `.pre-commit-config.yaml` wires both for contributors who opt in.
+Markdown is formatted with Prettier (`proseWrap: never`) — see `.prettierrc.json`. Python is linted with Ruff (`[tool.ruff]` in `pyproject.toml`), enforced in CI on every PR; `.pre-commit-config.yaml` wires Ruff and Prettier for contributors who want them locally.
 
 ## Contributing
 

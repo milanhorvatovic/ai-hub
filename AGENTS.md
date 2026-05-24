@@ -8,7 +8,7 @@ ai-hub is a repository of AI-agnostic artifacts — primarily **skills** under `
 
 - Setup: `python -m venv venv && ./venv/bin/pip install -r requirements-test.txt`
 - Test: `./venv/bin/pytest -q`
-- Lint (opt-in): `ruff check` (config in `pyproject.toml`); `prettier --check '**/*.md'`
+- Lint: `ruff check` (config in `pyproject.toml`) runs in CI on every PR; `prettier --check '**/*.md'` is opt-in
 
 ## Conventions
 
