@@ -3,10 +3,20 @@ name: release-please
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit-ish (tag or SHA) to bundle for a manual/test build"
+        required: true
+        default: HEAD
+      catalog_tag:
+        description: "CalVer Release tag (e.g. v2026.05.0) to publish index.json to; empty = dry run"
+        required: false
+        default: ""
 
+# Floor is read-only; each job elevates only what it needs.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: release-please-${{ github.ref }}
@@ -15,11 +25,119 @@ concurrency:
 jobs:
   release-please:
     name: release-please
+    # Only the push pipeline cuts releases; workflow_dispatch is a bundle-only path.
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      paths_released: ${{ steps.release.outputs.paths_released }}
     steps:
       # googleapis/release-please-action v4.4.1
-      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071
+      - id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  bundle:
+    name: bundle
+    needs: [release-please]
+    # Run after a release is cut, or on a manual dispatch. always() lets this evaluate
+    # even though release-please is skipped on workflow_dispatch.
+    if: >-
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       needs.release-please.outputs.releases_created == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # upload release assets
+      id-token: write # sigstore keyless signing (OIDC)
+      attestations: write # build-provenance attestation
+    steps:
+      # actions/checkout v4.3.0 — full history + tags so `git archive <tag>` resolves.
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+
+      # actions/setup-python v5.6.0 — the builder is stdlib-only, so no install step.
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version-file: ".python-version"
+
+      # --- Release path: bundle exactly the skills that released, one dir each. ---
+      - name: Build released bundles
+        id: build
+        if: github.event_name == 'push'
+        env:
+          PATHS_RELEASED: ${{ needs.release-please.outputs.paths_released }}
+        run: |
+          uploads='{}'
+          for path in $(echo "$PATHS_RELEASED" | jq -r '.[]'); do
+            skill="${path#skills/}"
+            version="$(jq -r --arg p "$path" '.[$p]' .release-please-manifest.json)"
+            tag="$skill-v$version"
+            python .github/scripts/build_bundles.py --ref "$tag" --skill "$skill" --out "dist/$skill"
+            uploads="$(echo "$uploads" | jq --arg t "$tag" --arg d "dist/$skill" '. + {($t): $d}')"
+          done
+          echo "uploads=$(echo "$uploads" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+      # github/actions attest-build-provenance v4.1.0 — keyless sigstore + SLSA provenance.
+      - name: Attest build provenance
+        if: github.event_name == 'push'
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        with:
+          subject-path: "dist/**/*.zip"
+
+      - name: Upload assets to releases
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPLOADS: ${{ steps.build.outputs.uploads }}
+        run: |
+          echo "$UPLOADS" | jq -r 'to_entries[] | .key + " " + .value' | while read -r tag dir; do
+            gh release upload "$tag" "$dir"/*.zip "$dir/SHA256SUMS" --clobber
+          done
+
+      # --- Manual path: build the whole catalog (+ index.json), optionally publishing
+      #     the manifest to a hand-applied CalVer Release. ---
+      - name: Build catalog (manual)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          REF: ${{ inputs.ref }}
+          REPO: ${{ github.repository }}
+          CATALOG_TAG: ${{ inputs.catalog_tag }}
+        run: |
+          args=(--ref "$REF" --out dist --index --repo "$REPO")
+          if [ -n "$CATALOG_TAG" ]; then
+            args+=(--catalog "$CATALOG_TAG")
+          fi
+          python .github/scripts/build_bundles.py "${args[@]}"
+
+      # github/actions attest-build-provenance v4.1.0 — provenance for the catalog manifest.
+      - name: Attest catalog provenance (manual)
+        if: github.event_name == 'workflow_dispatch' && inputs.catalog_tag != ''
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        with:
+          subject-path: "dist/index.json"
+
+      # The CalVer Release is created by hand; this attaches the manifest, which points
+      # across to each skill's own release assets, so no bundles are duplicated here.
+      - name: Publish catalog to the CalVer Release (manual)
+        if: github.event_name == 'workflow_dispatch' && inputs.catalog_tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CATALOG_TAG: ${{ inputs.catalog_tag }}
+        run: gh release upload "$CATALOG_TAG" dist/index.json --clobber
+
+      # actions/upload-artifact v7.0.1
+      - name: Publish catalog as a workflow artifact (manual)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: skill-bundles
+          path: dist/
