@@ -43,7 +43,7 @@ Markdown is formatted with Prettier (`proseWrap: never`) — see `.prettierrc.js
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately per [SECURITY.md](.github/SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately per the [security policy](https://github.com/milanhorvatovic/ai-hub/blob/main/.github/SECURITY.md) (`.github/` is excluded from release archives, so this link is absolute).
 
 ## License
 
