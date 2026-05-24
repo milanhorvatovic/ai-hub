@@ -4,7 +4,8 @@ testpaths = ["tests"]
 addopts = "-ra"
 
 [tool.ruff]
-target-version = "py313"
+# Minimum supported Python — CI tests 3.12 and 3.13, so target the floor.
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
