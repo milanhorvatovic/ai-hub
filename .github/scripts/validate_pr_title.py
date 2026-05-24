@@ -57,7 +57,8 @@ def validate(title: str, skills: set[str]) -> list[str]:
     if not match:
         return [
             f"title is not a Conventional Commit: {title!r}",
-            "expected `type(scope): subject`, e.g. `fix(git-toolkit): handle an empty diff`",
+            "expected `type: subject` or `type(scope): subject` (scope optional), "
+            "e.g. `fix(git-toolkit): handle an empty diff` or `refactor: tidy the router`",
         ]
 
     errors: list[str] = []
