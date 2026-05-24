@@ -65,4 +65,6 @@ def test_subject_length_cap() -> None:
 
 
 def test_skill_names_reads_real_repo() -> None:
-    assert validator.skill_names(_REPO_ROOT) == SKILLS
+    # Subset, not equality: adding a new skill must not break this test.
+    # test_manifest_covers_exactly_the_skills enforces exact release wiring.
+    assert SKILLS.issubset(validator.skill_names(_REPO_ROOT))
