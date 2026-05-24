@@ -43,7 +43,7 @@ Internal-only, behavior-preserving edits (refactors, comment/wording fixes, test
 ## Pull requests
 
 - Fill in the PR template; describe what changed and why, and which skill it touches.
-- PRs are squash-merged, so the **PR title becomes the commit subject** — write it as a [Conventional Commit](https://www.conventionalcommits.org/) with the **skill name as the scope** (e.g. `fix(git-toolkit): handle an empty diff`). Repo-wide changes use an area scope (`release`, `repo`, `deps`, `ci`) or none. A CI gate validates the title. release-please then bumps each skill whose files the PR touched, using the commit **type** (`feat` → minor, `fix` → patch); the scope keeps the changelog grouped by skill. Keep one skill per PR so the squashed commit doesn't bump several skills at once.
+- PRs are squash-merged, so the **PR title becomes the commit subject** — write it as a [Conventional Commit](https://www.conventionalcommits.org/) with the **skill name as the scope** (e.g. `fix(git-toolkit): handle an empty diff`). Repo-wide changes use an area scope (`release`, `repo`, `deps`, `ci`) or none. A CI gate validates the title. release-please then bumps each skill whose files the PR touched, using the commit **type** (`feat` → minor, `fix` → patch); the scope keeps the changelog grouped by skill. Keep one skill per PR so the squashed commit doesn't bump several skills at once. The gate runs from the base branch (so a PR can't edit the validator that judges it); a PR that introduces a brand-new skill therefore scopes its title `repo` until the skill exists on the base branch.
 
 ## Contribution basis
 
