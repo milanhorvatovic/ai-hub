@@ -40,6 +40,30 @@ Each skill is versioned independently with [Semantic Versioning](https://semver.
 
 Internal-only, behavior-preserving edits (refactors, comment/wording fixes, test-only changes) do not require a bump. When in doubt, prefer a patch. Releases are cut by [release-please](https://github.com/googleapis/release-please) from merged PR titles. To force a specific version, add a `Release-As: x.y.z` footer to a branch commit: this repo squashes with the `COMMIT_MESSAGES` setting, so branch commit messages are concatenated into the merge commit on `main`, where release-please reads the footer (you can also add it when editing the squash message at merge time). This is a release-please control footer, not an attribution trailer. The repository's release model is recorded in [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md).
 
+## Releasing
+
+Per-skill releases are automated; the CalVer catalog snapshot is a deliberate manual step.
+
+**Per-skill releases (automated).** On merge to `main`, release-please opens or updates a release PR that bumps each touched skill's `metadata.version` and the aggregated `CHANGELOG.md`. Merging that PR cuts the per-skill `<skill>-v<x.y.z>` tags and GitHub Releases; a `bundle` job then builds the reproducible zip for each skill that released, attaches it together with a `SHA256SUMS` file, and signs build provenance. No manual step is required.
+
+**Catalog snapshots (manual).** A CalVer `vYYYY.MM.MICRO` catalog snapshot — the set of skill versions as of a date — is cut by hand:
+
+1. Confirm the per-skill Releases you are snapshotting already exist: the catalog's `index.json` points at their assets, so cut it after them.
+2. Create the CalVer Release by hand, choosing `vYYYY.MM.MICRO` (`MICRO` increments per cut within the month and resets monthly):
+
+   ```sh
+   gh release create v2026.05.0 --title v2026.05.0 --notes "<catalog snapshot notes>"
+   ```
+
+3. Run the **release-please** workflow via **Run workflow**, with `ref` set to the snapshot commit-ish (a release tag or `main`) and `catalog_tag` set to the CalVer tag. The run builds the catalog, attests `index.json`, and uploads it to that Release.
+4. Verify the published manifest after downloading it from the Release:
+
+   ```sh
+   gh attestation verify index.json --repo milanhorvatovic/ai-hub
+   ```
+
+Leaving `catalog_tag` empty makes the same dispatch a dry run that publishes the catalog as a workflow artifact, without touching any Release.
+
 ## Pull requests
 
 - Fill in the PR template; describe what changed and why, and which skill it touches.
