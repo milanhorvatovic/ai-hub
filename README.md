@@ -31,6 +31,20 @@ npx skills add https://github.com/milanhorvatovic/ai-hub/tree/main/skills/git-to
 
 `npx skills` installs the current `main`. Each skill also carries a SemVer in its `SKILL.md` (`metadata.version`) and is cut as a `<skill>-v<x.y.z>` tag and GitHub Release; the repository publishes dated CalVer (`vYYYY.MM.MICRO`) catalog snapshots over the set. See [CHANGELOG.md](CHANGELOG.md) for what changed and [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md) for the versioning model.
 
+### Verifying a bundle
+
+Each per-skill Release also attaches a reproducible zip bundle (`<skill>-<version>.zip`, containing the skill under a top-level `<skill>/` directory plus the `LICENSE`), a `SHA256SUMS` file, and sigstore build provenance. Download the bundle and `SHA256SUMS` into the same directory and run these from there — `SHA256SUMS` lists bare filenames, so `sha256sum -c` resolves them in the current directory:
+
+```sh
+# Integrity — the bytes match what was published:
+sha256sum -c SHA256SUMS
+
+# Provenance — a valid build-provenance attestation for these bytes exists in this repository:
+gh attestation verify <skill>-<version>.zip --repo milanhorvatovic/ai-hub
+```
+
+Then unzip the bundle into your agent's skills directory.
+
 ## Develop
 
 ```sh
