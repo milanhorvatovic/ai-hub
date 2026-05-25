@@ -83,7 +83,7 @@ def test_sha256sums_is_coreutils_format(tmp_path: Path) -> None:
     bundle = builder.build_skill_bundle(_REPO_ROOT, "HEAD", _SKILL, tmp_path)
     sums = builder.write_sha256sums([bundle], tmp_path / "SHA256SUMS")
     line = sums.read_text(encoding="utf-8").splitlines()[0]
-    digest, _, name = line.partition("  ")  # two spaces = coreutils binary form
+    digest, _, name = line.partition("  ")  # two spaces = sha256sum text-mode separator
     assert name == bundle.name
     assert digest == hashlib.sha256(bundle.read_bytes()).hexdigest()
     assert len(digest) == 64

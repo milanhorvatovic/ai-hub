@@ -145,7 +145,8 @@ def write_sha256sums(
     lines = []
     for bundle in sorted(bundles, key=lambda p: p.name):
         digest = digests.get(bundle) or hashlib.sha256(bundle.read_bytes()).hexdigest()
-        # Two spaces before the name = the coreutils "binary" form `sha256sum -c` expects.
+        # "<digest>  <name>": two spaces are sha256sum's text-mode separator (binary mode
+        # uses " *"); `sha256sum -c` reads this form.
         lines.append(f"{digest}  {bundle.name}\n")
     out_path.write_text("".join(lines), encoding="utf-8")
     return out_path
