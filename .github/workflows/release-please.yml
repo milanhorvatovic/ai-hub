@@ -43,28 +43,23 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  # Release path: bundle, sign, and attach the skills that just released. Write-privileged
+  # because it uploads release assets and signs provenance.
   bundle:
     name: bundle
     needs: [release-please]
-    # Run after a release is cut, or on a manual dispatch. always() lets this evaluate
-    # even though release-please is skipped on workflow_dispatch.
-    if: >-
-      always() &&
-      (github.event_name == 'workflow_dispatch' ||
-       needs.release-please.outputs.releases_created == 'true')
+    if: github.event_name == 'push' && needs.release-please.outputs.releases_created == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write # upload release assets
       id-token: write # sigstore keyless signing (OIDC)
       attestations: write # build-provenance attestation
     steps:
-      # actions/checkout v4.3.0 — full history + tags so `git archive <ref>` resolves any
-      # released tag. On a manual dispatch, also check out the requested ref so an arbitrary
-      # tag/SHA is fetched even when no branch reaches it; on push this is empty (default ref).
+      # actions/checkout v4.3.0 — full history + tags so `git archive <tag>` resolves the
+      # per-skill tags release-please just created.
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || '' }}
 
       # actions/setup-python v5.6.0 — the builder is stdlib-only, so no install step.
       - name: Set up Python
@@ -72,10 +67,9 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      # --- Release path: bundle exactly the skills that released, one dir each. ---
+      # Bundle exactly the skills that released, one dir each.
       - name: Build released bundles
         id: build
-        if: github.event_name == 'push'
         env:
           PATHS_RELEASED: ${{ needs.release-please.outputs.paths_released }}
         run: |
@@ -91,13 +85,11 @@ jobs:
 
       # github/actions attest-build-provenance v4.1.0 — keyless sigstore + SLSA provenance.
       - name: Attest build provenance
-        if: github.event_name == 'push'
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
         with:
           subject-path: "dist/**/*.zip"
 
       - name: Upload assets to releases
-        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPLOADS: ${{ steps.build.outputs.uploads }}
@@ -106,41 +98,84 @@ jobs:
             gh release upload "$tag" "$dir"/*.zip "$dir/SHA256SUMS" --clobber
           done
 
-      # --- Manual path: build the whole catalog (+ index.json), optionally publishing
-      #     the manifest to a hand-applied CalVer Release. ---
-      - name: Build catalog (manual)
-        if: github.event_name == 'workflow_dispatch'
+  # Manual catalog cut: build the catalog and publish + attest index.json to a hand-applied
+  # CalVer Release. Write-privileged because it uploads and signs.
+  catalog-publish:
+    name: catalog-publish
+    if: github.event_name == 'workflow_dispatch' && inputs.catalog_tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # upload the manifest to the CalVer Release
+      id-token: write # sigstore keyless signing (OIDC)
+      attestations: write # build-provenance attestation
+    steps:
+      # actions/checkout v4.3.0 — full history + tags; check out the requested ref (empty = default).
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref }}
+
+      # actions/setup-python v5.6.0
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version-file: ".python-version"
+
+      - name: Build catalog
         env:
           REF: ${{ inputs.ref }}
           REPO: ${{ github.repository }}
           CATALOG_TAG: ${{ inputs.catalog_tag }}
         run: |
           # Empty input means "the ref this run already checked out".
-          args=(--ref "${REF:-HEAD}" --out dist --index --repo "$REPO")
-          if [ -n "$CATALOG_TAG" ]; then
-            args+=(--catalog "$CATALOG_TAG")
-          fi
-          python .github/scripts/build_bundles.py "${args[@]}"
+          python .github/scripts/build_bundles.py \
+            --ref "${REF:-HEAD}" --out dist --index --repo "$REPO" --catalog "$CATALOG_TAG"
 
       # github/actions attest-build-provenance v4.1.0 — provenance for the catalog manifest.
-      - name: Attest catalog provenance (manual)
-        if: github.event_name == 'workflow_dispatch' && inputs.catalog_tag != ''
+      - name: Attest catalog provenance
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
         with:
           subject-path: "dist/index.json"
 
-      # The CalVer Release is created by hand; this attaches the manifest, which points
-      # across to each skill's own release assets, so no bundles are duplicated here.
-      - name: Publish catalog to the CalVer Release (manual)
-        if: github.event_name == 'workflow_dispatch' && inputs.catalog_tag != ''
+      # The CalVer Release is created by hand; this attaches the manifest, which points across
+      # to each skill's own release assets, so no bundles are duplicated here.
+      - name: Publish catalog to the CalVer Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CATALOG_TAG: ${{ inputs.catalog_tag }}
         run: gh release upload "$CATALOG_TAG" dist/index.json --clobber
 
+  # Manual dry run: build the catalog and publish it as a workflow artifact for inspection.
+  # Read-only — it neither uploads to a Release nor signs anything.
+  catalog-preview:
+    name: catalog-preview
+    if: github.event_name == 'workflow_dispatch' && inputs.catalog_tag == ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # actions/checkout v4.3.0 — full history + tags; check out the requested ref (empty = default).
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref }}
+
+      # actions/setup-python v5.6.0
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version-file: ".python-version"
+
+      - name: Build catalog
+        env:
+          REF: ${{ inputs.ref }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Empty input means "the ref this run already checked out".
+          python .github/scripts/build_bundles.py --ref "${REF:-HEAD}" --out dist --index --repo "$REPO"
+
       # actions/upload-artifact v7.0.1
-      - name: Publish catalog as a workflow artifact (manual)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Publish catalog as a workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: skill-bundles
