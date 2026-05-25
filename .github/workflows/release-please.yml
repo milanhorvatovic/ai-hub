@@ -58,10 +58,13 @@ jobs:
       id-token: write # sigstore keyless signing (OIDC)
       attestations: write # build-provenance attestation
     steps:
-      # actions/checkout v4.3.0 — full history + tags so `git archive <tag>` resolves.
+      # actions/checkout v4.3.0 — full history + tags so `git archive <ref>` resolves any
+      # released tag. On a manual dispatch, also check out the requested ref so an arbitrary
+      # tag/SHA is fetched even when no branch reaches it; on push this is empty (default ref).
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || '' }}
 
       # actions/setup-python v5.6.0 — the builder is stdlib-only, so no install step.
       - name: Set up Python
