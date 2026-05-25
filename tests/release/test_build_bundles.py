@@ -90,6 +90,34 @@ def test_bundle_excludes_repo_development_cruft(tmp_path: Path) -> None:
         assert not any(stray in name for name in names), f"{stray!r} leaked into the bundle"
 
 
+def test_bundle_preserves_tracked_file_modes(tmp_path: Path) -> None:
+    # docs-steward ships runnable entry scripts (tracked 0o755); the bundle must keep them
+    # executable so the extracted shims still run, while ordinary files stay 0o644.
+    skill = "docs-steward"
+    result = subprocess.run(
+        ["git", "ls-files", "-s", f"skills/{skill}"],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    tracked = {}
+    for line in result.stdout.splitlines():
+        meta, path = line.split("\t", 1)
+        git_mode = meta.split()[0]  # 100644 or 100755
+        rel = path[len(f"skills/{skill}/") :]
+        tracked[f"{skill}/{rel}"] = 0o755 if git_mode == "100755" else 0o644
+    assert 0o755 in tracked.values()  # guard: this skill really does carry executables
+
+    bundle = builder.build_skill_bundle(_REPO_ROOT, "HEAD", skill, tmp_path)
+    with zipfile.ZipFile(bundle) as archive:
+        for info in archive.infolist():
+            if info.filename == f"{skill}/LICENSE":
+                continue
+            mode = (info.external_attr >> 16) & 0o777
+            assert mode == tracked[info.filename], f"{info.filename}: {oct(mode)}"
+
+
 def test_bundle_is_byte_reproducible(tmp_path: Path) -> None:
     first = builder.build_skill_bundle(_REPO_ROOT, "HEAD", _SKILL, tmp_path / "a")
     second = builder.build_skill_bundle(_REPO_ROOT, "HEAD", _SKILL, tmp_path / "b")

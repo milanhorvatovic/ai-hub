@@ -41,8 +41,6 @@ INDEX_SCHEMA_VERSION = 1
 # Matches `metadata.version` in a SKILL.md, mirroring tests/release/test_manifest_sync.py.
 _VERSION = re.compile(r'^\s+version:\s*"([^"]+)"', flags=re.MULTILINE)
 
-# Fixed POSIX file mode for every entry (0o644), in the high 16 bits of external_attr.
-_FILE_MODE = (0o644 & 0xFFFF) << 16
 # create_system 3 = Unix; pinned so the zip header does not vary by build host.
 _UNIX = 3
 # Zip cannot represent dates before 1980; commit times are well after, but clamp defensively.
@@ -76,16 +74,18 @@ def skill_version(repo_root: Path, ref: str, skill: str) -> str:
     return match.group(1)
 
 
-def _skill_entries(repo_root: Path, ref: str, skill: str) -> list[tuple[str, bytes]]:
-    """Return `(<skill>/<relpath>, content)` for each tracked file in the subtree.
+def _skill_entries(repo_root: Path, ref: str, skill: str) -> list[tuple[str, bytes, int]]:
+    """Return `(<skill>/<relpath>, content, mode)` for each tracked file in the subtree.
 
     Sourced via `git archive` at `ref`, so it reflects exactly what is committed
     (not the working tree) and the `skills/` prefix is rewritten to the bundle's
-    top-level `<skill>/` directory.
+    top-level `<skill>/` directory. `mode` preserves the tracked executable bit —
+    git records blobs as 0o644 or 0o755 — so runnable skill scripts stay runnable
+    when the bundle is extracted, while staying deterministic.
     """
     prefix = f"skills/{skill}/"
     tar_bytes = _git(repo_root, "archive", "--format=tar", ref, prefix.rstrip("/"))
-    entries: list[tuple[str, bytes]] = []
+    entries: list[tuple[str, bytes, int]] = []
     with tarfile.open(fileobj=io.BytesIO(tar_bytes)) as tar:
         for member in tar.getmembers():
             if not member.isfile():
@@ -95,21 +95,22 @@ def _skill_entries(repo_root: Path, ref: str, skill: str) -> list[tuple[str, byt
             extracted = tar.extractfile(member)
             if extracted is None:  # a regular file always has a payload; guard, don't assert
                 raise ValueError(f"could not read archive member {member.name!r}")
-            entries.append((f"{skill}/{member.name[len(prefix):]}", extracted.read()))
+            mode = 0o755 if member.mode & 0o100 else 0o644
+            entries.append((f"{skill}/{member.name[len(prefix):]}", extracted.read(), mode))
     if not entries:
         raise ValueError(f"no tracked files under {prefix} at {ref}")
     return entries
 
 
-def _write_zip(entries: list[tuple[str, bytes]], date_time, out_path: Path) -> None:
+def _write_zip(entries: list[tuple[str, bytes, int]], date_time, out_path: Path) -> None:
     """Write `entries` to `out_path` as a byte-deterministic zip."""
     buffer = io.BytesIO()
     # ZIP_STORED (no compression) keeps the bytes independent of the zlib build, so a
     # verifier on any toolchain can rebuild an identical artifact from the same commit.
     with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_STORED) as archive:
-        for name, content in sorted(entries):
+        for name, content, mode in sorted(entries, key=lambda entry: entry[0]):
             info = zipfile.ZipInfo(name, date_time=date_time)
-            info.external_attr = _FILE_MODE
+            info.external_attr = (mode & 0xFFFF) << 16
             info.create_system = _UNIX
             info.compress_type = zipfile.ZIP_STORED
             archive.writestr(info, content)
@@ -127,7 +128,7 @@ def build_skill_bundle(
     if version is None:
         version = skill_version(repo_root, ref, skill)
     entries = _skill_entries(repo_root, ref, skill)
-    entries.append((f"{skill}/LICENSE", _git(repo_root, "show", f"{ref}:LICENSE")))
+    entries.append((f"{skill}/LICENSE", _git(repo_root, "show", f"{ref}:LICENSE"), 0o644))
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{skill}-{version}.zip"
     _write_zip(entries, _commit_date_time(repo_root, ref), out_path)
