@@ -39,7 +39,7 @@ Each per-skill Release also attaches a reproducible zip bundle (`<skill>-<versio
 # Integrity — the bytes match what was published:
 sha256sum -c SHA256SUMS
 
-# Provenance — built by this repository's release workflow from the tagged source:
+# Provenance — a valid build-provenance attestation for these bytes exists in this repository:
 gh attestation verify <skill>-<version>.zip --repo milanhorvatovic/ai-hub
 ```
 
