@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Commit-ish (tag or SHA) to bundle for a manual/test build"
-        required: true
-        default: HEAD
+        description: "Tag or SHA to bundle for a manual build; empty = the ref this run checks out"
+        required: false
+        default: ""
       catalog_tag:
         description: "CalVer Release tag (e.g. v2026.05.0) to publish index.json to; empty = dry run"
         required: false
@@ -115,7 +115,8 @@ jobs:
           REPO: ${{ github.repository }}
           CATALOG_TAG: ${{ inputs.catalog_tag }}
         run: |
-          args=(--ref "$REF" --out dist --index --repo "$REPO")
+          # Empty input means "the ref this run already checked out".
+          args=(--ref "${REF:-HEAD}" --out dist --index --repo "$REPO")
           if [ -n "$CATALOG_TAG" ]; then
             args+=(--catalog "$CATALOG_TAG")
           fi
