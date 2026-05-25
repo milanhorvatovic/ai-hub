@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import subprocess
 import zipfile
 from pathlib import Path
 
@@ -113,5 +114,7 @@ def test_skill_version_matches_manifest() -> None:
 
 
 def test_missing_skill_raises(tmp_path: Path) -> None:
-    with pytest.raises((ValueError, Exception)):
+    # A non-existent skill makes `git show <ref>:skills/<name>/SKILL.md` exit non-zero,
+    # which surfaces as CalledProcessError — assert that exact mode, not "any exception".
+    with pytest.raises(subprocess.CalledProcessError):
         builder.build_skill_bundle(_REPO_ROOT, "HEAD", "no-such-skill", tmp_path)
