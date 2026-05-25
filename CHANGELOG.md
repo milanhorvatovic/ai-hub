@@ -1,23 +1,25 @@
 # Changelog
 
-All notable changes to the skills in this repository are documented here, grouped by skill. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); each skill is versioned with [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and the repository cuts dated CalVer (`vYYYY.MM.MICRO`) release-train snapshots over the set. From the first automated release onward, release-please maintains the per-skill sections below; see [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md).
+All notable changes to the skills in this repository are documented here, grouped by skill. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); each skill is versioned with [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and the repository cuts dated CalVer (`vYYYY.MM.MICRO`) release-train snapshots over the set. This file is updated by hand when a release is cut — see the catalog-cut runbook in [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md).
 
 ## v2026.05.0 — 2026-05-24 (initial catalog)
 
-Baseline snapshot establishing the release process. Versions reflect each skill's state as merged through #12; this entry backfills real history and is the seed from which release-please takes over.
+Baseline snapshot establishing the release process. This entry backfills the complete per-skill version history merged through #12.
 
-### coding-principles 1.0.0
+### coding-principles
 
-- Initial release: implementation-discipline router with on-demand language capabilities and a review workflow.
+- **1.0.0** — 2026-05-20 (#4): initial release — implementation-discipline router with on-demand language capabilities and a review workflow.
 
-### docs-steward 1.1.0
+### docs-steward
 
-- Markdown stewardship: orchestrates external formatters plus yamllint, emits NDJSON findings, and defaults to Prettier with a markdownlint lint pass.
+- **1.1.0** — 2026-05-20 (#5): default to Prettier with a markdownlint lint pass.
+- **1.0.0** — 2026-05-19 (#2): initial release — markdown stewardship orchestrating external formatters plus yamllint, emitting NDJSON findings.
 
-### git-toolkit 1.1.0
+### git-toolkit
 
-- git + GitHub change-narration router across the branch/commit/PR/release lifecycle, with hardened untrusted-content ingestion.
+- **1.1.0** — 2026-05-21 (#8): harden untrusted-content ingestion against indirect prompt injection (Snyk W011).
+- **1.0.0** — 2026-05-20 (#3): initial release — git + GitHub change-narration router across the branch/commit/PR/release lifecycle.
 
-### oss-repository-conventions 1.0.0
+### oss-repository-conventions
 
-- OSS repository scan/audit/scaffold router across fourteen domain capabilities, including release and versioning.
+- **1.0.0** — 2026-05-22 (#9): initial release — OSS repository scan/audit/scaffold router across fourteen domain capabilities, including release and versioning.
