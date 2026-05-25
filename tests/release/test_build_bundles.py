@@ -114,7 +114,7 @@ def test_sha256sums_lists_every_bundle_sorted(tmp_path: Path) -> None:
     skills = builder._resolve_skills(_REPO_ROOT, "HEAD", [])
     bundles = [builder.build_skill_bundle(_REPO_ROOT, "HEAD", s, tmp_path) for s in skills]
     sums = builder.write_sha256sums(bundles, tmp_path / "SHA256SUMS")
-    listed = [line.split("  ", 1)[1] for line in sums.read_text().splitlines()]
+    listed = [line.split("  ", 1)[1] for line in sums.read_text(encoding="utf-8").splitlines()]
     assert listed == sorted(b.name for b in bundles)
 
 
@@ -129,7 +129,7 @@ def test_skill_version_matches_manifest() -> None:
     # The builder's version read must agree with the release manifest's source of truth.
     import json
 
-    manifest = json.loads((_REPO_ROOT / ".release-please-manifest.json").read_text())
+    manifest = json.loads((_REPO_ROOT / ".release-please-manifest.json").read_text(encoding="utf-8"))
     expected = manifest[f"skills/{_SKILL}"]
     assert builder.skill_version(_REPO_ROOT, "HEAD", _SKILL) == expected
 

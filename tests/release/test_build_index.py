@@ -139,7 +139,7 @@ def test_main_writes_index_when_requested(tmp_path: Path) -> None:
         ]
     )
     assert rc == 0
-    index = json.loads((tmp_path / "index.json").read_text())
+    index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
     assert index["catalog"] == "v2026.05.0"
     assert [entry["name"] for entry in index["skills"]] == [_SKILL]
     assert (tmp_path / "SHA256SUMS").is_file()
