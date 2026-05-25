@@ -93,7 +93,8 @@ def _skill_entries(repo_root: Path, ref: str, skill: str) -> list[tuple[str, byt
             if not member.name.startswith(prefix):
                 raise ValueError(f"unexpected archive member {member.name!r}")
             extracted = tar.extractfile(member)
-            assert extracted is not None  # isfile() guarantees a payload
+            if extracted is None:  # a regular file always has a payload; guard, don't assert
+                raise ValueError(f"could not read archive member {member.name!r}")
             entries.append((f"{skill}/{member.name[len(prefix):]}", extracted.read()))
     if not entries:
         raise ValueError(f"no tracked files under {prefix} at {ref}")
