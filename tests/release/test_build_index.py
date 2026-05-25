@@ -16,7 +16,9 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPT = _REPO_ROOT / ".github" / "scripts" / "build_bundles.py"
-_REPO = "milanhorvatovic/ai-hub"
+# A placeholder slug — these tests check URL composition, not the real repository identity,
+# so a fixed value keeps them stable across renames and fork runs.
+_REPO = "owner/repo"
 
 
 def _git_unavailable() -> bool:
