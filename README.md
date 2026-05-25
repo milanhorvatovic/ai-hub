@@ -33,7 +33,7 @@ npx skills add https://github.com/milanhorvatovic/ai-hub/tree/main/skills/git-to
 
 ### Verifying a bundle
 
-Each per-skill Release also attaches a reproducible zip bundle (`<skill>-<version>.zip`, containing the skill under a top-level `<skill>/` directory plus the `LICENSE`), a `SHA256SUMS` file, and sigstore build provenance. After downloading the bundle and `SHA256SUMS` from a Release, confirm both the bytes and that the build came from this repository:
+Each per-skill Release also attaches a reproducible zip bundle (`<skill>-<version>.zip`, containing the skill under a top-level `<skill>/` directory plus the `LICENSE`), a `SHA256SUMS` file, and sigstore build provenance. Download the bundle and `SHA256SUMS` into the same directory and run these from there — `SHA256SUMS` lists bare filenames, so `sha256sum -c` resolves them in the current directory:
 
 ```sh
 # Integrity — the bytes match what was published:
