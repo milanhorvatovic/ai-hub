@@ -115,12 +115,16 @@ def _write_zip(entries: list[tuple[str, bytes]], date_time, out_path: Path) -> N
     out_path.write_bytes(buffer.getvalue())
 
 
-def build_skill_bundle(repo_root: Path, ref: str, skill: str, out_dir: Path) -> Path:
+def build_skill_bundle(
+    repo_root: Path, ref: str, skill: str, out_dir: Path, *, version: str | None = None
+) -> Path:
     """Build `<skill>-<version>.zip` (skill subtree + LICENSE) under `out_dir`.
 
-    Returns the path to the written bundle.
+    `version` may be supplied by a caller that already read it, to avoid re-reading
+    `SKILL.md`; when omitted it is read here. Returns the path to the written bundle.
     """
-    version = skill_version(repo_root, ref, skill)
+    if version is None:
+        version = skill_version(repo_root, ref, skill)
     entries = _skill_entries(repo_root, ref, skill)
     entries.append((f"{skill}/LICENSE", _git(repo_root, "show", f"{ref}:LICENSE")))
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -129,11 +133,18 @@ def build_skill_bundle(repo_root: Path, ref: str, skill: str, out_dir: Path) -> 
     return out_path
 
 
-def write_sha256sums(bundles: list[Path], out_path: Path) -> Path:
-    """Write a coreutils-format `SHA256SUMS` over `bundles` (sorted by name)."""
+def write_sha256sums(
+    bundles: list[Path], out_path: Path, *, digests: dict[Path, str] | None = None
+) -> Path:
+    """Write a coreutils-format `SHA256SUMS` over `bundles` (sorted by name).
+
+    `digests` may supply precomputed `{path: hexdigest}` so a caller that already
+    hashed the files isn't forced to re-read them; any missing entry is hashed here.
+    """
+    digests = digests or {}
     lines = []
     for bundle in sorted(bundles, key=lambda p: p.name):
-        digest = hashlib.sha256(bundle.read_bytes()).hexdigest()
+        digest = digests.get(bundle) or hashlib.sha256(bundle.read_bytes()).hexdigest()
         # Two spaces before the name = the coreutils "binary" form `sha256sum -c` expects.
         lines.append(f"{digest}  {bundle.name}\n")
     out_path.write_text("".join(lines), encoding="utf-8")
@@ -145,21 +156,33 @@ def skill_tag(skill: str, version: str) -> str:
     return f"{skill}-v{version}"
 
 
-def bundle_entry(repo_root: Path, ref: str, skill: str, bundle: Path, repo: str | None) -> dict:
+def bundle_entry(
+    repo_root: Path,
+    ref: str,
+    skill: str,
+    bundle: Path,
+    repo: str | None,
+    *,
+    version: str | None = None,
+    sha256: str | None = None,
+) -> dict:
     """Build one `index.json` skill entry pointing at a built bundle.
 
     `repo` is `owner/name`; when given, a GitHub release download URL is added.
     The download target is the per-skill release tag, so the catalog (attached to
     the CalVer release) can point across to each skill's own release assets.
+    `version` and `sha256` may be supplied by a caller that already computed them,
+    to avoid re-reading `SKILL.md` and re-hashing the bundle; both default to None.
     """
-    version = skill_version(repo_root, ref, skill)
+    if version is None:
+        version = skill_version(repo_root, ref, skill)
     tag = skill_tag(skill, version)
     entry = {
         "name": skill,
         "version": version,
         "tag": tag,
         "bundle": bundle.name,
-        "sha256": hashlib.sha256(bundle.read_bytes()).hexdigest(),
+        "sha256": sha256 or hashlib.sha256(bundle.read_bytes()).hexdigest(),
     }
     if repo:
         entry["url"] = f"https://github.com/{repo}/releases/download/{tag}/{bundle.name}"
@@ -231,15 +254,29 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     skills = _resolve_skills(args.repo_root, args.ref, args.skills)
-    bundles = [build_skill_bundle(args.repo_root, args.ref, skill, args.out) for skill in skills]
-    sums = write_sha256sums(bundles, args.out / "SHA256SUMS")
-    for bundle in bundles:
+    # Read each skill's version and hash each bundle exactly once, then reuse those
+    # values for the SHA256SUMS and (optionally) the index, instead of recomputing.
+    records = []  # (skill, bundle, version, sha256)
+    for skill in skills:
+        version = skill_version(args.repo_root, args.ref, skill)
+        bundle = build_skill_bundle(args.repo_root, args.ref, skill, args.out, version=version)
+        digest = hashlib.sha256(bundle.read_bytes()).hexdigest()
+        records.append((skill, bundle, version, digest))
+
+    sums = write_sha256sums(
+        [bundle for _, bundle, _, _ in records],
+        args.out / "SHA256SUMS",
+        digests={bundle: digest for _, bundle, _, digest in records},
+    )
+    for _, bundle, _, _ in records:
         print(bundle)
     print(sums)
     if args.index:
         entries = [
-            bundle_entry(args.repo_root, args.ref, skill, bundle, args.repo)
-            for skill, bundle in zip(skills, bundles, strict=True)
+            bundle_entry(
+                args.repo_root, args.ref, skill, bundle, args.repo, version=version, sha256=digest
+            )
+            for skill, bundle, version, digest in records
         ]
         index = build_index(
             entries, repo=args.repo, catalog=args.catalog, generated_at=args.generated_at
