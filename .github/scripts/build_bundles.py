@@ -11,9 +11,12 @@ artifact.
 Determinism comes from sourcing every entry through `git archive` at a fixed
 commit-ish (so file content and order are fixed), then writing the zip with
 pinned per-entry metadata (mtime = the commit time, mode, and create-system)
-rather than letting `zipfile` stamp the wall clock or the host OS. The skill
-subtree is already clean of repo-development cruft (the distribution-hygiene
-guard enforces that), so the archive ships only distributable skill content.
+and no compression (`ZIP_STORED`). Storing entries uncompressed is deliberate:
+DEFLATE output can differ byte-for-byte across zlib/Python builds even for
+identical input, which would break a verifier rebuilding from the tag; stored
+entries depend only on content and the pinned metadata, not the platform's zlib.
+The skill subtree is already clean of repo-development cruft (the distribution-
+hygiene guard enforces that), so the archive ships only distributable content.
 
 Stdlib-only, in the same spirit as the other release scripts; loaded from its
 file path by the tests under `tests/release/`.
@@ -100,12 +103,14 @@ def _skill_entries(repo_root: Path, ref: str, skill: str) -> list[tuple[str, byt
 def _write_zip(entries: list[tuple[str, bytes]], date_time, out_path: Path) -> None:
     """Write `entries` to `out_path` as a byte-deterministic zip."""
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+    # ZIP_STORED (no compression) keeps the bytes independent of the zlib build, so a
+    # verifier on any toolchain can rebuild an identical artifact from the same commit.
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_STORED) as archive:
         for name, content in sorted(entries):
             info = zipfile.ZipInfo(name, date_time=date_time)
             info.external_attr = _FILE_MODE
             info.create_system = _UNIX
-            info.compress_type = zipfile.ZIP_DEFLATED
+            info.compress_type = zipfile.ZIP_STORED
             archive.writestr(info, content)
     out_path.write_bytes(buffer.getvalue())
 
