@@ -9,11 +9,35 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
+
+import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPT = _REPO_ROOT / ".github" / "scripts" / "build_bundles.py"
 _REPO = "milanhorvatovic/ai-hub"
+
+
+def _git_unavailable() -> bool:
+    """True when git or a real worktree is missing — the build tests can't run then."""
+    try:
+        subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return True
+    return False
+
+
+# Like tests/release/test_manifest_sync.py: skip rather than hard-fail where git is absent
+# (sdists, minimal images), since the builder shells out to git against the checkout.
+pytestmark = pytest.mark.skipif(
+    _git_unavailable(), reason="git/worktree unavailable; build bundles need a real checkout"
+)
 
 
 def _load_module():
