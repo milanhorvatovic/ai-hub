@@ -198,10 +198,12 @@ def write_index(index: dict, out_path: Path) -> Path:
 
 
 def _resolve_skills(repo_root: Path, ref: str, requested: list[str]) -> list[str]:
-    """Return the requested skills, or every tracked skill at `ref` when none given."""
+    """Return the requested skills, or every tracked skill directory at `ref` when none given."""
     if requested:
         return sorted(requested)
-    listing = _git(repo_root, "ls-tree", "--name-only", f"{ref}:skills").decode().splitlines()
+    # -d lists only tree (directory) entries, so a stray file under skills/ is never
+    # mistaken for a skill name.
+    listing = _git(repo_root, "ls-tree", "-d", "--name-only", f"{ref}:skills").decode().splitlines()
     return sorted(name for name in listing if name)
 
 
