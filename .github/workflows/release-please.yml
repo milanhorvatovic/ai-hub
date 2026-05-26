@@ -137,13 +137,24 @@ jobs:
         with:
           subject-path: "dist/index.json"
 
-      # The CalVer Release is created by hand; this attaches the manifest, which points across
-      # to each skill's own release assets, so no bundles are duplicated here.
+      # Aggregate per-skill conventional commits (since each skill's last tag) into one
+      # root CHANGELOG.md section for this CalVer snapshot. The file is written in the
+      # runner only; the maintainer lands the change on `main` via a PR.
+      - name: Aggregate CHANGELOG for the catalog snapshot
+        env:
+          CATALOG_TAG: ${{ inputs.catalog_tag }}
+        run: |
+          python .github/scripts/gen_changelog.py \
+            --calver "$CATALOG_TAG" --date "$(date -u +%Y-%m-%d)"
+          cp CHANGELOG.md dist/CHANGELOG.md
+
+      # The CalVer Release is created by hand; this attaches the manifest (which points
+      # across to each skill's own release assets) and the aggregated CHANGELOG.md.
       - name: Publish catalog to the CalVer Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CATALOG_TAG: ${{ inputs.catalog_tag }}
-        run: gh release upload "$CATALOG_TAG" dist/index.json --clobber
+        run: gh release upload "$CATALOG_TAG" dist/index.json dist/CHANGELOG.md --clobber
 
   # Manual dry run: build the catalog and publish it as a workflow artifact for inspection.
   # Read-only — it neither uploads to a Release nor signs anything.
