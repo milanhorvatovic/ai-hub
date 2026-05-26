@@ -36,6 +36,9 @@ _DENY_BASENAMES = {
     ".coveragerc",
     ".coverage",
     "coverage.xml",
+    # The repo's model is one aggregated root CHANGELOG.md; per-skill
+    # changelogs are stripped from release PRs and never land on `main`.
+    "CHANGELOG.md",
     ".DS_Store",
 }
 _DENY_NAME_PATTERNS = (
@@ -116,6 +119,7 @@ def test_skill_dirs_contain_only_distributable_content() -> None:
         "skills/x/htmlcov/index.html",
         "skills/x/.hypothesis/examples/abc",
         "skills/x/tests/helpers.py",
+        "skills/x/CHANGELOG.md",
     ],
 )
 def test_predicate_flags_non_distributable(rel_path: str) -> None:
