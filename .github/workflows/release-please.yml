@@ -43,6 +43,36 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      # release-please writes per-skill `skills/<name>/CHANGELOG.md` files into
+      # its release PR by default. The repo's model is one aggregated root
+      # `CHANGELOG.md` (regenerated at the catalog cut), so strip the per-skill
+      # files from the release PR every time release-please updates it.
+      # Idempotent: no-op when there are no per-skill changelogs to remove.
+      # actions/checkout v4.3.0
+      - name: Check out release PR branch
+        if: steps.release.outputs.pr != ''
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Strip per-skill CHANGELOG files
+        if: steps.release.outputs.pr != ''
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files 'skills/*/CHANGELOG.md')
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "no per-skill CHANGELOG files on $(git symbolic-ref --short HEAD)"
+            exit 0
+          fi
+          echo "stripping:" "${files[@]}"
+          git rm "${files[@]}"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git commit -m "chore(release): strip per-skill CHANGELOG files (one aggregated changelog only)"
+          git push origin HEAD
+
   # Release path: bundle, sign, and attach the skills that just released. Write-privileged
   # because it uploads release assets and signs provenance.
   bundle:
