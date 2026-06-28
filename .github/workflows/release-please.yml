@@ -57,13 +57,13 @@ jobs:
     steps:
       # actions/checkout v4.3.0 — full history + tags so `git archive <tag>` resolves the
       # per-skill tags release-please just created.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           fetch-depth: 0
 
       # actions/setup-python v5.6.0 — the builder is stdlib-only, so no install step.
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version-file: ".python-version"
 
@@ -85,7 +85,7 @@ jobs:
 
       # github/actions attest-build-provenance v4.1.0 — keyless sigstore + SLSA provenance.
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373
         with:
           subject-path: "dist/**/*.zip"
 
@@ -110,14 +110,14 @@ jobs:
       attestations: write # build-provenance attestation
     steps:
       # actions/checkout v4.3.0 — full history + tags; check out the requested ref (empty = default).
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           fetch-depth: 0
           ref: ${{ inputs.ref }}
 
       # actions/setup-python v5.6.0
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version-file: ".python-version"
 
@@ -133,7 +133,7 @@ jobs:
 
       # github/actions attest-build-provenance v4.1.0 — provenance for the catalog manifest.
       - name: Attest catalog provenance
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373
         with:
           subject-path: "dist/index.json"
 
@@ -155,14 +155,14 @@ jobs:
       contents: read
     steps:
       # actions/checkout v4.3.0 — full history + tags; check out the requested ref (empty = default).
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           fetch-depth: 0
           ref: ${{ inputs.ref }}
 
       # actions/setup-python v5.6.0
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version-file: ".python-version"
 
