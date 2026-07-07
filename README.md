@@ -9,6 +9,7 @@ Incubator hub for AI-agnostic artifacts of every shape — skills, docs, MCP ser
 
 ## Skills
 
+- **behavior-coach** — distills a stronger model's observable working behavior into a portable skill any target model can load; process transfers, raw capability does not.
 - **coding-principles** — implementation discipline for any coding task.
 - **git-toolkit** — branch/commit/PR/release narration across the git + GitHub lifecycle.
 - **docs-steward** — orchestrates markdown formatters + yamllint over a repo's docs.

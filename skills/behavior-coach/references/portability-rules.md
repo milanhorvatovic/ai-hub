@@ -1,0 +1,31 @@
+# Portability Rules
+
+Stage 5: author the output skill from the stage-4 delta table — and from nothing else. These rules exist so the produced skill runs on _almost any_ capable instruction-following model, not just the pair it was developed on.
+
+## Structure of the produced skill
+
+A standalone skill directory conforming to the Agent Skills spec:
+
+- `SKILL.md` with valid frontmatter: `name` matches the directory (lowercase + hyphens, ≤ 64 chars); `description` ≤ 1024 chars, third-person, carrying concrete trigger phrases (when should a harness load this?); body ≤ 500 lines.
+- Body sections, in rough order: a one-paragraph core principle; the rules grouped by dimension; the rationalization table; the red-flags list; the honest-limits note.
+- References only if a section genuinely exceeds router budget — a distilled behavior skill should usually be a single file.
+
+## Writing rules that transfer
+
+1. **One rule per delta, stated as an observable.** The compliance question must be answerable by reading the transcript. "Verify your work" fails the test; "a claim counts as verified only when the observation that could have falsified it is pasted inline, produced after the last edit" passes.
+2. **Put the decision procedure at the decision point.** Rules fire at moments — after a checkpoint, before a done-claim, on a surprise. Structure the skill around those moments ("after every checkpoint: …", "before reporting done: …") rather than around virtues.
+3. **Mechanical triggers for every PARTIAL delta.** Counts, comparisons against written expectations, and pasted-evidence requirements substitute for the judgment the target lacks. If the trigger can be negotiated with ("I basically checked it"), tighten it until it can't.
+4. **Counter the recorded rationalizations by name.** A two-column table — the baseline's verbatim excuse, the reality — is the cheapest defense that works: under pressure the target produces those exact sentences, and a skill that quotes them back breaks the pattern.
+5. **Red flags as pattern-matchable text.** Give the target signals it can grep its own draft for: a hedge word inside a done-claim, a "Verified" line with nothing pasted under it, a plan whose testing is all in the final phase.
+6. **Model-agnostic and harness-agnostic wording.** No vendor names, no harness-specific tool names in rules — "run a command and paste its output", not "use the Bash tool". The produced skill must read the same loaded into any agent harness.
+7. **Match freedom to fragility.** Fragile moments (claiming done, destructive actions) get low-freedom, exact-procedure rules. Flexible moments (how to explore, what to read first) stay high-freedom or unmentioned — over-constraining them makes the skill brittle on tasks unlike the probes.
+8. **Behavior, not vocabulary.** Instruct the produced skill's user-facing output to stay in plain engineering language — the target must not announce skill compliance or leak the skill's internal vocabulary into replies.
+9. **The honest-limits note is mandatory.** Two or three sentences, from the NON-PORTABLE rows: what this skill does not transfer (e.g. reasoning depth, long-horizon coherence, domain knowledge), so users calibrate expectations. Include the stage-1 scope block's dimension list — what was in scope, therefore what wasn't.
+
+## Size discipline
+
+The produced skill competes for the target's attention with the task itself. Budget: **the rules a pressured model will actually re-read** — in practice well under the 500-line spec ceiling; the strongest observed exemplars run 60–90 lines. Every line that re-teaches baseline behavior costs compliance with the lines that don't (the dead-weight critic in stage 6 enforces this empirically).
+
+## Licensing and attribution
+
+The produced skill is an original instruction text authored from observations; it contains no source-model weights, outputs, or proprietary prompt text. Note the source model, probe date, and provenance tags in a short colophon (commented frontmatter or a trailing section) so future maintainers know what it was distilled from and when it may have gone stale.
