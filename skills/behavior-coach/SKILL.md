@@ -5,15 +5,15 @@ description: >
   portable, Agent Skills-compliant skill that almost any target model can load —
   process transfers (decomposition habits, verification discipline, next-action
   policy, reporting style); raw capability does not. Runs a six-stage pipeline:
-  scope the behavioral dimensions, capture source behavior with a probe battery,
-  baseline the bare target, extract load-bearing deltas, author the skill under
-  portability rules, and pressure-test it RED/GREEN/REFACTOR until every baseline
-  failure stops recurring. Prompt-level behavior transfer only — no fine-tuning,
-  no training-data generation, no system-prompt extraction. Triggers when the
-  user asks to distill / clone / capture / preserve a model's behavior or
-  reasoning style, "make model B work like model A", "write a skill that teaches
-  a smaller model how this one works", "port this model's process before access
-  changes", or via /behavior-coach.
+  scope dimensions, capture via probe battery, baseline the bare target, extract
+  load-bearing deltas, author under portability rules, pressure-test
+  RED/GREEN/REFACTOR until baseline failures stop recurring. Prompt-level
+  transfer only — no fine-tuning, training-data generation, or system-prompt
+  extraction. Triggers when the user asks to distill / clone / capture /
+  preserve a model's behavior or reasoning style, to make model B work like
+  model A, or to write a skill that teaches a smaller model how this one works.
+  Use when a strong model is being deprecated or repriced and its process must
+  be ported before access changes, or via /behavior-coach.
 allowed-tools: Read Write Edit Bash
 metadata:
   version: "1.0.0" # x-release-please-version
