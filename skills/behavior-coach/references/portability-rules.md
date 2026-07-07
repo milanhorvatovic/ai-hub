@@ -6,8 +6,9 @@ Stage 5: author the output skill from the stage-4 delta table — and from nothi
 
 A standalone skill directory conforming to the Agent Skills spec:
 
-- `SKILL.md` with valid frontmatter: `name` matches the directory (lowercase + hyphens, ≤ 64 chars); `description` ≤ 1024 chars, third-person, carrying concrete trigger phrases (when should a harness load this?); body ≤ 500 lines.
+- `SKILL.md` with valid frontmatter: `name` matches the directory (lowercase + hyphens, ≤ 64 chars) — prefer a gerund activity name that says what the target will be _doing_ (`executing-hard-tasks`, not `task-rules`); `description` ≤ 1024 chars, third-person, written around the **moments the rules fire at** ("use when about to report completion, when picking the next action after a failure or surprise…"), not around topics; body ≤ 500 lines.
 - Body sections, in rough order: a one-paragraph core principle; the rules grouped by dimension; the rationalization table; the red-flags list; the honest-limits note.
+- When the deltas form a cycle (plan → act → check → report), present them as an **explicit decision loop** — numbered stations with pass/fail and surprise gates, loop-backs, and a done-observation gate at the exit — rather than a flat rule list. For multi-step workflows, a copyable progress checklist the target ticks off beats prose.
 - References only if a section genuinely exceeds router budget — a distilled behavior skill should usually be a single file.
 
 ## Writing rules that transfer
@@ -18,8 +19,8 @@ A standalone skill directory conforming to the Agent Skills spec:
 4. **Counter the recorded rationalizations by name.** A two-column table — the baseline's verbatim excuse, the reality — is the cheapest defense that works: under pressure the target produces those exact sentences, and a skill that quotes them back breaks the pattern.
 5. **Red flags as pattern-matchable text.** Give the target signals it can grep its own draft for: a hedge word inside a done-claim, a "Verified" line with nothing pasted under it, a plan whose testing is all in the final phase.
 6. **Model-agnostic and harness-agnostic wording.** No vendor names, no harness-specific tool names in rules — "run a command and paste its output", not "use the Bash tool". The produced skill must read the same loaded into any agent harness.
-7. **Match freedom to fragility.** Fragile moments (claiming done, destructive actions) get low-freedom, exact-procedure rules. Flexible moments (how to explore, what to read first) stay high-freedom or unmentioned — over-constraining them makes the skill brittle on tasks unlike the probes.
-8. **Behavior, not vocabulary.** Instruct the produced skill's user-facing output to stay in plain engineering language — the target must not announce skill compliance or leak the skill's internal vocabulary into replies.
+7. **Match freedom to fragility.** Fragile moments (claiming done, destructive actions) get low-freedom, exact-procedure rules. Flexible moments (how to explore, what to read first) stay high-freedom or unmentioned — over-constraining them makes the skill brittle on tasks unlike the probes. Pair each low-freedom rule with its reason — the reason is what lets the target generalize to situations the probes never covered; a bare imperative covers only the cases it names.
+8. **Behavior, not vocabulary.** Instruct the produced skill's user-facing output to stay in plain engineering language — the target must not announce skill compliance or leak the skill's internal vocabulary into replies. Inside the skill itself, keep terminology consistent: one term per concept throughout — synonyms read as distinctions.
 9. **The honest-limits note is mandatory.** Two or three sentences, from the NON-PORTABLE rows: what this skill does not transfer (e.g. reasoning depth, long-horizon coherence, domain knowledge), so users calibrate expectations. Include the stage-1 scope block's dimension list — what was in scope, therefore what wasn't.
 
 ## Size discipline

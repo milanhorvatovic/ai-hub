@@ -32,6 +32,10 @@ The skill ships when, in a single iteration:
 
 If the loop hasn't converged after roughly three full iterations, the usual cause is upstream: too many dimensions in scope (split the distillation) or PARTIAL deltas encoded without real mechanical triggers (reclassify them as non-portable and move them to the honest-limits note).
 
+## Field trial
+
+Convergence on the probe battery alone risks a skill overfitted to its own tests — probes are designed, real work is not. Before delivery, run the skill on one or two real tasks from the target's intended workload and watch two things: whether the rules hold off-script, and how the target navigates the skill text. Sections the target never reads are dead-weight candidates the critic missed; sections it re-reads under pressure are load-bearing and should sit early in the file.
+
 ## Portability spot-check
 
-Before delivery, run at least one GREEN probe on a **second target model** if any is available. The rules were written model-agnostic (portability rules #6); this is the cheap empirical check that they read that way. A pass is not certification for all models — note in the colophon which targets were actually tested.
+Before delivery, run at least one GREEN probe on a **second target model** if any is available — preferably the weakest tier the skill is meant to support: weaker targets need more mechanical detail while stronger ones are hurt by over-explanation, and one text must serve both. The rules were written model-agnostic (portability rules #6); this is the cheap empirical check that they read that way. A pass is not certification for all models — note in the colophon which targets were actually tested.
