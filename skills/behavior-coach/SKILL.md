@@ -67,7 +67,7 @@ Every produced skill must carry a short **honest-limits note** naming what was _
 
 ## Operating modes
 
-- **Live source access** (preferred): the source model is still reachable — run the full probe battery against it. When access is time-boxed (pricing change, deprecation, preview ending), run Capture first and completely; every other stage can happen after access ends.
+- **Live source access** (preferred): the source model is still reachable — run the full probe battery against it, and also commission a **source-authored draft** of the output skill (the probe battery describes the commission). The source's expensive reasoning is spent once at capture time and amortized across every cheap run of the target. When access is time-boxed (pricing change, deprecation, preview ending), run Capture first and completely; every other stage can happen after access ends.
 - **Archival**: the source is gone or unaffordable. Substitute existing transcripts, the vendor's published behavioral and migration guidance, and community observations. Mark every trait's provenance (`observed` / `vendor-documented` / `community-reported`) in the extraction table; traits with only community provenance need corroboration from a second source before encoding.
 
 ## Output contract

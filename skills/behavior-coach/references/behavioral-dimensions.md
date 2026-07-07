@@ -14,7 +14,7 @@ Stage 1 of the pipeline: decide _what_ to distill before touching a probe. A dim
 | **Calibration** | How confidence is expressed and adjusted against evidence | Are uncertain claims labeled as such? Does stated confidence move when evidence contradicts it? |
 | **Delegation & memory** | How work is split across helpers/sub-processes and how learnings persist | Is independent work parallelized? Are corrections written somewhere durable, in a consistent format? |
 
-Domain-specific distillations (e.g. "how the source reviews code" or "how the source writes analyses") reuse the same catalog scoped to that domain — the dimensions are facets of _any_ working session, not of a task type.
+Domain-specific distillations (e.g. "how the source reviews code" or "how the source writes analyses") reuse the same catalog scoped to that domain — the dimensions are facets of _any_ working session, not of a task type. The narrowest and often highest-yield scope is **project-scoped**: distill how the source works _on one repository_, anchoring every rule to that repo's observable failure modes (its code, tests, and git history); the produced skill then travels with the project rather than with a model.
 
 ## Choosing dimensions
 
@@ -30,7 +30,7 @@ Write the scope down before capturing anything, so later stages can't silently d
 SOURCE:     <model, access mode: live | archival>
 TARGET(S):  <model(s) the output skill must work on>
 DIMENSIONS: <2–4 from the catalog>
-DOMAIN:     <general execution | scoped, e.g. code review>
+DOMAIN:     <general execution | domain-scoped, e.g. code review | project-scoped, one repo>
 DEADLINE:   <if source access is time-boxed, the cutoff — Capture runs first>
 ```
 

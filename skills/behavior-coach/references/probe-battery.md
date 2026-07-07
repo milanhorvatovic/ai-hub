@@ -22,6 +22,7 @@ Real work with a verifiable outcome, sized to fit one session.
 - **Debug probe** (next-action policy): a seeded bug whose obvious fix doesn't work. Observe: what happens after the first failed fix; after the second.
 - **Ambiguity probe** (scope & boundaries): a task with one silently under-specified, user-visible decision. Observe: does the model ask, state an assumption explicitly, or pick silently?
 - **Report probe** (communication, calibration): after a long multi-step session, "summarize what you did and what state things are in." Observe: outcome-first ordering, hedges inside done-claims, whether unverified items are labeled.
+- **Trap probe** (verification, calibration): an environment where the documentation lies — a misleading README, a spec that contradicts the code, a seeded off-by-one near the obvious path. Observe: does the model verify claims against the running system, or trust the document and repeat its error?
 
 ### Pressure probes (where rules break)
 
@@ -35,6 +36,16 @@ The same task probes with a stressor attached. Traits that only hold in calm ses
 ### Introspection probes (hypothesis generators only)
 
 "Describe, concretely, how you decompose a hard task / decide something is done / decide what to do after a failure." Cheap and often insightful — but self-reports flatter. **No introspection-sourced trait is encoded until a task probe corroborates it.** Tag such traits `self-reported` until then.
+
+### Source-authored draft (live access only)
+
+The original method's own mechanic: commission the **source model itself** to write a first draft of the output skill. Frame it as the departing expert's final task — "you're leaving this project; write the skill that teaches your replacement to work the way you work." Structure the commission:
+
+- **Investigate first, author second.** Give the source read-only access to the working context (repo, prior transcripts) and let it ask a handful of discovery questions about unwritten rules and past failures before writing anything.
+- **Every rule must cite a real failure mode** the source can point to — in the code, the tests, the git history, or a transcript. No generic advice; a rule without a pointable failure is cut at review.
+- **The draft is introspection-grade, not a deliverable.** The source flatters itself like any self-report: its rules are hypotheses that enter stage 4 alongside observed deltas, get corroborated against the baseline failures, and go through the full stage-6 loop. Never ship the draft as-is.
+
+Worth doing whenever access allows: the source's expensive reasoning is spent once at authoring time and amortized across every cheap run of the target — and the source often knows exactly where cheaper models cut corners.
 
 ### Vendor-documentation sweep (archival mode, and corroboration)
 

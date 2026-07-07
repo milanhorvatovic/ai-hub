@@ -54,3 +54,11 @@ A public MIT-licensed artifact of this exact pass exists — an `executing-hard-
 ## The honest-limits note it shipped with
 
 > This skill transfers Fable 5's execution process — decomposition contracts, evidence-classified verification, and failure-driven re-planning — as observed in July 2026. It does not transfer reasoning depth, long-horizon coherence, or context capacity; the target will follow the same process at its own level of capability. Communication style and autonomy boundaries were out of scope for this pass.
+
+## Independent replications
+
+The same July-2026 window produced several independent passes of this method, and their results corroborate the pipeline's load-bearing choices:
+
+- A six-skill pass (plan gating, adversarial verification, live-state truth, scope fencing, editing discipline, memory hygiene) validated with **blind paired grading and planted traps** — seeded off-by-one bugs, contradictory specs, misleading READMEs; each probe ran twice on the bare and skill-loaded target, judged by graders who didn't know which was which. Final score 12 wins / 0 losses / 2 ties — but only after two skills that initially tested as **pure overhead** were rewritten, and with a measured cost of roughly **7% added tokens per loaded skill**. Empirical confirmation of the dead-weight critic and the size budget.
+- A **source-authored** pass framing Fable as the departing principal architect: read-only repo, discovery questions first, 10–16 skills each anchored to a real failure mode visible in the code, tests, or git history ("no generic advice"), then a three-reviewer validation (factual, doctrinal, usability). Its cost analysis is the amortization argument: one expensive authoring session on the source pays for itself across hundreds of cheap target runs.
+- A nine-discipline library derived primarily from **Anthropic's own published guidance** on the behavioral differences between Fable and Opus — confirmation that the vendor-documentation sweep alone can seed a usable extraction table, with the author's honest caveat that capability gaps ("getting hard problems right on the first try") don't transfer.

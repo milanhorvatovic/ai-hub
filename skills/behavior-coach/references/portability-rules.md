@@ -12,7 +12,7 @@ A standalone skill directory conforming to the Agent Skills spec:
 
 ## Writing rules that transfer
 
-1. **One rule per delta, stated as an observable.** The compliance question must be answerable by reading the transcript. "Verify your work" fails the test; "a claim counts as verified only when the observation that could have falsified it is pasted inline, produced after the last edit" passes.
+1. **One rule per delta, stated as an observable.** The compliance question must be answerable by reading the transcript. "Verify your work" fails the test; "a claim counts as verified only when the observation that could have falsified it is pasted inline, produced after the last edit" passes. Every rule must also name the recorded failure it counters — no generic advice; a rule without a pointable failure is dead-weight-critic bait.
 2. **Put the decision procedure at the decision point.** Rules fire at moments — after a checkpoint, before a done-claim, on a surprise. Structure the skill around those moments ("after every checkpoint: …", "before reporting done: …") rather than around virtues.
 3. **Mechanical triggers for every PARTIAL delta.** Counts, comparisons against written expectations, and pasted-evidence requirements substitute for the judgment the target lacks. If the trigger can be negotiated with ("I basically checked it"), tighten it until it can't.
 4. **Counter the recorded rationalizations by name.** A two-column table — the baseline's verbatim excuse, the reality — is the cheapest defense that works: under pressure the target produces those exact sentences, and a skill that quotes them back breaks the pattern.
@@ -24,7 +24,7 @@ A standalone skill directory conforming to the Agent Skills spec:
 
 ## Size discipline
 
-The produced skill competes for the target's attention with the task itself. Budget: **the rules a pressured model will actually re-read** — in practice well under the 500-line spec ceiling; the strongest observed exemplars run 60–90 lines. Every line that re-teaches baseline behavior costs compliance with the lines that don't (the dead-weight critic in stage 6 enforces this empirically).
+The produced skill competes for the target's attention with the task itself, and the cost is measurable — independent replications of this method observed roughly 7% added token cost per loaded skill. Budget: **the rules a pressured model will actually re-read** — in practice well under the 500-line spec ceiling; the strongest observed exemplars run 60–90 lines. Every line that re-teaches baseline behavior costs compliance with the lines that don't (the dead-weight critic in stage 6 enforces this empirically).
 
 ## Licensing and attribution
 

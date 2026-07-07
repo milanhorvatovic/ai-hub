@@ -4,7 +4,7 @@ Stage 6: prove the produced skill against the same probes that defined the probl
 
 ## GREEN — re-run the baseline
 
-Load the produced skill into the target and re-run **every** stage-3 probe, identically (same prompts, same fixtures, same pressure). For each probe, judge with a fresh-context evaluator — a separate session that sees only the transcript and the probe's expected observables, never the skill's authoring history. Self-grading by the authoring session is not a judgment.
+Load the produced skill into the target and re-run **every** stage-3 probe, identically (same prompts, same fixtures, same pressure). For each probe, judge with a fresh-context evaluator — a separate session that sees only the transcript and the probe's expected observables, never the skill's authoring history. Self-grading by the authoring session is not a judgment. Grade **blind and paired** where possible: hand the evaluator the baseline transcript and the skill-loaded transcript for the same probe, unlabeled, and require a per-probe verdict on each — an evaluator that knows which run carried the skill grades the skill, not the transcript.
 
 Per-probe verdict:
 
@@ -18,7 +18,7 @@ A FAIL loops back: usually to stage 5 (the rule was negotiable — tighten it), 
 Once all probes pass, three adversarial passes over the skill _text_. Run each as a separate fresh-context session with a single mandate:
 
 1. **Loophole hunter.** Role-plays a pressured, corner-cutting agent that has read the skill and wants to comply in letter while defecting in spirit. Mandate: find wording a motivated reader can negotiate with ("I'll weaken the checkpoint since it keeps failing", "self-review counts as an observation"). Every found loophole gets the wording tightened, then GREEN re-runs.
-2. **Dead-weight critic.** Mandate: for each rule, ask whether the stage-3 baseline _already_ exhibited the behavior. Any rule not anchored to a recorded baseline failure is provisionally deleted; GREEN re-runs without it. No regression → the deletion stands. This is empirical, not editorial — the arbiter is the probe outcome, not taste.
+2. **Dead-weight critic.** Mandate: for each rule, ask whether the stage-3 baseline _already_ exhibited the behavior. Any rule not anchored to a recorded baseline failure is provisionally deleted; GREEN re-runs without it. No regression → the deletion stands. This is empirical, not editorial — the arbiter is the probe outcome, not taste. Expect deletions to stick: independent replications of this method found that rules targeting behavior the target already does well test as pure overhead, and had to rewrite or drop them.
 3. **Format reviewer.** Mandate: spec compliance (frontmatter validity, name/directory match, description length and trigger quality, body ≤ 500 lines), the output-contract sections present (rationalization table, red flags, honest-limits note), and no vendor/harness-specific wording per the portability rules.
 
 ## Convergence
