@@ -131,9 +131,6 @@ def test_reference_file_pointers_resolve(skill_root: Path) -> None:
     assert not broken, "broken pointers in reference files:\n" + "\n".join(broken)
 
 
-LANGUAGES = ("bash", "python", "rust", "typescript")
-
-
 def test_example_pointers_match_example_headings(
     references_dir: Path, capabilities_dir: Path
 ) -> None:
@@ -145,7 +142,16 @@ def test_example_pointers_match_example_headings(
     `## Principle N` heading in every examples file must be named on principle
     N's pointer line — an example nobody points at is invisible drift (the
     python P8 case). Mantra-titled headings (`## Mantra — …`) are outside the
-    numbered mapping and exempt."""
+    numbered mapping and exempt. The language set is discovered from the
+    capability tree (every capability shipping `references/examples.md`), so a
+    newly added language capability is validated without touching this test."""
+    languages = sorted(
+        d.name
+        for d in capabilities_dir.iterdir()
+        if (d / "references" / "examples.md").is_file()
+    )
+    assert languages, "no capability ships references/examples.md"
+
     principles = (references_dir / "principles.md").read_text(encoding="utf-8")
     pointed: dict[int, set[str]] = {}
     current: int | None = None
@@ -157,14 +163,14 @@ def test_example_pointers_match_example_headings(
             assert current is not None, f"pointer line before any principle: {line!r}"
             langs = {
                 lang
-                for lang in LANGUAGES
+                for lang in languages
                 if re.search(rf"\b{lang}\b", line, flags=re.IGNORECASE)
             }
             assert langs, f"pointer line names no known language: {line!r}"
             pointed.setdefault(current, set()).update(langs)
 
     demonstrated: dict[int, set[str]] = {}
-    for lang in LANGUAGES:
+    for lang in languages:
         examples = capabilities_dir / lang / "references" / "examples.md"
         for m in re.finditer(
             r"^## Principle (\d+)\b",
