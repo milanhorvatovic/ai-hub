@@ -4,14 +4,37 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
     groups:
       actions:
         patterns: ["*"]
+        # Actions that execute with write credentials or attestations remain
+        # standalone and always wait for a code-owner approval.
+        exclude-patterns:
+          - actions/attest-build-provenance
+          - googleapis/release-please-action
+        # Major updates remain standalone so they can wait for human approval
+        # without holding unrelated patch and minor updates in the same PR.
+        update-types: ["minor", "patch"]
+    labels:
+      - dependencies
+      - github_actions
+    # This action executes inside the privileged approval workflow. Updating its
+    # pin is a deliberate human-reviewed change, never an automated PR.
+    ignore:
+      - dependency-name: dependabot/fetch-metadata
 
   - package-ecosystem: pip
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
     groups:
       python:
+        patterns: ["*"]
         update-types: ["minor", "patch"]
+    labels:
+      - dependencies
+      - python

@@ -69,6 +69,27 @@ Leaving `catalog_tag` empty makes the same dispatch a dry run that publishes the
 - Fill in the PR template; describe what changed and why, and which skill it touches.
 - PRs are squash-merged, so the **PR title becomes the commit subject** — write it as a [Conventional Commit](https://www.conventionalcommits.org/) with the **skill name as the scope** (e.g. `fix(git-toolkit): handle an empty diff`). Repo-wide changes use an area scope (`release`, `repo`, `deps`, `ci`) or none. A CI gate validates the title. release-please then bumps each skill whose files the PR touched, using the commit **type** (`feat` → minor, `fix` → patch); the scope keeps the changelog grouped by skill. Keep one skill per PR so the squashed commit doesn't bump several skills at once. The gate runs from the base branch (so a PR can't edit the validator that judges it); a PR that introduces a brand-new skill therefore scopes its title `repo` until the skill exists on the base branch.
 
+## Dependency updates
+
+Dependabot groups patch and minor updates by ecosystem and leaves major updates as standalone PRs. Actions that execute with repository write credentials or attestations (`actions/attest-build-provenance` and `googleapis/release-please-action`) are also excluded from the group so they remain standalone. The pinned `dependabot/fetch-metadata` action executes inside the approval workflow itself, so Dependabot ignores it and a maintainer updates that pin through a human-reviewed PR. `.github/workflows/dependabot-auto-merge.yaml` applies a three-tier policy: ordinary patch/minor updates are approved and armed for squash auto-merge; major and privileged-action updates are armed but wait for a code-owner approval; and PRs labeled `trust-boundary` or `security-review-required` remain fully manual. GitHub's branch rules and required checks are the merge safety boundary.
+
+`.github/workflows/dependabot-reconciler.yaml` runs after the policy workflow, after pushes to `main`, every 30 minutes, and on manual dispatch. It updates behind branches and re-arms approved PRs when an event or GitHub's auto-merge worker was missed. It deliberately leaves an unapproved and unarmed PR for manual triage because a scheduled workflow cannot safely reconstruct Dependabot's update type.
+
+`DEPENDABOT_AUTOMERGE_ENABLED` is an operational kill switch. Only the exact value `true` permits approval, auto-merge, and reconciliation; an unset variable or any other value leaves PRs manual. `CODEOWNER_APPROVER_TOKEN` must be a fine-grained PAT owned by a code owner, limited to this repository, with Contents and Pull requests read/write permissions. Store the same token in both the Actions and Dependabot secret stores because Dependabot-triggered workflows cannot read Actions secrets, while scheduled and maintainer-triggered runs cannot read Dependabot secrets.
+
+Provision the prerequisites after the workflows merge, then enable the kill switch last:
+
+```sh
+gh repo edit --enable-auto-merge
+gh label create trust-boundary --color B60205 --description "Requires manual review because the update crosses a trust boundary"
+gh label create security-review-required --color D93F0B --description "Requires explicit security review before merge"
+gh secret set --app actions CODEOWNER_APPROVER_TOKEN
+gh secret set --app dependabot CODEOWNER_APPROVER_TOKEN
+gh variable set DEPENDABOT_AUTOMERGE_ENABLED --body true
+```
+
+To stop autonomous dependency updates without removing the workflows, set the variable to `false`. Applying either security-review label to an armed Dependabot PR also disables auto-merge immediately.
+
 ## Contribution basis
 
 By contributing you agree your work is licensed under the project's [MIT License](LICENSE). No CLA or sign-off is required.

@@ -1,0 +1,130 @@
+name: Dependabot Reconciler
+
+# Re-drives approved or armed Dependabot PRs after a dropped event or base-branch
+# advance. An unapproved and unarmed PR is deliberately left for manual triage
+# because this workflow cannot safely reconstruct Dependabot's update type.
+
+on:
+  workflow_run:
+    workflows: ["Dependabot Auto-Merge"]
+    types: [completed]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependabot-reconciler
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Reconcile open Dependabot PRs
+        env:
+          AUTOMERGE_ENABLED: ${{ vars.DEPENDABOT_AUTOMERGE_ENABLED }}
+          GH_TOKEN: ${{ secrets.CODEOWNER_APPROVER_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${AUTOMERGE_ENABLED:-}" != "true" ]]; then
+            echo "::notice::DEPENDABOT_AUTOMERGE_ENABLED is '${AUTOMERGE_ENABLED:-<unset>}'; reconciliation is disabled."
+            exit 0
+          fi
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::error::CODEOWNER_APPROVER_TOKEN is unavailable; reconciliation cannot mutate PR state."
+            exit 1
+          fi
+
+          dependabot_prs=$(gh pr list --search 'author:dependabot[bot]' --state open --limit 100 --json number,author,isCrossRepository)
+          app_dependabot_prs=$(gh pr list --search 'author:app/dependabot' --state open --limit 100 --json number,author,isCrossRepository)
+          prs_json=$(jq -n --argjson dependabot "$dependabot_prs" --argjson app_dependabot "$app_dependabot_prs" '$dependabot + $app_dependabot | unique_by(.number)')
+          mapfile -t prs < <(jq -r '.[] | select((.author.login == "dependabot[bot]" or .author.login == "app/dependabot") and .isCrossRepository == false) | .number' <<<"$prs_json")
+          if [[ "${#prs[@]}" -eq 0 ]]; then
+            echo "No open in-repository Dependabot PRs."
+            exit 0
+          fi
+
+          had_error=0
+          for pr in "${prs[@]}"; do
+            echo "::group::PR #${pr}"
+            if ! state=$(gh pr view "$pr" --json state,mergeStateStatus,mergeable,reviewDecision,autoMergeRequest,labels); then
+              echo "::error::PR #${pr}: failed to read PR state."
+              had_error=1
+              echo "::endgroup::"
+              continue
+            fi
+
+            has_veto=$(jq -r 'any(.labels[]; .name == "trust-boundary" or .name == "security-review-required")' <<<"$state")
+            armed=$(jq -r '.autoMergeRequest != null' <<<"$state")
+            if [[ "$has_veto" == "true" ]]; then
+              if [[ "$armed" == "true" ]]; then
+                gh pr merge --disable-auto "$pr" 2>&1 || true
+                remaining=$(gh pr view "$pr" --json autoMergeRequest --jq '.autoMergeRequest')
+                if [[ "$remaining" != "null" ]]; then
+                  echo "::error::PR #${pr}: veto label is present but auto-merge could not be disabled."
+                  had_error=1
+                fi
+              fi
+              echo "PR #${pr}: veto label present; leaving manual."
+              echo "::endgroup::"
+              continue
+            fi
+
+            merge_state=$(jq -r '.mergeStateStatus' <<<"$state")
+            if [[ "$merge_state" == "BEHIND" ]]; then
+              if gh pr update-branch "$pr"; then
+                echo "PR #${pr}: branch updated; the synchronize event will re-run the policy workflow."
+              else
+                echo "::error::PR #${pr}: failed to update a behind branch."
+                had_error=1
+              fi
+              echo "::endgroup::"
+              continue
+            fi
+
+            mergeable=$(jq -r '.mergeable' <<<"$state")
+            review=$(jq -r '.reviewDecision // ""' <<<"$state")
+            if [[ "$mergeable" == "CONFLICTING" ]]; then
+              echo "::warning::PR #${pr}: merge conflict requires manual resolution or @dependabot recreate."
+              echo "::endgroup::"
+              continue
+            fi
+
+            if [[ "$review" == "APPROVED" ]]; then
+              gh pr merge --auto --squash "$pr" 2>&1 || true
+              post_state=""
+              for attempt in {1..6}; do
+                post_state=$(gh pr view "$pr" --json state,autoMergeRequest)
+                pr_state=$(jq -r '.state' <<<"$post_state")
+                post_armed=$(jq -r '.autoMergeRequest != null' <<<"$post_state")
+                if [[ "$pr_state" == "MERGED" || "$pr_state" == "CLOSED" || "$post_armed" == "true" ]]; then
+                  echo "PR #${pr}: state=${pr_state}; auto-merge armed=${post_armed}."
+                  break
+                fi
+                [[ "$attempt" -eq 6 ]] || sleep 2
+              done
+              if [[ "$pr_state" != "MERGED" && "$pr_state" != "CLOSED" && "$post_armed" != "true" ]]; then
+                echo "::error::PR #${pr}: approved PR remains open and unarmed after reconciliation."
+                had_error=1
+              fi
+            elif [[ "$armed" == "true" ]]; then
+              echo "PR #${pr}: auto-merge is armed and waiting for required approval or checks."
+            else
+              echo "PR #${pr}: neither approved nor armed; leaving for manual triage or a policy-workflow rerun."
+            fi
+            echo "::endgroup::"
+          done
+
+          if [[ "$had_error" -ne 0 ]]; then
+            echo "::error::At least one Dependabot PR could not be reconciled."
+            exit 1
+          fi
