@@ -129,3 +129,61 @@ def test_reference_file_pointers_resolve(skill_root: Path) -> None:
                 elif not target.is_file():
                     broken.append(rel)
     assert not broken, "broken pointers in reference files:\n" + "\n".join(broken)
+
+
+LANGUAGES = ("bash", "python", "rust", "typescript")
+
+
+def test_example_pointers_match_example_headings(
+    references_dir: Path, capabilities_dir: Path
+) -> None:
+    """Two-way contract between principles.md "Code examples" pointer lines and
+    the per-language `examples.md` headings.
+
+    Forward: every language named on a principle's pointer line must have a
+    matching `## Principle N` heading in its examples file. Reverse: every
+    `## Principle N` heading in every examples file must be named on principle
+    N's pointer line — an example nobody points at is invisible drift (the
+    python P8 case). Mantra-titled headings (`## Mantra — …`) are outside the
+    numbered mapping and exempt."""
+    principles = (references_dir / "principles.md").read_text(encoding="utf-8")
+    pointed: dict[int, set[str]] = {}
+    current: int | None = None
+    for line in principles.splitlines():
+        if m := re.match(r"^## (\d+)\.", line):
+            current = int(m.group(1))
+            continue
+        if "**Code examples**" in line:
+            assert current is not None, f"pointer line before any principle: {line!r}"
+            langs = {
+                lang
+                for lang in LANGUAGES
+                if re.search(rf"\b{lang}\b", line, flags=re.IGNORECASE)
+            }
+            assert langs, f"pointer line names no known language: {line!r}"
+            pointed[current] = langs
+
+    demonstrated: dict[int, set[str]] = {}
+    for lang in LANGUAGES:
+        examples = capabilities_dir / lang / "references" / "examples.md"
+        for m in re.finditer(
+            r"^## Principle (\d+)\b",
+            examples.read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        ):
+            demonstrated.setdefault(int(m.group(1)), set()).add(lang)
+
+    problems: list[str] = []
+    for num, langs in sorted(pointed.items()):
+        if missing := langs - demonstrated.get(num, set()):
+            problems.append(
+                f"principle {num}: pointer names {sorted(missing)} but their"
+                f" examples.md has no '## Principle {num}' heading"
+            )
+    for num, langs in sorted(demonstrated.items()):
+        if unpointed := langs - pointed.get(num, set()):
+            problems.append(
+                f"principle {num}: {sorted(unpointed)} demonstrate it but the"
+                " pointer line omits them"
+            )
+    assert not problems, "pointer/example drift:\n" + "\n".join(problems)
