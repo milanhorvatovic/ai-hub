@@ -26,7 +26,7 @@ def test_dependabot_groups_exclude_major_updates() -> None:
 @pytest.mark.parametrize(
     "required_fragment",
     [
-        "github.event.pull_request.user.login == 'dependabot[bot]'",
+        "github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'app/dependabot'",
         "github.event.pull_request.head.repo.full_name == github.repository",
         "pull_request:",
         "github.event.action != 'labeled'",

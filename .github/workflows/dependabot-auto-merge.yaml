@@ -5,10 +5,11 @@ name: Dependabot Auto-Merge
 # approval. Either security-review label is a hard veto.
 
 on:
-  # Dependabot events can read Dependabot secrets on pull_request, while
-  # pull_request_target deliberately receives no secrets. This workflow never
-  # checks out PR code, and dependabot.yaml prevents the bot from updating the
-  # fetch-metadata action that executes before the token-bearing steps.
+  # Dependabot events can read Dependabot secrets on pull_request. For
+  # Dependabot-created PRs, pull_request_target receives no secrets; this
+  # workflow therefore stays on pull_request and never checks out PR code.
+  # dependabot.yaml also prevents the bot from updating fetch-metadata, which
+  # executes before the token-bearing steps.
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
 
@@ -25,7 +26,7 @@ concurrency:
 jobs:
   auto-merge:
     if: >-
-      github.event.action != 'labeled' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+      github.event.action != 'labeled' && (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'app/dependabot') && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -102,7 +103,7 @@ jobs:
 
   disable-auto-merge-on-security-review:
     if: >-
-      github.event.action == 'labeled' && (github.event.label.name == 'trust-boundary' || github.event.label.name == 'security-review-required') && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+      github.event.action == 'labeled' && (github.event.label.name == 'trust-boundary' || github.event.label.name == 'security-review-required') && (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'app/dependabot') && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
