@@ -180,17 +180,28 @@ def _capabilities_on_disk(skill: Path) -> set[str]:
 def _prose_lines(md_file: Path):
     """Yield (lineno, line) for lines outside fenced code blocks — fenced
     content is data (worked examples, scaffold templates), not skill
-    navigation, so its link-shaped text is never a pointer."""
-    fence_char: str | None = None
+    navigation, so its link-shaped text is never a pointer.
+
+    Per CommonMark, a fence closes only on a same-character run at least as
+    long as the opener with nothing after it — so a ````-fenced block can
+    embed ``` lines as content without ending the fence early. Fence-like
+    lines that don't close (shorter run, other char, trailing info string)
+    are fenced content and are skipped, not yielded.
+    """
+    open_fence: tuple[str, int] | None = None  # (fence char, opener length)
     for lineno, line in enumerate(md_file.read_text(encoding="utf-8").splitlines(), start=1):
         if m := _FENCE.match(line):
-            marker_char = m.group(1)[0]
-            if fence_char is None:
-                fence_char = marker_char
-            elif marker_char == fence_char:
-                fence_char = None
+            marker = m.group(1)
+            if open_fence is None:
+                open_fence = (marker[0], len(marker))
+            elif (
+                marker[0] == open_fence[0]
+                and len(marker) >= open_fence[1]
+                and not line[m.end() :].strip()
+            ):
+                open_fence = None
             continue
-        if fence_char is None:
+        if open_fence is None:
             yield lineno, line
 
 
@@ -239,6 +250,23 @@ def _resolve_all(
             elif not (target.is_file() if target_must_be_file else target.exists()):
                 broken.append(rel)
     assert not broken, f"broken {description}:\n" + "\n".join(broken)
+
+
+def test_prose_lines_keep_longer_fences_closed(tmp_path: Path) -> None:
+    """A ````-fenced block may embed ``` lines as content; only a same-char
+    run at least as long as the opener closes it (CommonMark)."""
+    md = tmp_path / "sample.md"
+    md.write_text(
+        "before\n"
+        "````markdown\n"
+        "```\n"
+        "[fenced](data-not-a-link.md)\n"
+        "```\n"
+        "````\n"
+        "after\n",
+        encoding="utf-8",
+    )
+    assert [line for _, line in _prose_lines(md)] == ["before", "after"]
 
 
 @pytest.mark.parametrize("skill", skill_params("frontmatter"))
