@@ -2,6 +2,37 @@
 
 Concrete before/after code anchored to numbered principles from the parent skill. The principle prose lives in `../../../references/principles.md`; the language idioms and rules live in `../capability.md`. This file holds only the code.
 
+## Principle 2 — Root cause over bandaid (reproducing test first)
+
+```rust
+// bandaid — clamps the symptom; the real bug (negative quantity upstream)
+// survives and corrupts every downstream total
+pub fn line_total(qty: i64, unit_cents: i64) -> i64 {
+    (qty * unit_cents).max(0)
+}
+```
+
+```rust
+// reproducing test first — fails before the fix, pins the root cause after
+#[test]
+fn rejects_negative_quantity() {
+    let err = OrderLine::new(-3, 250).unwrap_err();
+    assert_eq!(err, OrderError::NegativeQuantity { qty: -3 });
+}
+
+// fix at the boundary where the bad state enters
+impl OrderLine {
+    pub fn new(qty: i64, unit_cents: i64) -> Result<Self, OrderError> {
+        if qty < 0 {
+            return Err(OrderError::NegativeQuantity { qty });
+        }
+        Ok(Self { qty, unit_cents })
+    }
+}
+```
+
+Validating in the constructor pairs with principle 5: downstream code receives an `OrderLine` that cannot hold a negative quantity and trusts it.
+
 ## Principle 5 — Trust internal code; validate at boundaries
 
 ```rust
@@ -32,7 +63,7 @@ fn user_label(user: Option<&User>) -> String {
 
 For fallible operations, propagate with `?` instead of `unwrap()` / `expect()` in non-test code.
 
-## Mantra 11 — Make illegal states unrepresentable (pairs with strong typing)
+## Mantra — Make illegal states unrepresentable (pairs with strong typing)
 
 ```rust
 // bag of optionals — many incoherent combinations compile
@@ -54,6 +85,56 @@ enum LoadState<T> {
 }
 // nonsense states do not type-check
 ```
+
+## Principle 15 — Mock at boundaries, not at internal logic
+
+```rust
+// fakes the dependency *inside* the production path — test-only branches in
+// business logic, and the test still cannot observe what was reserved
+pub fn process_order(order: &Order) -> Result<Receipt, OrderError> {
+    #[cfg(test)]
+    let reserved = true;
+    #[cfg(not(test))]
+    let reserved = warehouse::reserve(&order.sku, order.qty)?;
+    // ...
+}
+```
+
+```rust
+// the boundary is a trait the production code already depends on; the test
+// double implements it and records observable behavior
+pub trait Inventory {
+    fn reserve(&self, sku: &Sku, qty: u32) -> Result<(), StockError>;
+}
+
+pub fn process_order(order: &Order, inventory: &dyn Inventory) -> Result<Receipt, OrderError> {
+    // ...
+}
+
+#[cfg(test)]
+mod tests {
+    struct FakeInventory {
+        stock: HashMap<Sku, u32>,
+        reservations: RefCell<Vec<(Sku, u32)>>,
+    }
+
+    impl Inventory for FakeInventory {
+        fn reserve(&self, sku: &Sku, qty: u32) -> Result<(), StockError> {
+            // check self.stock, push into self.reservations
+        }
+    }
+
+    #[test]
+    fn checkout_reserves_stock_when_items_available() {
+        let inventory = FakeInventory::with_stock([("sku-1", 10)]);
+        let receipt = process_order(&order("sku-1", 2), &inventory).unwrap();
+        assert_eq!(inventory.reservations(), vec![(sku("sku-1"), 2)]);
+        assert_eq!(receipt.status, Status::Confirmed);
+    }
+}
+```
+
+The second test survives any internal refactor of `process_order` because the double lives at the trait boundary and the assertions read observable behavior only — no mocking framework needed.
 
 ## Principle 16 — Inject time, randomness, and external state
 
