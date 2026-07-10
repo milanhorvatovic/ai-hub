@@ -18,11 +18,12 @@ def _read(path: Path) -> str:
 def test_dependabot_groups_exclude_major_updates() -> None:
     config = _read(_DEPENDABOT_CONFIG)
 
-    update_type_groups = re.findall(
-        r"update-types:\s*\[\s*[\"']minor[\"']\s*,\s*[\"']patch[\"']\s*\]",
-        config,
-    )
+    update_type_groups = [
+        {token.strip().strip("\"'") for token in contents.split(",")}
+        for contents in re.findall(r"update-types:\s*\[([^\]]+)\]", config)
+    ]
     assert len(update_type_groups) == 2
+    assert all(group == {"minor", "patch"} for group in update_type_groups)
     assert "actions/attest-build-provenance" in config
     assert "googleapis/release-please-action" in config
     assert "dependency-name: dependabot/fetch-metadata" in config

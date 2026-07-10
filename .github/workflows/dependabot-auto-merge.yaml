@@ -90,13 +90,17 @@ jobs:
           fi
 
           gh pr merge --auto --squash "$PR_URL" 2>&1 || true
-          state=$(gh pr view "$PR_URL" --json state,autoMergeRequest)
-          pr_state=$(jq -r '.state' <<<"$state")
-          armed=$(jq -r '.autoMergeRequest != null' <<<"$state")
-          if [[ "$pr_state" == "MERGED" || "$pr_state" == "CLOSED" || "$armed" == "true" ]]; then
-            echo "PR is ${pr_state}; auto-merge armed=${armed}."
-            exit 0
-          fi
+          state=""
+          for attempt in {1..6}; do
+            state=$(gh pr view "$PR_URL" --json state,autoMergeRequest)
+            pr_state=$(jq -r '.state' <<<"$state")
+            armed=$(jq -r '.autoMergeRequest != null' <<<"$state")
+            if [[ "$pr_state" == "MERGED" || "$pr_state" == "CLOSED" || "$armed" == "true" ]]; then
+              echo "PR is ${pr_state}; auto-merge armed=${armed}."
+              exit 0
+            fi
+            [[ "$attempt" -eq 6 ]] || sleep 2
+          done
 
           echo "::error::The PR remains open without auto-merge. Confirm Allow auto-merge is enabled and the token has Contents and Pull requests write permissions."
           exit 1

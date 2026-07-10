@@ -101,12 +101,18 @@ jobs:
 
             if [[ "$review" == "APPROVED" ]]; then
               gh pr merge --auto --squash "$pr" 2>&1 || true
-              post_state=$(gh pr view "$pr" --json state,autoMergeRequest)
-              pr_state=$(jq -r '.state' <<<"$post_state")
-              post_armed=$(jq -r '.autoMergeRequest != null' <<<"$post_state")
-              if [[ "$pr_state" == "MERGED" || "$pr_state" == "CLOSED" || "$post_armed" == "true" ]]; then
-                echo "PR #${pr}: state=${pr_state}; auto-merge armed=${post_armed}."
-              else
+              post_state=""
+              for attempt in {1..6}; do
+                post_state=$(gh pr view "$pr" --json state,autoMergeRequest)
+                pr_state=$(jq -r '.state' <<<"$post_state")
+                post_armed=$(jq -r '.autoMergeRequest != null' <<<"$post_state")
+                if [[ "$pr_state" == "MERGED" || "$pr_state" == "CLOSED" || "$post_armed" == "true" ]]; then
+                  echo "PR #${pr}: state=${pr_state}; auto-merge armed=${post_armed}."
+                  break
+                fi
+                [[ "$attempt" -eq 6 ]] || sleep 2
+              done
+              if [[ "$pr_state" != "MERGED" && "$pr_state" != "CLOSED" && "$post_armed" != "true" ]]; then
                 echo "::error::PR #${pr}: approved PR remains open and unarmed after reconciliation."
                 had_error=1
               fi
