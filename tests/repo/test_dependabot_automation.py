@@ -1,5 +1,6 @@
 """Structural contracts for the repository's Dependabot autonomy policy."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -17,7 +18,11 @@ def _read(path: Path) -> str:
 def test_dependabot_groups_exclude_major_updates() -> None:
     config = _read(_DEPENDABOT_CONFIG)
 
-    assert config.count('update-types: ["minor", "patch"]') == 2
+    update_type_groups = re.findall(
+        r"update-types:\s*\[\s*[\"']minor[\"']\s*,\s*[\"']patch[\"']\s*\]",
+        config,
+    )
+    assert len(update_type_groups) == 2
     assert "actions/attest-build-provenance" in config
     assert "googleapis/release-please-action" in config
     assert "dependency-name: dependabot/fetch-metadata" in config
@@ -62,6 +67,7 @@ def test_workflow_never_checks_out_pr_code() -> None:
         'cron: "*/30 * * * *"',
         "AUTOMERGE_ENABLED: ${{ vars.DEPENDABOT_AUTOMERGE_ENABLED }}",
         "GH_TOKEN: ${{ secrets.CODEOWNER_APPROVER_TOKEN }}",
+        "GH_REPO: ${{ github.repository }}",
         "gh pr list --search 'author:dependabot[bot]'",
         "gh pr list --search 'author:app/dependabot'",
         "gh pr update-branch",

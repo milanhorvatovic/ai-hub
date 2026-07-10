@@ -31,6 +31,7 @@ jobs:
         env:
           AUTOMERGE_ENABLED: ${{ vars.DEPENDABOT_AUTOMERGE_ENABLED }}
           GH_TOKEN: ${{ secrets.CODEOWNER_APPROVER_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
