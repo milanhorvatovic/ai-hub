@@ -1,0 +1,127 @@
+name: Dependabot Auto-Merge
+
+# Ordinary patch and minor updates are approved and armed for squash auto-merge.
+# Major and privileged-action updates are armed but wait for a code-owner
+# approval. Either security-review label is a hard veto.
+
+on:
+  # Dependabot events can read Dependabot secrets on pull_request, while
+  # pull_request_target deliberately receives no secrets. This workflow never
+  # checks out PR code, and dependabot.yaml prevents the bot from updating the
+  # fetch-metadata action that executes before the token-bearing steps.
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  # Normal Dependabot labels arrive immediately after opening. They must not
+  # cancel the opening run; a security-review label must cancel it immediately.
+  cancel-in-progress: ${{ github.event.action != 'labeled' || github.event.label.name == 'trust-boundary' || github.event.label.name == 'security-review-required' }}
+
+jobs:
+  auto-merge:
+    if: >-
+      github.event.action != 'labeled' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report auto-merge switch state
+        env:
+          ENABLED: ${{ vars.DEPENDABOT_AUTOMERGE_ENABLED }}
+        run: |
+          set -euo pipefail
+          if [[ "${ENABLED:-}" == "true" ]]; then
+            echo "DEPENDABOT_AUTOMERGE_ENABLED=true; Dependabot autonomy is active."
+          else
+            echo "::notice::DEPENDABOT_AUTOMERGE_ENABLED is '${ENABLED:-<unset>}'; approval and auto-merge are disabled."
+          fi
+
+      - name: Approve eligible update
+        if: >-
+          steps.metadata.outputs.update-type != 'version-update:semver-major' && !contains(steps.metadata.outputs.dependency-names, 'actions/attest-build-provenance') && !contains(steps.metadata.outputs.dependency-names, 'googleapis/release-please-action') && !contains(github.event.pull_request.labels.*.name, 'trust-boundary') && !contains(github.event.pull_request.labels.*.name, 'security-review-required') && vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.CODEOWNER_APPROVER_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::warning::CODEOWNER_APPROVER_TOKEN is unavailable; leaving this update for manual approval."
+            exit 0
+          fi
+
+          has_veto=$(gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "trust-boundary" or .name == "security-review-required")')
+          if [[ "$has_veto" == "true" ]]; then
+            echo "A security-review label was added after the workflow started; skipping approval."
+            exit 0
+          fi
+
+          gh pr review --approve \
+            --body "Auto-approved by the Dependabot Auto-Merge workflow (patch/minor update with no security-review hold)." \
+            "$PR_URL"
+
+      - name: Arm squash auto-merge
+        if: >-
+          !contains(github.event.pull_request.labels.*.name, 'trust-boundary') && !contains(github.event.pull_request.labels.*.name, 'security-review-required') && vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.CODEOWNER_APPROVER_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::error::CODEOWNER_APPROVER_TOKEN is unavailable; auto-merge cannot be enabled."
+            exit 1
+          fi
+
+          has_veto=$(gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "trust-boundary" or .name == "security-review-required")')
+          if [[ "$has_veto" == "true" ]]; then
+            echo "A security-review label was added after the workflow started; refusing to arm auto-merge."
+            exit 0
+          fi
+
+          gh pr merge --auto --squash "$PR_URL" 2>&1 || true
+          state=$(gh pr view "$PR_URL" --json state,autoMergeRequest)
+          pr_state=$(jq -r '.state' <<<"$state")
+          armed=$(jq -r '.autoMergeRequest != null' <<<"$state")
+          if [[ "$pr_state" == "MERGED" || "$pr_state" == "CLOSED" || "$armed" == "true" ]]; then
+            echo "PR is ${pr_state}; auto-merge armed=${armed}."
+            exit 0
+          fi
+
+          echo "::error::The PR remains open without auto-merge. Confirm Allow auto-merge is enabled and the token has Contents and Pull requests write permissions."
+          exit 1
+
+  disable-auto-merge-on-security-review:
+    if: >-
+      github.event.action == 'labeled' && (github.event.label.name == 'trust-boundary' || github.event.label.name == 'security-review-required') && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Disable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.CODEOWNER_APPROVER_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::error::CODEOWNER_APPROVER_TOKEN is unavailable; cannot enforce the security-review hold."
+            exit 1
+          fi
+
+          gh pr merge --disable-auto "$PR_URL" 2>&1 || true
+          auto_merge=$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest')
+          if [[ "$auto_merge" != "null" ]]; then
+            echo "::error::Auto-merge is still enabled after applying a security-review hold."
+            exit 1
+          fi
+
+          echo "Auto-merge is disabled for the security-review hold."
