@@ -1,15 +1,10 @@
-"""Cross-reference and JSON Schema tests for git-toolkit references/.
+"""JSON Schema and content-guard tests for git-toolkit references/.
 
-Two concerns:
-
-1. **Link resolution.** Capabilities link to reference files via relative
-   paths like `../../references/<name>.md`. If a capability points at a
-   missing reference, the load will silently degrade. This test catches the
-   broken link at change time.
-
-2. **JSON Schema validity.** The review-output NDJSON schema is shipped as
-   `references/review-output.schema.json`. It must parse as valid JSON and
-   declare a $schema URI that names a recognized Draft.
+Generic link/pointer resolution across the skill tree lives in the fleet-wide
+suite (`tests/skills/test_structure_all.py`); what stays here are the
+contracts unique to this skill: the review-output NDJSON schema (validity,
+prose agreement, worked-example conformance) and the untrusted-content guard
+wiring on ingestion capabilities.
 """
 
 from __future__ import annotations
@@ -19,68 +14,6 @@ import re
 from pathlib import Path
 
 import pytest
-
-
-def _collect_relative_links(md_path: Path) -> list[tuple[str, int]]:
-    """Return (relative-link, 1-based-line-number) for every backtick-quoted
-    relative `.md`/`.json` path into the skill tree.
-
-    Matches skill-internal relative links ending in `.md` or `.json`, in
-    either form: a `../`-prefixed traversal (so intra-capability sibling
-    links like `../pr-conversation-resolve/capability.md` are validated
-    alongside `../../references/foo.md`, and reference links to non-`.md`
-    artifacts like `../../references/review-output.schema.json` are not
-    silently skipped), or a `references/` / `capabilities/` prefix (as used
-    from SKILL.md). Repo-root path mentions like
-    `.github/copilot-instructions.md` and bare prose mentions like
-    `format-conventions.md` are intentionally excluded — they are not
-    skill-relative links.
-    """
-    text = md_path.read_text(encoding="utf-8")
-    out: list[tuple[str, int]] = []
-    for lineno, line in enumerate(text.splitlines(), start=1):
-        for m in re.finditer(
-            r"`((?:(?:\.\./)+[A-Za-z0-9_./-]+"
-            r"|(?:references|capabilities)/[A-Za-z0-9_./-]+)\.(?:md|json))`",
-            line,
-        ):
-            out.append((m.group(1), lineno))
-    return out
-
-
-def test_capability_links_resolve(
-    skill_root: Path, capabilities_dir: Path
-) -> None:
-    """Every relative path linked from a capability.md must resolve, and must
-    stay within the skill tree (a link that escapes skill_root, e.g.
-    `../../../../README.md`, is treated as broken even if the target exists)."""
-    skill_root_resolved = skill_root.resolve()
-    broken: list[str] = []
-    for cap_dir in sorted(capabilities_dir.iterdir()):
-        cap_md = cap_dir / "capability.md"
-        if not cap_md.is_file():
-            continue
-        for link, lineno in _collect_relative_links(cap_md):
-            target = (cap_md.parent / link).resolve()
-            if not target.is_file():
-                broken.append(f"{cap_md.relative_to(skill_root)}:{lineno} -> {link} (missing)")
-            elif not target.is_relative_to(skill_root_resolved):
-                broken.append(f"{cap_md.relative_to(skill_root)}:{lineno} -> {link} (escapes skill tree)")
-    assert not broken, "broken relative links in capabilities:\n" + "\n".join(broken)
-
-
-def test_skill_md_reference_links_resolve(
-    skill_md: Path, references_dir: Path
-) -> None:
-    """Every `references/<name>` link in SKILL.md must exist — including
-    non-`.md` artifacts like the JSON Schema and the NDJSON example fixture,
-    so a renamed schema/example doesn't silently break the router's list."""
-    text = skill_md.read_text(encoding="utf-8")
-    referenced = re.findall(
-        r"references/([A-Za-z0-9_./-]+\.(?:md|json|ndjson))", text
-    )
-    missing = [r for r in referenced if not (references_dir / r).is_file()]
-    assert not missing, f"SKILL.md references missing files: {missing}"
 
 
 def test_review_output_schema_is_valid_json(references_dir: Path) -> None:

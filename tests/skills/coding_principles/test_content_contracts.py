@@ -1,11 +1,12 @@
 """Content-contract tests for the coding-principles skill.
 
 The router advertises specific, countable facts about the skill's body —
-"16 mantras", "20 numbered principles" — and the capabilities use portable
-name slugs. These tests pin those numbers and the slug pattern so the prose,
-the reference files, and the SKILL.md summary lists cannot drift apart
-silently (e.g. someone adds a 21st principle to principles.md but forgets the
-router's titles list, or renames a capability without updating its slug).
+"16 mantras", "20 numbered principles", the per-language seven-file reference
+set — and the capabilities use portable name slugs. These tests pin those
+numbers, the file set, and the slug pattern so the prose, the reference files,
+and the SKILL.md summary lists cannot drift apart silently (e.g. someone adds
+a 21st principle to principles.md but forgets the router's titles list, or
+renames a capability without updating its slug).
 """
 
 from __future__ import annotations
@@ -15,6 +16,23 @@ from pathlib import Path
 
 EXPECTED_MANTRAS = 16
 EXPECTED_PRINCIPLES = 20
+
+# Each language capability is `capability.md` plus a `references/` subdir
+# holding the same seven supporting files (see the "File layout" section of
+# SKILL.md). `review` is a workflow capability, not a language one, so it is
+# exempt from this invariant.
+LANGUAGE_CAPABILITIES = ("bash", "python", "rust", "typescript")
+LANGUAGE_REFERENCE_FILES = frozenset(
+    {
+        "anti-patterns.md",
+        "examples.md",
+        "best-practices.md",
+        "concurrency.md",
+        "dependencies.md",
+        "performance.md",
+        "project-structure.md",
+    }
+)
 
 
 def _section(text: str, header_prefix: str) -> str:
@@ -91,6 +109,31 @@ def test_principle_count_is_consistent(
     assert f"{EXPECTED_PRINCIPLES} numbered principles" in skill_md.read_text(
         encoding="utf-8"
     ), "description no longer claims '20 numbered principles' — update the count"
+
+
+def test_language_capabilities_carry_the_documented_file_set(
+    capabilities_dir: Path,
+) -> None:
+    """Each language capability must be `capability.md` plus a `references/`
+    subdir holding exactly the seven supporting files. A missing file means a
+    capability load silently degrades; an extra one means the layout drifted
+    from what SKILL.md advertises."""
+    mismatches: list[str] = []
+    for lang in LANGUAGE_CAPABILITIES:
+        lang_dir = capabilities_dir / lang
+        assert (lang_dir / "capability.md").is_file(), (
+            f"{lang}: missing capability.md entry point"
+        )
+        refs = lang_dir / "references"
+        assert refs.is_dir(), f"{lang}: missing references/ subdir"
+        present = {p.name for p in refs.iterdir() if p.is_file()}
+        if present != set(LANGUAGE_REFERENCE_FILES):
+            missing = sorted(LANGUAGE_REFERENCE_FILES - present)
+            extra = sorted(present - LANGUAGE_REFERENCE_FILES)
+            mismatches.append(f"{lang}/references: missing={missing} extra={extra}")
+    assert not mismatches, "language capability file-set drift:\n" + "\n".join(
+        mismatches
+    )
 
 
 def test_capability_name_slugs_follow_pattern(capabilities_dir: Path) -> None:
