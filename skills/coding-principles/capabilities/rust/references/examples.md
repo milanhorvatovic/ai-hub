@@ -96,7 +96,10 @@ pub fn process_order(order: &Order) -> Result<Receipt, OrderError> {
     let reserved = true;
     #[cfg(not(test))]
     let reserved = warehouse::reserve(&order.sku, order.qty)?;
-    // ...
+    if !reserved {
+        return Err(OrderError::OutOfStock);
+    }
+    todo!("build the receipt")
 }
 ```
 
@@ -108,7 +111,8 @@ pub trait Inventory {
 }
 
 pub fn process_order(order: &Order, inventory: &dyn Inventory) -> Result<Receipt, OrderError> {
-    // ...
+    inventory.reserve(&order.sku, order.qty)?;
+    todo!("build the receipt")
 }
 
 #[cfg(test)]
@@ -120,7 +124,11 @@ mod tests {
 
     impl Inventory for FakeInventory {
         fn reserve(&self, sku: &Sku, qty: u32) -> Result<(), StockError> {
-            // check self.stock, push into self.reservations
+            if self.stock.get(sku).copied().unwrap_or(0) < qty {
+                return Err(StockError::Insufficient);
+            }
+            self.reservations.borrow_mut().push((sku.clone(), qty));
+            Ok(())
         }
     }
 

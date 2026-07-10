@@ -86,7 +86,7 @@ Language-specific anti-patterns live in `references/anti-patterns.md`. Load it f
 
 ## Examples by principle
 
-Concrete before/after code for high-leverage principles 2, 5, 15, 16, 19 and the make-illegal-states-unrepresentable mantra lives in `references/examples.md`. Load it when matching patterns at write-time or validating suggested fixes at review-time.
+Concrete before/after code for high-leverage principles 2, 5, 15, 16, 19 and the "Make illegal states unrepresentable" mantra lives in `references/examples.md`. Load it when matching patterns at write-time or validating suggested fixes at review-time.
 
 ## Performance
 
