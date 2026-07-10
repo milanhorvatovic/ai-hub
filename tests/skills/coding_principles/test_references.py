@@ -161,10 +161,12 @@ def test_example_pointers_match_example_headings(
             continue
         if "**Code examples**" in line:
             assert current is not None, f"pointer line before any principle: {line!r}"
+            # \b is safe at both edges: capability dir names are constrained
+            # to lowercase+hyphens, and hyphens are interior when present.
             langs = {
                 lang
                 for lang in languages
-                if re.search(rf"\b{lang}\b", line, flags=re.IGNORECASE)
+                if re.search(rf"\b{re.escape(lang)}\b", line, flags=re.IGNORECASE)
             }
             assert langs, f"pointer line names no known language: {line!r}"
             pointed.setdefault(current, set()).update(langs)
