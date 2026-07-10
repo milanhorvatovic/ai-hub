@@ -112,7 +112,7 @@ pub trait Inventory {
 
 pub fn process_order(order: &Order, inventory: &dyn Inventory) -> Result<Receipt, OrderError> {
     inventory.reserve(&order.sku, order.qty)?;
-    todo!("build the receipt")
+    Ok(Receipt { status: Status::Confirmed })
 }
 
 #[cfg(test)]
