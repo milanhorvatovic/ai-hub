@@ -43,7 +43,9 @@ jobs:
             exit 1
           fi
 
-          prs_json=$(gh pr list --app "dependabot" --state open --limit 100 --json number,author,isCrossRepository)
+          dependabot_prs=$(gh pr list --search 'author:dependabot[bot]' --state open --limit 100 --json number,author,isCrossRepository)
+          app_dependabot_prs=$(gh pr list --search 'author:app/dependabot' --state open --limit 100 --json number,author,isCrossRepository)
+          prs_json=$(jq -n --argjson dependabot "$dependabot_prs" --argjson app_dependabot "$app_dependabot_prs" '$dependabot + $app_dependabot | unique_by(.number)')
           mapfile -t prs < <(jq -r '.[] | select((.author.login == "dependabot[bot]" or .author.login == "app/dependabot") and .isCrossRepository == false) | .number' <<<"$prs_json")
           if [[ "${#prs[@]}" -eq 0 ]]; then
             echo "No open in-repository Dependabot PRs."
