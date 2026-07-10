@@ -69,11 +69,11 @@ jobs:
                 gh pr merge --disable-auto "$pr" 2>&1 || true
                 remaining=$(gh pr view "$pr" --json autoMergeRequest --jq '.autoMergeRequest')
                 if [[ "$remaining" != "null" ]]; then
-                  echo "::error::PR #${pr}: security-review hold is present but auto-merge could not be disabled."
+                  echo "::error::PR #${pr}: veto label is present but auto-merge could not be disabled."
                   had_error=1
                 fi
               fi
-              echo "PR #${pr}: security-review hold present; leaving manual."
+              echo "PR #${pr}: veto label present; leaving manual."
               echo "::endgroup::"
               continue
             fi

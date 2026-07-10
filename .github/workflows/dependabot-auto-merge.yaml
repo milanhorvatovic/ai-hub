@@ -2,7 +2,7 @@ name: Dependabot Auto-Merge
 
 # Ordinary patch and minor updates are approved and armed for squash auto-merge.
 # Major and privileged-action updates are armed but wait for a code-owner
-# approval. Either security-review label is a hard veto.
+# approval. Either veto label is a hard stop.
 
 on:
   # Dependabot events can read Dependabot secrets on pull_request. For
@@ -20,7 +20,7 @@ permissions:
 concurrency:
   group: dependabot-auto-merge-${{ github.event.pull_request.number }}
   # Normal Dependabot labels arrive immediately after opening. They must not
-  # cancel the opening run; a security-review label must cancel it immediately.
+  # cancel the opening run; a veto label must cancel it immediately.
   cancel-in-progress: ${{ github.event.action != 'labeled' || github.event.label.name == 'trust-boundary' || github.event.label.name == 'security-review-required' }}
 
 jobs:
@@ -62,12 +62,12 @@ jobs:
 
           has_veto=$(gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "trust-boundary" or .name == "security-review-required")')
           if [[ "$has_veto" == "true" ]]; then
-            echo "A security-review label was added after the workflow started; skipping approval."
+            echo "A veto label was added after the workflow started; skipping approval."
             exit 0
           fi
 
           gh pr review --approve \
-            --body "Auto-approved by the Dependabot Auto-Merge workflow (patch/minor update with no security-review hold)." \
+            --body "Auto-approved by the Dependabot Auto-Merge workflow (patch/minor update with no veto label)." \
             "$PR_URL"
 
       - name: Arm squash auto-merge
@@ -85,7 +85,7 @@ jobs:
 
           has_veto=$(gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "trust-boundary" or .name == "security-review-required")')
           if [[ "$has_veto" == "true" ]]; then
-            echo "A security-review label was added after the workflow started; refusing to arm auto-merge."
+            echo "A veto label was added after the workflow started; refusing to arm auto-merge."
             exit 0
           fi
 
@@ -101,7 +101,7 @@ jobs:
           echo "::error::The PR remains open without auto-merge. Confirm Allow auto-merge is enabled and the token has Contents and Pull requests write permissions."
           exit 1
 
-  disable-auto-merge-on-security-review:
+  disable-auto-merge-on-veto-label:
     if: >-
       github.event.action == 'labeled' && (github.event.label.name == 'trust-boundary' || github.event.label.name == 'security-review-required') && (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'app/dependabot') && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -114,15 +114,15 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${GH_TOKEN:-}" ]]; then
-            echo "::error::CODEOWNER_APPROVER_TOKEN is unavailable; cannot enforce the security-review hold."
+            echo "::error::CODEOWNER_APPROVER_TOKEN is unavailable; cannot enforce the veto-label hold."
             exit 1
           fi
 
           gh pr merge --disable-auto "$PR_URL" 2>&1 || true
           auto_merge=$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest')
           if [[ "$auto_merge" != "null" ]]; then
-            echo "::error::Auto-merge is still enabled after applying a security-review hold."
+            echo "::error::Auto-merge is still enabled after applying a veto label."
             exit 1
           fi
 
-          echo "Auto-merge is disabled for the security-review hold."
+          echo "Auto-merge is disabled for the veto-label hold."
