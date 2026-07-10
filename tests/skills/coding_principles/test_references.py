@@ -161,7 +161,7 @@ def test_example_pointers_match_example_headings(
                 if re.search(rf"\b{lang}\b", line, flags=re.IGNORECASE)
             }
             assert langs, f"pointer line names no known language: {line!r}"
-            pointed[current] = langs
+            pointed.setdefault(current, set()).update(langs)
 
     demonstrated: dict[int, set[str]] = {}
     for lang in LANGUAGES:
