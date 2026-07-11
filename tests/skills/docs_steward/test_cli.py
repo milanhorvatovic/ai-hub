@@ -16,7 +16,6 @@ from docs_steward.cli import (
     _markdownlint_lint_pass,
     _resolve_against_root,
     _resolve_config_against_cwd,
-    _resolve_config_against_root,
     main,
 )
 from docs_steward.commands import build_command
@@ -446,26 +445,6 @@ class ResolveAgainstRootTests(unittest.TestCase):
         self.assertEqual(_resolve_against_root((), "/repo"), ())
 
 
-class ResolveConfigAgainstRootTests(unittest.TestCase):
-    def test_none_passes_through(self) -> None:
-        # None signals "use the bundled fallback" — must NOT be rewritten
-        # to a path under root, or audit_frontmatter would receive a fake
-        # path instead of routing through bundled_config_for().
-        self.assertIsNone(_resolve_config_against_root(None, "/repo"))
-
-    def test_absolute_path_passes_through(self) -> None:
-        self.assertEqual(
-            _resolve_config_against_root("/etc/yamllint.yaml", "/repo"),
-            "/etc/yamllint.yaml",
-        )
-
-    def test_absolute_windows_path_normalized_to_forward_slashes(self) -> None:
-        self.assertEqual(
-            _resolve_config_against_root("C:\\repo\\.yamllint", "/repo"),
-            "C:/repo/.yamllint",
-        )
-
-
 class ResolveConfigAgainstCwdTests(unittest.TestCase):
     """`--yamllint-config` resolves against the invocation cwd (where
     the user typed the command) to match how `_files_or_none` resolves
@@ -502,18 +481,6 @@ class ResolveConfigAgainstCwdTests(unittest.TestCase):
                 _resolve_config_against_cwd("C:\\repo\\.yamllint"),
                 "C:/repo/.yamllint",
             )
-
-    def test_relative_path_joined_to_root(self) -> None:
-        self.assertEqual(
-            _resolve_config_against_root(".yamllint", "/repo"),
-            "/repo/.yamllint",
-        )
-
-    def test_relative_path_with_subdir_joined_to_root(self) -> None:
-        self.assertEqual(
-            _resolve_config_against_root("config/.yamllint.yaml", "/repo"),
-            "/repo/config/.yamllint.yaml",
-        )
 
 
 class DiscoverRepoYamllintConfigTests(unittest.TestCase):

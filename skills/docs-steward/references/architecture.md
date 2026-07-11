@@ -26,12 +26,14 @@ scripts/
 │   ├── commands.py       build_command(tool, mode, unwrap, config_path) — registry-driven argv
 │   ├── bundled_config.py bundled_config_for(tool) — path to shipped fallback config
 │   ├── probe.py          probe_tools(runner) — inventory + exit-code contract
+│   ├── plugins.py        probe_mdformat_plugins(runner) + needs_gfm(text) — mdformat plugin inventory / GFM sniffer
 │   ├── recommend.py      recommend_installs(runner) — inventory + recommend + verdict
 │   ├── runner.py         run_tool(mode, baseline, unwrap, runner, root) — orchestrator
 │   ├── frontmatter.py    extract_blocks(text) — YAML frontmatter + fenced YAML extractor (pure)
 │   ├── discovery.py      list_markdown_files(runner, root) — git ls-files + os.walk fallback
 │   ├── yaml_audit.py     audit_frontmatter(runner, fs, files, config_path) — yamllint orchestrator
 │   ├── emit.py           serialize(event) — JSON serialization (pure)
+│   ├── paths.py          is_absolute / to_posix / posix_join — cross-host path helpers (pure)
 │   ├── process.py        ProcessRunner Protocol + SubprocessRunner adapter (subprocess seam)
 │   ├── fs.py             FileSystem Protocol + OsFileSystem adapter (filesystem seam)
 │   └── repo.py           repo_root(runner) — git rev-parse with cwd fallback
@@ -70,7 +72,7 @@ Single source of truth: `docs_steward/tools.py`.
 3. Add a `selector.py` `_BASELINE_PREFERENCES` entry mapping the tool's config-filename prefix to the tool.
 4. Add a `hints.py` `_HINTS` entry with platform-specific install commands.
 5. Decide whether the tool warrants priority — if yes, add to `priority.INSTALL_PRIORITY`.
-6. Decide whether a bundled fallback config is shippable — if yes, drop the file under `assets/configs/` and wire it into `bundled_config.py`.
+6. Decide whether a bundled fallback config is shippable — if yes, drop the file in beside the other bundled configs (`../assets/configs/README.md` covers scope + rationale) and wire it into `bundled_config.py`.
 7. Add tests in `tests/test_commands.py` (per-mode argv) and `tests/test_selector.py` (baseline-preference resolution).
 
 No changes to `runner.py`, `cli.py`, or any entry shim — the architecture absorbs new formatters by registry extension.

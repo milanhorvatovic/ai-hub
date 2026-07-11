@@ -49,7 +49,7 @@ def probe_tools(runner: ProcessRunner) -> tuple[list[Event], int]:
 
     The MISSING / exit-3 decision is driven by formatter availability only
     (the tools in `REGISTRY`); yamllint is complementary — it lints YAML
-    blocks via the `audit-frontmatter` pipeline and never participates in
+    blocks via the `md-audit-frontmatter` pipeline and never participates in
     markdown formatter selection. An `AVAILABLE` event is still emitted
     for yamllint when present, but its presence does not by itself satisfy
     "any formatter on PATH" for the markdown audit pipeline.

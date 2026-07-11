@@ -393,18 +393,6 @@ def _resolve_against_root(files: Sequence[str], root: str) -> tuple[str, ...]:
     )
 
 
-def _resolve_config_against_root(config: str | None, root: str) -> str | None:
-    """Resolve an optional config path against an explicit `root`. None
-    passes through so the caller can still signal "use the bundled
-    fallback". Absolute paths are normalized to forward slashes for
-    output consistency. Kept for any caller that genuinely wants root-
-    relative resolution; new code should prefer
-    `_resolve_config_against_cwd` to match positional-file semantics."""
-    if config is None:
-        return None
-    return _to_posix(config) if _is_absolute(config) else _posix_join(root, config)
-
-
 def _resolve_config_against_cwd(config: str | None) -> str | None:
     """Resolve `--yamllint-config` against the invocation cwd, mirroring
     how `_files_or_none` resolves positional file arguments. Relative

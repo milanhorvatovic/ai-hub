@@ -102,7 +102,7 @@ The skill is an **orchestrator**: it wraps external markdown formatters (markdow
 
 #### A. Markdown audit (`md-audit.py`)
 
-The primary pipeline. Selects a formatter via the style-baseline precedence from step 3, runs it in check mode, and emits one `finding` event per output line. NDJSON on stdout, progress + errors on stderr, exit codes `0` clean / `1` findings (or files changed) / `2` invocation error / `3` no usable tool.
+The primary pipeline. Selects a formatter via the style-baseline precedence from step 3, runs it in check mode, and emits one `finding` event per output line. NDJSON on stdout (no separate stderr channel — progress and errors are events in the same stream), exit codes `0` clean / `1` findings (or files changed) / `2` invocation error / `3` no usable tool.
 
 **Per-file targeting.** Positional file arguments scope the run to specific paths, bypassing the formatter's default glob. Useful for pre-commit hooks, CI changed-files-only runs, and agent invocations that target a single file. Works without git — the file list is passed verbatim. Example: `md-audit.py docs/intro.md README.md`.
 
@@ -164,7 +164,7 @@ See [`references/report-format.md`](references/report-format.md) for the templat
 
 After the agent renders the report, it pauses for the user. The skill itself does not pause; it has already exited.
 
-- **Auto-fixable** (safe): whatever the chosen formatter's `--fix` / `--write` mode applies (markdownlint-cli2 `--fix`, prettier `--write`, mdformat in-place rewrite, dprint `fmt`, remark `--output`). When the bundled or repo style baseline silences line-length, the `--prose-wrap=never` / `--wrap=no` flag is appended automatically so the rewrite does not re-wrap prose. The agent invokes `scripts/md-format.py [--unwrap] [--baseline FILE]` on approval.
+- **Auto-fixable** (safe): whatever the chosen formatter's `--fix` / `--write` mode applies (markdownlint-cli2 `--fix`, prettier `--write`, mdformat in-place rewrite, dprint `fmt`, remark `--output`). When the bundled or repo style baseline silences line-length, the `--prose-wrap=never` / `--wrap=no` flag is appended automatically so the rewrite does not re-wrap prose. The agent invokes `scripts/md-format.py` (adding `--unwrap` / `--baseline FILE` as needed) on approval.
 - **Never auto-fix**: anything affecting prose meaning, version numbers, license text, code examples inside docs.
 
 **Fix engine** — the chosen engine is recorded in the `selected` NDJSON event's `cmd` field; the agent surfaces it as `Fix engine: <engine>` in the report header (5).
