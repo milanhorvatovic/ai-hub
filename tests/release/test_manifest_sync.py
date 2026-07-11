@@ -59,7 +59,12 @@ def test_manifest_covers_exactly_the_skills() -> None:
 
 def test_config_packages_cover_exactly_the_skills() -> None:
     config = json.loads(_CONFIG.read_text(encoding="utf-8"))
-    assert set(config["packages"]) == _tracked_skill_paths()
+    packages = config.get("packages")
+    assert isinstance(packages, dict) and packages, (
+        f"{_CONFIG.name} declares no `packages` mapping — release-please "
+        "releases only the paths listed there, so every skill release hangs off it"
+    )
+    assert set(packages) == _tracked_skill_paths()
 
 
 def test_manifest_versions_match_skill_md() -> None:
