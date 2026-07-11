@@ -137,7 +137,7 @@ You apply. History collapses to 3 commits.
 
 ```
 git push -u origin fix/upload-queue-retry
-gh pr create --draft  # opens PR #729 with no body
+gh pr create --draft  # creates the PR (#729 in this walkthrough) with no body
 ```
 
 ## Step 8 — `pr-description-write` (GitHub-side)
