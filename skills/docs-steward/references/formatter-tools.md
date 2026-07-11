@@ -1,21 +1,21 @@
 # Formatter tools — concrete commands
 
-Load on demand from `SKILL.md` section 5.D.4 (audit) and section 7 (fix). Five tools, two modes each (audit / format), one universal probe step, install hints when missing.
+Load on demand from `SKILL.md` step 4 (audit) and step 6 (fix). Five tools, two modes each (audit / format), one universal probe step, install hints when missing.
 
 ## Detection probe
 
-Run once per audit; cache the result for the session. Order matches the style-baseline precedence in step 4 — the first matching tool **whose corresponding config file was chosen as the baseline** wins. When no tool matches, selection walks `FALLBACK_ORDER` and picks the first formatter on PATH (see "Baseline-matched tool missing" below); only when no formatter at all is available does the skill emit `MISSING` and exit 3 — there is no implicit hand-rolled-edits path.
+Run once per audit; cache the result for the session. The listing follows `selector.FALLBACK_ORDER` (prettier first); the first matching tool **whose corresponding config file was chosen as the baseline** (step 3 of `SKILL.md`) still wins. When no tool matches, selection walks `FALLBACK_ORDER` and picks the first formatter on PATH (see "Baseline-matched tool missing" below); only when no formatter at all is available does the skill emit `MISSING` and exit 3 — there is no implicit hand-rolled-edits path.
 
 ```sh
+command -v prettier          >/dev/null 2>&1 && echo prettier
 command -v markdownlint-cli2 >/dev/null 2>&1 && echo markdownlint-cli2
-command -v markdownlint       >/dev/null 2>&1 && echo markdownlint
-command -v prettier           >/dev/null 2>&1 && echo prettier
-command -v mdformat           >/dev/null 2>&1 && echo mdformat
-command -v dprint             >/dev/null 2>&1 && echo dprint
-command -v remark             >/dev/null 2>&1 && echo remark
+command -v markdownlint      >/dev/null 2>&1 && echo markdownlint
+command -v mdformat          >/dev/null 2>&1 && echo mdformat
+command -v dprint            >/dev/null 2>&1 && echo dprint
+command -v remark            >/dev/null 2>&1 && echo remark
 ```
 
-When the **baseline** matches a config family (e.g. `.markdownlint.json`) but none of that family's preferred tools is on PATH, `selector.select_tool` falls back to the next available tool in `FALLBACK_ORDER` (`markdownlint-cli2` → `markdownlint` → `prettier` → `mdformat` → `dprint` → `remark`) and runs the first one it finds. The `selected` NDJSON event records the engine that actually ran so consumers can see when the chosen formatter diverges from the baseline-declared family. Only when none of the fallback tools is on PATH does the skill emit `MISSING` and exit 3. There is no implicit hand-rolled-edits path; tool selection always resolves to either a formatter on PATH or `MISSING`.
+When the **baseline** matches a config family (e.g. `.markdownlint.json`) but none of that family's preferred tools is on PATH, `selector.select_tool` falls back to the next available tool in `FALLBACK_ORDER` (`prettier` → `markdownlint-cli2` → `markdownlint` → `mdformat` → `dprint` → `remark`) and runs the first one it finds. The `selected` NDJSON event records the engine that actually ran so consumers can see when the chosen formatter diverges from the baseline-declared family. Only when none of the fallback tools is on PATH does the skill emit `MISSING` and exit 3. There is no implicit hand-rolled-edits path; tool selection always resolves to either a formatter on PATH or `MISSING`.
 
 ## Per-tool commands
 
@@ -51,7 +51,7 @@ Pairs with `.prettierrc` / `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}` / `pret
 
 - **Exit 0** = formatted; **exit 1** = unformatted files exist (audit) or write error (format); **exit 2** = config / invocation error.
 - **Output**: structured but per-mode. In **audit mode** (`--check`) Prettier emits a `Checking formatting...` banner, then one `[warn] <path>` line per unformatted file, then a `Code style issues found in N files. Run Prettier with --write to fix.` summary; in **format mode** (`--write`) it emits `<file> Nms` per write. The skill does not synthesize messages, so each non-empty stdout/stderr line lands verbatim as a `finding` event detail string (audit) or a `changed` event detail string (format) — the `[warn]` prefix on each audit line and the summary line both reach the consumer. NDJSON has no INFO/severity concept; consumers that want bare file paths must strip the `[warn] ` prefix locally (or filter the trailing summary line on text). `--quiet` drops the banner + summary via the preamble filter; the `[warn] <path>` lines are preserved as findings.
-- `--prose-wrap=never` is appended automatically by section 5.D.3 when the unwrap gating permits.
+- `--prose-wrap=never` is appended automatically when the unwrap gating in `SKILL.md` step 4 permits.
 - Honors `.prettierignore`; the glob is otherwise unfiltered.
 - **Install hints**: `npm install -g prettier` (canonical); `pnpm add -g prettier` / `bun add -g prettier` / `yarn global add prettier` (alternative JS package managers); `volta install prettier` (toolchain manager); `mise use -g npm:prettier` (mise via npm backend); `npx prettier@latest` (one-shot, no install). Requires a Node runtime.
 
@@ -70,7 +70,7 @@ Pairs with `.mdformat.toml` at the repo root. mdformat itself also reads a `[too
 
 - **Exit 0** = formatted (audit) or success (format); **non-zero** = changes needed (audit) or error (format).
 - **Output**: file paths only. Each non-empty stdout/stderr line is emitted verbatim as a `finding` event detail string (audit) or `changed` (format); no per-file message synthesis.
-- `--wrap=no` is appended automatically when section 5.D.3 unwrap gating permits.
+- `--wrap=no` is appended automatically when the unwrap gating in `SKILL.md` step 4 permits.
 - Plugins (`mdformat-gfm`, `mdformat-tables`, `mdformat-frontmatter`, `mdformat-footnote`, `mdformat-toc`) extend syntax coverage but are not auto-installed. `probe.py` emits a `plugin-available` event per installed plugin during inventory. The CLI also emits a `plugin-missing` event when mdformat is the selected tool, a target file contains GFM syntax (tables / task lists / strikethrough / bare autolinks), and `mdformat-gfm` is NOT installed — that one absent-plugin case has a dedicated content sniffer in `plugins.needs_gfm`. Other plugins are surfaced only via `plugin-available` during probe; the skill does not auto-detect when a file would benefit from `mdformat-tables` / `mdformat-frontmatter` / `mdformat-footnote` / `mdformat-toc` and does not emit `plugin-missing` for them.
 - **Install hints**: `pipx install mdformat` (preferred — isolated); `uv tool install mdformat` (fast); `pip install --user mdformat` (user-site); `brew install mdformat` (macOS); `mise use -g pipx:mdformat` (mise via pipx backend); add `mdformat-gfm` for GitHub-flavored markdown. Pure-Python; no Node required.
 
@@ -106,7 +106,7 @@ Pairs with `.remarkrc` / `.remarkrc.{json,yaml,yml,js,cjs,mjs}`. Less common tod
 
 ### yamllint
 
-Complementary tool — not a markdown formatter. Used by `audit-frontmatter` to lint YAML frontmatter + fenced YAML blocks extracted from markdown files. Pairs with `.yamllint` / `.yamllint.yaml` (any of the canonical yamllint config names); the skill's bundled `assets/configs/yamllint.yaml` is used when the repo declares none and no `--yamllint-config` override is passed.
+Complementary tool — not a markdown formatter. Used by `md-audit-frontmatter` to lint YAML frontmatter + fenced YAML blocks extracted from markdown files. Pairs with `.yamllint` / `.yamllint.yaml` (any of the canonical yamllint config names); the skill's bundled `../assets/configs/yamllint.yaml` is used when the repo declares none and no `--yamllint-config` override is passed.
 
 | Mode                             | Command                                 |
 | -------------------------------- | --------------------------------------- |
@@ -137,5 +137,5 @@ The skill must distinguish the three classes for every tool:
 - **Tool drift** — formatter releases change default rules occasionally (e.g. `prettier` flipped `proseWrap` default in 1.9, `markdownlint` added new rules each minor). The skill does not pin versions; trust whatever is on `PATH`. Surface the version in the report header so the user can correlate.
 - **Plugin coverage** — `mdformat` requires plugins for GFM tables, footnotes, frontmatter; `remark` requires `remark-preset-*`; `prettier` and `dprint` cover CommonMark + GFM out of the box. Unknown syntax is whatever the chosen tool passes through silently — the orchestrator does not synthesize warnings about unrecognized constructs. The exception is the GFM check: when mdformat is selected, the CLI dispatcher pre-scans target files via `plugins.needs_gfm` and emits a `plugin-missing` event when `mdformat-gfm` is absent.
 - **Glob differences** — POSIX `find` and the Node `glob` library expand `**/*.md` differently on Windows shells. When invoking on Windows, prefer `git ls-files '*.md' | xargs <tool>` over a raw glob to avoid the cross-shell expansion gap.
-- **Multiple tools, single repo** — when both `.prettierrc` and `.markdownlint.json` exist, the style-baseline precedence in step 4 picks one. Do not run both — that produces conflicting rewrites. The orchestrator does not emit any event for the non-baseline config; reconciling competing configs is a manual step the user should take after reading the `selected` event's `baseline` field.
+- **Multiple tools, single repo** — when both `.prettierrc` and `.markdownlint.json` exist, the style-baseline precedence in step 3 picks one. Do not run both — that produces conflicting rewrites. The orchestrator does not emit any event for the non-baseline config; reconciling competing configs is a manual step the user should take after reading the `selected` event's `baseline` field.
 - **Auto-install is forbidden** — per anti-pattern in `SKILL.md`. Always report missing tools with the install hint; never invoke `npm install` / `pip install` / `cargo install` from the skill.

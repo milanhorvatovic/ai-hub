@@ -15,7 +15,6 @@ import argparse
 import re
 from pathlib import Path
 
-import pytest
 from docs_steward import selector
 from docs_steward.cli import _build_parser
 
@@ -56,14 +55,6 @@ def _documented_order_statements() -> list[tuple[str, int, tuple[str, ...]]]:
     return statements
 
 
-@pytest.mark.xfail(
-    reason=(
-        "S1 skills-spec-compliance-sweep: references/formatter-tools.md:18 "
-        "documents markdownlint-first; selector.FALLBACK_ORDER is "
-        "prettier-first (audit docs-steward finding 1)"
-    ),
-    strict=True,
-)
 def test_documented_fallback_order_matches_selector() -> None:
     statements = _documented_order_statements()
     assert len(statements) >= 2, (

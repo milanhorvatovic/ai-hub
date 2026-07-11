@@ -3,7 +3,7 @@
 `bundled_config_for(tool)` returns the absolute path to the shipped config
 under `assets/configs/` when the tool supports a path-passable config, else
 None. The skill ships configs for markdownlint(-cli2), prettier, and the
-complementary yamllint used by `audit-frontmatter`; mdformat / dprint /
+complementary yamllint used by `md-audit-frontmatter`; mdformat / dprint /
 remark are intentionally excluded — see `assets/configs/README.md` for the
 rationale.
 

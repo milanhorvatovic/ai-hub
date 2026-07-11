@@ -75,10 +75,6 @@ _FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 # (check, skill-name) -> reason. Strict xfail: proof the suite detects the
 # defect today, and a forced cleanup of this table by the PR that fixes it.
 KNOWN_FAILURES: dict[tuple[str, str], str] = {
-    ("backtick_paths", "docs-steward"): (
-        "S1 skills-spec-compliance-sweep: skill-root-relative backtick paths in "
-        "nested files resolve from the wrong base (audit docs-steward finding 6)"
-    ),
     ("cross_capability", "git-toolkit"): (
         "G1 shared-reference-lift: capabilities link sibling capabilities; G1 "
         "moves the shared material into references/ and kills sibling links"
