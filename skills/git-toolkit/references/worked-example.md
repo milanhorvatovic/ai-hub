@@ -169,6 +169,8 @@ Apply with:
   gh pr edit 729 --body-file <mktemp-path>
 ```
 
+`<mktemp-path>` — here and in every later apply command — stands for the temp file the proposing capability writes alongside the inline proposal (created with `mktemp`; the capability's real output prints the actual path).
+
 You apply.
 
 ## Step 9 — `pr-link-issues` (GitHub-side)
