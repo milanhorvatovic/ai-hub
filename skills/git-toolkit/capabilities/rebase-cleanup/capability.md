@@ -21,7 +21,7 @@ Proposes an interactive-rebase plan to clean up a branch's commit history.
 - **Resolve base** — PR base via `gh pr view --json baseRefName` if PR exists; else merge-base with `main` / `master` / `develop` (try each, first match wins).
 - **≤1 commits in range** → stop with "nothing to clean up."
 - **On default branch** → refuse; rebase-cleanup is for feature branches only.
-- **Bot guard** — commits whose `git log --format='%ae'` author email matches a pattern in `../../references/bot-signatures.md` keep their message format: plan them as `pick`, never `reword` or `squash` them into a new message. Their format is bot-controlled and the bot's next run overwrites any rewrite.
+- **Bot guard** — commits whose `git log --format='%ae'` author email matches a pattern in `../../references/bot-signatures.md` keep their message format: plan them as `pick`, never `reword`, `squash`, or `fixup` them (each replaces or discards the bot-controlled message), regardless of what Step 2's classification would otherwise suggest. Their format is bot-controlled and the bot's next run overwrites any rewrite. Dropping a redundant bot commit remains a content decision the user can make.
 - **Detect pushed commits**: `git rev-list <base>..HEAD` is the full range; `git rev-list <base>..HEAD ^@{u}` returns the *unpushed* commits in that range (reachable from HEAD but not from the branch's upstream), so the pushed set is the complement. Where no upstream is configured, fall back to per-commit `git branch -r --contains <sha>`. If any commit in range is pushed AND the PR has at least one review (`gh pr view --json reviews`) → emit the force-push warning (Step 6) **before** any plan is shown.
 
 ## Workflow
