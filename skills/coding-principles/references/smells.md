@@ -14,7 +14,7 @@ Each entry has four parts:
 
 - **Smell** — what you observe.
 - **Anchor** — the principle(s) and/or mantra(s) that explain why it is a smell.
-- **Severity** — inherits from the anchor's severity (must / should / could).
+- **Severity** — inherits from the anchor's severity (must / should / could). Principles carry severity tags; mantras do not — an entry anchored only to mantras defaults to *should* unless it states a different severity explicitly (the fail-fast entries state *must*).
 - **Fix** — one-line direction; full details in the linked principle.
 
 The smells are grouped by category. Some smells appear in multiple categories — the entry lives where its primary symptom is observed.

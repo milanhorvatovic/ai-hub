@@ -4,7 +4,7 @@ Bash has no package manager. "Dependencies" are the external commands a script i
 
 ## Pinning stance — declare and check, pin where you control the environment
 
-The user's pin-explicit preference manifests differently here — there's no version range to pin, but the same intent (deterministic, reproducible) applies:
+This skill's pin-explicit default manifests differently here — there's no version range to pin, but the same intent (deterministic, reproducible) applies:
 
 - **Declare required tools and minimum versions** in the script header and/or README, and **check them at startup** (fail fast — principle / fail-fast mantra):
   ```bash
@@ -37,5 +37,5 @@ If a script's external-tool dependencies are numerous or version-sensitive enoug
 ## Principle alignment
 
 - **Fail fast, fail loud** mantra — check required tools at startup with a clear message + a meaningful exit code, not a cryptic failure deep in the script.
-- **Reproducibility** — pin the environment (container tag / Nix) since the commands themselves can't be pinned (the user's preference, applied at the environment level).
+- **Reproducibility** — pin the environment (container tag / Nix) since the commands themselves can't be pinned (this skill's default, applied at the environment level).
 - **Security** (principle 13) — no unpinned `curl | bash`; vendor + checksum.

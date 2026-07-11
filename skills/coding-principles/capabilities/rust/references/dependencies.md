@@ -46,6 +46,6 @@ tokio = { version = "=1.40.0", features = ["full"] }
 
 ## Principle alignment
 
-- **Reproducibility** — `=` pins + committed `Cargo.lock` (for binaries) = deterministic builds (the user's stated preference); the caret gotcha is the trap that silently defeats it.
+- **Reproducibility** — `=` pins + committed `Cargo.lock` (for binaries) = deterministic builds (this skill's default); the caret gotcha is the trap that silently defeats it.
 - **No dead code** (principle 20) — `cargo-machete` prunes unused deps.
 - **Security** (principle 13) — `cargo-audit` / `cargo-deny` against the locked tree.

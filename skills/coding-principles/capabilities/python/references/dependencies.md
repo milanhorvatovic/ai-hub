@@ -46,6 +46,6 @@ Language-specific dependency mechanics. The cross-language principles (semver, l
 
 ## Principle alignment
 
-- **Reproducibility** — exact pins + committed lockfile make builds deterministic (the user's stated preference).
+- **Reproducibility** — exact pins + committed lockfile make builds deterministic (this skill's default).
 - **No dead code** (principle 20) — prune unused dependencies like dead code.
 - **Security** (principle 13) — audit pinned deps; hashes prevent tampered packages.
