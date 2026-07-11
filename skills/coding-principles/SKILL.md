@@ -21,17 +21,17 @@ Single source of implementation discipline for coding tasks. Loaded as active co
 
 ## Design philosophy
 
-Built for *AI agents authoring code*, optimizing for first-pass correctness — right *and* simple *and* tested in one draft — not the human "make it work, then right, then fast" sequence. Two operating rules follow: **severity** (must / should / could) governs triage, and **mantra tier** (Goals > Design > Pruning) governs conflicts. When in doubt, prefer the interpretation that yields simpler, more typed, more testable, more observable code in *this* draft over one that anticipates future flexibility. Full rationale: `references/design-rationale.md`.
+Built for *AI agents authoring code*, optimizing for first-pass correctness — right *and* simple *and* tested in one draft. The human "make it work, then right, then fast" sequence is deliberately rejected: it would license shipping the works-but-ugly version. Two operating rules follow: **severity** (must / should / could) governs triage, and **mantra tier** (Goals > Design > Pruning) governs conflicts. When in doubt, prefer the interpretation that yields simpler, more typed, more testable, more observable code in *this* draft over one that anticipates future flexibility.
 
 ## What this skill is
 
-A rulebook the agent reads before and during code changes — scope, abstraction, error handling, comments, and compatibility decisions flow through its rules. It does not modify files or emit a report; it shapes how the Edit/Write calls that follow happen. Adjacent concerns (post-edit cleanup, repo-local conventions, change narration) are out of scope — see "Scope boundaries" below.
+A rulebook the agent reads before and during code changes — scope, abstraction, error handling, comments, and compatibility decisions flow through its rules. It is read-only: it does not modify files, emit a report, or run linters, formatters, or refactor tools; it shapes how the Edit/Write calls that follow happen. Adjacent concerns (post-edit cleanup, repo-local conventions, change narration) are out of scope — see "Scope boundaries" below.
 
 ## File layout
 
 This SKILL.md is the always-loaded **router** — the mantra/principle summaries, checklist, and anti-patterns below cover routine work. Load deeper material on demand:
 
-- **Full prose** — `references/mantras.md` (all 16 mantras by tier + reverse map), `references/principles.md` (all 20 principles, full text + severity), `references/glossary.md` (boundary, shape, infrastructure, pure function, trust line, …), `references/smells.md` (observable smell → anchoring principle, for review and write-mode self-check). Background: `references/design-rationale.md`.
+- **Full prose** — `references/mantras.md` (all 16 mantras by tier + reverse map), `references/principles.md` (all 20 principles, full text + severity), `references/glossary.md` (boundary, shape, infrastructure, pure function, trust line, …), `references/smells.md` (observable smell → anchoring principle, for review and write-mode self-check).
 - **Cross-language concern references** — load when the code touches the concern, regardless of language:
 
 | Reference | Load when the code… |
@@ -57,7 +57,7 @@ Applies whenever the agent will write, implement, fix, refactor, or clean up cod
 
 Full prose: `references/mantras.md`.
 
-**Conflict resolution:** three tiers, tier wins over tier. Tier 1 *goals* outrank Tier 2 *design rules*, which outrank Tier 3 *pruning rules*. Inside a tier, siblings are case-by-case.
+**Conflict resolution:** three tiers, tier wins over tier. Tier 1 *goals* outrank Tier 2 *design rules*, which outrank Tier 3 *pruning rules*. Inside a tier, siblings are case-by-case — they answer different questions and rarely conflict head-on.
 
 ### Tier 1 — Goals (what we're trying to achieve)
 
@@ -188,13 +188,13 @@ The brake on this skill is: when in doubt, write less *about* the code and more 
 
 Load on demand: language capabilities by the file's language, the review capability for review tasks. Load only what the task touches — reading all four languages for a Python change wastes context.
 
-| Capability | Trigger | Entry point |
-| ---------- | ------- | ----------- |
-| Bash | `*.sh`, `*.bash`, bash shebang | `capabilities/bash/capability.md` |
-| Python | `*.py`, `pyproject.toml` | `capabilities/python/capability.md` |
-| TypeScript | `*.ts`, `*.tsx`, `*.mts`, `tsconfig.json` | `capabilities/typescript/capability.md` |
-| Rust | `*.rs`, `Cargo.toml` | `capabilities/rust/capability.md` |
-| Review | reviewing an existing diff / PR / change | `capabilities/review/capability.md` |
+| Capability | Trigger | Path |
+| ---------- | ------- | ---- |
+| bash | `*.sh`, `*.bash`, bash shebang | capabilities/bash/capability.md |
+| python | `*.py`, `pyproject.toml` | capabilities/python/capability.md |
+| typescript | `*.ts`, `*.tsx`, `*.mts`, `tsconfig.json` | capabilities/typescript/capability.md |
+| rust | `*.rs`, `Cargo.toml` | capabilities/rust/capability.md |
+| review | reviewing an existing diff / PR / change | capabilities/review/capability.md |
 
 For languages without a capability (Go, Ruby, Java, C/C++, Swift, …), use the core principles plus the repo's declared conventions; propose a new capability if the language recurs. Capabilities extend the core, never override it — a conflict is a bug, so flag it. Write-mode (avoid violations as you author) is the default and lives in this router; review-mode loads from the review capability.
 

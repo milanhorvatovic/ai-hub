@@ -17,10 +17,11 @@ External standards (PEPs), modern toolchain consensus, language features by vers
 - **3.11**: `ExceptionGroup` + `except*` (true parallel exception handling), `asyncio.TaskGroup` (structured cancellation), `asyncio.timeout` (cleaner than `wait_for`), 10-60% faster interpreter.
 - **3.12**: `type X = ...` syntax for type aliases, PEP 695 generic syntax (`def f[T](x: T) -> T`), per-interpreter GIL groundwork.
 - **3.13**: free-threaded build (experimental no-GIL), JIT (experimental), `dbm.sqlite3`.
+- **3.14**: free-threaded build officially supported (PEP 779), template strings (PEP 750), deferred annotation evaluation (PEP 649/749), `concurrent.interpreters` (PEP 734).
 
 Default new code to the minimum project Python; do not down-shim modern syntax to satisfy 3.8.
 
-## Toolchain consensus (2024-)
+## Toolchain consensus (as of 2026-07)
 
 - **Package + env manager**: `uv` (Astral) — fastest, replaces `pip` / `pip-tools` / `virtualenv` / much of `poetry`. `poetry` and `hatch` remain valid; `pipenv` is declining.
 - **Lint + format**: `ruff` and `ruff format` — replaces `flake8`, `isort`, `pyupgrade`, `pydocstyle`, `eradicate`, mostly replaces `black`. Single tool; near-instant.

@@ -39,6 +39,6 @@ The trap: **threads do not speed up CPU-bound Python** — the GIL serializes by
 - Inject the clock and any shared resources (principle 16) so concurrent code is testable.
 - Concurrency bugs are timing-dependent — make critical sections small, prefer immutable data (immutability mantra) and message-passing over shared mutable state.
 
-## The free-threaded future
+## The free-threaded build
 
-Python 3.13 ships an experimental free-threaded (no-GIL) build. It changes the CPU-bound calculus, but it's experimental — don't assume it in code that must run on standard CPython.
+Python's free-threaded (no-GIL) build is officially supported since 3.14 (PEP 779; 3.13 shipped it as experimental). It changes the CPU-bound calculus, but it's a separate build — don't assume it in code that must run on standard CPython, which keeps the GIL.

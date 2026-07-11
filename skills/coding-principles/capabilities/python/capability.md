@@ -7,8 +7,8 @@ description: >
   idioms (type hints, f-strings, pathlib, dataclasses), error and logging
   discipline, async-only-for-I/O rules, anti-patterns (mutable default args,
   bare except, eval, global), test conventions, and before/after code
-  examples anchored to numbered principles 4, 5, 13, 15, 17, and 19 of the
-  parent skill.
+  examples anchored to numbered principles 4, 5, 8, 13, 15, 17, and 19 of
+  the parent skill.
 allowed-tools: Read Grep
 ---
 

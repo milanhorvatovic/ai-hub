@@ -5,12 +5,12 @@ Modern toolchain consensus, idiomatic patterns the community has converged on, s
 ## External standards
 
 - **[TC39](https://tc39.es/)** — JavaScript language spec; TypeScript tracks it. Use proposals only when they reach Stage 4 unless the project already opts in to earlier stages.
-- **[`@tsconfig/strictest`](https://github.com/tsconfig/bases)** — known-good baseline for new projects. `@tsconfig/node20`, `@tsconfig/recommended` are domain-specific extensions.
+- **[`@tsconfig/strictest`](https://github.com/tsconfig/bases)** — known-good baseline for new projects. `@tsconfig/node24`, `@tsconfig/recommended` are domain-specific extensions.
 - **[Effect-TS docs](https://effect.website/)** — if the project uses Effect, its docs are the canonical reference; this capability doesn't reproduce them.
 
-## Toolchain consensus (2024-)
+## Toolchain consensus (as of 2026-07)
 
-- **Runtime**: Node 20 LTS or 22 LTS. Bun is acceptable for greenfield CLIs / scripts; Deno for security-sensitive contexts. Don't run on Node 16 or 18 without a stated reason — they're EOL or near-EOL.
+- **Runtime**: a current LTS line — Node 24 (active LTS) or 22 (maintenance LTS). Bun is acceptable for greenfield CLIs / scripts; Deno for security-sensitive contexts. Don't run on Node 20 or older without a stated reason — they're EOL (Node 20 since 2026-04).
 - **Package manager**: `pnpm` — fast, strict (no phantom dependencies), monorepo-native via workspaces. `npm` acceptable; `yarn` declining; `bun install` viable for Bun projects.
 - **TypeScript**: `typescript@latest` with `"strict": true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`. Use `tsc --noEmit` for type-checking; pair with a separate bundler for emit (esbuild, swc, rollup, vite, or tsup).
 - **Lint + format**: `biome` (Rust-based, fast, single tool) OR `eslint` + `prettier`. Don't run both. Most new projects pick `biome`.
@@ -50,18 +50,18 @@ Same pattern works for: `Email`, `URL`, `ValidatedUserInput`, `EncodedHtml`, `Ce
 ## Schema-first APIs
 
 ```typescript
-import { z } from "zod";
+import { z } from "zod";   // zod 4
 
 const UserSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
+  id: z.uuid(),
+  email: z.email(),
   createdAt: z.coerce.date(),
 });
 
 type User = z.infer<typeof UserSchema>;   // source of truth: the schema
 ```
 
-Do not maintain a separate `interface User` alongside the schema. Inference from the schema *is* the type. Drift is impossible because the type is *derived*.
+Do not maintain a separate `interface User` alongside the schema. Inference from the schema *is* the type. Drift is impossible because the type is *derived*. (zod 4 moved the string-format validators to the top level — `z.uuid()`, `z.email()`; the chained `z.string().uuid()` spelling is the deprecated v3 idiom.)
 
 ## Built-in fetch (Node 18+)
 
@@ -101,7 +101,7 @@ Node has `fetch` natively. Don't add `axios` to a new project unless you need in
 ## React-specific (when applicable)
 
 - **Functional components + hooks** only in new code.
-- **Server components** when the framework supports them (Next.js App Router, Remix) — they remove the boundary between fetch and render.
+- **Server components** when the framework supports them (Next.js App Router, React Router 7 — which absorbed Remix) — they remove the boundary between fetch and render.
 - **`use client` directive** at the top of files that need browser APIs / state — keep client boundary thin.
 - **`useMemo` / `useCallback`** only with a measured cause. They have cost; wrong dependency arrays are bugs.
 - **`key` on lists** must be stable + unique. Array index breaks under reorder.

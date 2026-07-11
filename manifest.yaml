@@ -1,0 +1,60 @@
+# Skill System Manifest
+#
+# Declares the skill fleet for skill-system-foundry tooling
+# (scripts/audit_skill_system.py validates entries against the tree).
+# Guarded against drift by tests/repo/test_skill_manifest.py.
+
+skills:
+  coding-principles:
+    canonical: skills/coding-principles/SKILL.md
+    type: router
+    capabilities:
+      - bash
+      - python
+      - review
+      - rust
+      - typescript
+  docs-steward:
+    canonical: skills/docs-steward/SKILL.md
+    type: standalone
+  git-toolkit:
+    canonical: skills/git-toolkit/SKILL.md
+    type: router
+    capabilities:
+      - branch-name
+      - commit-amend-message
+      - commit-body-reflow
+      - commit-fixup
+      - commit-message
+      - merge-execute
+      - merge-readiness
+      - pr-checks-summary
+      - pr-conversation-resolve
+      - pr-description-sync
+      - pr-description-write
+      - pr-link-issues
+      - rebase-cleanup
+      - release-notes
+      - worktree-setup
+  oss-repository-conventions:
+    canonical: skills/oss-repository-conventions/SKILL.md
+    type: router
+    capabilities:
+      - automation-baseline
+      - ci-automation
+      - code-of-conduct
+      - code-style
+      - community-health
+      - contributing
+      - dependency-supply-chain
+      - dev-setup
+      - documentation
+      - governance
+      - licensing
+      - pr-autonomy
+      - release-versioning
+      - repo-infrastructure
+      - security-policy
+      - testing-quality
+
+roles:

@@ -11,7 +11,7 @@ Language-specific dependency mechanics. The cross-language principles (semver, l
   // package.json — exact, no ^ or ~
   "dependencies": {
     "react": "18.3.1",
-    "zod": "3.23.8"
+    "zod": "4.1.11"
   }
   ```
 - **Default new installs to exact** — set `.npmrc` `save-exact=true` (npm) or `save-exact=true` in `.npmrc` for pnpm, so `pnpm add x` writes `1.2.3` not `^1.2.3`.
@@ -46,6 +46,6 @@ Language-specific dependency mechanics. The cross-language principles (semver, l
 
 ## Principle alignment
 
-- **Reproducibility** — exact pins + committed lockfile = deterministic installs (the user's stated preference).
+- **Reproducibility** — exact pins + committed lockfile = deterministic installs (this skill's default).
 - **No dead code** (principle 20) — prune unused dependencies.
 - **Security** (principle 13) — audit; lockfile integrity hashes; `overrides` for fast CVE pins.

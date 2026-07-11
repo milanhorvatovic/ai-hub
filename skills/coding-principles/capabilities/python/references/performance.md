@@ -52,7 +52,7 @@ def norm(points):
 
 - Threads do **not** speed up CPU-bound Python (the GIL serializes bytecode). Threads help I/O-bound work only.
 - CPU-bound parallelism: `multiprocessing` / `concurrent.futures.ProcessPoolExecutor`, or push the hot kernel into `numpy` / a C extension / Cython / Rust (PyO3). See `concurrency.md`.
-- Python 3.13's free-threaded build changes this, but it's experimental — don't assume it.
+- The free-threaded build changes this (officially supported since 3.14, PEP 779), but it's a separate build — don't assume it unless the deployment explicitly runs it; standard CPython keeps the GIL.
 
 ## Don't reach for these reflexively
 
