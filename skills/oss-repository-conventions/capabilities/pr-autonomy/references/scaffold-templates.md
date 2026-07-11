@@ -1,8 +1,10 @@
-# pr-autonomy — scaffold snippets
+# pr-autonomy — scaffold templates
 
 Per-rung building blocks. Install a rung's guardrails _before_ its capability. Pin every action to a SHA; mint the App token per job; keep `permissions` minimal.
 
 ## Prerequisite (L3+): branch protection with required checks — propose, don't apply
+
+Adapt the payload from `branch-protection.example.json`, shipped in the security-policy capability's references.
 
 ```bash
 gh api -X PUT repos/{owner}/{repo}/branches/{default}/protection \

@@ -70,7 +70,7 @@ Report presence across the four pillars, citing sources (catalog: `../../referen
 
 1. CI: `.github/workflows/*` building/testing on `pull_request`; whether it's composable (composite actions / reusable workflows) or a monolith.
 2. Code scanning: a CodeQL workflow (`.github/workflows/codeql*`) or `github/codeql-action` usage.
-3. Dependencies: `.github/dependabot.yaml` / Renovate, plus any auto-merge/reconcile automation.
+3. Dependencies: `.github/dependabot.yml` / `.github/dependabot.yaml` / Renovate, plus any auto-merge/reconcile automation.
 4. Releases: release automation (release-please / semantic-release) and changelog generation.
 5. Prerequisites: the provisioning each present automation depends on — identity, the Actions/Dependabot secret stores, gating labels, and the auto-merge repo settings — per `../../references/automation-prerequisites.md` (`gh secret list`, `gh variable list`, `gh label list`, `allow_auto_merge`).
 
@@ -81,7 +81,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `ci-composable` — **could**. Pass when CI is assembled from reusable building blocks (composite actions / reusable workflows) rather than one monolithic job. Composable CI is maintainable and shareable across repos.
 - `automation-prereqs-provisioned` — **should** (when any committed automation reads a secret, variable, label, or auto-merge setting). Fail when an automation references a prerequisite that doesn't exist — a secret only in the wrong store (Actions vs Dependabot), a gating label that was never created, or `allow_auto_merge` left off. Committed automation that's missing its prerequisites silently no-ops or 403s rather than failing loudly. This is the **cross-cutting** prerequisites check, owned here per `../../references/automation-prerequisites.md`; the other automation capabilities point at it rather than re-scoring it (avoid double-counting), the same way pillar checks are scored once via their owner.
 
-Then present a **baseline-readiness roll-up** that aggregates the owning pillars' checks (cite each): testing-quality `tests-run-in-ci`, security-policy code-scanning, dependency-supply-chain `updates-automated`, release-versioning `release-automated`. In a full-repo audit, **score each of those once via its owning pillar** — this capability contributes only `ci-composable` and the cross-cutting `automation-prereqs-provisioned` to the score, to avoid double-counting.
+Then present a **baseline-readiness roll-up** that aggregates the owning pillars' checks (cite each): testing-quality `tests-run-in-ci`, dependency-supply-chain `updates-automated`, release-versioning `release-automated`; no pillar owns a code-scanning check yet, so report that pillar from this capability's scan (CodeQL workflow present) without scoring it. In a full-repo audit, **score each of the owned checks once via its owning pillar** — this capability contributes only `ci-composable` and the cross-cutting `automation-prereqs-provisioned` to the score, to avoid double-counting.
 
 ## Scaffold
 

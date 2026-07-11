@@ -8,7 +8,7 @@ The rubric in `oss-health-rubric.md` is the skill's own scoring. This file maps 
 | --- | --- | --- |
 | **GitHub community-profile %** | presence of the standard health files | `gh api repos/{owner}/{repo}/community/profile --jq .health_percentage` |
 | **OpenSSF Scorecard** | automated security-practice score (0–10) across ~18 checks | run the Scorecard action / `scorecard` CLI; the skill's audit ids carry `scorecard:` tags that map to its checks |
-| **OpenSSF Best Practices Badge** | project-process maturity in three tiers | self-certification at bestpractices.coreinfrastructure.org; map findings to passing / silver / gold |
+| **OpenSSF Best Practices Badge** | project-process maturity in three tiers | self-certification at bestpractices.dev; map findings to passing / silver / gold |
 | **SLSA build level** | build / provenance integrity (L0–L3) | see the security-policy `build-provenance` check |
 | **Project maturity ladder** | foundation-readiness | CNCF sandbox / incubating / graduated; Apache podling → TLP — governance + community signals |
 
