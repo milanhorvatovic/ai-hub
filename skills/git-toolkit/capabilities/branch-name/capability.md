@@ -4,7 +4,8 @@ description: >
   Proposes a git branch name for new work — from currently-staged changes, a
   user-supplied description of intent, or both. Respects the repo's branch
   naming conventions (prefixes like fix/, feature/, chore/), reads recent
-  branch patterns from git, and never includes issue numbers in the slug.
+  branch patterns from git, and defaults to no issue numbers in the slug
+  (repo convention can override).
   Outputs 2-3 candidates and the git checkout -b command for the user to
   run. Triggers when the user is about to start a new branch, asks "what
   should I name this branch", or wants a branch name from staged work.

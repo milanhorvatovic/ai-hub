@@ -57,7 +57,7 @@ Shared references at this skill's root hold the canonical format spec, trailer r
 
 ## Capability routing
 
-Grouped by lifecycle phase so the right capability surfaces by intent, not by alphabetic position. A flat alphabetic table follows at the end as a lookup fallback.
+Grouped by lifecycle phase so the right capability surfaces by intent, not by alphabetic position.
 
 ### Starting work
 
@@ -103,26 +103,6 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 | merge-readiness | [GitHub-side] Pre-merge gate check — CI status, approvals, mergeability, unresolved threads, no WIP commits, description-in-sync. Outputs READY / PARTIALLY-READY / NOT-READY with per-gate detail | capabilities/merge-readiness/capability.md |
 | merge-execute | [GitHub-side] Output the canonical `gh pr merge` command per repo merge policy (squash / rebase / merge), with the right `--delete-branch` and `--auto` flags | capabilities/merge-execute/capability.md |
 | release-notes | [git-side, optional gh enrichment] Draft release notes for a new version by aggregating commits since the previous tag, grouped by conventional-commits type; enriches with merged-PR metadata and contributor credit when `gh` is authenticated, and degrades to a commit-only draft otherwise | capabilities/release-notes/capability.md |
-
-### Alphabetic index (fallback)
-
-| Capability | Path |
-|---|---|
-| branch-name | capabilities/branch-name/capability.md |
-| commit-amend-message | capabilities/commit-amend-message/capability.md |
-| commit-body-reflow | capabilities/commit-body-reflow/capability.md |
-| commit-fixup | capabilities/commit-fixup/capability.md |
-| commit-message | capabilities/commit-message/capability.md |
-| merge-execute | capabilities/merge-execute/capability.md |
-| merge-readiness | capabilities/merge-readiness/capability.md |
-| pr-checks-summary | capabilities/pr-checks-summary/capability.md |
-| pr-conversation-resolve | capabilities/pr-conversation-resolve/capability.md |
-| pr-description-sync | capabilities/pr-description-sync/capability.md |
-| pr-description-write | capabilities/pr-description-write/capability.md |
-| pr-link-issues | capabilities/pr-link-issues/capability.md |
-| rebase-cleanup | capabilities/rebase-cleanup/capability.md |
-| release-notes | capabilities/release-notes/capability.md |
-| worktree-setup | capabilities/worktree-setup/capability.md |
 
 **Scope legend:**
 

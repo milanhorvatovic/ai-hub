@@ -96,6 +96,8 @@ This was a dry run. To apply, re-invoke without the dry-run modifier.
 
 Dry-run mode skips the Force-Push Impact block (Step 1's pushed-state check) since no force-push will happen, but still emits the Scope block so the user sees which branches would be affected by the real run.
 
+The preview displays full bodies, so the Step 7 secret scan applies here too: run `../../references/secret-patterns.md` over every BEFORE/AFTER pair and redact matched spans per its action steps before emitting.
+
 ### 3. Choose tool
 
 Follow `../../references/mass-rewrite.md` tool-choice table:
@@ -136,6 +138,8 @@ git diff pre-reflow/<branch> <branch>      # MUST be empty (message-only changes
 The `git diff` against the backup tag should be empty for FLOW and WRAP — both transformations touch only messages, never trees. Any non-empty diff is a bug; halt and restore via `git reset --hard pre-reflow/<branch>`.
 
 ### 7. Surface verdict
+
+Before emitting, scan every rewritten body against `../../references/secret-patterns.md` — the rewrite is the moment to redact, not re-leak. On match, apply the catalog's action steps to everything this capability displays: redact the matched span in verdict artifacts and any body excerpt (`[REDACTED: <pattern_name>]`), WARN per pattern, list the offending commits as artifacts, and hold Step 8 for those branches until the user decides how to handle the underlying message. Never emit matched text un-redacted.
 
 Emit per `../../references/review-output.md`:
 

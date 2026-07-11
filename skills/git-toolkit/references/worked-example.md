@@ -137,7 +137,7 @@ You apply. History collapses to 3 commits.
 
 ```
 git push -u origin fix/upload-queue-retry
-gh pr create --draft  # opens the PR with no body
+gh pr create --draft  # creates the PR (#729 in this walkthrough) with no body
 ```
 
 ## Step 8 — `pr-description-write` (GitHub-side)
@@ -166,11 +166,10 @@ Uploads silently failed during a 20-minute backend incident last week. Reads of 
 Retry doubles the load on the backend during incidents (up to 3x for a 100% failure rate). The 1s cap and 3-attempt budget keep amplification bounded. If the backend is genuinely down for >3s, behavior is unchanged from today (loss).
 
 Apply with:
-  gh pr edit --body-file <(cat <<'EOF'
-  ...
-  EOF
-  )
+  gh pr edit 729 --body-file <mktemp-path>
 ```
+
+`<mktemp-path>` — here and in every later apply command — stands for the temp file the proposing capability writes alongside the inline proposal (created with `mktemp`; the capability's real output prints the actual path).
 
 You apply.
 
@@ -190,7 +189,7 @@ Proposed addition to PR body:
   Closes #491
   Refs #482
 
-Apply with: gh pr edit --body ...
+Apply with: gh pr edit 729 --body-file <mktemp-path>
 ```
 
 You apply.
@@ -215,7 +214,7 @@ Proposed body diff:
   -[x] Unit: three new cases ... exhaust-on-3 ...
   +[x] Unit: three new cases ... exhaust-on-2 ...
 
-Apply with: gh pr edit --body ...
+Apply with: gh pr edit 729 --body-file <mktemp-path>
 ```
 
 ## Step 11 — `pr-checks-summary` (GitHub-side)
@@ -330,7 +329,7 @@ Commits: 14 (after squash-merges)
 
 Contributors: @author, @reviewer-1, @reviewer-2, @reviewer-3
 
-Apply with: gh release create v2.4.0 --notes-file <(cat <<'EOF' ... EOF)
+Apply with: gh release create v2.4.0 --notes-file <mktemp-path>
 ```
 
 ## Capabilities not used in this walkthrough

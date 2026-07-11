@@ -21,6 +21,7 @@ Proposes an interactive-rebase plan to clean up a branch's commit history.
 - **Resolve base** — PR base via `gh pr view --json baseRefName` if PR exists; else merge-base with `main` / `master` / `develop` (try each, first match wins).
 - **≤1 commits in range** → stop with "nothing to clean up."
 - **On default branch** → refuse; rebase-cleanup is for feature branches only.
+- **Bot guard** — list author emails across the range with `git log --format='%h %ae' <base>..HEAD`; commits whose email matches a pattern in `../../references/bot-signatures.md` keep their message format: plan them as `pick`, never `reword`, `squash`, or `fixup` them (each replaces or discards the bot-controlled message), regardless of what Step 2's classification would otherwise suggest. Their format is bot-controlled and the bot's next run overwrites any rewrite. Dropping a redundant bot commit remains a content decision the user can make.
 - **Detect pushed commits**: `git rev-list <base>..HEAD` is the full range; `git rev-list <base>..HEAD ^@{u}` returns the *unpushed* commits in that range (reachable from HEAD but not from the branch's upstream), so the pushed set is the complement. Where no upstream is configured, fall back to per-commit `git branch -r --contains <sha>`. If any commit in range is pushed AND the PR has at least one review (`gh pr view --json reviews`) → emit the force-push warning (Step 6) **before** any plan is shown.
 
 ## Workflow
@@ -71,6 +72,7 @@ For every `reword` and `squash` (which generates a new combined message), draft 
 - Conventional-commits prefix if the repo uses them
 - Combined body explaining the merged intent, not the sequence of edits
 - **Preserve existing trailers verbatim** per `../../references/trailer-semantics.md` — including `Co-authored-by:`, `Signed-off-by:`, etc. **Never add new trailers** as part of cleanup.
+- **Secret scan** — run every drafted message through `../../references/secret-patterns.md` before it enters the plan. On match → redact + warn + ask the user before including; the rewrite is the moment to redact, not re-leak.
 
 ### 5. Output
 
@@ -135,6 +137,6 @@ The skill will not run force-push; user must opt in explicitly.
 - Don't suggest squashing commits that are individually reviewable or individually revertable. Multiple small commits is sometimes the right structure (especially for bisecting).
 - Don't reword without proposing the new subject per `../../references/format-subject.md` — leaving the user to fill in is a non-answer.
 - **Don't add `Co-authored-by:` or any other trailers when squashing.** Only preserve trailers that were already present in the original commits, byte-for-byte.
-- Don't include `git push --force` or `--force-with-lease` in any suggested command — the user must opt into the force-push risk.
+- Don't auto-execute any force-push, and never suggest bare `git push --force`. When the Force-Push Impact block (Step 6) says publishing requires it, surface the `git push --force-with-lease origin <branch>` recipe; the user runs it.
 - Don't propose changes to merge commits unless the user explicitly asks.
 - Don't propose rebasing a branch whose base is itself a feature branch (stacked PR) without warning that rebasing rewrites the SHAs the stacked branch depends on. When dependents exist, emit a **Stacked Dependents** block before any plan: list each dependent branch and the rebase command needed to cascade the fix (`git checkout <dep> && git rebase <this-branch>`), in topological order. See `../../references/mass-rewrite.md` for the full cascade procedure when more than one level is involved.
