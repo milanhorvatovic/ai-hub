@@ -130,7 +130,7 @@ Apply with:
 applying. Never run gh pr edit automatically.)
 ```
 
-Pre-display secret scan per `../../references/secret-patterns.md` over the proposed body. On match → redact + WARN. Never include detected secrets.
+Secret scan per `../../references/secret-patterns.md` over the proposed body before it is displayed or written to the mktemp file. On match → redact + WARN. Never include detected secrets — on screen or on disk.
 
 Always:
 - Verify each proposal with `gh issue view` — don't propose closing an issue you haven't read
