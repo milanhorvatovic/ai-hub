@@ -7,4 +7,4 @@ Language-specific anti-patterns and smells. Complements the language-agnostic `.
 - **Backticks `` `cmd` ``** — use `$(cmd)`, nestable and clearer.
 - **Long `if`/`elif` ladders on strings** — use `case` instead.
 - **Parsing JSON with `grep`/`sed`** — call `jq`. If `jq` is not available, the script is in the wrong language.
-- **Calling `python -c '...'` from bash to do one thing** — rewrite the whole script in python.
+- **Calling `python -c '...'` from bash to do one thing** — rewrite the whole script in Python.

@@ -1,7 +1,7 @@
 # Skill System Manifest
 #
-# Declares the skill fleet for skill-system-foundry tooling
-# (scripts/audit_skill_system.py validates entries against the tree).
+# Declares the skill fleet for skill-system-foundry tooling; the
+# foundry's system audit validates these entries against the tree.
 # Guarded against drift by tests/repo/test_skill_manifest.py.
 
 skills:
@@ -56,5 +56,3 @@ skills:
       - repo-infrastructure
       - security-policy
       - testing-quality
-
-roles:
