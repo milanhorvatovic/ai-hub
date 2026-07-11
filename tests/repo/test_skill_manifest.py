@@ -23,6 +23,7 @@ _MANIFEST = _REPO_ROOT / "manifest.yaml"
 
 _SKILL_KEY = re.compile(r"^  ([a-z0-9-]+):\s*$")
 _CAPABILITY_ITEM = re.compile(r"^      - ([a-z0-9-]+)\s*$")
+_CANONICAL_LINE = re.compile(r"^\s+canonical:\s*(\S+)")
 
 
 def _tracked_files() -> list[str]:
@@ -92,8 +93,11 @@ def test_manifest_capabilities_match_the_tracked_tree() -> None:
 
 
 def test_manifest_canonical_paths_resolve() -> None:
-    text = _MANIFEST.read_text(encoding="utf-8")
-    paths = re.findall(r"canonical:\s*(\S+)", text)
+    paths = [
+        m.group(1)
+        for line in _MANIFEST.read_text(encoding="utf-8").splitlines()
+        if (m := _CANONICAL_LINE.match(line))
+    ]
     assert paths, "manifest declares no canonical paths"
     missing = [p for p in paths if not (_REPO_ROOT / p).is_file()]
     assert not missing, f"manifest canonical paths that do not resolve: {missing}"
