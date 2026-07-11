@@ -1,9 +1,10 @@
 """Pytest fixtures for the coding-principles skill self-tests.
 
 The skill is documentation only (markdown), so these tests do not import any
-skill code — they validate the on-disk structure: frontmatter shape, semver
-versioning, capability registration consistency, the per-language file set,
-and cross-reference resolution between SKILL.md, capabilities, and references.
+skill code — they validate the contracts unique to this skill: the advertised
+mantra/principle counts, capability name slugs, the per-language file set,
+and the pointer↔example coupling. Generic structure checks live in
+`tests/skills/test_structure_all.py`.
 """
 
 from __future__ import annotations

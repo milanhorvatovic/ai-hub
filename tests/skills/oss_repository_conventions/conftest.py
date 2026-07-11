@@ -2,9 +2,9 @@
 
 The skill is documentation only (markdown): a router (SKILL.md) plus one
 capability per domain under capabilities/ and shared references/. These tests
-do not import any skill code; they validate the on-disk structure — frontmatter
-shape, semver versioning, router/capability registration consistency,
-allowed-tools union, and cross-reference resolution.
+do not import any skill code; they validate the contracts unique to this
+skill — the locked capability skeleton and the audit-output NDJSON schema.
+Generic structure checks live in `tests/skills/test_structure_all.py`.
 """
 
 from __future__ import annotations
@@ -21,11 +21,6 @@ _SKILL_ROOT = _REPO_ROOT / "skills" / "oss-repository-conventions"
 def skill_root() -> Path:
     """Absolute path to skills/oss-repository-conventions/."""
     return _SKILL_ROOT
-
-
-@pytest.fixture(scope="session")
-def skill_md(skill_root: Path) -> Path:
-    return skill_root / "SKILL.md"
 
 
 @pytest.fixture(scope="session")

@@ -21,13 +21,13 @@ Thanks for your interest! ai-hub is an incubator for AI-agnostic artifacts — s
 ## Repository layout
 
 - `skills/<name>/` — one skill per directory: `SKILL.md` (the always-loaded router), optional `capabilities/<name>/capability.md`, and shared `references/`.
-- `tests/skills/<name>/` — stdlib-only pytest structural self-tests for each skill (frontmatter, semver, capability/reference resolution).
+- `tests/skills/` — stdlib-only pytest suite: `test_structure_all.py` validates every skill's structure generically (frontmatter, spec limits, annotated semver, capability routing, link resolution); `tests/skills/<name>/` holds the content contracts unique to one skill.
 
 ## Making a change
 
 - Create a topic branch from `main`.
 - Keep changes focused; one logical change per pull request.
-- Add or update a skill's structural tests for any change to its shape.
+- The generic structural suite (`tests/skills/test_structure_all.py`) validates every skill automatically — a new skill needs no test directory to be covered. Add tests under `tests/skills/<name>/` only for contracts unique to that skill.
 - Run `./venv/bin/pytest -q` before pushing. Markdown is formatted with Prettier (`proseWrap: never`) per `.prettierrc.json` — author prose as one line per paragraph and let it wrap.
 
 ## Versioning

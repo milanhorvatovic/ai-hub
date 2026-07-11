@@ -1,9 +1,9 @@
 """Pytest fixtures for the git-toolkit skill self-tests.
 
 The skill is documentation only (markdown + JSON Schema), so these tests do
-not import any skill code — they validate the on-disk structure: frontmatter
-shape, semver versioning, capability registration consistency, and cross-
-reference resolution between SKILL.md, capabilities, and references.
+not import any skill code — they validate the contracts unique to this skill:
+the review-output NDJSON schema and the untrusted-content guard wiring.
+Generic structure checks live in `tests/skills/test_structure_all.py`.
 """
 
 from __future__ import annotations
@@ -20,11 +20,6 @@ _SKILL_ROOT = _REPO_ROOT / "skills" / "git-toolkit"
 def skill_root() -> Path:
     """Absolute path to skills/git-toolkit/."""
     return _SKILL_ROOT
-
-
-@pytest.fixture(scope="session")
-def skill_md(skill_root: Path) -> Path:
-    return skill_root / "SKILL.md"
 
 
 @pytest.fixture(scope="session")

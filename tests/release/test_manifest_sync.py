@@ -1,13 +1,15 @@
-"""Guard the two version sources against drift.
+"""Guard the release wiring against drift.
 
 `metadata.version` in each `SKILL.md` is the authoritative, consumer-facing version;
-`.release-please-manifest.json` mirrors it as release-please's bump baseline. release-please
-keeps them in sync on release, but a manual edit to one could silently desync the other —
-this test fails fast if they diverge, and if the manifest gains or loses a skill.
+`.release-please-manifest.json` mirrors it as release-please's bump baseline, and
+`release-please-config.json` `packages` decides which paths get released at all.
+release-please keeps versions in sync on release, but a manual edit could silently
+desync them — and a new skill forgotten in the config is silently never released.
+These tests fail fast if the versions diverge or if either file gains or loses a skill.
 
 Skills are resolved from *tracked* files (`git ls-files`), like
 `tests/skills/test_distribution_hygiene.py`, so a local untracked scratch skill in the
-working tree can't perturb the result — the manifest must match what actually ships.
+working tree can't perturb the result — the wiring must match what actually ships.
 """
 
 import json
@@ -19,6 +21,7 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _MANIFEST = _REPO_ROOT / ".release-please-manifest.json"
+_CONFIG = _REPO_ROOT / "release-please-config.json"
 
 _VERSION = re.compile(r'^\s+version:\s*"([^"]+)"', flags=re.MULTILINE)
 
@@ -52,6 +55,16 @@ def _skill_version(skill_md: Path) -> str:
 def test_manifest_covers_exactly_the_skills() -> None:
     manifest = json.loads(_MANIFEST.read_text(encoding="utf-8"))
     assert set(manifest) == _tracked_skill_paths()
+
+
+def test_config_packages_cover_exactly_the_skills() -> None:
+    config = json.loads(_CONFIG.read_text(encoding="utf-8"))
+    packages = config.get("packages")
+    assert isinstance(packages, dict) and packages, (
+        f"{_CONFIG.name} declares no `packages` mapping — release-please "
+        "releases only the paths listed there, so every skill release hangs off it"
+    )
+    assert set(packages) == _tracked_skill_paths()
 
 
 def test_manifest_versions_match_skill_md() -> None:

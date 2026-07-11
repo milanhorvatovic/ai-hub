@@ -2,7 +2,7 @@
 
 ## Project
 
-ai-hub is a repository of AI-agnostic artifacts — primarily **skills** under `skills/<name>/`. Each skill is documentation (markdown): an always-loaded `SKILL.md` router, optional `capabilities/<name>/capability.md` files, and shared `references/`. Some skills also ship Python under `scripts/` (stdlib-only). Structural self-tests live at `tests/skills/<name>/`.
+ai-hub is a repository of AI-agnostic artifacts — primarily **skills** under `skills/<name>/`. Each skill is documentation (markdown): an always-loaded `SKILL.md` router, optional `capabilities/<name>/capability.md` files, and shared `references/`. Some skills also ship Python under `scripts/` (stdlib-only). A generic structural suite at `tests/skills/test_structure_all.py` validates every skill; per-skill content contracts live at `tests/skills/<name>/`.
 
 ## Setup & tests
 
