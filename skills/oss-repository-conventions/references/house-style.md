@@ -39,6 +39,6 @@ These are missing across most of the fleet — audit should surface them by defa
 
 - License: prefer a permissive SPDX license consistent with the repo's siblings unless the maintainer states otherwise; confirm before writing.
 - Changelog: Keep a Changelog + SemVer headings.
-- Code of conduct: Contributor Covenant (latest), with a real enforcement contact.
+- Code of conduct: Contributor Covenant (latest), with a real enforcement contact, kept at repo root.
 - Dependency automation: Dependabot via `.github/dependabot.yaml`.
 - Agent-instruction files: `AGENTS.md` as the canonical source; `CLAUDE.md` / `.github/copilot-instructions.md` as tool-specific pointers.

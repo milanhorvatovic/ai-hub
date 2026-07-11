@@ -45,7 +45,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 
 ## Scaffold
 
-`CODE_OF_CONDUCT.md` — write after confirmation from `references/code-of-conduct.template.md` (Contributor Covenant). Replace the contact placeholder with the maintainer-provided enforcement contact before writing; do not write the file with a placeholder left in. House style keeps the file at repo root; GitHub also surfaces it from `.github/`.
+`CODE_OF_CONDUCT.md` — write after confirmation from `references/code-of-conduct.template.md` (Contributor Covenant). Replace the contact placeholder with the maintainer-provided enforcement contact before writing; do not write the file with a placeholder left in. The house default places the file at repo root (`../../references/house-style.md`); GitHub also surfaces it from `.github/`.
 
 For the canonical full text, fetch the current Contributor Covenant rather than paraphrasing the body.
 

@@ -136,7 +136,7 @@ The full inventory of file paths the scanner checks. Add to this list when you e
 - `.drone.yml`
 - `.travis.yml`
 - `appveyor.yml`, `.appveyor.yml`
-- `.github/dependabot.yml`, `.github/dependabot.yaml`, `.github/renovate.json`, `renovate.json`
+- `.github/dependabot.yml`, `.github/dependabot.yaml`, `.github/renovate.json`, `renovate.json`, `.renovaterc*`
 
 ## Releases
 

@@ -26,7 +26,7 @@ Overall health: 61%   (GitHub community profile: 50%)
 2. [should] No `SECURITY.md` — no private way to report vulnerabilities. → scaffold available  (security-policy: security-md)
 3. [should] No dependency automation — deps rot, CVE fixes missed. → scaffold available  (dependency-supply-chain: updates-automated · Scorecard: Dependency-Update-Tool)
 4. [should] `actions/checkout@v4` is a moving tag, not a SHA — a retag can inject code. → fix suggested  (ci-automation: actions-pinned · Scorecard: Pinned-Dependencies)
-5. [could] No `CODE_OF_CONDUCT.md`. → scaffold available  (code-of-conduct)
+5. [should] No `CODE_OF_CONDUCT.md`. → scaffold available  (code-of-conduct)
 
 ## Already solid
 - `README.md` — states what/install/usage up top. Source: `README.md`.

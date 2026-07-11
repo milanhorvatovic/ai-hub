@@ -1,4 +1,4 @@
-# ci-automation — hardening patterns
+# ci-automation — scaffold templates
 
 This capability _hardens_ workflows. The base composable CI shape — the `setup` composite action, the thin `ci.yml` caller, and the CodeQL workflow — comes from the automation-baseline capability's building blocks; harden whatever it (or the repo) produces using the patterns below. Pin every third-party action to a full commit SHA.
 
