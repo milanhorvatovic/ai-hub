@@ -130,6 +130,8 @@ Apply with:
 applying. Never run gh pr edit automatically.)
 ```
 
+Pre-display secret scan per `../../references/secret-patterns.md` over the proposed body. On match → redact + WARN. Never include detected secrets.
+
 Always:
 - Verify each proposal with `gh issue view` — don't propose closing an issue you haven't read
 - Show confidence level + reasoning

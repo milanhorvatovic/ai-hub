@@ -88,7 +88,7 @@ A body is needed when:
 - The "why" isn't obvious from the diff.
 - There are alternatives considered or trade-offs to document.
 - An issue / design doc / ADR should be linked.
-- Squash-with-`sm == "PR_BODY"` is NOT in play (otherwise the PR body becomes the commit body, and writing a commit body is redundant — focus on the subject).
+- Squash-with-`sm == "PR_BODY"` per `../../references/merge-policy.md` is NOT in play (otherwise the PR body becomes the commit body, and writing a commit body is redundant — focus on the subject).
 
 A body is NOT needed when:
 
@@ -140,11 +140,11 @@ Always show the full proposed message AND the apply command. Never run `git comm
 
 ### 0. Rule catalog
 
-REVIEW findings must use the kebab-case rule ids from `../../references/commit-smells.md` (e.g., `generic-verb`, `vague-noun`, `status-marker`, `issue-in-subject`, `trailing-period`, `past-tense-verb`, `overlong-subject`, `restated-subject`, `listed-files`, `auto-trailer`, `marketing-language`). The catalog is the authoritative source for detection patterns, fixes, and before/after examples. The schema in `../../references/review-output.schema.json` enforces the kebab-case pattern; findings that invent ad-hoc ids will fail schema validation.
+REVIEW findings must use the kebab-case rule ids from `../../references/commit-smells.md` (e.g., `generic-verb`, `vague-noun`, `status-marker`, `issue-in-subject`, `trailing-period`, `past-tense-verb`, `overlong-subject`, `restated-subject`, `listed-files`, `auto-trailer`, `marketing-language`). The catalog is the authoritative source for detection patterns, fixes, and before/after examples. The schema in `../../references/review-output.schema.json` enforces only the kebab-case pattern, not catalog membership — staying inside the catalog is this capability's contract, so treat any finding whose `rule` id is not in the catalog as a defect even though it validates.
 
 ### 0b. Rule selectivity (optional `rules:` filter)
 
-By default every catalog rule runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case rule ids, e.g. `rules: subject-length,trailing-period,overlong-subject` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in catalog") but do not halt the run. The output preamble lists the active subset so the reader knows what was *not* checked: `Active rule subset: subject-length, trailing-period, overlong-subject (3 of 24 catalog rules)`.
+By default every catalog rule runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case rule ids, e.g. `rules: past-tense-verb,trailing-period,overlong-subject` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in catalog") but do not halt the run. The output preamble lists the active subset so the reader knows what was *not* checked: `Active rule subset: past-tense-verb, trailing-period, overlong-subject (3 of 24 catalog rules)`.
 
 Useful in CI contexts where a repo has accepted some smells as out-of-scope but wants to enforce others on every PR. The NDJSON output shape from `../../references/review-output.md` is unchanged — findings still carry their `rule` id; the only change is which rules contribute.
 

@@ -159,7 +159,7 @@ Never post or resolve automatically.
 - **Self-review threads** (you opened threads on your own PR) — surface separately; usually low priority.
 - **Bot-authored threads** (CodeQL, Sonar, etc.) — flag as bot comments; "Addressed in <sha>" may not be enough to satisfy the bot, which only re-checks on push.
 - **Threads with many comments** — surface the LATEST comment in the thread; earlier comments are context.
-- **Suggestion-block comments** (`suggestion` markdown) — the reviewer proposed a code change; offer to accept the suggestion via `gh pr review --comment --body '...' --apply-suggestion` (if supported by gh) OR direct the user to the PR UI's "commit suggestion" button.
+- **Suggestion-block comments** (`suggestion` markdown) — the reviewer proposed a code change; no `gh` CLI path commits a suggestion, so direct the user to the PR UI's "commit suggestion" button (or apply the change locally and push).
 - **Resolved threads being re-opened by new commits** — don't list (only `isResolved == false`).
 - **PR with 50+ threads** — paginate; show top 10 unresolved + a count.
 

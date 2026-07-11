@@ -137,6 +137,8 @@ The `git diff` against the backup tag should be empty for FLOW and WRAP — both
 
 ### 7. Surface verdict
 
+Before emitting, scan every rewritten body against `../../references/secret-patterns.md` — the rewrite is the moment to redact, not re-leak. On match → WARN, list the offending commits as artifacts, and hold Step 8 for those branches until the user decides.
+
 Emit per `../../references/review-output.md`:
 
 ```

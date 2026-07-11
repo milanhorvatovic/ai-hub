@@ -115,5 +115,5 @@ before applying. The skill will not run force-push on your behalf.
 - Don't propose changes to non-HEAD commits — that's `rebase-cleanup`'s job.
 - Don't strip or reformat trailers — preserve verbatim per `../../references/trailer-semantics.md`.
 - Don't add `Co-authored-by:` or any trailer the existing message didn't have, unless the user explicitly asks.
-- Don't include `git push --force-with-lease` in the suggested command — the user must opt in to the rewrite-history risk.
+- Don't auto-execute any force-push, and never suggest bare `git push --force`. When HEAD is pushed, surface the `git push --force-with-lease` recipe via the Step 5 warning; the user runs it.
 - Don't propose amending a commit whose subject is fine just to be "cleaner" — only when there's a concrete fix needed.
