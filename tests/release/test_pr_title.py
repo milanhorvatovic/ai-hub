@@ -53,6 +53,7 @@ def test_valid_titles(title: str) -> None:
         "feat(git-toolkit):missing space",  # missing space after colon
         "feat(git-toolkit): ",  # empty subject
         "feat(git-toolkit): add x.",  # trailing period
+        "feat(git-toolkit): add x.  ",  # trailing period hidden by spaces
     ],
 )
 def test_invalid_titles(title: str) -> None:

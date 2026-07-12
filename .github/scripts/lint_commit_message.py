@@ -35,11 +35,11 @@ The message is read from a file path or stdin (`-`), never from a shell-interpol
 argument, because commit text is attacker-controllable on fork PRs. `--strip-comments`
 applies git's editor cleanup (drop `#` lines and the scissors block) and belongs only
 to the commit-msg hook, which lints the pre-cleanup editor file; CI lints committed
-text verbatim, where a `#`-prefixed line is real content. `--author-email` lets CI
-skip bot-authored commits (Dependabot bodies are hard-wrapped by design); because the
-email is forgeable, pass `--pr-author-login` too and the skip only applies when the
-PR itself is bot-authored. Even then it is a formatting convenience, not a security
-boundary.
+text verbatim, where a `#`-prefixed line is real content. The bot skip (Dependabot
+bodies are hard-wrapped by design) fires only when BOTH `--author-email` and
+`--pr-author-login` look bot-authored — the email alone is forgeable, so omitting the
+login fails closed and lints. Even then the skip is a formatting convenience, not a
+security boundary.
 """
 
 from __future__ import annotations
@@ -176,20 +176,23 @@ def _split_fenced(lines: list[str]) -> tuple[list[str], list[list[str]]]:
 def _is_footer_block(paragraph: list[str]) -> bool:
     """A paragraph of trailers, issue refs, and cherry-pick lines.
 
-    The first line must be one of those outright — indented lines are accepted only
-    as folded trailer continuations (git's own semantics), so an all-indented prose
-    paragraph cannot masquerade as a footer to dodge the shape check.
+    The first line must be one of those outright, and an indented line is accepted
+    only directly under a trailer line, as its folded continuation (git's own
+    semantics — issue refs and cherry-pick lines do not fold). Wrapped prose can
+    therefore neither open a fake footer nor hide inside a real one.
     """
     first, *rest = paragraph
     if not (TRAILER_LINE.match(first) or CHERRY_PICK_LINE.match(first) or ISSUE_REF_LINE.match(first)):
         return False
-    return all(
-        TRAILER_LINE.match(line)
-        or CHERRY_PICK_LINE.match(line)
-        or ISSUE_REF_LINE.match(line)
-        or line[:1].isspace()
-        for line in rest
-    )
+    can_fold = TRAILER_LINE.match(first) is not None
+    for line in rest:
+        if TRAILER_LINE.match(line):
+            can_fold = True
+        elif CHERRY_PICK_LINE.match(line) or ISSUE_REF_LINE.match(line):
+            can_fold = False
+        elif not (can_fold and line[:1].isspace()):
+            return False
+    return True
 
 
 def _subject_errors(subject: str, skills: set[str]) -> list[str]:
@@ -290,13 +293,14 @@ def main() -> int:
     parser.add_argument(
         "--author-email",
         default="",
-        help="author email; a known bot pattern skips the lint entirely",
+        help="commit author email; part of the bot skip, which requires "
+        "--pr-author-login as well",
     )
     parser.add_argument(
         "--pr-author-login",
         default=None,
-        help="PR author login; when given, the bot skip also requires a bot-looking "
-        "login, so a forged author email on a human PR is still linted",
+        help="PR author login; the bot skip fires only when BOTH this and "
+        "--author-email look bot-authored — omitting either fails closed and lints",
     )
     parser.add_argument(
         "--strip-comments",
@@ -316,10 +320,14 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if args.author_email and is_bot_author(args.author_email):
-        if args.pr_author_login is None or is_bot_login(args.pr_author_login):
-            print(f"{args.label}: skipped (bot author {args.author_email})")
-            return 0
+    if (
+        args.author_email
+        and args.pr_author_login is not None
+        and is_bot_author(args.author_email)
+        and is_bot_login(args.pr_author_login)
+    ):
+        print(f"{args.label}: skipped (bot author {args.author_email})")
+        return 0
 
     if args.message_file == "-":
         message = sys.stdin.read()

@@ -82,7 +82,7 @@ def validate(title: str, skills: set[str], noun: str = "title") -> list[str]:
     if not match["subject"].strip():
         errors.append("subject is empty")
 
-    if title.endswith("."):
+    if title.rstrip().endswith("."):
         errors.append(f"{noun} ends with a period")
 
     if len(title) > TITLE_MAX:

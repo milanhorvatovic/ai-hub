@@ -242,11 +242,26 @@ def test_indented_block_lines_are_exempt() -> None:
         "This paragraph was wrapped and\n  indented by two spaces.",
         # An all-indented paragraph is not a footer block either.
         "  wrapped prose disguised\n  as a trailer block",
+        # Issue refs do not fold — indented prose cannot hide inside a footer.
+        "Closes #12\n  wrapped prose pretending to continue the ref",
     ],
 )
 def test_indented_wrapped_prose_is_still_rejected(body: str) -> None:
     errors = lint(f"fix(git-toolkit): handle an empty diff\n\n{body}\n")
     assert any("hard-wrapped" in error for error in errors)
+
+
+def test_folded_trailer_continuations_still_pass() -> None:
+    # Git folds long trailer values onto indented continuation lines.
+    message = (
+        "fix(git-toolkit): handle an empty diff\n"
+        "\n"
+        "One real paragraph.\n"
+        "\n"
+        "References: a long value\n"
+        "  folded onto a continuation line\n"
+    )
+    assert lint(message) == []
 
 
 # --- subject ------------------------------------------------------------------------
@@ -259,6 +274,7 @@ def test_indented_wrapped_prose_is_still_rejected(body: str) -> None:
         "feature(git-toolkit): add x",  # not a canonical type
         "feat(unknown-skill): add x",  # scope is neither a skill nor an area
         "fix(git-toolkit): handle an empty diff.",  # trailing period
+        "fix(git-toolkit): handle an empty diff.  ",  # period hidden by trailing spaces
         "fix(git-toolkit): " + "x" * 80,  # over the 72-char cap
     ],
 )
@@ -410,7 +426,7 @@ def test_cli_accepts_a_clean_message() -> None:
     assert "OK" in result.stdout
 
 
-def test_cli_bot_skip_requires_a_bot_pr_author_when_login_is_given() -> None:
+def test_cli_bot_skip_requires_both_bot_email_and_bot_pr_author() -> None:
     bot_email = "49699333+dependabot[bot]@users.noreply.github.com"
     skipped = _run_cli(
         ["--author-email", bot_email, "--pr-author-login", "dependabot[bot]", "-"],
@@ -424,6 +440,9 @@ def test_cli_bot_skip_requires_a_bot_pr_author_when_login_is_given() -> None:
         "not conventional\n",
     )
     assert linted.returncode == 1
+    # Omitting the login fails closed: the email alone never skips.
+    no_login = _run_cli(["--author-email", bot_email, "-"], "not conventional\n")
+    assert no_login.returncode == 1
 
 
 def test_cli_strip_comments_flag_applies_editor_cleanup() -> None:
