@@ -33,7 +33,7 @@ Classifications in Step 2 and any REVIEW-shaped findings emitted along the way m
 
 ### 0b. Rule selectivity (optional `rules:` filter)
 
-An optional comma-separated `rules:` argument scopes classification to a subset of catalog rule ids (e.g. `rules: status-marker,repeated-fix,mixed-scope`) — the mechanism, the unmatched-id warning, and the required active-subset preamble line are specified in `../../references/commit-smells.md` (Rule selectivity). The cleanup plan only proposes actions for commits matching the active rules, so the reader of the plan preamble knows which classifications were skipped. Useful when a team has agreed that some smells are out of scope for branch-cleanup work.
+An optional comma-separated `rules:` argument scopes classification to a subset of registry rule ids (e.g. `rules: status-marker,repeated-fix,mixed-scope`) — the mechanism, the unmatched-id warning, and the required active-subset preamble line are specified in `../../references/commit-smells.md` (Rule selectivity). This capability's classifier implements the catalog smells, so a registry check id is a valid input that simply scopes nothing here. The cleanup plan only proposes actions for commits matching the active rules, so the reader of the plan preamble knows which classifications were skipped. Useful when a team has agreed that some smells are out of scope for branch-cleanup work.
 
 ### 1. Gather commits and bodies
 
