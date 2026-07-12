@@ -65,7 +65,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 | Capability | Trigger | Path |
 |---|---|---|
 | branch-name | [git-side] Propose a git branch name for new work, from staged changes or a user description, respecting repo prefix conventions (`fix/`, `feature/`, etc.) | capabilities/branch-name/capability.md |
-| worktree-setup | [git-side] Propose a `git worktree add` command for parallel work on a feature or fix branch, detecting the repo's worktree placement and naming conventions (sibling `worktrees/` default) | capabilities/worktree-setup/capability.md |
+| worktree-setup | [git-side] Propose a `git worktree add` command for parallel work on a feature or fix branch, detecting the repo's worktree placement and naming conventions (sibling `<repo>-worktrees/` default) | capabilities/worktree-setup/capability.md |
 
 ### Authoring commits
 

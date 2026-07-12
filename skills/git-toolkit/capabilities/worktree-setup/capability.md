@@ -5,8 +5,8 @@ description: >
   Detects the repo's worktree conventions before proposing anything — rules
   documented in config or agent-instruction files, placement inferred from
   existing worktrees via git worktree list, and the branch-naming style in
-  use — falling back to a sibling worktrees/ directory when nothing is
-  documented or detectable. Outputs the git worktree add command; never runs it
+  use — falling back to a sibling <repo>-worktrees/ directory when nothing
+  is documented or detectable. Outputs the git worktree add command; never runs it
   automatically. Triggers when the user asks to "set up a worktree", "create
   a worktree for X", "new worktree for branch Y", or wants to start parallel
   work on a separate branch without touching the current checkout.
@@ -89,9 +89,9 @@ Never run any of these automatically.
 - **Bare repo** — `git worktree` works on bare repos too; the parent-path discovery changes (`git rev-parse --git-dir`). Detect and adjust.
 - **Detached HEAD in parent** — worktree-add still works; warn the user that the new worktree will start from current HEAD which may not be `main`.
 - **No worktree root exists yet** — propose creating the directory as part of the command: `mkdir -p <worktree-root> && git worktree add ...`.
-- **Branch name with slashes** (`fix/expired-token`) — with the default nested style the worktree path includes the slash literally, creating nested dirs (`worktrees/fix/expired-token`) that match `git worktree list` output; when the detected path style is flattened, convert `/` to `-` instead.
+- **Branch name with slashes** (`fix/expired-token`) — with the default nested style the worktree path includes the slash literally, creating nested dirs (`repo-worktrees/fix/expired-token`) that match `git worktree list` output; when the detected path style is flattened, convert `/` to `-` instead.
 - **User's requested placement contradicts the documented or detected convention** — flag the mismatch, show both paths, and let the user pick. Honor an explicit choice, noting in the plan that it diverges from the repo's convention.
-- **Next-to-repo placement requested when nothing is documented or detectable** (fresh repo, fallback case) — honor, but warn first: a worktree directly beside the repo gets swept up by parent-directory tooling (backup and sync globs, IDE workspace scans), which the sibling `worktrees/` default exists to avoid.
+- **Next-to-repo placement requested when nothing is documented or detectable** (fresh repo, fallback case) — honor, but warn first: a worktree directly beside the repo gets swept up by parent-directory tooling (backup and sync globs, IDE workspace scans), which the sibling `<repo>-worktrees/` default exists to avoid.
 
 ## Anti-patterns
 
