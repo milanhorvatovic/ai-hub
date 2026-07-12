@@ -16,7 +16,7 @@ Rewrites the bodies of many commits at once to switch between flowing-paragraph 
 
 ## Scope: git-side
 
-This capability uses only `git` operations (`filter-branch`, `filter-repo`, `rebase --exec`). It does **not** depend on `gh` or PR concepts. The Force-Push Impact analysis (from `../../capabilities/commit-message/capability.md` Step 5) may use `gh` as optional enrichment to surface review anchors, but the core transformation runs on local git history without it.
+This capability uses only `git` operations (`filter-branch`, `filter-repo`, `rebase --exec`). It does **not** depend on `gh` or PR concepts. The Force-Push Impact analysis (per `../../references/force-push-impact.md`) may use `gh` as optional enrichment to surface review anchors, but the core transformation runs on local git history without it.
 
 ## Mode detection
 
@@ -33,7 +33,7 @@ This capability uses only `git` operations (`filter-branch`, `filter-repo`, `reb
 - Range must contain ≥2 commits; for a single commit, redirect to `commit-amend-message`.
 - Identify all branches whose commits fall within the rewrite scope. Surface as a **Scope** block before any plan.
 - **Bot guard** — per the router rule, skip bot-authored commits. The transformation script must match `git log -1 --pretty=format:'%ae' <sha>` against the patterns catalogued in `../../references/bot-signatures.md` and emit the message unchanged for matches.
-- **Pushed-state check** — emit the Force-Push Impact block (commit-message Step 5) for each affected branch before showing the plan.
+- **Pushed-state check** — emit the Force-Push Impact block per `../../references/force-push-impact.md` for each affected branch before showing the plan.
 
 ## Workflow
 
@@ -156,7 +156,7 @@ If K > 0:
 
 ### 8. Publish
 
-Per the Force-Push Impact block emitted in Step 1: if impact is `none`, no action. If `mild` or `high`, output the publish recipe; never auto-execute:
+Per the Force-Push Impact block emitted in Step 1, following the surfacing policy in `../../references/force-push-impact.md`: if impact is `none`, no action. If `mild` or `high`, output the publish recipe (at `high`, only after the user opts in past the listed anchors); never auto-execute:
 
 ```
 git push --force-with-lease origin <branch>

@@ -8,7 +8,7 @@ These operations are routinely flagged. The skill does not bypass classifier gua
 
 | Operation | Common reason flagged | Mitigation |
 |---|---|---|
-| `git push --force-with-lease` on a branch with reviewers | Destructive to remote state; may overwrite collaborator work. | Use the Force-Push Impact block (commit-message Step 5) to surface anchors and reviewers. Ask for explicit opt-in before showing the push command. |
+| `git push --force-with-lease` on a branch with reviewers | Destructive to remote state; may overwrite collaborator work. | Use the Force-Push Impact block (`force-push-impact.md`) to surface anchors and reviewers. Ask for explicit opt-in before showing the push command. |
 | `git push --force` (without `--with-lease`) | Strictly worse than `--force-with-lease`. | Never propose. Always use `--force-with-lease`. |
 | `git reset --hard` on a branch that has local commits past the target | Drops uncommitted or unpushed work irrecoverably (without reflog). | Confirm the discarded commits' SHAs are recoverable via reflog or backup tag; list what would be lost; ask for opt-in. |
 | `git filter-branch` on multiple refs at once | Reads as "mass history rewrite". | Process one branch at a time (see `mass-rewrite.md` per-branch sequencing). |

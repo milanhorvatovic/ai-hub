@@ -75,10 +75,6 @@ _FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 # (check, skill-name) -> reason. Strict xfail: proof the suite detects the
 # defect today, and a forced cleanup of this table by the PR that fixes it.
 KNOWN_FAILURES: dict[tuple[str, str], str] = {
-    ("cross_capability", "git-toolkit"): (
-        "G1 shared-reference-lift: capabilities link sibling capabilities; G1 "
-        "moves the shared material into references/ and kills sibling links"
-    ),
     ("markdown_links", "oss-repository-conventions"): (
         "O3 scaffold-template-convention: unfenced scaffold templates carry "
         "target-repo links (LICENSE-APACHE, SECURITY.md, …); O3's fenced-block "

@@ -4,6 +4,12 @@ Anti-patterns that REVIEW-mode capabilities (`commit-message` review, `rebase-cl
 
 Findings emitted from this catalog should use the `rule` ids defined here verbatim, so the `review-output.md` NDJSON stream is greppable.
 
+## Rule selectivity (optional `rules:` filter)
+
+By default every catalog rule runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case rule ids, e.g. `rules: past-tense-verb,trailing-period,overlong-subject` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in catalog") but do not halt the run. The consuming capability's output preamble must list the active subset so the reader knows what was *not* checked: `Active rule subset: past-tense-verb, trailing-period, overlong-subject (3 of 24 catalog rules)`.
+
+The NDJSON output shape from `review-output.md` is unchanged — findings still carry their `rule` id; the only change is which rules contribute. Useful in CI contexts where a repo has accepted some smells as out-of-scope but wants to enforce others on every run.
+
 ## Subject smells
 
 ### `generic-verb` — "Update X", "Change Y", "Fix bug"

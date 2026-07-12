@@ -140,16 +140,18 @@ Grouped by scope so capabilities can pull only what their side needs.
 | File | Specifies |
 |---|---|
 | `references/git-gh-quirks.md` (git portions) | Force-push reconciliation, two-dot vs three-dot diff, `git fetch` graceful degrade |
+| `references/force-push-impact.md` | The none / mild / high impact buckets, pushed-state detection recipes (incl. the stale tracking-refs caveat), the canonical Force-Push Impact output block, and the single `--force-with-lease` surfacing policy (impact-gated opt-in) — one home for every history-rewriting capability |
 | `references/mass-rewrite.md` | Tool choice (filter-repo vs filter-branch vs rebase --exec), per-branch sequencing for stacked branches, idempotency, post-flight verification, recovery from backup tags |
 
 ### GitHub-side only
 
 | File | Specifies |
 |---|---|
+| `references/pr-input-guards.md` | Canonical input-guard sequence for GitHub-side capabilities: PR resolution order, forge detection, state guard, bot guard, gh-auth failure handling, untrusted-content pointer — capabilities reference it and declare only their deviations |
 | `references/merge-policy.md` | Squash / rebase / merge-commit implications on PR body shape (`gh api repos`) |
 | `references/issue-references.md` | `Closes/Fixes/Resolves` vs `Refs/See/Related`; GitHub auto-close behavior; cross-repo refs |
 | `references/pr-template-detection.md` | Template path resolution + unfilled-detection threshold |
-| `references/git-gh-quirks.md` (gh portions) | Fork PRs, stacked-PR base resolution via `gh pr view`, `gh` auth failure handling |
+| `references/git-gh-quirks.md` (gh portions) | Fork PRs, stacked-PR base resolution via `gh pr view`, the paginated `reviewThreads` resolution-state query, `gh` auth failure handling |
 | `references/forge-adapters.md` | Concept and CLI mapping from GitHub to GitLab (`glab`), Codeberg/Forgejo (`tea`), and Bitbucket Cloud (curl); detection + graceful degrade for non-GitHub remotes |
 
 `git-gh-quirks.md` straddles intentionally — both sides need parts of it, but each side reads the section it cares about.

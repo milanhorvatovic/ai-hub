@@ -144,9 +144,7 @@ REVIEW findings must use the kebab-case rule ids from `../../references/commit-s
 
 ### 0b. Rule selectivity (optional `rules:` filter)
 
-By default every catalog rule runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case rule ids, e.g. `rules: past-tense-verb,trailing-period,overlong-subject` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in catalog") but do not halt the run. The output preamble lists the active subset so the reader knows what was *not* checked: `Active rule subset: past-tense-verb, trailing-period, overlong-subject (3 of 24 catalog rules)`.
-
-Useful in CI contexts where a repo has accepted some smells as out-of-scope but wants to enforce others on every PR. The NDJSON output shape from `../../references/review-output.md` is unchanged — findings still carry their `rule` id; the only change is which rules contribute.
+An optional `rules:` argument scopes the review to a subset of catalog rules — the mechanism, the unmatched-id warning, and the required active-subset preamble line are specified in `../../references/commit-smells.md` (Rule selectivity).
 
 ### 1. Resolve target commit(s)
 
@@ -223,24 +221,7 @@ For older commits:
 
 ### 5. Handling pushed commits
 
-If the range overlaps with commits already pushed to a remote tracking branch, emit a **Force-Push Impact** block before showing any proposal. Classify the target into one of three buckets:
-
-- **Never pushed** — local-only commit. Standard `git commit --amend` or `git rebase` works; no force-push needed; impact = none.
-- **Pushed, no review anchors** — commit is on a remote tracking branch but has no PR comments anchored to specific SHAs (no PR yet, or no review comments yet). Force-push needed to publish the rewrite; collaborators with the branch checked out need `git pull --rebase`; impact = mild.
-- **Pushed and review-anchored** — PR exists with at least one review comment anchored to a commit-specific SHA (`gh pr view --json reviews,comments`). Force-push needed AND review anchors will become dangling — reviewers cannot navigate to the original code they commented on. Impact = high; surface every anchored thread by URL so the user can decide whether the cosmetic gain justifies the loss.
-
-Output template:
-
-```
-Force-Push Impact: <none / mild / high>
-  Pushed commits:        <N of M>
-  Review anchors at risk: <K> (list URLs if K > 0)
-  Required to publish:    <none / git push --force-with-lease / git push --force-with-lease + reviewer coordination>
-```
-
-If impact is `high`, also surface the canonical rule from `../../references/format-body.md`: "never rewrite a pre-existing commit body for a 1–2 column overshoot alone." The user must opt in explicitly; the proposal does not include the force-push command unless they confirm.
-
-Do NOT include `git push --force` (without `--with-lease`) in any suggested command. `--force-with-lease` refuses if the remote moved; bare `--force` overwrites unconditionally.
+If the range overlaps with commits already pushed to a remote tracking branch, emit the **Force-Push Impact** block before showing any proposal, per `../../references/force-push-impact.md`: classify into its none / mild / high buckets using its detection recipes, and follow its `--force-with-lease` surfacing policy — impact-gated opt-in, never bare `--force`. At `high` impact the proposal does not include the force-push command unless the user explicitly confirms; the reference's cosmetic-rewrite rule (never rewrite a pre-existing commit body for a 1–2 column overshoot alone) applies with full force here.
 
 ### 6. Personal-style memory hook
 

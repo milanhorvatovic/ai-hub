@@ -34,9 +34,9 @@ Default to sibling layout — the user's documented convention puts worktrees in
 
 ### 2. Determine branch name
 
-If user provided a name → validate it follows the conventions (see `../branch-name/capability.md` for prefix rules); if it doesn't, suggest a corrected version.
+If user provided a name → validate it against the rules below (the same conventions the `branch-name` capability applies); if it doesn't follow them, suggest a corrected version.
 
-If user provided only a description → infer the branch name using the same logic as the `branch-name` capability:
+If user provided only a description → infer the branch name from the same rules:
 - `fix/<slug>` or `feature/<slug>` prefix (per user convention, no other prefixes by default)
 - Kebab-case slug from the most-specific noun
 - ≤40 chars total
