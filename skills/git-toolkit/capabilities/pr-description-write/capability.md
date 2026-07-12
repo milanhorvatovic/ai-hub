@@ -89,9 +89,9 @@ Per `../../references/format-pr.md`:
 - Present-tense Summary describing what the PR does (e.g. "Adds retry logic…"), per `../../references/format-pr.md`.
 - No marketing language.
 
-### 7. Pre-display secret scan
+### 7. Secret scan
 
-Per `../../references/secret-patterns.md`. On match → redact + WARN. Never include detected secrets.
+Per `../../references/secret-patterns.md` over the proposed body before it is displayed or written to the mktemp file. On match → redact + WARN. Never include detected secrets — on screen or on disk.
 
 ### 8. Body length check
 
