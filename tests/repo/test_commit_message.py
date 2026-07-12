@@ -76,7 +76,7 @@ def lint(message: str, **kwargs) -> list:
             "\n"
             "Co-Authored-By: Example <e@example.com>\n"
             "```\n"
-            "and the fence content is exempt from every shape check.\n"
+            "and the fence content is exempt from the shape and trailer checks.\n"
         ),
         # Release-As is a control footer, not an attribution trailer.
         (

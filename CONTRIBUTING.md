@@ -37,8 +37,8 @@ Branch commits are concatenated into the squash commit on `main` (the `COMMIT_ME
 
 - **Subject:** a [Conventional Commit](https://www.conventionalcommits.org/) with the same type/scope vocabulary as PR titles, imperative, ≤72 characters, no trailing period.
 - **Body:** flowing paragraphs that explain **why** — each blank-line-separated paragraph is a single source line, never hard-wrapped (the repo's `proseWrap: never` rule applied to commit text). Bullet lists, fenced and tab/4-space-indented blocks, and the trailer block are exempt.
-- **Trailers:** author-only — no attribution trailers (`Co-Authored-By`, `Signed-off-by`, `Reviewed-by`, …). `Release-As: x.y.z` (a release-please control footer) and git-generated `(cherry picked from …)` lines are fine.
-- **No private references:** don't cite internal planning documents, ticket codes, or audit paths — public text describes the change on its own terms.
+- **Trailers:** author-only — no attribution trailers (`Co-Authored-By`, `Signed-off-by`, `Reviewed-by`, …). The scan skips fenced code blocks, so quoting a trailer in an example is fine. `Release-As: x.y.z` (a release-please control footer) and git-generated `(cherry picked from …)` lines are fine.
+- **No private references:** don't cite internal planning documents, ticket codes, or audit paths — public text describes the change on its own terms. This check applies everywhere, fenced blocks included.
 
 Bot-authored commits (Dependabot and friends) are exempt in CI, and git-generated text passes everywhere as-is: merge commits, `Revert "…"` subjects, `fixup!` prefixes, and `(cherry picked from …)` lines. Imperative mood and why-over-what are review judgment, not lint rules.
 
