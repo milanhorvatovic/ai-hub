@@ -201,7 +201,7 @@ Reviewed 3 commit(s) on main..HEAD (all registry rules active):
 | Status markers | PASS | |
 | Body wrap | N/A | flowing-paragraph repo |
 
-### Finding: imperative-mood on def5678
+### Finding: Imperative mood on def5678
 
 Subject "Fixed bug." is past tense; "If applied, this commit will Fixed bug." doesn't parse.
 
@@ -225,7 +225,7 @@ Findings with the same rule on multiple commits group under a single heading wit
 ```jsonl
 {"rule": "imperative-mood", "result": "FAIL", "scope": "commit", "sha": "def5678", "subject": "Fixed bug.", "details": {"excerpt": "Fixed bug."}, "fix": "Rewrite in imperative mood: fix(auth): handle expired token in refresh path"}
 {"rule": "subject-length", "result": "PASS", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 0, "max_length": 58, "limit": 72}
-{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 3, "details": {"excerpt": "3 FAIL, 0 MOSTLY-PASS, 2 PASS, 1 N/A"}, "fix": "Address the 3 FAIL findings before requesting review."}
+{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 1, "details": {"excerpt": "3 FAIL, 0 MOSTLY-PASS, 2 PASS, 1 N/A"}, "fix": "Address the 3 FAIL findings before requesting review."}
 ```
 
 ### 5. Handling pushed commits

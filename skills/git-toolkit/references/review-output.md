@@ -34,11 +34,11 @@ Findings with the same rule on multiple commits group under a single heading wit
 
 ## NDJSON schema (machine-facing)
 
-When the invoking agent or pipeline wants programmatic output, emit one JSON object per finding on stdout. The stream keeps per-target granularity where the table aggregates: a rule that passes or doesn't apply emits one aggregate object (scope `branch` / `range`, with `count_checked` / `count_failed`), while every `FAIL` / `MOSTLY-PASS` finding emits one object per offending target (scope `commit` / `pr`, with `sha` or `ref`, an excerpt, and a `fix`). Aggregate `PASS` objects may be elided depending on a `--include-pass` flag.
+When the invoking agent or pipeline wants programmatic output, emit one JSON object per finding on stdout. The stream keeps per-target granularity where the table aggregates: a rule that passes or doesn't apply emits one aggregate object (scope `branch` / `range`, typically carrying `count_checked` / `count_failed`), while every `FAIL` / `MOSTLY-PASS` finding emits one object per offending target (scope `commit` / `pr`, with `sha` or `ref`, an excerpt, and a `fix`). Aggregate `PASS` objects may be elided depending on a `--include-pass` flag.
 
 ```jsonl
 {"rule": "imperative-mood", "result": "PASS", "scope": "branch", "ref": "add-skill-foo", "count_checked": 16, "count_failed": 0}
-{"rule": "subject-length", "result": "PASS", "scope": "branch", "ref": "add-skill-foo", "max_length": 57, "limit": 72}
+{"rule": "subject-length", "result": "PASS", "scope": "branch", "ref": "add-skill-foo", "count_checked": 16, "count_failed": 0, "max_length": 57, "limit": 72}
 {"rule": "body-wrap", "result": "FAIL", "scope": "commit", "sha": "f902472", "subject": "Extend Windows entries in .gitignore", "details": {"line": 5, "length": 74, "limit": 72, "excerpt": "- Thumbs.db:encryptable — NTFS-encrypted variant of the thumbnail cache."}, "fix": "Reflow paragraph to one line (flowing default) or wrap at column 72."}
 ```
 
@@ -105,7 +105,7 @@ At the end of the report, emit a single verdict.
 - `COMPLIANT with N minor fix(es) recommended` — only `MOSTLY-PASS` findings, no `FAIL`.
 - `NOT COMPLIANT (N FAIL, M MOSTLY-PASS)` — at least one `FAIL`.
 
-**NDJSON output** — emit the verdict as a final JSON object with `rule: "verdict"`, never as a bare text line (a plain line would break the one-JSON-object-per-line contract). It carries the aggregate counts and `result` (`PASS` when compliant, `FAIL` when not), e.g. `{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..feature", "count_checked": 16, "count_failed": 5, "details": {"excerpt": "5 FAIL, 2 MOSTLY-PASS, 9 PASS"}, "fix": "Address the 5 FAIL findings before requesting review."}` — see `review-output.example.ndjson`.
+**NDJSON output** — emit the verdict as a final JSON object with `rule: "verdict"`, never as a bare text line (a plain line would break the one-JSON-object-per-line contract). It carries the aggregate counts — `count_checked` / `count_failed` tally the evaluated items (commits, in a range review), while the excerpt tallies rule results — and `result` (`PASS` when compliant, `FAIL` when not), e.g. `{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..feature", "count_checked": 16, "count_failed": 5, "details": {"excerpt": "5 FAIL, 2 MOSTLY-PASS, 9 PASS"}, "fix": "Address the 5 FAIL findings before requesting review."}` — see `review-output.example.ndjson`.
 
 The verdict is what most readers will skim first; everything else is supporting detail.
 
