@@ -1,0 +1,8 @@
+#!/bin/sh
+# core.hooksPath bypasses the hooks `pre-commit install` writes into .git/hooks, so
+# delegate to pre-commit when it is available; without it this hook is a no-op.
+# (`pre-commit install` itself refuses to run while core.hooksPath is set — with this
+# shim there is nothing to install.)
+
+command -v pre-commit >/dev/null 2>&1 || exit 0
+exec pre-commit run

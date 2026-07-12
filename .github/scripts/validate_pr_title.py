@@ -52,12 +52,16 @@ def skill_names(repo_root: Path) -> set[str]:
     return {p.name for p in skills_dir.iterdir() if (p / "SKILL.md").is_file()}
 
 
-def validate(title: str, skills: set[str]) -> list[str]:
-    """Return a list of human-readable problems with `title`; empty means valid."""
+def validate(title: str, skills: set[str], noun: str = "title") -> list[str]:
+    """Return a list of human-readable problems with `title`; empty means valid.
+
+    `noun` names the line in error messages — "title" for PR titles, "subject"
+    when the commit-style linter reuses this validator for commit subjects.
+    """
     match = HEADER.match(title)
     if not match:
         return [
-            f"title is not a Conventional Commit: {title!r}",
+            f"{noun} is not a Conventional Commit: {title!r}",
             "expected `type: subject` or `type(scope): subject` (scope optional), "
             "e.g. `fix(git-toolkit): handle an empty diff` or `refactor: tidy the router`",
         ]
@@ -78,8 +82,11 @@ def validate(title: str, skills: set[str]) -> list[str]:
     if not match["subject"].strip():
         errors.append("subject is empty")
 
+    if title.rstrip().endswith("."):
+        errors.append(f"{noun} ends with a period")
+
     if len(title) > TITLE_MAX:
-        errors.append(f"title is {len(title)} chars; the cap is {TITLE_MAX} for the whole title")
+        errors.append(f"{noun} is {len(title)} chars; the cap is {TITLE_MAX} for the whole {noun}")
 
     return errors
 

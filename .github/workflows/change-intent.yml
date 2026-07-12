@@ -3,6 +3,10 @@ name: change-intent
 # Gate: every PR must declare its change intent as a Conventional-Commit title.
 # The squash-merge subject is the PR title, which release-please parses to compute
 # per-skill version bumps — so the title must be parseable and correctly scoped.
+#
+# The commit-style job extends the same gate to branch-commit messages and the PR
+# body: this repo squash-merges with the COMMIT_MESSAGES setting, so branch-commit
+# bodies are concatenated into main's permanent history.
 
 on:
   pull_request:
@@ -19,6 +23,7 @@ jobs:
   pr-title:
     name: pr-title
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       # actions/checkout v4.3.0
       # Check out the BASE branch, not the PR head: the validator that judges the PR
@@ -44,3 +49,56 @@ jobs:
             exit 0
           fi
           python .github/scripts/validate_pr_title.py
+
+  commit-style:
+    name: commit-style
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # actions/checkout v4.3.0
+      # Check out the BASE branch, not the PR head: the linter that judges the PR's
+      # commits must be the trusted copy from the base branch, so a PR cannot edit the
+      # script to make itself pass. Full history so base..head resolves after the head
+      # fetch below; only commit messages from the head are read, never its code.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      # actions/setup-python v5.6.0
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version-file: ".python-version"
+
+      - name: Lint branch commit messages and the PR body
+        # Commit messages, author emails, and the PR body are untrusted input — they
+        # reach the linter via stdin or quoted arguments, never shell interpolation.
+        # Merge commits are skipped (--no-merges); bot-authored commits are skipped by
+        # the linter's author-email patterns (Dependabot bodies are hard-wrapped by
+        # design), but only when the PR author is a bot too, since a commit's author
+        # email is forgeable. The PR body never enters git history under squash
+        # COMMIT_MESSAGES but is still public text, so the trailer and plan-ref
+        # checks apply to it.
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ ! -f .github/scripts/lint_commit_message.py ]; then
+            echo "::warning::base branch has no linter yet; skipping until it lands on the base branch (bootstrap only)"
+            exit 0
+          fi
+          git fetch --no-tags origin "pull/${PR_NUMBER}/head"
+          status=0
+          for sha in $(git rev-list --no-merges "origin/${BASE_REF}..FETCH_HEAD"); do
+            author_email="$(git log -1 --format=%ae "$sha")"
+            if ! git log -1 --format=%B "$sha" | python .github/scripts/lint_commit_message.py --author-email "$author_email" --pr-author-login "$PR_AUTHOR" --annotate --label "commit $sha" -; then
+              status=1
+            fi
+          done
+          if ! printf '%s\n' "$PR_BODY" | python .github/scripts/lint_commit_message.py --pr-body --annotate --label "PR body" -; then
+            status=1
+          fi
+          exit $status

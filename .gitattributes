@@ -6,6 +6,8 @@
 *.py   text eol=lf
 *.yml  text eol=lf
 *.yaml text eol=lf
+# Hooks are extensionless sh scripts; CRLF would break them under sh.
+/.githooks/** text eol=lf
 
 # Treat common binaries as binary.
 *.png binary
@@ -19,6 +21,7 @@
 # tree — including the security policy — is intentionally NOT shipped, so README links
 # to the security policy by its canonical GitHub URL.
 /.github                    export-ignore
+/.githooks                  export-ignore
 /tests                      export-ignore
 /.editorconfig              export-ignore
 /.gitattributes             export-ignore

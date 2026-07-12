@@ -1,0 +1,15 @@
+#!/bin/sh
+# Commit-message style gate — the same linter CI runs on every PR (change-intent.yml).
+# Opt in once per clone: git config core.hooksPath .githooks
+# `git commit --no-verify` skips it; CI remains the backstop.
+
+top="$(git rev-parse --show-toplevel)" || exit 1
+linter="$top/.github/scripts/lint_commit_message.py"
+[ -f "$linter" ] || exit 0
+
+# --strip-comments: the hook sees the pre-cleanup editor file, so apply git's
+# comment/scissors cleanup before linting (CI lints committed text verbatim).
+if command -v python3 >/dev/null 2>&1; then
+  exec python3 "$linter" --strip-comments "$1"
+fi
+exec python "$linter" --strip-comments "$1"
