@@ -179,6 +179,14 @@ def _rule_catalog_sections(capabilities_dir: Path) -> list[tuple[str, str]]:
     return sections
 
 
+# Non-rule words the Step-0 sections legitimately backtick. Deliberate
+# allowlist, same philosophy as the safety-class lists in test_references:
+# a new single-word token fails the sweep until it is either registered as
+# a rule id or consciously listed here, so single-word ids (e.g. `verdict`)
+# cannot slip past unvalidated.
+_STEP0_PROSE_WORDS = {"rule", "details"}
+
+
 def test_capability_rule_catalog_sections_resolve_to_the_registry(
     references_dir: Path, capabilities_dir: Path
 ) -> None:
@@ -194,9 +202,11 @@ def test_capability_rule_catalog_sections_resolve_to_the_registry(
         for span in re.findall(r"`([^`]+)`", section):
             span = re.sub(r"^rules:\s*", "", span)
             for token in re.split(r"[,\s]+", span):
-                if not token or "." in token or "/" in token or "-" not in token:
+                if not token or "." in token or "/" in token:
                     continue
                 if not _RULE_ID.fullmatch(token):
+                    continue
+                if token in _STEP0_PROSE_WORDS:
                     continue
                 if token not in enum:
                     offenders.append(f"{cap_name}: {token!r}")
