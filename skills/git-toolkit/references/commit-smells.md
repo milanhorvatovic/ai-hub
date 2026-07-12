@@ -2,11 +2,11 @@
 
 Anti-patterns that REVIEW-mode capabilities (`commit-message` review, `rebase-cleanup`, `commit-body-reflow`, `merge-readiness`) scan for. Each entry pairs a pattern with why it's bad, how to fix it, and a before/after example. Use this catalog as the consolidated source of "things to flag"; the rule rows in `format-subject.md` and `format-body.md` say WHAT the rule is, this file says HOW to recognize a violation in the wild.
 
-Findings emitted from this catalog should use the `rule` ids defined here verbatim, so the `review-output.md` NDJSON stream is greppable.
+Findings emitted from this catalog should use the `rule` ids defined here verbatim, so the `review-output.md` NDJSON stream is greppable. The catalog is one half of the rule-id registry in `review-output.md`; the registry adds the check and meta ids (`conventional-commits-prefix`, `body-wrap`, `verdict`, …) that have no smell entry, and the JSON Schema's `rule` enum enforces membership for both halves.
 
 ## Rule selectivity (optional `rules:` filter)
 
-By default every catalog rule runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case rule ids, e.g. `rules: past-tense-verb,trailing-period,overlong-subject` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in catalog") but do not halt the run. The consuming capability's output preamble must list the active subset so the reader knows what was *not* checked: `Active rule subset: past-tense-verb, trailing-period, overlong-subject (3 of 24 catalog rules)`.
+By default every catalog rule runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case rule ids, e.g. `rules: imperative-mood,trailing-period,subject-length` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in catalog") but do not halt the run. The consuming capability's output preamble must list the active subset so the reader knows what was *not* checked: `Active rule subset: imperative-mood, trailing-period, subject-length (3 of 24 catalog rules)`.
 
 The NDJSON output shape from `review-output.md` is unchanged — findings still carry their `rule` id; the only change is which rules contribute. Useful in CI contexts where a repo has accepted some smells as out-of-scope but wants to enforce others on every run.
 
@@ -41,7 +41,7 @@ The subject names a verb but no specific noun. Combined with `generic-verb`, thi
 
 The subject carries draft state.
 
-**Pattern**: subject contains any of `WIP`, `[WIP]`, `TODO`, `XXX`, `temp`, `TEMP`, `DRAFT`, `[DRAFT]`, `fixme`, `FIXME`.
+**Pattern**: subject contains any of `WIP`, `[WIP]`, `TODO`, `XXX`, `temp`, `TEMP`, `DRAFT`, `[DRAFT]`, `fixme`, `FIXME`, or starts with `fixup!` / `squash!` (autosquash markers that should have been squashed away before review).
 
 **Fix**: the change isn't ready to ship; squash into the prior commit, `git stash`, or rewrite the message after finishing the change.
 
@@ -74,13 +74,13 @@ Subject uses a path prefix or a filename to scope the change.
 
 **Fix**: delete the period. Subject is a title, not a sentence.
 
-### `past-tense-verb` — "Added retry to consumer"
+### `imperative-mood` — "Added retry to consumer"
 
-**Pattern**: subject starts with a past-tense English verb (`Added`, `Fixed`, `Removed`, `Updated`, `Changed`, `Refactored`, `Renamed`).
+**Pattern**: subject starts with a non-imperative English verb form — past tense (`Added`, `Fixed`, `Removed`, `Updated`, `Changed`, `Refactored`, `Renamed`), third person (`Adds`, `Fixes`), or gerund (`Adding`, `Fixing`). Past tense is by far the most common failure.
 
 **Fix**: imperative mood (`Add`, `Fix`, `Remove`, `Refactor`, `Rename`).
 
-### `overlong-subject` — "Add retry to the upload queue with exponential backoff and configurable max attempts"
+### `subject-length` — "Add retry to the upload queue with exponential backoff and configurable max attempts"
 
 **Pattern**: subject length (in display columns, not bytes — see `format-body.md` recipe) exceeds 72.
 

@@ -140,7 +140,7 @@ Always show the full proposed message AND the apply command. Never run `git comm
 
 ### 0. Rule catalog
 
-REVIEW findings must use the kebab-case rule ids from `../../references/commit-smells.md` (e.g., `generic-verb`, `vague-noun`, `status-marker`, `issue-in-subject`, `trailing-period`, `past-tense-verb`, `overlong-subject`, `restated-subject`, `listed-files`, `auto-trailer`, `marketing-language`). The catalog is the authoritative source for detection patterns, fixes, and before/after examples. The schema in `../../references/review-output.schema.json` enforces only the kebab-case pattern, not catalog membership — staying inside the catalog is this capability's contract, so treat any finding whose `rule` id is not in the catalog as a defect even though it validates.
+REVIEW findings must use rule ids from the registry defined in `../../references/review-output.md`: every smell entry in `../../references/commit-smells.md` (e.g., `generic-verb`, `vague-noun`, `status-marker`, `issue-in-subject`, `trailing-period`, `imperative-mood`, `subject-length`, `restated-subject`, `listed-files`, `auto-trailer`, `marketing-language`) plus the registry's check ids for the format checks in Step 2 (`conventional-commits-prefix`, `body-wrap`, `blank-line-after-subject`, `trailer-position`, `trailer-format`, `novel-scope`, `secret-leak`, `dangling-issue-ref`). The catalog is the authoritative source for detection patterns, fixes, and before/after examples. The schema in `../../references/review-output.schema.json` enforces registry membership through its `rule` enum — a finding with an unregistered id fails validation, so a new rule lands in the registry (and the enum) before any capability may emit it.
 
 ### 0b. Rule selectivity (optional `rules:` filter)
 
@@ -162,61 +162,70 @@ For PR-aware ranges, fetch `baseRefName` from `gh pr view` first if a PR exists 
 
 For each commit in the range, run `git show <sha> --no-patch --format='%H%n%s%n%n%b%n%n%(trailers:only,unfold)'`, then check:
 
-| Check | Rule | Severity |
-|---|---|---|
-| Subject length | ≤72 chars | `error` if >72, `warn` if 51-72 (ideal ≤50) |
-| Imperative mood | Subject starts with imperative verb | `warn` (heuristic — past tense is the most common failure) |
-| Trailing period | No `.` at end of subject | `error` |
-| Conventional-commits prefix | If repo uses CC, subject matches the conventional-commits pattern in `../../references/format-subject.md` | `error` if missing |
-| Scope consistency | Scope (if present) matches past-commits scopes | `warn` if novel scope |
-| Body wrap | Conditional on repo style per `../../references/format-body.md`: only when the repo demonstrably hard-wraps, flag body lines >72 chars (excluding URLs / code blocks). When the repo uses the flowing-paragraph default, this is `N/A` — do not flag long single-line paragraphs | `warn` if hard-wrap repo; else `N/A` |
-| Blank line after subject | Subject and body separated by exactly one blank line | `error` if missing |
-| WIP / fixup markers | No `WIP`, `wip`, `fixup!`, `squash!` in committed (non-rebase) commits | `error` |
-| Trailer position | Trailers at end only, after blank line | `warn` |
-| Trailer format | Each trailer matches `^[A-Z][A-Za-z-]*: .+$` | `warn` |
-| Secret scan | No matches from `../../references/secret-patterns.md` | `error` |
-| Closing-keyword sanity | If commit body has `Closes #N`, verify N exists (`gh issue view N`) — best-effort | `warn` |
-| Bot commit | Skip entirely (not an error, just excluded) | — |
-| Merge commit | Skip default merge commits (`Merge branch ...`) unless the user explicitly asks; check the merged commits instead | — |
+| Check | Rule id | Passes when | Severity on violation |
+|---|---|---|---|
+| Subject length | `subject-length` | ≤72 display columns | `error` if >72. The ≤50 ideal is advisory — report the max observed, don't flag 51–72 |
+| Imperative mood | `imperative-mood` | Subject starts with an imperative verb | `warn` (heuristic — past tense is the most common failure) |
+| Trailing period | `trailing-period` | No `.` at end of subject | `error` |
+| Conventional-commits prefix | `conventional-commits-prefix` | If repo uses CC, subject matches the conventional-commits pattern in `../../references/format-subject.md` | `error` if missing; `N/A` when the repo doesn't use CC |
+| Scope consistency | `novel-scope` | Scope (if present) matches past-commits scopes | `warn` if novel scope |
+| Body wrap | `body-wrap` | Conditional on repo style per `../../references/format-body.md`: only when the repo demonstrably hard-wraps, flag body lines >72 chars (excluding URLs / code blocks). When the repo uses the flowing-paragraph default, this is `N/A` — do not flag long single-line paragraphs | `warn` if hard-wrap repo; else `N/A` |
+| Blank line after subject | `blank-line-after-subject` | Subject and body separated by exactly one blank line | `error` if missing |
+| WIP / fixup markers | `status-marker` | No `WIP`, `wip`, `fixup!`, `squash!` in committed (non-rebase) commits | `error` |
+| Trailer position | `trailer-position` | Trailers at end only, after blank line | `warn` |
+| Trailer format | `trailer-format` | Each trailer matches `^[A-Z][A-Za-z-]*: .+$` | `warn` |
+| Secret scan | `secret-leak` | No matches from `../../references/secret-patterns.md` | `error` |
+| Closing-keyword sanity | `dangling-issue-ref` | If commit body has `Closes #N`, verify N exists (`gh issue view N`) — best-effort | `warn` |
+| Bot commit | — | Skip entirely (not an error, just excluded) | — |
+| Merge commit | — | Skip default merge commits (`Merge branch ...`) unless the user explicitly asks; check the merged commits instead | — |
 
-### 3. Classify each commit
+Severities are internal grades; they reach the report through the `error`/`warn` ↔ `FAIL`/`MOSTLY-PASS` mapping defined once in `../../references/review-output.md` (Severity mapping). Smells from `../../references/commit-smells.md` that the table doesn't list (`generic-verb`, `vague-noun`, `issue-in-subject`, body smells, …) are checked from the catalog directly and graded by its fix guidance: hard-rule violations are `error`, advisory ones `warn`.
 
-| Status | Meaning |
-|---|---|
-| `ok` | All checks pass |
-| `warn` | Only warning-level issues |
-| `fixme` | At least one error-level issue |
+### 3. Aggregate per rule
+
+Group Step 2's results per rule across the whole range and apply the severity mapping from `../../references/review-output.md`: a rule is `FAIL` if any commit trips its `error` condition, `MOSTLY-PASS` if only `warn` conditions tripped, `PASS` when every commit is clean, and `N/A` when the rule applies to nothing in the range (e.g. `body-wrap` in a flowing-paragraph repo). Offending commits are named by short SHA inside the rule's details and finding block — there is no separate per-commit grading system.
 
 ### 4. Output
 
+Emit the report in the canonical REVIEW shape from `../../references/review-output.md`: preamble (range, commit count, active rule subset when a `rules:` filter is set), the per-rule `Rule | Result | Details` table, one finding block per `FAIL` / `MOSTLY-PASS` rule, and the verdict line.
+
 ```
-Reviewed N commit(s) on <range>:
+Reviewed 3 commit(s) on main..HEAD (all catalog rules + format checks active):
 
-| SHA | Subject | Status | Issues |
-|---|---|---|---|
-| abc1234 | feat(api): add retry to token refresh | ok | — |
-| def5678 | Fixed bug. | fixme | trailing period; not imperative ("Fixed" → "Fix"); no CC prefix |
-| ...
+| Rule | Result | Details |
+|---|---|---|
+| Imperative mood | FAIL | def5678 "Fixed bug." |
+| Trailing period | FAIL | def5678 |
+| Conventional-commits prefix | FAIL | def5678 (repo uses CC; abc1234, 9ab0123 comply) |
+| Subject length | PASS | longest is 58 |
+| Status markers | PASS | |
+| Body wrap | N/A | flowing-paragraph repo |
 
-Detailed fixes (fixme commits only):
+### Finding: imperative-mood on def5678
 
-abc1234: no changes needed.
+Subject "Fixed bug." is past tense; "If applied, this commit will Fixed bug." doesn't parse.
 
-def5678:
-  Current:  Fixed bug.
-  Proposed: fix(auth): handle expired token in refresh path
-  
-  Body suggestion:
-  <if applicable>
+**Proposed fix:** fix(auth): handle expired token in refresh path
+(also clears trailing-period and conventional-commits-prefix on the same commit)
 
-To apply (most recent only — earlier commits need interactive rebase):
+**Apply with** (HEAD only):
   git commit --amend -F - <<'EOF'
-<message>
+fix(auth): handle expired token in refresh path
 EOF
 
 For older commits:
-  git rebase -i <range>
-  # mark each fixme commit with `reword`, save, then paste the corresponding proposed message
+  git rebase -i <base>
+  # mark the commit `reword`, save, then paste the proposed message
+
+NOT COMPLIANT (3 FAIL, 0 MOSTLY-PASS)
+```
+
+Findings with the same rule on multiple commits group under a single heading with a sub-list, per the reference. When the invoking agent or pipeline wants machine output, emit the NDJSON stream from the same reference — one object per rule, ids from the registry, verdict object last:
+
+```jsonl
+{"rule": "imperative-mood", "result": "FAIL", "scope": "commit", "sha": "def5678", "subject": "Fixed bug.", "details": {"excerpt": "Fixed bug."}, "fix": "Rewrite in imperative mood: fix(auth): handle expired token in refresh path"}
+{"rule": "subject-length", "result": "PASS", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 0, "max_length": 58, "limit": 72}
+{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 3, "details": {"excerpt": "3 FAIL, 0 MOSTLY-PASS, 2 PASS, 1 N/A"}, "fix": "Address the 3 FAIL findings before requesting review."}
 ```
 
 ### 5. Handling pushed commits
@@ -245,7 +254,7 @@ Skip this hook when the correction reflects a repo rule (e.g., user pointed at a
 - **Empty body** — many short commits legitimately have no body. Don't flag absence of body as an issue.
 - **Cherry-picks** — `git log --format='%(trailers)'` may include `(cherry picked from commit ...)`; preserve verbatim.
 - **Merge commits** — default messages like `Merge branch 'x' into 'y'` are tool-generated. Skip review unless the user customized them.
-- **Multi-line subject (illegal but seen)** — if a commit subject contains a newline (rare; usually a tooling bug), flag as `error` and propose splitting into subject + body.
+- **Multi-line subject (illegal but seen)** — if a commit subject contains a newline (rare; usually a tooling bug), flag as `multiline-subject` (`error` → `FAIL`) and propose splitting into subject + body.
 - **Reverts** — `Revert "..."` is auto-generated by `git revert`. Don't reformat unless the user asks; the reverted commit's subject in quotes is part of the trail.
 
 ## Anti-patterns
@@ -254,5 +263,5 @@ Skip this hook when the correction reflects a repo rule (e.g., user pointed at a
 - Don't reformat trailers; copy them through verbatim per `../../references/trailer-semantics.md`.
 - Don't invent issue numbers in proposed messages. If the user didn't mention an issue and the diff doesn't reference one, leave issue refs out.
 - Don't propose changes to bot-authored commits.
-- Don't classify a commit as `fixme` just for novel scope — that's a `warn` at most; novel scope may be the user introducing a new area.
+- Don't grade `novel-scope` as `FAIL` — it's a `warn` (→ `MOSTLY-PASS`) at most; novel scope may be the user introducing a new area.
 - Don't flag absence of conventional-commits prefix in a repo that doesn't use them.

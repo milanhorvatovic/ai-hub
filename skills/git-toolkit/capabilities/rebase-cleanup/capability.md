@@ -29,7 +29,7 @@ Proposes an interactive-rebase plan to clean up a branch's commit history.
 
 ### 0. Rule catalog
 
-Classifications in Step 2 and any REVIEW-shaped findings emitted along the way must use the kebab-case rule ids from `../../references/commit-smells.md` (especially `status-marker`, `generic-verb`, `vague-noun`, `repeated-fix`, `manual-revert`, `mixed-scope`). Detection patterns for the catalog's rules drive the classifier; the catalog stays the single source of "things to flag".
+Classifications in Step 2 and any REVIEW-shaped findings emitted along the way must use the kebab-case rule ids from `../../references/commit-smells.md` (especially `status-marker`, `generic-verb`, `vague-noun`, `repeated-fix`, `manual-revert`, `mixed-scope`). Detection patterns for the catalog's rules drive the classifier; the catalog stays the single source of "things to flag". When findings are surfaced as a report rather than folded into the plan, they follow the shape, rule-id registry, and severity mapping of `../../references/review-output.md`.
 
 ### 0b. Rule selectivity (optional `rules:` filter)
 

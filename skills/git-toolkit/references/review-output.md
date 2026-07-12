@@ -44,16 +44,56 @@ When the invoking agent or pipeline wants programmatic output, emit one JSON obj
 
 Keys:
 
-- `rule` — kebab-case rule identifier matching the rule's section in `format-conventions.md` or similar reference.
+- `rule` — kebab-case rule identifier from the rule-id registry (below).
 - `result` — `PASS` / `MOSTLY-PASS` / `FAIL` / `N/A`.
 - `scope` — `commit` / `branch` / `pr` / `range`.
 - `ref`, `sha`, `subject` — identifying fields for the target.
 - `details` — rule-specific structured data; the fields vary per rule but `excerpt` is reserved for a verbatim quote.
 - `fix` — short imperative describing the corrective action; never includes an apply command (those go in human output only).
 
-The schema is also published as JSON Schema at `review-output.schema.json` (Draft 2020-12). Consumers can validate NDJSON streams with any standards-compliant validator (`ajv-cli`, `check-jsonschema`, etc.). The schema enforces: `scope=commit` requires `sha`; `scope=branch/range/pr` requires `ref`; `FAIL` and `MOSTLY-PASS` results require a `fix` string.
+The schema is also published as JSON Schema at `review-output.schema.json` (Draft 2020-12). Consumers can validate NDJSON streams with any standards-compliant validator (`ajv-cli`, `check-jsonschema`, etc.). The schema enforces: `scope=commit` requires `sha`; `scope=branch/range/pr` requires `ref`; `FAIL` and `MOSTLY-PASS` results require a `fix` string; and the `rule` enum enforces registry membership — a finding with an id outside the registry fails validation.
 
 A worked example stream lives at `review-output.example.ndjson` — 15 findings covering PASS / MOSTLY-PASS / FAIL / N/A across commit / branch / pr / range scopes, including aggregate PASS counts, single-commit FAIL findings with `fix` imperatives, a PR-body MOSTLY-PASS with an excerpt, and a final verdict aggregate. Tests can use this file as a schema-validation fixture; new consumers can read it to see the schema applied to realistic findings rather than reading the schema in isolation.
+
+## Rule-id registry
+
+Every `rule` id in a stream resolves to a single registry with two halves:
+
+1. **Smell ids** — every `` ### `<id>` `` entry in `commit-smells.md` (24 rules). Detection patterns, fixes, and before/after examples live there.
+2. **Check and meta ids** — the table below: checks that grade a format property rather than detect a smell, plus the meta rows a report carries. They have no catalog entry; this table is their definition.
+
+| Id | Class | Meaning |
+|---|---|---|
+| `conventional-commits-prefix` | check | Subject carries the repo's conventional-commits prefix; `N/A` when the repo doesn't use them |
+| `body-wrap` | check | Body lines stay within the column limit — hard-wrap repos only; `N/A` under the flowing-paragraph default |
+| `blank-line-after-subject` | check | Exactly one blank line separates subject and body |
+| `trailer-position` | check | Trailers sit at the end of the body, after a blank line |
+| `trailer-format` | check | Each trailer matches `^[A-Z][A-Za-z-]*: .+$` |
+| `trailers-preserved` | check | A rewrite kept existing trailers byte-for-byte |
+| `novel-scope` | check | Conventional-commits scope appears in the repo's recent history (a novel scope is advisory, never a hard failure) |
+| `dangling-issue-ref` | check | `Closes` / `Refs` targets resolve to existing issues (best-effort) |
+| `secret-leak` | check | No text matches the `secret-patterns.md` catalog |
+| `multiline-subject` | check | Subject is a single line |
+| `reflow-artifact` | check | A body transformation left an artifact (joined-word boundary, broken list); `details` names it — emitted by `commit-body-reflow` |
+| `force-push-impact` | meta | Force-push impact bucket for the reviewed ref; `details.excerpt` carries none / mild / high per `force-push-impact.md` |
+| `verdict` | meta | Final aggregate object closing every NDJSON stream (see Verdict line) |
+
+The JSON Schema's `rule` enum is the machine form of this registry — both halves, nothing else. Adding a rule means adding it to `commit-smells.md` (smells) or to the table above (checks / meta) AND to the schema enum; the repo's test suite holds catalog, table, and enum in sync.
+
+**Deprecated aliases** — this note is the only place the retired spellings may appear: `past-tense-verb` and `overlong-subject` were unified into the broader `imperative-mood` and `subject-length`. Consumers with stored streams map the old ids forward; nothing emits them anymore.
+
+## Severity mapping
+
+Capabilities that grade checks internally with `error` / `warn` severities (e.g. commit-message REVIEW) translate them to results at emission time. The mapping is defined once, here:
+
+| Internal severity | Result |
+|---|---|
+| `error` — hard-rule violation | `FAIL` |
+| `warn` — soft cap, heuristic, or advisory | `MOSTLY-PASS` |
+| check passed | `PASS` |
+| rule does not apply to the target | `N/A` |
+
+Aggregation across a range: one table row / NDJSON object per rule, not per commit. A rule's result is `FAIL` if any target trips its `error` condition, else `MOSTLY-PASS` if any target trips a `warn`, else `PASS` (`N/A` when the rule applies to no target). Per-target specifics — offending SHAs, excerpts — go in `Details` / `details`, and each `FAIL` / `MOSTLY-PASS` rule gets a finding block in the human report.
 
 ## Verdict line
 
@@ -71,6 +111,6 @@ The verdict is what most readers will skim first; everything else is supporting 
 
 ## What this does NOT specify
 
-- The set of rules to check — that comes from `format-conventions.md` and per-capability specs.
+- The set of rules to check on a given run — capabilities and the optional `rules:` filter decide that; the registry above fixes only the id vocabulary.
 - How to format the apply commands — that follows the conventions of the invoking shell.
 - Whether to auto-apply fixes — capabilities never auto-apply; this format is read-only output.

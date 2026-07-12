@@ -40,7 +40,7 @@ This capability uses only `git` operations (`filter-branch`, `filter-repo`, `reb
 
 ### 0. Rule catalog
 
-Artifact findings surfaced during pre-flight (Step 4) or post-flight (Step 6) must use the kebab-case rule ids from `../../references/commit-smells.md` where applicable. Reflow-specific artifacts not already in the catalog (e.g., kebab-case word-boundary joins after a flow pass) get ad-hoc keys named in the same kebab-case style, but those should be raised as catalog additions in a follow-up so the schema in `../../references/review-output.schema.json` remains the source of truth.
+Artifact findings surfaced during pre-flight (Step 4) or post-flight (Step 6) must use rule ids from the registry in `../../references/review-output.md`: the kebab-case catalog ids from `../../references/commit-smells.md` where a smell matches, and the registry's `reflow-artifact` id for transformation artifacts (e.g., kebab-case word-boundary joins after a flow pass), with the specific artifact named in `details`. The schema in `../../references/review-output.schema.json` enforces registry membership through its `rule` enum, so ad-hoc ids fail validation — a recurring artifact kind that deserves its own id is raised as a registry addition first.
 
 ### 1. Resolve scope
 
