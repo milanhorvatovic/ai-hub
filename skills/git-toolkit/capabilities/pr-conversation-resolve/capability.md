@@ -115,6 +115,8 @@ PR #42 — 3 unresolved threads of 7 total
     gh api graphql ... -F body='<chosen text>'
 ```
 
+Secret scan per `../../references/secret-patterns.md` over every drafted reply before it is displayed or embedded in a surfaced apply command. On match → redact + WARN. Never include detected secrets — in the draft or in the command the user will run. Replies are published text the moment the user posts them; commit-matching context makes it easy to quote a leaked value without noticing.
+
 Always:
 - Show the original comment in full (or first 3 lines + ellipsis if long)
 - Surface the commit-match analysis

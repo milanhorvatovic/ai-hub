@@ -3,10 +3,14 @@
 Generic link/pointer resolution across the skill tree lives in the fleet-wide
 suite (`tests/skills/test_structure_all.py`); what stays here are the
 contracts unique to this skill: the review-output NDJSON schema (validity,
-prose agreement, worked-example conformance), the untrusted-content guard
-wiring on ingestion capabilities, and the shared-reference wiring for the
-force-push-impact and pr-input-guards blocks (each block lives in exactly one
-reference; consumers link it and never restate it).
+prose agreement, worked-example conformance), the shared-reference wiring for
+the force-push-impact and pr-input-guards blocks (each block lives in exactly
+one reference; consumers link it and never restate it), and the safety-wiring
+matrix — SKILL.md's "safety wiring is a checklist" principle enforced as a
+test. Each safety reference (untrusted-content, secret-patterns,
+bot-signatures, harness-safety-nets) has a maintained consumer-class list
+below; every capability must appear in the classes that fit it, and a
+completeness check forces new capabilities to declare their classes.
 """
 
 from __future__ import annotations
@@ -129,7 +133,11 @@ def test_example_ndjson_matches_schema_invariants(references_dir: Path) -> None:
 # bodies, review threads, CI logs, fork diffs, contributor PR metadata) and feed
 # it into verdicts, drafts, or proposed commands. Each must link the
 # untrusted-content guard so the indirect-prompt-injection defense (Snyk W011)
-# cannot be silently dropped when a capability is edited.
+# cannot be silently dropped when a capability is edited. Membership is literal
+# by decision: capabilities whose only third-party read is the Force-Push
+# Impact enrichment (commit-amend-message, commit-body-reflow, commit-fixup,
+# rebase-cleanup) carry their own link rather than relying on
+# force-push-impact.md's guarded anchor-read, so this list needs no exemptions.
 INGESTION_CAPABILITIES = [
     "pr-description-sync",
     "pr-checks-summary",
@@ -138,7 +146,12 @@ INGESTION_CAPABILITIES = [
     "pr-description-write",
     "release-notes",
     "merge-readiness",
+    "merge-execute",
     "commit-message",
+    "commit-amend-message",
+    "commit-body-reflow",
+    "commit-fixup",
+    "rebase-cleanup",
 ]
 
 
@@ -279,6 +292,142 @@ def test_no_capability_restates_pr_resolution(capabilities_dir: Path) -> None:
     ]
     assert not offenders, (
         f"capabilities restate the PR resolution recipe: {offenders}"
+    )
+
+
+# Capabilities that draft text for publication — commit messages (including
+# squash-message overrides in a surfaced merge command), PR bodies and body
+# patches, review replies, release notes. Each must run the pre-publication
+# secret scan; secret-patterns.md has no transitive carrier, so the link is
+# always literal.
+SECRET_SCAN_CAPABILITIES = [
+    "commit-message",
+    "commit-amend-message",
+    "commit-body-reflow",
+    "rebase-cleanup",
+    "pr-description-write",
+    "pr-description-sync",
+    "pr-link-issues",
+    "pr-conversation-resolve",
+    "release-notes",
+    "merge-execute",
+]
+
+# Capabilities whose input guards decide "is this author a bot?" — to skip
+# (format-mutating: a rewrite would be overwritten on the bot's next run), to
+# mention-and-proceed (read-only carve-out), or to run the standard sequence's
+# bot step undeviated (merge-execute). The catalog is reachable directly or
+# through pr-input-guards.md, whose standard sequence includes the bot guard
+# (asserted by test_pr_input_guards_reference_is_the_single_home).
+BOT_GUARD_CAPABILITIES = [
+    "commit-message",
+    "commit-amend-message",
+    "commit-body-reflow",
+    "commit-fixup",
+    "rebase-cleanup",
+    "release-notes",
+    "merge-readiness",
+    "merge-execute",
+    "pr-description-sync",
+    "pr-description-write",
+    "pr-link-issues",
+    "pr-conversation-resolve",
+    "pr-checks-summary",
+]
+
+# Capabilities that propose operations agent-harness classifiers routinely
+# flag — force-push publishes, history rewrites, merge execution. Every
+# history rewriter is by definition in this class, so the list is derived
+# from FORCE_PUSH_CONSUMERS rather than restated. The intent/impact/recovery
+# phrasing rules are reachable directly or through force-push-impact.md,
+# whose proposal-phrasing section carries them (asserted by
+# test_force_push_impact_reference_is_the_single_home).
+FLAGGED_OPERATION_PROPOSERS = [*FORCE_PUSH_CONSUMERS, "merge-execute"]
+
+# Capabilities in no safety class: they publish nothing and propose no
+# flagged operation, and their only third-party exposure is sampling branch
+# names to infer naming conventions — counted for prefix vocabulary and slug
+# style, never carried into drafts as content — a deliberate, bounded
+# exemption. A new capability lands either here or in the class lists above —
+# test_every_capability_is_classified refuses unclassified capabilities.
+UNCLASSIFIED_SAFE_CAPABILITIES = [
+    "branch-name",
+    "worktree-setup",
+]
+
+
+@pytest.mark.parametrize("cap_name", SECRET_SCAN_CAPABILITIES)
+def test_publishing_capabilities_link_secret_patterns(
+    cap_name: str, capabilities_dir: Path
+) -> None:
+    text = (capabilities_dir / cap_name / "capability.md").read_text(encoding="utf-8")
+    assert "../../references/secret-patterns.md" in text, (
+        f"{cap_name} drafts text for publication but does not link "
+        "../../references/secret-patterns.md (pre-publication secret scan)"
+    )
+
+
+@pytest.mark.parametrize("cap_name", BOT_GUARD_CAPABILITIES)
+def test_bot_guard_capabilities_reach_bot_signatures(
+    cap_name: str, capabilities_dir: Path
+) -> None:
+    text = (capabilities_dir / cap_name / "capability.md").read_text(encoding="utf-8")
+    assert (
+        "../../references/bot-signatures.md" in text
+        or "../../references/pr-input-guards.md" in text
+    ), (
+        f"{cap_name} needs the bot-author catalog but links neither "
+        "../../references/bot-signatures.md nor the standard "
+        "../../references/pr-input-guards.md sequence that carries it"
+    )
+
+
+@pytest.mark.parametrize("cap_name", FLAGGED_OPERATION_PROPOSERS)
+def test_flagged_operation_proposers_reach_harness_safety_nets(
+    cap_name: str, capabilities_dir: Path
+) -> None:
+    text = (capabilities_dir / cap_name / "capability.md").read_text(encoding="utf-8")
+    assert (
+        "../../references/harness-safety-nets.md" in text
+        or "../../references/force-push-impact.md" in text
+    ), (
+        f"{cap_name} proposes classifier-flagged operations but links neither "
+        "../../references/harness-safety-nets.md nor "
+        "../../references/force-push-impact.md, which carries its phrasing rules"
+    )
+
+
+def test_every_capability_is_classified(capabilities_dir: Path) -> None:
+    """Safety wiring is a checklist: a new capability must be placed in the
+    safety classes that fit it (or explicitly among the unclassified-safe)
+    before it lands, and a deleted capability must leave every list.
+    Membership in the non-safety lists (GITHUB_SIDE, FORCE_PUSH) deliberately
+    does NOT count as classified — being GitHub-side says nothing about
+    whether the capability's safety classes were considered."""
+    safety_classes = set(
+        INGESTION_CAPABILITIES
+        + SECRET_SCAN_CAPABILITIES
+        + BOT_GUARD_CAPABILITIES
+        + FLAGGED_OPERATION_PROPOSERS
+    )
+    safety_classified = safety_classes | set(UNCLASSIFIED_SAFE_CAPABILITIES)
+    every_list = safety_classified | set(FORCE_PUSH_CONSUMERS) | set(
+        GITHUB_SIDE_CAPABILITIES
+    )
+    on_disk = {p.parent.name for p in capabilities_dir.glob("*/capability.md")}
+    unclassified = on_disk - safety_classified
+    stale = every_list - on_disk
+    contradictory = safety_classes & set(UNCLASSIFIED_SAFE_CAPABILITIES)
+    assert not unclassified, (
+        "capabilities missing from the safety-wiring class lists in this "
+        f"test (add each to the classes that fit it): {sorted(unclassified)}"
+    )
+    assert not stale, (
+        f"class lists name capabilities that no longer exist: {sorted(stale)}"
+    )
+    assert not contradictory, (
+        "capabilities listed both in a safety class and as unclassified-safe "
+        f"(pick one): {sorted(contradictory)}"
     )
 
 

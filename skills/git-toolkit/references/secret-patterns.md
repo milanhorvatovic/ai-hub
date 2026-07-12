@@ -1,6 +1,6 @@
 # Secret-pattern catalog for pre-publication redaction
 
-Load this whenever a capability is about to display or write text that will become a commit message or PR body. Run every pattern; on match, redact the surrounding context with `[REDACTED: <pattern_name>]` and surface a `WARN: potential secret in proposal — <pattern_name> at line N` line above the proposal.
+Load this whenever a capability is about to display or write text that will be published — a commit message, PR body, release note, or review reply. Run every pattern; on match, redact the surrounding context with `[REDACTED: <pattern_name>]` and surface a `WARN: potential secret in proposal — <pattern_name> at line N` line above the proposal.
 
 ## Pattern catalog
 
@@ -46,10 +46,12 @@ Never decide on the user's behalf that a flagged value is safe. Always surface, 
 
 ## Scope
 
-Apply this scan to:
+Apply this scan to every proposed text before it is displayed **or written to disk** — mktemp proposal files and DRY-RUN previews leak exactly like the displayed copy:
 
-- Proposed commit messages (subject + body) before display.
-- Proposed PR descriptions before display.
+- Proposed commit messages (subject + body).
+- Proposed PR descriptions and body patches.
+- Proposed release notes.
+- Proposed review replies / PR comments — published the moment the user runs the surfaced command.
 - Carry-forward content from an existing body when rewriting (the existing body may contain leaked secrets from earlier; the rewrite is the moment to redact, not re-leak).
 
 Do NOT scan:

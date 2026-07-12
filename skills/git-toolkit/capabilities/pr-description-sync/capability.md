@@ -121,7 +121,7 @@ Report in this order:
 4. **Proposed description** (MINOR / MAJOR only) — full markdown or section-level patch per Step 5. Show **inline** AND write to a `mktemp` file. Preserve every trailer per `../../references/trailer-semantics.md`.
 5. **Apply command** — `gh pr edit <num> --body-file <path>` with the **resolved PR number explicitly**, never a branch name. Never run automatically.
 
-**Pre-display secret scan** per `../../references/secret-patterns.md`. On match → redact + WARN. Never include detected secrets.
+**Secret scan** per `../../references/secret-patterns.md` over the proposed body before it is displayed or written to the mktemp file. On match → redact + WARN. Never include detected secrets — on screen or on disk.
 
 **Body length cap** — GitHub limit is 65,536 chars. Warn if proposal >~65,000.
 
