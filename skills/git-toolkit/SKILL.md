@@ -1,19 +1,18 @@
 ---
 name: git-toolkit
 description: >
-  Governs how changes are narrated across the git + GitHub lifecycle — branch
-  names, commit messages, rebase plans, PR titles and descriptions, and
-  release notes. Enforces conventional-commits syntax (when the repo uses it),
-  imperative mood, ≤72-char subjects, trailer placement, issue references
-  (Closes vs Refs), and squash/rebase-merge implications. Routes across the
-  lifecycle to capabilities covering branch naming, commit authoring, history
-  cleanup, PR description authoring and sync, issue linking, CI failure
-  triage, conversation resolution, merge readiness and execution, and release
-  notes. Never auto-publishes and never auto-adds trailers (Co-authored-by,
-  Signed-off-by, etc.). Activates when the user asks to write, validate, review, fix, sync,
-  refresh, clean up, or draft anything in the commit / PR / release /
-  branch-name workflow; when commits feel inconsistent; or before requesting
-  review or merging.
+  Use when about to commit staged work, authoring or amending any commit,
+  opening or updating a PR, or preparing a release — routine authoring
+  intent, not only explicit asks. Governs change narration across the git +
+  GitHub lifecycle: branch naming and worktree setup, commit authoring,
+  history cleanup, PR descriptions and issue linking, CI failure triage,
+  review-thread resolution, merge readiness and execution, release notes.
+  Enforces conventional-commits (when the repo uses them), imperative mood,
+  ≤72-char subjects, and trailer placement. Also fires on asks to write,
+  validate, review, fix, sync, or clean up that text, and when commits feel
+  inconsistent. Never auto-publishes; never auto-adds trailers
+  (Co-authored-by, Signed-off-by, etc.). Read-only inspection (status, log,
+  diff) stays out.
 allowed-tools: Bash Read Write Grep
 metadata:
   version: "1.1.0" # x-release-please-version
@@ -27,12 +26,7 @@ Governs the structure, format, and accuracy of how changes are described across 
 
 ## When to trigger
 
-- Writing or about to write a new commit message → `commit-message`
-- Reviewing / auditing existing commits for format compliance → `commit-message`
-- Authoring a new PR description (no body yet, or body is unfilled template) → `pr-description-write`
-- Validating an existing PR description against the branch ("is my PR body still accurate?", "refresh / sync the description") → `pr-description-sync`
-- "My commits look inconsistent / unclear" → `commit-message` (review mode)
-- Before requesting PR review or marking a draft ready → run `pr-description-sync` first, then `commit-message` review on the branch's commits
+Activation cues live in two places only: the frontmatter description (lifecycle intent — about to commit, opening or updating a PR, preparing a release — plus explicit asks) and the Trigger cells of the six lifecycle tables under [Capability routing](#capability-routing). Match the task against those tables; this file keeps no separate trigger list.
 
 ## Architecture
 
@@ -49,6 +43,7 @@ Shared references at this skill's root hold the canonical format spec, trailer r
 - **One source of truth for format.** Conventional-commits syntax, imperative mood, length caps, body wrap, breaking-change markers all live in `references/format-conventions.md`. Capabilities apply them; they do not re-specify.
 - **Format ≠ content accuracy.** `commit-message` and `pr-description-write` enforce format. `pr-description-sync` enforces content accuracy (claims match diff). Both can fire on the same PR; they are complementary.
 - **Repo conventions override defaults.** Every capability checks `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `.commitlintrc*`, the PR template — if present, those rules supersede the generic spec. Precedence: agent-instruction file > `CONTRIBUTING.md` > commit-lint config > generic defaults.
+- **Discovery and enforcement state the same rules.** This skill is the discovery side of a convention contract; an agent-instruction declaration (`AGENTS.md`, `CONTRIBUTING.md`) and a commit-style gate (CI linter, commit-msg hook) are the enforcement side of the same contract. Where all three exist — as in the repo that ships this skill — a convention change must touch declaration, gate, and skill text together, or the untouched surfaces keep asserting the old rule.
 - **Never auto-publish.** Commit-message rewrites, PR description edits, branch creates, rebases, release publishes — all require user confirmation. Show the proposal and the exact apply command; let the user run it.
 - **Never auto-add trailers.** `Co-authored-by:`, `Signed-off-by:`, `Reviewed-by:`, and any other attribution trailer is added only when the user explicitly requests it. The skill never adds trailers programmatically — including to commit messages, PR bodies, release notes, or rebase-cleanup rewrites. See `references/trailer-semantics.md`. Trailers are CLAIMS (legal attestations, factual contributions, social endorsements); adding one without user consent falsifies the claim.
 - **Pre-publication secret scan.** Any text that will become a commit, PR body, release note, or posted review reply runs through `references/secret-patterns.md` first — before it is displayed and before it is written to a proposal file.
@@ -64,46 +59,46 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 
 | Capability | Trigger | Path |
 |---|---|---|
-| branch-name | [git-side] Propose a git branch name for new work, from staged changes or a user description, respecting repo prefix conventions (`fix/`, `feature/`, etc.) | capabilities/branch-name/capability.md |
-| worktree-setup | [git-side] Propose a `git worktree add` command for parallel work on a feature or fix branch, detecting the repo's worktree placement and naming conventions (sibling `<repo>-worktrees/` default) | capabilities/worktree-setup/capability.md |
+| branch-name | [git-side] Starting new work that needs a branch — propose a name from staged changes or a user description, respecting repo prefix conventions (`fix/`, `feature/`, etc.) | capabilities/branch-name/capability.md |
+| worktree-setup | [git-side] Beginning parallel work alongside the current checkout — propose the `git worktree add` command, detecting the repo's worktree placement and naming conventions (sibling `<repo>-worktrees/` default) | capabilities/worktree-setup/capability.md |
 
 ### Authoring commits
 
 | Capability | Trigger | Path |
 |---|---|---|
-| commit-message | [git-side, optional `gh` enrichment] Write a new commit subject + body for currently-staged changes; or review one existing commit / a range for format compliance and propose fixes | capabilities/commit-message/capability.md |
-| commit-fixup | [git-side] Detect which prior commit the currently-staged changes belong to and propose `git commit --fixup <sha>` plus the follow-up rebase command | capabilities/commit-fixup/capability.md |
-| commit-amend-message | [git-side] Amend only the message of HEAD (not the diff); validate against format conventions; warn on pushed commits | capabilities/commit-amend-message/capability.md |
+| commit-message | [git-side, optional `gh` enrichment] About to commit staged changes (asked for a message or not) — write the subject + body; or review one existing commit / a range for format compliance and propose fixes | capabilities/commit-message/capability.md |
+| commit-fixup | [git-side] Staged changes belong to an earlier commit on the branch — detect which and propose `git commit --fixup <sha>` plus the follow-up rebase command | capabilities/commit-fixup/capability.md |
+| commit-amend-message | [git-side] Rewording HEAD's message without touching the diff — validate against format conventions; warn on pushed commits | capabilities/commit-amend-message/capability.md |
 
 ### Tidying history before review
 
 | Capability | Trigger | Path |
 |---|---|---|
-| rebase-cleanup | [git-side, optional `gh` enrichment] Analyze a branch's commits and propose an interactive-rebase plan (squash / fixup / reword / drop / reorder) to clean up history before review or merge | capabilities/rebase-cleanup/capability.md |
-| commit-body-reflow | [git-side, optional `gh` enrichment] Transform many commit bodies at once between flowing-paragraph and hard-wrap styles across a range or set of stacked branches; preserves subjects and trailers byte-for-byte | capabilities/commit-body-reflow/capability.md |
+| rebase-cleanup | [git-side, optional `gh` enrichment] Branch history needs tidying before review or merge — analyze the commits and propose an interactive-rebase plan (squash / fixup / reword / drop / reorder) | capabilities/rebase-cleanup/capability.md |
+| commit-body-reflow | [git-side, optional `gh` enrichment] Switching many commit bodies at once between flowing-paragraph and hard-wrap styles, across a range or set of stacked branches — preserves subjects and trailers byte-for-byte | capabilities/commit-body-reflow/capability.md |
 
 ### Opening and shaping a PR
 
 | Capability | Trigger | Path |
 |---|---|---|
-| pr-description-write | [GitHub-side] Author a PR body from scratch — when the PR has no description, has only `WIP` / one-liner, or carries an unfilled template | capabilities/pr-description-write/capability.md |
-| pr-description-sync | [GitHub-side] Validate that an existing PR body still matches the branch's actual changes; classify divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE`; propose a fix | capabilities/pr-description-sync/capability.md |
-| pr-link-issues | [GitHub-side] Auto-detect issues the PR addresses (from branch, commits, body), verify the diff resolves them, propose `Closes` / `Refs` keywords to add to the PR body | capabilities/pr-link-issues/capability.md |
+| pr-description-write | [GitHub-side] Opening a PR, or its body is empty / `WIP` / an unfilled template — author the description from scratch | capabilities/pr-description-write/capability.md |
+| pr-description-sync | [GitHub-side] Branch changed after the body was written, or asked whether the description still matches — classify divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE`; propose a fix | capabilities/pr-description-sync/capability.md |
+| pr-link-issues | [GitHub-side] PR addresses issues its body doesn't reference — auto-detect them (from branch, commits, body), verify the diff resolves them, propose `Closes` / `Refs` keywords to add | capabilities/pr-link-issues/capability.md |
 
 ### Working through review
 
 | Capability | Trigger | Path |
 |---|---|---|
-| pr-checks-summary | [GitHub-side] Inspect failed CI checks, fetch logs, classify failure types (test / lint / build / deploy / security), propose likely fixes and reproduce-locally commands | capabilities/pr-checks-summary/capability.md |
-| pr-conversation-resolve | [GitHub-side] List unresolved review threads, match each against recent commits, propose responses (with optional resolve commands); never auto-post | capabilities/pr-conversation-resolve/capability.md |
+| pr-checks-summary | [GitHub-side] CI is red on the PR — inspect failed checks, fetch logs, classify failure types (test / lint / build / deploy / security), propose likely fixes and reproduce-locally commands | capabilities/pr-checks-summary/capability.md |
+| pr-conversation-resolve | [GitHub-side] Working through review feedback — list unresolved threads, match each against recent commits, propose responses (with optional resolve commands); never auto-post | capabilities/pr-conversation-resolve/capability.md |
 
 ### Merging and releasing
 
 | Capability | Trigger | Path |
 |---|---|---|
-| merge-readiness | [GitHub-side] Pre-merge gate check — CI status, approvals, mergeability, unresolved threads, no WIP commits, description-in-sync. Outputs READY / PARTIALLY-READY / NOT-READY with per-gate detail | capabilities/merge-readiness/capability.md |
-| merge-execute | [GitHub-side] Output the canonical `gh pr merge` command per repo merge policy (squash / rebase / merge), with the right `--delete-branch` and `--auto` flags | capabilities/merge-execute/capability.md |
-| release-notes | [git-side, optional gh enrichment] Draft release notes for a new version by aggregating commits since the previous tag, grouped by conventional-commits type; enriches with merged-PR metadata and contributor credit when `gh` is authenticated, and degrades to a commit-only draft otherwise | capabilities/release-notes/capability.md |
+| merge-readiness | [GitHub-side] About to merge, or asking "is this ready?" — gate check on CI status, approvals, mergeability, unresolved threads, WIP commits, description-in-sync. Outputs READY / PARTIALLY-READY / NOT-READY with per-gate detail | capabilities/merge-readiness/capability.md |
+| merge-execute | [GitHub-side] Merging an approved PR — output the canonical `gh pr merge` command per repo merge policy (squash / rebase / merge), with the right `--delete-branch` and `--auto` flags | capabilities/merge-execute/capability.md |
+| release-notes | [git-side, optional gh enrichment] Preparing a release — draft notes aggregating commits since the previous tag, grouped by conventional-commits type; enriches with merged-PR metadata and contributor credit when `gh` is authenticated, degrades to a commit-only draft otherwise | capabilities/release-notes/capability.md |
 
 **Scope legend:**
 
