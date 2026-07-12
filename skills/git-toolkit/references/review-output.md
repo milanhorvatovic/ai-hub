@@ -78,7 +78,7 @@ Every `rule` id in a stream resolves to a single registry with two halves:
 | `force-push-impact` | meta | Force-push impact bucket for the reviewed ref; `details.excerpt` carries none / mild / high per `force-push-impact.md` |
 | `verdict` | meta | Final aggregate object closing every NDJSON stream (see Verdict line) |
 
-The JSON Schema's `rule` enum is the machine form of this registry — both halves, nothing else. Adding a rule means adding it to `commit-smells.md` (smells) or to the table above (checks / meta) AND to the schema enum; the repo's test suite holds catalog, table, and enum in sync.
+The JSON Schema's `rule` enum is the machine form of this registry — both halves, nothing else. Adding a rule means adding it to `commit-smells.md` (smells) or to the table above (checks / meta) AND to the schema enum; the repo's test suite holds catalog, table, and enum in sync, and resolves the ids capabilities cite — rule-catalog sections, `Rule id` table columns, embedded NDJSON examples — against the enum.
 
 **Deprecated aliases** — this note is the only place the retired spellings may appear: `past-tense-verb` and `overlong-subject` were unified into the broader `imperative-mood` and `subject-length`. Consumers with stored streams map the old ids forward; nothing emits them anymore.
 

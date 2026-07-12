@@ -144,7 +144,7 @@ REVIEW findings must use rule ids from the registry defined in `../../references
 
 ### 0b. Rule selectivity (optional `rules:` filter)
 
-An optional `rules:` argument scopes the review to a subset of catalog rules — the mechanism, the unmatched-id warning, and the required active-subset preamble line are specified in `../../references/commit-smells.md` (Rule selectivity).
+An optional `rules:` argument scopes the review to a subset of registry rules — catalog smells and check ids alike; the mechanism, the unmatched-id warning, and the required active-subset preamble line are specified in `../../references/commit-smells.md` (Rule selectivity).
 
 ### 1. Resolve target commit(s)
 
@@ -190,7 +190,7 @@ Group Step 2's results per rule across the whole range and apply the severity ma
 Emit the report in the canonical REVIEW shape from `../../references/review-output.md`: preamble (range, commit count, active rule subset when a `rules:` filter is set), the per-rule `Rule | Result | Details` table, one finding block per `FAIL` / `MOSTLY-PASS` rule, and the verdict line.
 
 ```
-Reviewed 3 commit(s) on main..HEAD (all catalog rules + format checks active):
+Reviewed 3 commit(s) on main..HEAD (all registry rules active):
 
 | Rule | Result | Details |
 |---|---|---|

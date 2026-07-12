@@ -45,18 +45,20 @@ def _schema(references_dir: Path) -> dict:
 
 
 def test_catalog_ids_are_wellformed_unique_and_counted(references_dir: Path) -> None:
-    """Catalog headings are the smell half of the registry; the catalog's own
-    "N catalog rules" prose must match the heading count."""
+    """Catalog headings are the smell half of the registry; the Rule
+    selectivity example's "N registry rules" figure must match the real
+    registry size (catalog headings + check/meta table)."""
     ids = _catalog_ids(references_dir)
     assert ids, "no `### `<id>`` headings found in commit-smells.md"
     malformed = [i for i in ids if not _RULE_ID.fullmatch(i)]
     assert not malformed, f"catalog ids not kebab-case: {malformed}"
     assert len(ids) == len(set(ids)), "duplicate catalog headings"
     text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
-    claimed = {int(n) for n in re.findall(r"of (\d+) catalog rules", text)}
-    assert claimed == {len(ids)}, (
-        f"commit-smells.md claims {claimed or '{nothing}'} catalog rules "
-        f"but declares {len(ids)} headings"
+    claimed = {int(n) for n in re.findall(r"of (\d+) registry rules", text)}
+    total = len(ids) + len(_registry_table_ids(references_dir))
+    assert claimed == {total}, (
+        f"commit-smells.md's Rule selectivity example claims "
+        f"{claimed or '{nothing}'} registry rules but the registry holds {total}"
     )
 
 
@@ -199,6 +201,84 @@ def test_capability_rule_catalog_sections_resolve_to_the_registry(
                     offenders.append(f"{cap_name}: {token!r}")
     assert not offenders, (
         "capability rule-catalog sections cite unregistered ids:\n"
+        + "\n".join(offenders)
+    )
+
+
+def _rule_id_table_cells(text: str) -> list[str]:
+    """Backticked ids from any markdown table column headed `Rule id`."""
+    cells: list[str] = []
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if not line.lstrip().startswith("|") or "Rule id" not in line:
+            continue
+        header = [c.strip() for c in line.strip().strip("|").split("|")]
+        if "Rule id" not in header:
+            continue
+        col = header.index("Rule id")
+        for row in lines[i + 1 :]:
+            if not row.lstrip().startswith("|"):
+                break
+            parts = [c.strip() for c in row.strip().strip("|").split("|")]
+            if col < len(parts):
+                m = re.fullmatch(r"`([^`]+)`", parts[col])
+                if m:
+                    cells.append(m.group(1))
+    return cells
+
+
+def test_rule_id_table_columns_resolve_to_the_registry(
+    references_dir: Path, capabilities_dir: Path
+) -> None:
+    """Capability check tables declare their vocabulary in a `Rule id` column
+    (commit-message Step 2, commit-amend-message Step 3); every cited id must
+    be a registry member."""
+    enum = set(_schema(references_dir)["properties"]["rule"]["enum"])
+    offenders: list[str] = []
+    found = 0
+    for cap in sorted(capabilities_dir.glob("*/capability.md")):
+        ids = _rule_id_table_cells(cap.read_text(encoding="utf-8"))
+        found += len(ids)
+        offenders += [
+            f"{cap.parent.name}: {i!r}" for i in ids if i not in enum
+        ]
+    assert found, "no `Rule id` table columns found in any capability"
+    assert not offenders, (
+        "`Rule id` table columns cite unregistered ids:\n" + "\n".join(offenders)
+    )
+
+
+def test_review_result_tables_use_contract_results(
+    skill_root: Path, references_dir: Path
+) -> None:
+    """Every `Rule | Result | Details` table in the tree — the contract's own
+    template, capability output examples, the worked example — grades with the
+    contract's result vocabulary only (no `ok`/`warn`/`none` dialects)."""
+    result_enum = set(_schema(references_dir)["properties"]["result"]["enum"])
+    offenders: list[str] = []
+    tables = 0
+    for path in sorted(skill_root.rglob("*.md")):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for i, line in enumerate(lines):
+            header = [c.strip() for c in line.strip().strip("|").split("|")]
+            if header != ["Rule", "Result", "Details"]:
+                continue
+            tables += 1
+            for row in lines[i + 2 :]:  # skip the separator row
+                if not row.lstrip().startswith("|"):
+                    break
+                parts = [c.strip() for c in row.strip().strip("|").split("|")]
+                if len(parts) < 2:
+                    continue
+                for value in parts[1].split(" / "):
+                    value = value.strip()
+                    if value and value not in result_enum:
+                        offenders.append(
+                            f"{path.name}: Result {value!r} in row {parts[0]!r}"
+                        )
+    assert tables >= 3, f"expected the contract/example Result tables, found {tables}"
+    assert not offenders, (
+        "Result tables use values outside the contract enum:\n"
         + "\n".join(offenders)
     )
 

@@ -6,7 +6,7 @@ Findings emitted from this catalog should use the `rule` ids defined here verbat
 
 ## Rule selectivity (optional `rules:` filter)
 
-By default every catalog rule runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case rule ids, e.g. `rules: imperative-mood,trailing-period,subject-length` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in catalog") but do not halt the run. The consuming capability's output preamble must list the active subset so the reader knows what was *not* checked: `Active rule subset: imperative-mood, trailing-period, subject-length (3 of 24 catalog rules)`.
+By default every rule the consuming capability implements runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case ids from the rule-id registry in `review-output.md`, catalog smells and check ids alike, e.g. `rules: imperative-mood,trailing-period,body-wrap` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in the registry") but do not halt the run. The consuming capability's output preamble must list the active subset so the reader knows what was *not* checked: `Active rule subset: imperative-mood, trailing-period, body-wrap (3 of 37 registry rules)`.
 
 The NDJSON output shape from `review-output.md` is unchanged — findings still carry their `rule` id; the only change is which rules contribute. Useful in CI contexts where a repo has accepted some smells as out-of-scope but wants to enforce others on every run.
 
