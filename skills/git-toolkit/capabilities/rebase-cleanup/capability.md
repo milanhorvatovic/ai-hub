@@ -29,11 +29,11 @@ Proposes an interactive-rebase plan to clean up a branch's commit history.
 
 ### 0. Rule catalog
 
-Classifications in Step 2 and any REVIEW-shaped findings emitted along the way must use the kebab-case rule ids from `../../references/commit-smells.md` (especially `status-marker`, `generic-verb`, `vague-noun`, `repeated-fix`, `manual-revert`, `mixed-scope`). Detection patterns for the catalog's rules drive the classifier; the catalog stays the single source of "things to flag".
+Classifications in Step 2 and any REVIEW-shaped findings emitted along the way must use the kebab-case rule ids from `../../references/commit-smells.md` (especially `status-marker`, `generic-verb`, `vague-noun`, `repeated-fix`, `manual-revert`, `mixed-scope`). Detection patterns for the catalog's rules drive the classifier; the catalog stays the single source of "things to flag". When findings are surfaced as a report rather than folded into the plan, they follow the shape, rule-id registry, and severity mapping of `../../references/review-output.md`.
 
 ### 0b. Rule selectivity (optional `rules:` filter)
 
-An optional comma-separated `rules:` argument scopes classification to a subset of catalog rule ids (e.g. `rules: status-marker,repeated-fix,mixed-scope`) — the mechanism, the unmatched-id warning, and the required active-subset preamble line are specified in `../../references/commit-smells.md` (Rule selectivity). The cleanup plan only proposes actions for commits matching the active rules, so the reader of the plan preamble knows which classifications were skipped. Useful when a team has agreed that some smells are out of scope for branch-cleanup work.
+An optional comma-separated `rules:` argument scopes classification to a subset of registry rule ids (e.g. `rules: status-marker,repeated-fix,mixed-scope`) — the mechanism, the unmatched-id warning, and the required active-subset preamble line are specified in `../../references/commit-smells.md` (Rule selectivity). This capability's classifier implements the catalog smells, so a registry check id is a valid input that simply scopes nothing here. The cleanup plan only proposes actions for commits matching the active rules, so the reader of the plan preamble knows which classifications were skipped. Useful when a team has agreed that some smells are out of scope for branch-cleanup work.
 
 ### 1. Gather commits and bodies
 

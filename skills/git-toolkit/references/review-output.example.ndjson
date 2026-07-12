@@ -1,7 +1,6 @@
 {"rule": "imperative-mood", "result": "PASS", "scope": "branch", "ref": "fix/upload-queue-retry", "count_checked": 16, "count_failed": 0}
 {"rule": "subject-length", "result": "PASS", "scope": "branch", "ref": "fix/upload-queue-retry", "count_checked": 16, "count_failed": 0, "max_length": 57, "limit": 72}
 {"rule": "trailing-period", "result": "PASS", "scope": "branch", "ref": "fix/upload-queue-retry", "count_checked": 16, "count_failed": 0}
-{"rule": "auto-trailer", "result": "PASS", "scope": "branch", "ref": "fix/upload-queue-retry", "count_checked": 16, "count_failed": 0}
 {"rule": "conventional-commits-prefix", "result": "PASS", "scope": "branch", "ref": "fix/upload-queue-retry", "count_checked": 16, "count_failed": 0}
 {"rule": "body-wrap", "result": "MOSTLY-PASS", "scope": "commit", "sha": "f902472b", "subject": "Extend Windows entries in .gitignore", "details": {"line": 5, "length": 73, "limit": 72, "excerpt": "- Thumbs.db:encryptable — NTFS-encrypted variant of the thumbnail cache."}, "fix": "Reflow paragraph to one line (flowing default) or rewrap at column 72; 1-column overshoot is within the soft cap and acceptable."}
 {"rule": "generic-verb", "result": "FAIL", "scope": "commit", "sha": "d3a8c1f9", "subject": "Update parser.py", "details": {"excerpt": "Update parser.py"}, "fix": "Replace `Update` with a specific verb that names the operation (Add / Remove / Rename / Extract / Replace / Fix) and drop the file path; subject should describe intent, not paths."}

@@ -106,9 +106,9 @@ Reviewed: 4 commits in fix/upload-queue-retry vs origin/main.
 | No trailing period | PASS | |
 | Body flowing | PASS | paragraphs are single-line per commit |
 | Trailers preserved | N/A | no trailers present |
-| Force-Push Impact | none | branch never pushed |
+| Force-Push Impact | N/A | branch never pushed; impact = none |
 
-Verdict: COMPLIANT.
+COMPLIANT
 ```
 
 ## Step 6 — `rebase-cleanup` (git-side)

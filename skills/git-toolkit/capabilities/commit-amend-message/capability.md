@@ -49,18 +49,18 @@ Two modes:
 
 Apply checks from `../../references/format-subject.md` and `../../references/format-body.md`:
 
-| Check | Severity |
-|---|---|
-| Subject length ≤72 | error if >72 |
-| Imperative mood | warn (heuristic) |
-| No trailing period | error |
-| Conventional-commits prefix if repo uses CC | error |
-| Body wrap ≤72 (if body present) | warn |
-| Blank line after subject | error |
-| Secret-pattern scan | error per `../../references/secret-patterns.md` |
-| Trailers preserved byte-for-byte | error if reformatted |
+| Check | Rule id | Severity |
+|---|---|---|
+| Subject length ≤72 | `subject-length` | error if >72 |
+| Imperative mood | `imperative-mood` | warn (heuristic) |
+| No trailing period | `trailing-period` | error |
+| Conventional-commits prefix if repo uses CC | `conventional-commits-prefix` | error |
+| Body wrap ≤72 (if body present) | `body-wrap` | warn if hard-wrap repo; else N/A per `../../references/format-body.md` |
+| Blank line after subject | `blank-line-after-subject` | error |
+| Secret-pattern scan | `secret-leak` | error per `../../references/secret-patterns.md` |
+| Trailers preserved byte-for-byte | `trailers-preserved` | error if reformatted |
 
-If any error-level check fails, fix and re-validate before proposing.
+If any error-level check fails, fix and re-validate before proposing — this capability repairs the draft rather than emitting a findings report. When the user asks for the verdict instead of a rewrite ("what's wrong with HEAD's message?"), surface the failed checks as findings per `../../references/review-output.md`: registry rule ids, the `error`/`warn` severity mapping, the report shape.
 
 ### 4. Output
 

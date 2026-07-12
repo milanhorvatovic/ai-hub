@@ -28,7 +28,7 @@ Resolve the target PR and run the standard guard sequence — forge detection, P
 
 ### 0. Rule catalog
 
-Gate-shaped findings emitted alongside the READY / NOT-READY verdict (e.g., when a stale-description or unfilled-template smell blocks readiness) use the kebab-case rule ids from `../../references/commit-smells.md` so the report can be parsed alongside other capabilities' REVIEW output. Gates themselves (CI status, approvals, mergeability) are not catalog rules and stay named as they are.
+Rule-shaped findings emitted alongside the READY / NOT-READY verdict (e.g., when a `stale-claim` or `unfilled-template` smell blocks readiness) use the kebab-case rule ids from `../../references/commit-smells.md` and follow the report shape, rule-id registry, and severity mapping of `../../references/review-output.md`, so the report can be parsed alongside other capabilities' REVIEW output. Gates themselves (CI status, approvals, mergeability) are not registry rules and stay named as they are.
 
 ### 1. Fetch PR metadata
 

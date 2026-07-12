@@ -128,7 +128,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 | `references/trailer-semantics.md` | Where each trailer type lives (commit vs body), what tooling reads it, how merge mode changes that — including harness-pressure conflict resolution |
 | `references/secret-patterns.md` | Pre-publication scan catalog |
 | `references/untrusted-content.md` | Treats fetched third-party GitHub text (PR/issue/comment bodies, review threads, CI logs, fork diffs) as data not instructions; indirect-prompt-injection guard |
-| `references/review-output.md` | Canonical markdown + NDJSON output schema for REVIEW-mode reports across capabilities |
+| `references/review-output.md` | Canonical markdown + NDJSON output schema for REVIEW-mode reports across capabilities, the rule-id registry, and the `error`/`warn` → `FAIL`/`MOSTLY-PASS` severity mapping |
 | `references/review-output.schema.json` | JSON Schema (Draft 2020-12) for the REVIEW-mode NDJSON findings — the machine-checkable contract behind `review-output.md` |
 | `references/review-output.example.ndjson` | Worked example NDJSON findings stream, used as a schema-validation fixture and a reference for new consumers |
 | `references/harness-safety-nets.md` | Operations routinely blocked by agent-harness classifiers, with the proposal phrasing that gives reviewers and classifiers enough context |
