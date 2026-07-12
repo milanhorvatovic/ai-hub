@@ -196,10 +196,7 @@ def _subject_errors(subject: str, skills: set[str]) -> list[str]:
     subject = FIXUP_PREFIX.sub("", subject)
     if REVERT_SUBJECT.match(subject):
         return []
-    errors = _title.validate(subject, skills, noun="subject")
-    if subject.endswith("."):
-        errors.append("subject ends with a period")
-    return errors
+    return _title.validate(subject, skills, noun="subject")
 
 
 def _body_shape_errors(paragraphs: list[list[str]]) -> list[str]:
