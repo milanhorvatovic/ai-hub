@@ -223,6 +223,32 @@ def test_list_continuation_lines_are_exempt() -> None:
     assert lint(message) == []
 
 
+def test_indented_block_lines_are_exempt() -> None:
+    # Tab / 4-space indent is the git and markdown preformatted-block convention.
+    message = (
+        "fix(git-toolkit): handle an empty diff\n"
+        "\n"
+        "Reproduce with:\n"
+        "    git diff --cached\n"
+        "    git commit -m x\n"
+    )
+    assert lint(message) == []
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        # Lightly indenting the continuation must not dodge the check.
+        "This paragraph was wrapped and\n  indented by two spaces.",
+        # An all-indented paragraph is not a footer block either.
+        "  wrapped prose disguised\n  as a trailer block",
+    ],
+)
+def test_indented_wrapped_prose_is_still_rejected(body: str) -> None:
+    errors = lint(f"fix(git-toolkit): handle an empty diff\n\n{body}\n")
+    assert any("hard-wrapped" in error for error in errors)
+
+
 # --- subject ------------------------------------------------------------------------
 
 

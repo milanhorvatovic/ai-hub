@@ -16,8 +16,9 @@ the deterministic subset of the conventions declared in AGENTS.md and CONTRIBUTI
   git-generated `(cherry picked from ...)` lines pass because they are not on the
   attribution denylist.
 - **Body shape** — every blank-line-separated paragraph is exactly one source line
-  (the Prettier `proseWrap: never` house rule applied to commit text); list lines,
-  fenced blocks, and trailer/footer blocks are exempt.
+  (the Prettier `proseWrap: never` house rule applied to commit text); list lines
+  (with their indented continuations), tab/4-space indented blocks, fenced blocks,
+  and trailer/footer blocks are exempt.
 - **Plan-ref hygiene** — no private planning paths or track codes; public text
   describes the change on its own terms. The denylist is deliberately narrow —
   widen it only when a real leak slips past, never preemptively.
@@ -114,6 +115,10 @@ TRAILER_LINE = re.compile(r"^[A-Za-z][A-Za-z0-9-]*:\s+\S")
 CHERRY_PICK_LINE = re.compile(r"^\(cherry picked from commit [0-9a-fA-F]{7,40}\)$")
 ISSUE_REF_LINE = re.compile(r"^(?:Close[sd]?|Fix(?:es|ed)?|Resolve[sd]?|Refs?) #\d+", re.IGNORECASE)
 LIST_LINE = re.compile(r"^\s*(?:[-*+]|\d{1,3}[.)])\s+")
+# Tab or 4-space indent — the markdown/git convention for preformatted blocks
+# (code excerpts, conflict lists). A 1-3 space indent is NOT a block, so wrapped
+# prose cannot slip past the one-line-per-paragraph rule by light indentation.
+INDENTED_BLOCK_LINE = re.compile(r"^(?:\t| {4})")
 FENCE_LINE = re.compile(r"^\s*(?:```|~~~)")
 SCISSORS_LINE = re.compile(r"^# -+ >8 -+")
 
@@ -169,13 +174,21 @@ def _split_fenced(lines: list[str]) -> tuple[list[str], list[list[str]]]:
 
 
 def _is_footer_block(paragraph: list[str]) -> bool:
-    """A paragraph made only of trailers, issue refs, cherry-pick lines, and continuations."""
+    """A paragraph of trailers, issue refs, and cherry-pick lines.
+
+    The first line must be one of those outright — indented lines are accepted only
+    as folded trailer continuations (git's own semantics), so an all-indented prose
+    paragraph cannot masquerade as a footer to dodge the shape check.
+    """
+    first, *rest = paragraph
+    if not (TRAILER_LINE.match(first) or CHERRY_PICK_LINE.match(first) or ISSUE_REF_LINE.match(first)):
+        return False
     return all(
         TRAILER_LINE.match(line)
         or CHERRY_PICK_LINE.match(line)
         or ISSUE_REF_LINE.match(line)
         or line[:1].isspace()
-        for line in paragraph
+        for line in rest
     )
 
 
@@ -194,8 +207,17 @@ def _body_shape_errors(paragraphs: list[list[str]]) -> list[str]:
     for paragraph in paragraphs:
         if _is_footer_block(paragraph):
             continue
+        in_list = LIST_LINE.match(paragraph[0]) is not None
         for line in paragraph[1:]:
-            if LIST_LINE.match(line) or line[:1].isspace():
+            if LIST_LINE.match(line):
+                in_list = True
+                continue
+            # Indented continuations belong to list items only; outside a list an
+            # indented line must be a real preformatted block (tab / 4 spaces), so
+            # lightly indenting wrapped prose does not dodge the check.
+            if in_list and line[:1].isspace():
+                continue
+            if INDENTED_BLOCK_LINE.match(line):
                 continue
             errors.append(
                 f"hard-wrapped paragraph: {line!r} continues the previous line — "

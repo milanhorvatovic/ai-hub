@@ -36,7 +36,7 @@ Thanks for your interest! ai-hub is an incubator for AI-agnostic artifacts — s
 Branch commits are concatenated into the squash commit on `main` (the `COMMIT_MESSAGES` setting), so commit text is permanent public history. A CI job in the `change-intent` workflow lints every branch commit, and the `commit-msg` hook above gives you the same feedback locally at commit time:
 
 - **Subject:** a [Conventional Commit](https://www.conventionalcommits.org/) with the same type/scope vocabulary as PR titles, imperative, ≤72 characters, no trailing period.
-- **Body:** flowing paragraphs that explain **why** — each blank-line-separated paragraph is a single source line, never hard-wrapped (the repo's `proseWrap: never` rule applied to commit text). Bullet lists, fenced blocks, and the trailer block are exempt.
+- **Body:** flowing paragraphs that explain **why** — each blank-line-separated paragraph is a single source line, never hard-wrapped (the repo's `proseWrap: never` rule applied to commit text). Bullet lists, fenced and tab/4-space-indented blocks, and the trailer block are exempt.
 - **Trailers:** author-only — no attribution trailers (`Co-Authored-By`, `Signed-off-by`, `Reviewed-by`, …). `Release-As: x.y.z` (a release-please control footer) and git-generated `(cherry picked from …)` lines are fine.
 - **No private references:** don't cite internal planning documents, ticket codes, or audit paths — public text describes the change on its own terms.
 
