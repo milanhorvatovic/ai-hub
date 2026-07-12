@@ -194,7 +194,7 @@ Reviewed 3 commit(s) on main..HEAD (all registry rules active):
 
 | Rule | Result | Details |
 |---|---|---|
-| Imperative mood | FAIL | def5678 "Fixed bug." |
+| Imperative mood | MOSTLY-PASS | def5678 "Fixed bug." (heuristic) |
 | Trailing period | FAIL | def5678 |
 | Conventional-commits prefix | FAIL | def5678 (repo uses CC; abc1234, 9ab0123 comply) |
 | Subject length | PASS | longest is 58 |
@@ -217,15 +217,15 @@ For older commits:
   git rebase -i <base>
   # mark the commit `reword`, save, then paste the proposed message
 
-NOT COMPLIANT (3 FAIL, 0 MOSTLY-PASS)
+NOT COMPLIANT (2 FAIL, 1 MOSTLY-PASS)
 ```
 
 Findings with the same rule on multiple commits group under a single heading with a sub-list, per the reference. When the invoking agent or pipeline wants machine output, emit the NDJSON stream from the same reference — aggregate objects for passing rules, one object per offending commit for `FAIL` / `MOSTLY-PASS`, ids from the registry, verdict object last:
 
 ```jsonl
-{"rule": "imperative-mood", "result": "FAIL", "scope": "commit", "sha": "def5678", "subject": "Fixed bug.", "details": {"excerpt": "Fixed bug."}, "fix": "Rewrite in imperative mood: fix(auth): handle expired token in refresh path"}
+{"rule": "imperative-mood", "result": "MOSTLY-PASS", "scope": "commit", "sha": "def5678", "subject": "Fixed bug.", "details": {"excerpt": "Fixed bug."}, "fix": "Rewrite in imperative mood: fix(auth): handle expired token in refresh path"}
 {"rule": "subject-length", "result": "PASS", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 0, "max_length": 58, "limit": 72}
-{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 1, "details": {"excerpt": "3 FAIL, 0 MOSTLY-PASS, 2 PASS, 1 N/A"}, "fix": "Address the 3 FAIL findings before requesting review."}
+{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 1, "details": {"excerpt": "2 FAIL, 1 MOSTLY-PASS, 2 PASS, 1 N/A"}, "fix": "Address the 2 FAIL findings before requesting review."}
 ```
 
 ### 5. Handling pushed commits

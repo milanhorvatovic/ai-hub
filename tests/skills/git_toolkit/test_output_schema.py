@@ -285,7 +285,8 @@ def test_review_result_tables_use_contract_results(
                     value = value.strip()
                     if value and value not in result_enum:
                         offenders.append(
-                            f"{path.name}: Result {value!r} in row {parts[0]!r}"
+                            f"{path.relative_to(skill_root)}: "
+                            f"Result {value!r} in row {parts[0]!r}"
                         )
     assert tables >= 3, f"expected the contract/example Result tables, found {tables}"
     assert not offenders, (
