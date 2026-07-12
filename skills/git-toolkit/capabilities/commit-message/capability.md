@@ -206,16 +206,29 @@ Reviewed 3 commit(s) on main..HEAD (all registry rules active):
 Subject "Fixed bug." is past tense; "If applied, this commit will Fixed bug." doesn't parse.
 
 **Proposed fix:** fix(auth): handle expired token in refresh path
-(also clears trailing-period and conventional-commits-prefix on the same commit)
+(one rewrite clears all three findings on def5678)
 
-**Apply with** (HEAD only):
+**Apply with:**
+  # HEAD only — for older commits: git rebase -i <base>, mark `reword`, paste the message
   git commit --amend -F - <<'EOF'
 fix(auth): handle expired token in refresh path
 EOF
 
-For older commits:
-  git rebase -i <base>
-  # mark the commit `reword`, save, then paste the proposed message
+### Finding: Trailing period on def5678
+
+Subject ends with `.` — a title, not a sentence.
+
+**Proposed fix:** covered by the rewrite above; the amended subject carries no period.
+
+**Apply with:** the same amend command — one rewrite clears every finding on this commit.
+
+### Finding: Conventional-commits prefix on def5678
+
+The repo uses conventional commits (abc1234 and 9ab0123 comply); this subject has no type prefix.
+
+**Proposed fix:** covered by the rewrite above (`fix(auth): …`).
+
+**Apply with:** the same amend command.
 
 NOT COMPLIANT (2 FAIL, 1 MOSTLY-PASS)
 ```
@@ -224,7 +237,11 @@ Findings with the same rule on multiple commits group under a single heading wit
 
 ```jsonl
 {"rule": "imperative-mood", "result": "MOSTLY-PASS", "scope": "commit", "sha": "def5678", "subject": "Fixed bug.", "details": {"excerpt": "Fixed bug."}, "fix": "Rewrite in imperative mood: fix(auth): handle expired token in refresh path"}
+{"rule": "trailing-period", "result": "FAIL", "scope": "commit", "sha": "def5678", "subject": "Fixed bug.", "details": {"excerpt": "Fixed bug."}, "fix": "Drop the trailing period; the subject is a title, not a sentence"}
+{"rule": "conventional-commits-prefix", "result": "FAIL", "scope": "commit", "sha": "def5678", "subject": "Fixed bug.", "details": {"excerpt": "Fixed bug."}, "fix": "Add the repo's conventional-commits type prefix: fix(auth): handle expired token in refresh path"}
 {"rule": "subject-length", "result": "PASS", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 0, "max_length": 58, "limit": 72}
+{"rule": "status-marker", "result": "PASS", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 0}
+{"rule": "body-wrap", "result": "N/A", "scope": "range", "ref": "main..HEAD", "details": {"excerpt": "flowing-paragraph repo"}}
 {"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 1, "details": {"excerpt": "2 FAIL, 1 MOSTLY-PASS, 2 PASS, 1 N/A"}, "fix": "Address the 2 FAIL findings before requesting review."}
 ```
 
