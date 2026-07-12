@@ -56,9 +56,10 @@ def test_catalog_ids_are_wellformed_unique_and_counted(references_dir: Path) -> 
     text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
     claimed = {int(n) for n in re.findall(r"of (\d+) registry rules", text)}
     total = len(ids) + len(_registry_table_ids(references_dir))
+    claimed_display = ", ".join(map(str, sorted(claimed))) or "nothing"
     assert claimed == {total}, (
         f"commit-smells.md's Rule selectivity example claims "
-        f"{claimed or '{nothing}'} registry rules but the registry holds {total}"
+        f"{claimed_display} registry rules but the registry holds {total}"
     )
 
 
@@ -116,7 +117,7 @@ def test_fixture_ids_resolve_to_the_registry(references_dir: Path) -> None:
 
 
 def _jsonl_blocks(text: str) -> list[str]:
-    return re.findall(r"```jsonl\n(.*?)```", text, flags=re.DOTALL)
+    return re.findall(r"```jsonl\r?\n(.*?)```", text, flags=re.DOTALL)
 
 
 def test_embedded_ndjson_examples_validate_against_the_contract(
@@ -140,7 +141,7 @@ def test_embedded_ndjson_examples_validate_against_the_contract(
             for i, line in enumerate(
                 (ln for ln in block.splitlines() if ln.strip()), start=1
             ):
-                where = f"{path.name} block line {i}"
+                where = f"{path.parent.name}/{path.name} block line {i}"
                 try:
                     obj = json.loads(line)
                 except json.JSONDecodeError as exc:
@@ -318,7 +319,7 @@ def test_commit_message_review_dropped_the_per_commit_grading(
 ) -> None:
     """The pre-contract REVIEW output — a per-commit `SHA | Subject | Status |
     Issues` table graded `ok`/`warn`/`fixme` — was unmappable to the
-    PASS/MOSTLY-PASS/FAIL/N-A contract and must not resurface."""
+    PASS/MOSTLY-PASS/FAIL/N/A contract and must not resurface."""
     text = (capabilities_dir / "commit-message" / "capability.md").read_text(
         encoding="utf-8"
     )
