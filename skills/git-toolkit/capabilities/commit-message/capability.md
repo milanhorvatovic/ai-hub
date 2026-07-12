@@ -50,6 +50,19 @@ Record the inferred conventions; both modes use them.
 
 ## WRITE mode workflow
 
+### 0. Pre-flight — detect the body-wrap convention
+
+Run this before any drafting step; the body-wrap style must be a measured fact, not a ~72-column habit. It inlines the exact recipe `../../references/format-body.md` defines — that reference stays the single source of truth for the rule; this step makes running it mandatory and feeds the §8 Detected-conventions preamble.
+
+- `git log --pretty=format:'%b' -20 | head -100` — inspect the last ~20 commit bodies.
+
+Branch on what the sample shows:
+
+- Bodies consistently wrapped near 70–72 columns → the repo opts into **hard-wrap**; match it, and measure candidates with the display-column recipe in `../../references/format-body.md`.
+- Anything else — mixed, flowing, or all-empty bodies (nothing to match, as in the fresh-repo reproducer) → the **flowing-paragraph** default; each body paragraph is one source line.
+
+Never draft a body before this step runs (see Anti-patterns); carry its verdict into every proposal through the Detected-conventions preamble (§8).
+
 ### 1. Gather context
 
 Run in parallel:
@@ -95,7 +108,7 @@ A body is NOT needed when:
 - The change is small and self-explanatory.
 - The repo's convention is subject-only commits (check past `git log --format='%h%n%s%n%n%b' -20` — if most have empty bodies, this is the convention).
 
-Body format per `../../references/format-body.md`: blank line after subject, flowing paragraphs by default with hard-wrap opt-in per repo, explains WHY, includes trailers at the end.
+Body format per `../../references/format-body.md`: blank line after subject, the wrap style detected in Step 0 (flowing-paragraph default, or hard-wrap when the repo opts in), explains WHY, includes trailers at the end.
 
 ### 5. Add trailers (only on user request)
 
@@ -115,7 +128,11 @@ If the user mentions an issue number, classify per `../../references/issue-refer
 
 ### 8. Output
 
+Open every proposal with a one-line **Detected conventions** preamble carrying the subject style and body-wrap verdict from Step 0 with its evidence sample, then the message and the apply command:
+
 ```
+Detected: subject = <style>; body wrap = <flowing | hard-wrap @72> (<evidence sample>)
+
 Proposed commit message:
 
 <subject>
@@ -133,6 +150,8 @@ EOF
 Or write to a file and use:
   git commit -F <path>
 ```
+
+The preamble is mandatory: it turns the wrap decision into a falsifiable claim a reviewer can check, instead of a silent default. For the fresh-repo reproducer the correct line is `Detected: subject = type: prefix; body wrap = flowing (17/17 prior bodies empty → no hard-wrap convention)`. When the first-time-contributor heuristic (Input guards) fires, its note prepends to this same preamble line.
 
 Always show the full proposed message AND the apply command. Never run `git commit` directly. If the proposal exceeds the subject length cap, show the truncated and full versions side-by-side.
 
@@ -276,6 +295,7 @@ Skip this hook when the correction reflects a repo rule (e.g., user pointed at a
 
 ## Anti-patterns
 
+- Don't draft a body without running the Step 0 wrap-detection and stating its result in the §8 Detected-conventions preamble. `../../references/format-body.md` states the flowing-vs-hard-wrap rule, but an unrun check silently falls back to a ~72-column habit — the exact failure this capability guards against.
 - Don't auto-amend or auto-rebase. Always propose; let the user run the command.
 - Don't reformat trailers; copy them through verbatim per `../../references/trailer-semantics.md`.
 - Don't invent issue numbers in proposed messages. If the user didn't mention an issue and the diff doesn't reference one, leave issue refs out.
