@@ -3,8 +3,10 @@
 Generic link/pointer resolution across the skill tree lives in the fleet-wide
 suite (`tests/skills/test_structure_all.py`); what stays here are the
 contracts unique to this skill: the review-output NDJSON schema (validity,
-prose agreement, worked-example conformance) and the untrusted-content guard
-wiring on ingestion capabilities.
+prose agreement, worked-example conformance), the untrusted-content guard
+wiring on ingestion capabilities, and the shared-reference wiring for the
+force-push-impact and pr-input-guards blocks (each block lives in exactly one
+reference; consumers link it and never restate it).
 """
 
 from __future__ import annotations
@@ -160,3 +162,138 @@ def test_ingestion_capabilities_link_untrusted_content_guard(
         f"{cap_name} ingests untrusted content but does not link "
         "../../references/untrusted-content.md (untrusted-content guard)"
     )
+
+
+# Capabilities whose proposals rewrite history that may exist on a remote —
+# amend, reword, squash, fixup-squash, body reflow. Each must link the shared
+# force-push-impact reference (buckets, detection recipes, output block,
+# --force-with-lease surfacing policy) instead of restating any of it.
+FORCE_PUSH_CONSUMERS = [
+    "commit-message",
+    "commit-amend-message",
+    "commit-body-reflow",
+    "commit-fixup",
+    "rebase-cleanup",
+]
+
+# GitHub-side capabilities per the SKILL.md scope legend. Each must run the
+# standard input-guard sequence by linking the shared pr-input-guards
+# reference, declaring only its deviations inline.
+GITHUB_SIDE_CAPABILITIES = [
+    "pr-description-write",
+    "pr-description-sync",
+    "pr-link-issues",
+    "pr-checks-summary",
+    "pr-conversation-resolve",
+    "merge-readiness",
+    "merge-execute",
+]
+
+# The canonical Force-Push Impact block's first line, verbatim from
+# force-push-impact.md — used to prove the template has exactly one home.
+_IMPACT_TEMPLATE_LINE = "Force-Push Impact: <none / mild / high>"
+
+
+def test_force_push_impact_reference_is_the_single_home(references_dir: Path) -> None:
+    """force-push-impact.md must exist and carry the load-bearing content the
+    lift moved into it: the three buckets, the canonical output block, the
+    stale tracking-refs caveat, and the guard pointers (untrusted-content for
+    the review-anchor read, harness-safety-nets for proposal phrasing)."""
+    ref = references_dir / "force-push-impact.md"
+    assert ref.is_file(), "references/force-push-impact.md not found"
+    text = ref.read_text(encoding="utf-8")
+    for needle in (
+        _IMPACT_TEMPLATE_LINE,
+        "Never pushed",
+        "Pushed, no review anchors",
+        "Pushed and review-anchored",
+        "git branch -r --contains",
+        "--force-with-lease",
+        "untrusted-content.md",
+        "harness-safety-nets.md",
+    ):
+        assert needle in text, f"force-push-impact.md missing: {needle!r}"
+
+
+def test_pr_input_guards_reference_is_the_single_home(references_dir: Path) -> None:
+    """pr-input-guards.md must exist and cover the full guard sequence the
+    GitHub-side capabilities used to restate: forge detection, PR resolution,
+    state guard, bot guard, gh-auth handling, untrusted-content pointer."""
+    ref = references_dir / "pr-input-guards.md"
+    assert ref.is_file(), "references/pr-input-guards.md not found"
+    text = ref.read_text(encoding="utf-8")
+    for needle in (
+        "forge-adapters.md",
+        "gh pr list --head",
+        "MERGED",
+        "bot-signatures.md",
+        "gh auth login",
+        "untrusted-content.md",
+    ):
+        assert needle in text, f"pr-input-guards.md missing: {needle!r}"
+
+
+@pytest.mark.parametrize("cap_name", FORCE_PUSH_CONSUMERS)
+def test_history_rewriters_link_force_push_impact(
+    cap_name: str, capabilities_dir: Path
+) -> None:
+    text = (capabilities_dir / cap_name / "capability.md").read_text(encoding="utf-8")
+    assert "../../references/force-push-impact.md" in text, (
+        f"{cap_name} rewrites history but does not link "
+        "../../references/force-push-impact.md"
+    )
+
+
+@pytest.mark.parametrize("cap_name", GITHUB_SIDE_CAPABILITIES)
+def test_github_side_capabilities_link_pr_input_guards(
+    cap_name: str, capabilities_dir: Path
+) -> None:
+    text = (capabilities_dir / cap_name / "capability.md").read_text(encoding="utf-8")
+    assert "../../references/pr-input-guards.md" in text, (
+        f"{cap_name} is GitHub-side but does not link "
+        "../../references/pr-input-guards.md"
+    )
+
+
+def test_no_capability_restates_the_impact_template(capabilities_dir: Path) -> None:
+    """The canonical output block lives only in force-push-impact.md —
+    consumers reference it, never restate it (G1 acceptance criterion)."""
+    offenders = [
+        cap.parent.name
+        for cap in sorted(capabilities_dir.glob("*/capability.md"))
+        if _IMPACT_TEMPLATE_LINE in cap.read_text(encoding="utf-8")
+    ]
+    assert not offenders, (
+        f"capabilities restate the Force-Push Impact template: {offenders}"
+    )
+
+
+def test_no_capability_restates_pr_resolution(capabilities_dir: Path) -> None:
+    """The PR resolution recipe (`gh pr list --head`) lives only in
+    pr-input-guards.md — a capability spelling it out again is restating the
+    guard block."""
+    offenders = [
+        cap.parent.name
+        for cap in sorted(capabilities_dir.glob("*/capability.md"))
+        if "gh pr list --head" in cap.read_text(encoding="utf-8")
+    ]
+    assert not offenders, (
+        f"capabilities restate the PR resolution recipe: {offenders}"
+    )
+
+
+def test_no_cross_capability_step_citations(capabilities_dir: Path) -> None:
+    """The fleet-wide suite kills sibling *path* references; this guards the
+    path-less variant that motivated G1 — one capability citing another's
+    numbered step (e.g. \"commit-message Step 5\") as its spec."""
+    own_names = {p.name for p in capabilities_dir.iterdir() if p.is_dir()}
+    pattern = re.compile(
+        r"`?(" + "|".join(re.escape(n) for n in sorted(own_names)) + r")`?('s)? [Ss]tep \w+"
+    )
+    offenders: list[str] = []
+    for cap in sorted(capabilities_dir.glob("*/capability.md")):
+        for lineno, line in enumerate(cap.read_text(encoding="utf-8").splitlines(), start=1):
+            m = pattern.search(line)
+            if m and m.group(1) != cap.parent.name:
+                offenders.append(f"{cap.parent.name}:{lineno} cites {m.group(0)!r}")
+    assert not offenders, "cross-capability step citations:\n" + "\n".join(offenders)

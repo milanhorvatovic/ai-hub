@@ -22,7 +22,7 @@ Proposes an interactive-rebase plan to clean up a branch's commit history.
 - **≤1 commits in range** → stop with "nothing to clean up."
 - **On default branch** → refuse; rebase-cleanup is for feature branches only.
 - **Bot guard** — list author emails across the range with `git log --format='%h %ae' <base>..HEAD`; commits whose email matches a pattern in `../../references/bot-signatures.md` keep their message format: plan them as `pick`, never `reword`, `squash`, or `fixup` them (each replaces or discards the bot-controlled message), regardless of what Step 2's classification would otherwise suggest. Their format is bot-controlled and the bot's next run overwrites any rewrite. Dropping a redundant bot commit remains a content decision the user can make.
-- **Detect pushed commits**: `git rev-list <base>..HEAD` is the full range; `git rev-list <base>..HEAD ^@{u}` returns the *unpushed* commits in that range (reachable from HEAD but not from the branch's upstream), so the pushed set is the complement. Where no upstream is configured, fall back to per-commit `git branch -r --contains <sha>`. If any commit in range is pushed AND the PR has at least one review (`gh pr view --json reviews`) → emit the force-push warning (Step 6) **before** any plan is shown.
+- **Detect pushed commits** — classify the range using the commit-range detection recipe in `../../references/force-push-impact.md` (unpushed set via `^@{u}`, per-commit fallback, stale tracking-refs caveat). If any commit in range is pushed AND the PR has at least one review (`gh pr view --json reviews`) → emit the force-push warning (Step 6) **before** any plan is shown.
 
 ## Workflow
 
@@ -32,7 +32,7 @@ Classifications in Step 2 and any REVIEW-shaped findings emitted along the way m
 
 ### 0b. Rule selectivity (optional `rules:` filter)
 
-Same selectivity mechanism as `../commit-message/capability.md` Step 0b: a comma-separated `rules:` argument scopes classification to a subset of catalog rule ids (e.g. `rules: status-marker,repeated-fix,mixed-scope`). The cleanup plan only proposes actions for commits matching the active rules. Surface the active subset in the plan preamble so the reader knows which classifications were skipped. Useful when a team has agreed that some smells are out of scope for branch-cleanup work.
+An optional comma-separated `rules:` argument scopes classification to a subset of catalog rule ids (e.g. `rules: status-marker,repeated-fix,mixed-scope`) — the mechanism, the unmatched-id warning, and the required active-subset preamble line are specified in `../../references/commit-smells.md` (Rule selectivity). The cleanup plan only proposes actions for commits matching the active rules, so the reader of the plan preamble knows which classifications were skipped. Useful when a team has agreed that some smells are out of scope for branch-cleanup work.
 
 ### 1. Gather commits and bodies
 
@@ -115,14 +115,9 @@ For every `reword` action, include the proposed message body inline so the user 
 
 ### 6. Force-Push Impact block (when commits are pushed)
 
-Use the shared format from `../../capabilities/commit-message/capability.md` Step 5 — three impact buckets (none / mild / high) keyed on whether the commit is local-only, pushed-without-anchors, or pushed-with-review-anchors. Surface anchored review threads by URL when impact is `high`.
+Emit the canonical block from `../../references/force-push-impact.md` — three impact buckets (none / mild / high) keyed on whether the commit is local-only, pushed-without-anchors, or pushed-with-review-anchors; surface anchored review threads by URL when impact is `high`, and follow the reference's `--force-with-lease` surfacing policy. Beneath the block, add the rebase-specific consequences:
 
 ```
-Force-Push Impact: <none / mild / high>
-  Pushed commits:        <N of M>
-  Review anchors at risk: <K> (list URLs if K > 0)
-  Required to publish:    <none / git push --force-with-lease / git push --force-with-lease + reviewer coordination>
-
 Rewriting commits on origin/<branch> may:
   - disrupt any reviewer with the branch checked out locally
   - lose review threads tied to specific commit SHAs (anchors detailed above)
@@ -137,6 +132,6 @@ The skill will not run force-push; user must opt in explicitly.
 - Don't suggest squashing commits that are individually reviewable or individually revertable. Multiple small commits is sometimes the right structure (especially for bisecting).
 - Don't reword without proposing the new subject per `../../references/format-subject.md` — leaving the user to fill in is a non-answer.
 - **Don't add `Co-authored-by:` or any other trailers when squashing.** Only preserve trailers that were already present in the original commits, byte-for-byte.
-- Don't auto-execute any force-push, and never suggest bare `git push --force`. When the Force-Push Impact block (Step 6) says publishing requires it, surface the `git push --force-with-lease origin <branch>` recipe; the user runs it.
+- Don't auto-execute any force-push, and never suggest bare `git push --force`. When the Force-Push Impact block (Step 6) says publishing requires it, surface the `git push --force-with-lease origin <branch>` recipe per the surfacing policy in `../../references/force-push-impact.md`; the user runs it.
 - Don't propose changes to merge commits unless the user explicitly asks.
 - Don't propose rebasing a branch whose base is itself a feature branch (stacked PR) without warning that rebasing rewrites the SHAs the stacked branch depends on. When dependents exist, emit a **Stacked Dependents** block before any plan: list each dependent branch and the rebase command needed to cascade the fix (`git checkout <dep> && git rebase <this-branch>`), in topological order. See `../../references/mass-rewrite.md` for the full cascade procedure when more than one level is involved.

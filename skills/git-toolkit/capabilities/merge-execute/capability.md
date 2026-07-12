@@ -16,11 +16,11 @@ Outputs the canonical `gh pr merge` command. Tiny capability — read repo polic
 
 ## Input guards
 
-- **Forge detection** — run `git remote get-url origin` and classify per `../../references/forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. On non-GitHub remotes (GitLab `glab mr merge`, Codeberg `tea pr merge`, Bitbucket curl), follow the degrade path in `forge-adapters.md` — merge-mode terminology differs (squash/rebase/merge on GitHub; `merge_method` setting on GitLab; "merge style" on Forgejo).
-- Resolve target PR (number from user OR `gh pr list --head <branch>`).
-- `state == OPEN` and not draft → otherwise refuse.
-- `gh` auth required.
-- Highly recommended (but not required): user has already run `merge-readiness` and saw `READY`.
+Resolve the target PR and run the standard guard sequence — forge detection, PR resolution order, state guard, bot guard, gh-auth handling — per `../../references/pr-input-guards.md`. For this capability:
+
+- **Forge degrade** — merge-mode terminology differs across forges (squash/rebase/merge on GitHub via `gh pr merge`; `merge_method` setting on GitLab's `glab mr merge`; "merge style" on Forgejo's `tea pr merge`; curl for Bitbucket).
+- **State guard** — stricter than the default: refuse drafts as well as merged/closed PRs.
+- Highly recommended (but not required): user has already run `merge-readiness` and saw `READY` — merging past failing checks or unresolved threads is a classifier-flagged operation per `../../references/harness-safety-nets.md`.
 
 ## Workflow
 

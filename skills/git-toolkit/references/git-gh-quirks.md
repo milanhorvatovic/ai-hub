@@ -78,6 +78,41 @@ Stacked PRs cause two common failure modes when ignored:
 
 For fork checkouts, `origin` points to the fork — `git fetch origin main` fetches the fork's `main`, not the upstream. Always resolve the true base/head remotes from `baseRepository.url` and `headRepository.url`. Never hardcode `origin` in commands when the cross-repo branch applies. For same-repo PRs, the `origin == upstream` assumption holds.
 
+## Review-thread resolution state (GraphQL `reviewThreads`)
+
+REST (`pulls/{n}/comments`) doesn't expose thread resolution state — reading `isResolved` requires GraphQL. The canonical query:
+
+```
+gh api graphql -f query='
+query($owner: String!, $repo: String!, $pr: Int!, $endCursor: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $pr) {
+      reviewThreads(first: 100, after: $endCursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          id
+          isResolved
+          isOutdated
+          path
+          line
+          comments(first: 20) {
+            nodes {
+              databaseId
+              author { login }
+              body
+              createdAt
+              commit { oid }
+            }
+          }
+        }
+      }
+    }
+  }
+}' -F owner=<o> -F repo=<r> -F pr=<num>
+```
+
+`reviewThreads` is capped at 100 per page. For PRs with more threads, loop on the cursor: pass `-F endCursor=<endCursor>` from the previous page while `pageInfo.hasNextPage` is true, accumulating `nodes` across pages — otherwise threads past the first 100 are silently dropped, undercounting any unresolved-thread total built from them. (`gh api graphql --paginate` automates this only when the query declares a variable literally named `$endCursor` and exposes `pageInfo { hasNextPage endCursor }`, as above — `gh` ignores any other cursor variable name.)
+
 ## `gh` not authenticated
 
 `gh pr view` (and any other `gh` call) exits non-zero with an auth-related error message. Detect this case, tell the user to run `gh auth login`, and stop. Do not parse the error message beyond detecting it's auth-related — `gh`'s error format is not a stable contract. Do not fall back to anonymous API calls — they hit the unauthenticated rate limit (60/hour) and the capability needs more headroom.
