@@ -34,7 +34,7 @@ Findings with the same rule on multiple commits group under a single heading wit
 
 ## NDJSON schema (machine-facing)
 
-When the invoking agent or pipeline wants programmatic output, emit one JSON object per finding on stdout. One object per row of the table above; rows with `result: "PASS"` may be elided depending on a `--include-pass` flag.
+When the invoking agent or pipeline wants programmatic output, emit one JSON object per finding on stdout. The stream keeps per-target granularity where the table aggregates: a rule that passes or doesn't apply emits one aggregate object (scope `branch` / `range`, with `count_checked` / `count_failed`), while every `FAIL` / `MOSTLY-PASS` finding emits one object per offending target (scope `commit` / `pr`, with `sha` or `ref`, an excerpt, and a `fix`). Aggregate `PASS` objects may be elided depending on a `--include-pass` flag.
 
 ```jsonl
 {"rule": "imperative-mood", "result": "PASS", "scope": "branch", "ref": "add-skill-foo", "count_checked": 16, "count_failed": 0}
@@ -53,7 +53,7 @@ Keys:
 
 The schema is also published as JSON Schema at `review-output.schema.json` (Draft 2020-12). Consumers can validate NDJSON streams with any standards-compliant validator (`ajv-cli`, `check-jsonschema`, etc.). The schema enforces: `scope=commit` requires `sha`; `scope=branch/range/pr` requires `ref`; `FAIL` and `MOSTLY-PASS` results require a `fix` string; and the `rule` enum enforces registry membership — a finding with an id outside the registry fails validation.
 
-A worked example stream lives at `review-output.example.ndjson` — 15 findings covering PASS / MOSTLY-PASS / FAIL / N/A across commit / branch / pr / range scopes, including aggregate PASS counts, single-commit FAIL findings with `fix` imperatives, a PR-body MOSTLY-PASS with an excerpt, and a final verdict aggregate. Tests can use this file as a schema-validation fixture; new consumers can read it to see the schema applied to realistic findings rather than reading the schema in isolation.
+A worked example stream lives at `review-output.example.ndjson` — 14 findings covering PASS / MOSTLY-PASS / FAIL / N/A across commit / branch / pr / range scopes, including aggregate PASS counts, single-commit FAIL findings with `fix` imperatives, a PR-body MOSTLY-PASS with an excerpt, and a final verdict aggregate. Tests can use this file as a schema-validation fixture; new consumers can read it to see the schema applied to realistic findings rather than reading the schema in isolation.
 
 ## Rule-id registry
 
@@ -93,7 +93,7 @@ Capabilities that grade checks internally with `error` / `warn` severities (e.g.
 | check passed | `PASS` |
 | rule does not apply to the target | `N/A` |
 
-Aggregation across a range: one table row / NDJSON object per rule, not per commit. A rule's result is `FAIL` if any target trips its `error` condition, else `MOSTLY-PASS` if any target trips a `warn`, else `PASS` (`N/A` when the rule applies to no target). Per-target specifics — offending SHAs, excerpts — go in `Details` / `details`, and each `FAIL` / `MOSTLY-PASS` rule gets a finding block in the human report.
+Aggregation across a range: one table row per rule, not per commit. A rule's result is `FAIL` if any target trips its `error` condition, else `MOSTLY-PASS` if any target trips a `warn`, else `PASS` (`N/A` when the rule applies to no target). Per-target specifics — offending SHAs, excerpts — go in `Details`, and each `FAIL` / `MOSTLY-PASS` rule gets a finding block in the human report. The NDJSON stream is the granular complement: a passing rule emits its aggregate object, a failing rule one object per offending target (see the NDJSON schema above).
 
 ## Verdict line
 

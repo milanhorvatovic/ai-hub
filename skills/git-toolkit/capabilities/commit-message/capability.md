@@ -183,7 +183,7 @@ Severities are internal grades; they reach the report through the `error`/`warn`
 
 ### 3. Aggregate per rule
 
-Group Step 2's results per rule across the whole range and apply the severity mapping from `../../references/review-output.md`: a rule is `FAIL` if any commit trips its `error` condition, `MOSTLY-PASS` if only `warn` conditions tripped, `PASS` when every commit is clean, and `N/A` when the rule applies to nothing in the range (e.g. `body-wrap` in a flowing-paragraph repo). Offending commits are named by short SHA inside the rule's details and finding block — there is no separate per-commit grading system.
+Group Step 2's results per rule across the whole range and apply the severity mapping from `../../references/review-output.md`: a rule is `FAIL` if any commit trips its `error` condition, `MOSTLY-PASS` if only `warn` conditions tripped, `PASS` when every commit is clean, and `N/A` when the rule applies to nothing in the range (e.g. `body-wrap` in a flowing-paragraph repo). Offending commits are named by short SHA inside the rule's details and finding block — the per-commit granularity lives there and in the NDJSON stream's per-target objects (Step 4), never in a separate grading system.
 
 ### 4. Output
 
@@ -220,7 +220,7 @@ For older commits:
 NOT COMPLIANT (3 FAIL, 0 MOSTLY-PASS)
 ```
 
-Findings with the same rule on multiple commits group under a single heading with a sub-list, per the reference. When the invoking agent or pipeline wants machine output, emit the NDJSON stream from the same reference — one object per rule, ids from the registry, verdict object last:
+Findings with the same rule on multiple commits group under a single heading with a sub-list, per the reference. When the invoking agent or pipeline wants machine output, emit the NDJSON stream from the same reference — aggregate objects for passing rules, one object per offending commit for `FAIL` / `MOSTLY-PASS`, ids from the registry, verdict object last:
 
 ```jsonl
 {"rule": "imperative-mood", "result": "FAIL", "scope": "commit", "sha": "def5678", "subject": "Fixed bug.", "details": {"excerpt": "Fixed bug."}, "fix": "Rewrite in imperative mood: fix(auth): handle expired token in refresh path"}
