@@ -40,9 +40,13 @@ jobs:
           python-version-file: ".python-version"
 
       - name: Validate PR title
-        # PR title is untrusted input — pass it via env, never interpolated into the shell.
+        # PR title and author login are untrusted input — pass them via env, never
+        # interpolated into the shell. The author lets the validator waive the length
+        # cap for bots (Dependabot's grouped-update suffix can exceed it); the type,
+        # scope, and subject checks still run.
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           if [ ! -f .github/scripts/validate_pr_title.py ]; then
             echo "::warning::base branch has no validator yet; skipping until it lands on the base branch (bootstrap only)"

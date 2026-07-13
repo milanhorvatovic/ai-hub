@@ -401,6 +401,16 @@ def test_bot_logins_are_recognized(login: str, is_bot: bool) -> None:
     assert linter.is_bot_login(login) is is_bot
 
 
+def test_bot_login_detection_is_not_forked() -> None:
+    # Bot-login detection is defined once, in the title validator; the linter re-exports
+    # it (`is_bot_login = _title.is_bot_login`) so both gates share one source. If a
+    # future edit re-adds a local `def is_bot_login` here, it would shadow the re-export
+    # and the two copies could drift — this identity check fails the moment that happens.
+    assert linter.is_bot_login is linter._title.is_bot_login
+    # And the pattern list lives only in the validator, not vendored back into the linter.
+    assert not hasattr(linter, "BOT_LOGIN_PATTERNS")
+
+
 # --- CLI surface --------------------------------------------------------------------
 
 
