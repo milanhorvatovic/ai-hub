@@ -46,8 +46,8 @@ git log --no-merges <start>..<end> --pretty=format:'%s' | head -50
 Branch on what the sample shows:
 
 - Most subjects match the conventional-commits pattern (`<type>(<scope>)<!>: …` per `../../references/format-subject.md`, where `(<scope>)` is optional — so `feat: …` counts alongside `feat(api): …`) → grouping = **conventional-commits**; group by type in Step 2. Record the ratio (e.g. 18/20) as the preamble's evidence.
-- Subjects don't match CC, but merged PRs carry meaningful labels (`bug`, `enhancement`, `documentation`, …) → grouping = **labels**.
-- Neither → grouping = **flat**; a single "Changes" section.
+- Subjects don't match CC, PR metadata is available (not commit-only mode — see Guards), and merged PRs carry meaningful labels (`bug`, `enhancement`, `documentation`, …) → grouping = **labels**.
+- Neither — including commit-only mode, where no PR labels exist to group by → grouping = **flat**; a single "Changes" section.
 
 Detect the **CHANGELOG style**: if `CHANGELOG.md` exists, read its most recent entries and classify — `keep-a-changelog`, `custom`, or `none` when the file is absent. Step 4 composes in the detected style.
 
@@ -94,7 +94,7 @@ Apply the grouping mode Step 0 detected — don't re-decide it here.
 | Chores | `chore`, `style` |
 | Other | Anything that doesn't match conventional-commits |
 
-**labels** — group by PR labels instead of type: `bug`, `enhancement`, `documentation`, etc.
+**labels** — group by PR labels instead of type: `bug`, `enhancement`, `documentation`, etc. Depends on PR metadata, so Step 0 only selects it outside commit-only mode; in commit-only mode Step 0 picks **flat** instead.
 
 **flat** — a single "Changes" section with all bullets.
 
