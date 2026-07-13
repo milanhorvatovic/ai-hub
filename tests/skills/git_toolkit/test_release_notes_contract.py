@@ -114,6 +114,20 @@ def test_step6_preamble_declares_detected_conventions(release_notes_md: str) -> 
     )
 
 
+def test_step6_preamble_renders_the_detected_forge(release_notes_md: str) -> None:
+    """The Inputs forge guard promises to surface the detected forge in the
+    proposal preamble; the Step 6 output template must actually render a
+    `forge=` line so that claim isn't documentation-only."""
+    step6 = _block(release_notes_md, "### 6.", "### ", "## ")
+    block = re.search(r"```[^\n]*\n(.*?)```", step6, re.DOTALL)
+    assert block, "Step 6 has no fenced output template"
+    lines = block.group(1).splitlines()
+    assert any(ln.strip().startswith("forge=") for ln in lines), (
+        "the Step 6 output template renders no 'forge=' line, so the Inputs "
+        "forge guard's promise to surface it stays documentation-only"
+    )
+
+
 def test_names_the_skip_detection_anti_pattern(release_notes_md: str) -> None:
     """A named anti-pattern must cover emitting grouped notes without running the
     detection and stating it — gives the recurrence a labelled handle."""

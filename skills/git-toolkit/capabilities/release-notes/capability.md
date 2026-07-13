@@ -158,6 +158,7 @@ Proposed release notes for <tag-or-version>:
 
 ---
 Detected: grouping = <conventional-commits | labels | flat> (<evidence, e.g. 18/20 subjects match CC>); changelog style = <keep-a-changelog | custom | none>
+forge=<github | gitlab | forgejo | bitbucket | none>
 Range: <start>..<end> (<N> commits, <M> PRs)
 Contributors: <N> unique authors
 Breaking changes: <count>
