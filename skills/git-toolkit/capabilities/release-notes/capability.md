@@ -45,7 +45,7 @@ git log --no-merges <start>..<end> --pretty=format:'%s' | head -50
 
 Branch on what the sample shows:
 
-- Most subjects match the conventional-commits pattern (`<type>(<scope>)<!>: …` per `../../references/format-subject.md`) → grouping = **conventional-commits**; group by type in Step 2. Record the ratio (e.g. 18/20) as the preamble's evidence.
+- Most subjects match the conventional-commits pattern (`<type>(<scope>)<!>: …` per `../../references/format-subject.md`, where `(<scope>)` is optional — so `feat: …` counts alongside `feat(api): …`) → grouping = **conventional-commits**; group by type in Step 2. Record the ratio (e.g. 18/20) as the preamble's evidence.
 - Subjects don't match CC, but merged PRs carry meaningful labels (`bug`, `enhancement`, `documentation`, …) → grouping = **labels**.
 - Neither → grouping = **flat**; a single "Changes" section.
 
@@ -79,7 +79,7 @@ Commits with no PR match are direct-pushed; surface in a separate "Direct commit
 
 Apply the grouping mode Step 0 detected — don't re-decide it here.
 
-**conventional-commits** — parse each commit subject for `<type>(<scope>)<!>: <description>` and group into:
+**conventional-commits** — parse each commit subject for `<type>(<scope>)<!>: <description>` (the `(<scope>)` is optional per `../../references/format-subject.md`; a scope-less `feat: …` still parses as `feat`) and group into:
 
 | Group heading | Conventional-commits types |
 |---|---|
