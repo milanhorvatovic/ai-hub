@@ -1,6 +1,8 @@
 # Changelog
 
-All notable changes to the skills in this repository are documented here, grouped by skill. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); each skill is versioned with [Semantic Versioning](https://semver.org/spec/v2.0.0.html), and the repository cuts dated CalVer (`vYYYY.MM.MICRO`) release-train snapshots over the set. From the first automated release onward, release-please maintains the per-skill sections below; see [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md).
+> **Frozen pre-automation record.** From 2026-07-13 onward, release-please writes each skill's history to its own `skills/<name>/CHANGELOG.md` (standard monorepo layout), not to this file — a single root changelog cannot be produced from per-skill packages, see [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md) and its 2026-07-13 amendment. This file is retained as the frozen baseline of catalog history up to the first automated release; the CalVer release-train (`vYYYY.MM.MICRO`) remains the catalog-wide view, presented in GitHub Releases.
+
+This baseline documents the skills as of the initial catalog, grouped by skill. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); each skill is versioned with [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## v2026.05.0 — 2026-05-24 (initial catalog)
 

@@ -29,7 +29,7 @@ npx skills add milanhorvatovic/ai-hub --all
 npx skills add https://github.com/milanhorvatovic/ai-hub/tree/main/skills/git-toolkit -g
 ```
 
-`npx skills` installs the current `main`. Each skill also carries a SemVer in its `SKILL.md` (`metadata.version`) and is cut as a `<skill>-v<x.y.z>` tag and GitHub Release; the repository publishes dated CalVer (`vYYYY.MM.MICRO`) catalog snapshots over the set. See [CHANGELOG.md](CHANGELOG.md) for what changed and [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md) for the versioning model.
+`npx skills` installs the current `main`. Each skill also carries a SemVer in its `SKILL.md` (`metadata.version`) and is cut as a `<skill>-v<x.y.z>` tag and GitHub Release; the repository publishes dated CalVer (`vYYYY.MM.MICRO`) catalog snapshots over the set. Each skill's history lives in its own `skills/<name>/CHANGELOG.md` and GitHub Releases; the root [CHANGELOG.md](CHANGELOG.md) is the frozen pre-automation baseline. See [docs/adr/0001-release-and-versioning.md](docs/adr/0001-release-and-versioning.md) for the versioning model.
 
 ### Verifying a bundle
 
