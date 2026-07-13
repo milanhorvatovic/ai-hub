@@ -43,6 +43,20 @@ HEADER = re.compile(
     r"^(?P<type>[a-z]+)(?:\((?P<scope>[^)]+)\))?(?P<bang>!)?: (?P<subject>.+)$"
 )
 
+# Bot login patterns (case-insensitive), the single definition the commit-style linter
+# reuses by importing this module. A bot login ends in `[bot]` (`dependabot[bot]`) or
+# `-bot` (`renovate-bot`); a bare "bot" substring (e.g. "botanist") is deliberately not
+# a match. Keep this the only copy — a second list elsewhere would drift.
+BOT_LOGIN_PATTERNS = [
+    r"\[bot\]$",
+    r"-bot$",
+]
+
+
+def is_bot_login(login: str) -> bool:
+    """True when `login` looks bot-authored — the shared bot predicate for both gates."""
+    return any(re.search(pattern, login, re.IGNORECASE) for pattern in BOT_LOGIN_PATTERNS)
+
 
 def skill_names(repo_root: Path) -> set[str]:
     """Skill directory names — the valid Conventional-Commit scopes for skill changes."""

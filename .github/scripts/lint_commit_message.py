@@ -100,10 +100,9 @@ BOT_AUTHOR_EMAIL_PATTERNS = [
     r"^ci@",
 ]
 
-BOT_LOGIN_PATTERNS = [
-    r"\[bot\]$",
-    r"-bot$",
-]
+# Bot login detection lives in the title validator — the change-intent gate waives its
+# length cap for the same bots — so re-export the one definition rather than fork a copy.
+is_bot_login = _title.is_bot_login
 
 FIXUP_PREFIX = re.compile(r"^(?:(?:fixup|squash|amend)! )+")
 REVERT_SUBJECT = re.compile(r'^(?:Revert|Reapply) ".+"$')
@@ -137,10 +136,6 @@ def strip_comments(text: str) -> str:
 
 def is_bot_author(email: str) -> bool:
     return any(re.search(pattern, email, re.IGNORECASE) for pattern in BOT_AUTHOR_EMAIL_PATTERNS)
-
-
-def is_bot_login(login: str) -> bool:
-    return any(re.search(pattern, login, re.IGNORECASE) for pattern in BOT_LOGIN_PATTERNS)
 
 
 def _split_fenced(lines: list[str]) -> tuple[list[str], list[list[str]]]:
