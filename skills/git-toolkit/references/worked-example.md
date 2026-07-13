@@ -311,6 +311,8 @@ Optional `--auto` flag if you want to set merge-on-green for a still-pending che
 After a few PRs have landed, you tag a release. Trigger: "draft release notes for v2.4.0".
 
 ```
+Detected: grouping = conventional-commits (13/14 subjects match CC); changelog style = none
+forge=github
 Range: v2.3.7..HEAD
 Commits: 14 (after squash-merges)
 
