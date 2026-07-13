@@ -131,6 +131,9 @@ def test_predicate_flags_non_distributable(rel_path: str) -> None:
         "skills/x/assets/diagram.png",
         "skills/x/scripts/docs_steward/cli.py",
         "skills/x/scripts/md-audit.py",
+        # release-please writes each skill's changelog here (ADR 0001, amended
+        # 2026-07-13); it ships with the skill as its own history, not dev cruft.
+        "skills/x/CHANGELOG.md",
     ],
 )
 def test_predicate_allows_distributable_content(rel_path: str) -> None:
