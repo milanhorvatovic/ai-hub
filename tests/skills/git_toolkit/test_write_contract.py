@@ -1,13 +1,13 @@
 """WRITE-mode output-contract tests for the commit-message capability.
 
-Issue #7: the body-wrap detection was documented as a rule, but nothing forced
-it to run and nothing in the output exposed whether it had — so an agent under
-habit pressure could hard-wrap a body in a repo with no hard-wrap convention.
-These tests pin the three composing tightenings that close that hole: a
-mandatory Step 0 pre-flight that runs the wrap-detection recipe, a
-Detected-conventions preamble on every WRITE proposal, and a named anti-pattern
-for skipping the check. The inlined recipe is asserted byte-identical to the one
-in format-body.md, so the rule keeps a single source of truth.
+The body-wrap detection was documented as a rule, but nothing forced it to run
+and nothing in the output exposed whether it had — so an agent under habit
+pressure could hard-wrap a body in a repo with no hard-wrap convention. These
+tests pin the three composing tightenings that close that hole: a mandatory
+Step 0 pre-flight that runs the wrap-detection recipe, a Detected-conventions
+preamble on every WRITE proposal, and a named anti-pattern for skipping the
+check. The recipe is read from its single source of truth (format-body.md) and
+asserted inlined byte-identically into the pre-flight.
 """
 
 from __future__ import annotations
@@ -17,16 +17,17 @@ from pathlib import Path
 
 import pytest
 
-# The wrap-detection recipe, single-sourced in references/format-body.md and
-# inlined into the WRITE-mode pre-flight. Both must carry it verbatim.
-_DETECTION_RECIPE = "git log --pretty=format:'%b' -20 | head -100"
-
-# The recipe's distinctive tail ("head -100"), derived from the recipe so there
-# is no second literal to keep in sync — used to locate the recipe's code span.
-_RECIPE_ANCHOR = _DETECTION_RECIPE.rsplit("|", 1)[-1].strip()
-
 # A backtick-delimited inline code span.
 _BACKTICK_SPAN = re.compile(r"`([^`]+)`")
+
+
+def _recipe_spans(text: str) -> list[str]:
+    """Backticked `git log … | head …` spans — the wrap-detection recipe form."""
+    return [
+        s
+        for s in _BACKTICK_SPAN.findall(text)
+        if s.startswith("git log") and "| head" in s
+    ]
 
 
 @pytest.fixture(scope="session")
@@ -36,15 +37,31 @@ def commit_message_md(capabilities_dir: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+@pytest.fixture(scope="session")
+def detection_recipe(references_dir: Path) -> str:
+    """The canonical wrap-detection recipe, read from its single source of truth
+    (format-body.md) instead of duplicated here, so the SSOT claim stays true."""
+    spans = _recipe_spans(
+        (references_dir / "format-body.md").read_text(encoding="utf-8")
+    )
+    assert len(spans) == 1, (
+        "expected exactly one 'git log … | head …' recipe span in "
+        f"format-body.md, found {len(spans)}: {spans!r}"
+    )
+    return spans[0]
+
+
 def _section(text: str, heading: str) -> str:
     """Return the body of a `## <heading>` section, up to the next `## `."""
     assert heading in text, f"section {heading!r} not found"
     return text.split(heading, 1)[1].split("\n## ", 1)[0]
 
 
-def test_write_mode_has_preflight_detection_step(commit_message_md: str) -> None:
-    """WRITE mode must open with a Step 0 pre-flight that runs the wrap-detection
-    recipe before any drafting step — issue #7's 'make compliance cheap' fix."""
+def test_write_mode_has_preflight_detection_step(
+    commit_message_md: str, detection_recipe: str
+) -> None:
+    """WRITE mode must open with a Step 0 pre-flight that inlines the
+    wrap-detection recipe before any drafting step."""
     write = _section(commit_message_md, "## WRITE mode workflow")
     assert "### 0." in write, "WRITE mode has no Step 0 pre-flight heading"
     preflight = write.split("### 0.", 1)[1].split("### 1.", 1)[0]
@@ -52,33 +69,27 @@ def test_write_mode_has_preflight_detection_step(commit_message_md: str) -> None
     assert "pre-flight" in heading or "detect" in heading, (
         "Step 0 heading is not the wrap-detection pre-flight"
     )
-    assert _DETECTION_RECIPE in preflight, (
+    assert detection_recipe in preflight, (
         "Step 0 pre-flight does not inline the wrap-detection recipe"
     )
 
 
 def test_preflight_recipe_matches_format_body_ssot(
-    commit_message_md: str, references_dir: Path
+    commit_message_md: str, detection_recipe: str
 ) -> None:
-    """The inlined recipe must be byte-identical to the one in format-body.md so
-    the rule keeps a single source of truth (issue #7 SSOT constraint). A bare
-    substring check is not enough: it would pass even if an extra pipeline stage
-    were appended inside the same code span (e.g. ``... | head -100 | sed ...``),
-    so assert the whole backticked span carrying the recipe matches verbatim."""
-    format_body = (references_dir / "format-body.md").read_text(encoding="utf-8")
-    for label, text in (
-        ("format-body.md", format_body),
-        ("commit-message pre-flight", commit_message_md),
-    ):
-        spans = [s for s in _BACKTICK_SPAN.findall(text) if _RECIPE_ANCHOR in s]
-        assert spans, (
-            f"{label} no longer carries the backticked wrap-detection recipe"
+    """The pre-flight recipe must be byte-identical to the format-body.md source.
+    A bare substring check is not enough: it would pass even if an extra pipeline
+    stage were appended inside the same span (e.g. ``… | head -100 | sed …``), so
+    assert every backticked recipe span in commit-message matches verbatim."""
+    spans = _recipe_spans(commit_message_md)
+    assert spans, (
+        "commit-message no longer carries the backticked wrap-detection recipe"
+    )
+    for span in spans:
+        assert span == detection_recipe, (
+            f"commit-message carries a wrap-detection span {span!r} that is not "
+            f"byte-identical to the format-body.md recipe {detection_recipe!r}"
         )
-        for span in spans:
-            assert span == _DETECTION_RECIPE, (
-                f"{label} carries a wrap-detection span {span!r} that is not "
-                f"byte-identical to the SSOT recipe {_DETECTION_RECIPE!r}"
-            )
 
 
 def test_write_output_requires_detected_conventions_preamble(
