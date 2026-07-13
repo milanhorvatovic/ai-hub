@@ -171,8 +171,8 @@ def test_embedded_ndjson_examples_validate_against_the_contract(
 def _rule_catalog_sections(capabilities_dir: Path) -> list[tuple[str, str]]:
     # A Step-0 heading is only a rule-vocabulary section when it names the
     # vocabulary — "Rule catalog" / "Rule selectivity". Keying on the number
-    # alone was safe until commit-message added a "### 0. Pre-flight" section
-    # (issue #7); that one declares no rule ids, so its inlined shell recipe
+    # alone was safe until commit-message added a "### 0. Pre-flight" section;
+    # that one declares no rule ids, so its inlined shell recipe
     # (`git log … | head …`) must not be swept as if it cited them. Requiring
     # "Rule" in the heading keeps the sweep on the sections it means to check.
     sections: list[tuple[str, str]] = []
