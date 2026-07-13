@@ -62,6 +62,17 @@ def _block(text: str, marker: str, *stops: str) -> str:
     return "\n".join(body)
 
 
+def _heading_index(text: str, marker: str) -> int:
+    """Line index of the first *non-fenced* line starting with `marker`, or -1.
+
+    Fence-aware for the same reason `_block` is: a heading-shaped line inside a
+    fenced example must not be mistaken for a real workflow step."""
+    for i, (ln, fenced) in enumerate(_lines_with_fence_state(text)):
+        if not fenced and ln.startswith(marker):
+            return i
+    return -1
+
+
 def test_workflow_has_preflight_detection_step(release_notes_md: str) -> None:
     """The Workflow must open with a Step 0 pre-flight that detects both the
     grouping mode and the CHANGELOG style before any gather/classify step —
@@ -76,6 +87,17 @@ def test_workflow_has_preflight_detection_step(release_notes_md: str) -> None:
     lowered = preflight.lower()
     assert "grouping" in lowered, "Step 0 pre-flight does not detect the grouping mode"
     assert "changelog" in lowered, "Step 0 pre-flight does not detect the CHANGELOG style"
+
+    # "must open with … before any gather/classify step" is an ordering claim —
+    # assert it, so moving detection after Step 1 fails rather than passing on
+    # the mere existence of a Step 0 heading.
+    step0_idx = _heading_index(release_notes_md, "### 0.")
+    step1_idx = _heading_index(release_notes_md, "### 1.")
+    assert step1_idx != -1, "Workflow has no Step 1 to order the pre-flight against"
+    assert 0 <= step0_idx < step1_idx, (
+        "Step 0 pre-flight must precede Step 1 (gather/classify) so detection "
+        f"runs first; got Step 0 at line {step0_idx}, Step 1 at line {step1_idx}"
+    )
 
 
 def test_preflight_inlines_a_grouping_detection_recipe(release_notes_md: str) -> None:
