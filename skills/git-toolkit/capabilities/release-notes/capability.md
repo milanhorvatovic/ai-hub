@@ -33,6 +33,26 @@ Guards:
 
 ## Workflow
 
+### 0. Pre-flight — detect the grouping mode and CHANGELOG style
+
+Run this before Step 1 gathers the full aggregation. The grouping mode drives the entire document — Step 2 groups by it, and a wrong call reshapes every section — so it must be a measured fact, not a conventional-commits habit, the same reason `commit-message` forces its body-wrap detection into a Step 0. The range `<start>..<end>` is already resolved in Inputs, so the sample is available now.
+
+Detect the **grouping mode** by sampling the range's subjects:
+
+```
+git log --no-merges <start>..<end> --pretty=format:'%s' | head -50
+```
+
+Branch on what the sample shows:
+
+- Most subjects match the conventional-commits pattern (`<type>(<scope>)<!>: …` per `../../references/format-subject.md`, where `(<scope>)` is optional — so `feat: …` counts alongside `feat(api): …`) → grouping = **conventional-commits**; group by type in Step 2. Record the ratio (e.g. 18/20) as the preamble's evidence.
+- Subjects don't match CC, PR metadata is available (not commit-only mode — see Guards), and merged PRs carry meaningful labels (`bug`, `enhancement`, `documentation`, …) → grouping = **labels**.
+- Neither — including commit-only mode, where no PR labels exist to group by → grouping = **flat**; a single "Changes" section.
+
+Detect the **CHANGELOG style**: if `CHANGELOG.md` exists, read its most recent entries and classify — `keep-a-changelog` or `custom`; report `none` when the file is absent. `none` means there is no existing format to match, so Step 4 falls back to a fresh Keep-a-Changelog-style section — the preamble still reports `none` because that is what was *detected*, not what was emitted. Step 4 matches a `keep-a-changelog` / `custom` detection as-is.
+
+Never classify (Step 2) or compose (Step 4) before this step runs (see Anti-patterns); carry both verdicts into every proposal through the Detected-conventions line of the Step 6 preamble.
+
 ### 1. Gather commits and PRs
 
 Commits in range:
@@ -55,9 +75,11 @@ Match commits to PRs via:
 
 Commits with no PR match are direct-pushed; surface in a separate "Direct commits" section so they're not lost.
 
-### 2. Classify by conventional-commits type
+### 2. Classify by the detected grouping mode
 
-Parse each commit subject for `<type>(<scope>)<!>: <description>`. Group into:
+Apply the grouping mode Step 0 detected — don't re-decide it here.
+
+**conventional-commits** — parse each commit subject for `<type>(<scope>)<!>: <description>` (the `(<scope>)` is optional per `../../references/format-subject.md`; a scope-less `feat: …` still parses as `feat`) and group into:
 
 | Group heading | Conventional-commits types |
 |---|---|
@@ -72,12 +94,11 @@ Parse each commit subject for `<type>(<scope>)<!>: <description>`. Group into:
 | Chores | `chore`, `style` |
 | Other | Anything that doesn't match conventional-commits |
 
-If the repo doesn't use conventional commits, fall back to:
+**labels** — group by PR labels instead of type: `bug`, `enhancement`, `documentation`, etc. Depends on PR metadata, so Step 0 only selects it outside commit-only mode; in commit-only mode Step 0 picks **flat** instead.
 
-- Group by PR labels (when available) — `bug`, `enhancement`, `documentation`, etc.
-- Or single "Changes" section with all bullets.
+**flat** — a single "Changes" section with all bullets.
 
-Match the repo's existing CHANGELOG style if present — check `CHANGELOG.md` for prior format (Keep-a-Changelog, custom, etc.).
+In every mode, breaking changes still lead (Step 3). Compose (Step 4) in the CHANGELOG style Step 0 detected — Keep-a-Changelog, the repo's custom shape, or a fresh Keep-a-Changelog-style section when none exists.
 
 ### 3. Detect breaking changes
 
@@ -136,6 +157,8 @@ Proposed release notes for <tag-or-version>:
 <full markdown>
 
 ---
+Detected: grouping = <conventional-commits | labels | flat> (<evidence, e.g. 18/20 subjects match CC>); changelog style = <keep-a-changelog | custom | none>
+forge=<github | gitlab | forgejo | bitbucket | none>
 Range: <start>..<end> (<N> commits, <M> PRs)
 Contributors: <N> unique authors
 Breaking changes: <count>
@@ -153,6 +176,8 @@ Or update an existing GitHub release:
 (Notes also written to: <tmpfile>)
 ```
 
+The `Detected:` line is mandatory: it turns the grouping-mode and CHANGELOG-style decisions — which shape the whole document — into a falsifiable claim a reviewer can check, the same way the `forge=<x>` guard surfaces the detected forge, instead of leaving them a silent default.
+
 Write notes to `mktemp` AND show inline. The commit-derived draft is always produced — even on Bitbucket or with no remote. Publishing is the forge-conditional enrichment: emit only the matching `release create` line for the detected forge, and on Bitbucket surface the paste-draft note instead of a command. Never run any `release create` automatically — releases are publicly visible and difficult to retract (deleting a release leaves a record in the forge's events log).
 
 ## Edge cases
@@ -166,6 +191,7 @@ Write notes to `mktemp` AND show inline. The commit-derived draft is always prod
 
 ## Anti-patterns
 
+- Don't emit grouped notes without running the Step 0 detection and stating the grouping mode and CHANGELOG style in the Step 6 Detected-conventions preamble. The grouping-mode decision drives the whole document; an unrun check silently defaults to conventional-commits grouping — even in a repo that doesn't use them, or ignoring an existing Keep-a-Changelog format — the exact failure this capability guards against.
 - Don't auto-publish the release. Always require the user to run the forge's `release create` command (`gh` / `glab` / `tea`), or to paste the draft manually on Bitbucket.
 - **Don't add `Co-authored-by:` trailers** — credit contributors via PR author handles in the "Contributors" section. This is a hard rule.
 - Don't fabricate breaking-change migration notes if the commit body doesn't describe them. Write `Migration: see PR #N for details` instead.
