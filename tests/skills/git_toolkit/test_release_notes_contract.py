@@ -73,13 +73,31 @@ def _heading_index(text: str, marker: str) -> int:
     return -1
 
 
+def _fenced_block_with(text: str, needle: str) -> list[str] | None:
+    """Lines of the first ``` fenced block that contains a line holding `needle`.
+
+    Selecting by content, not position, keeps the Step 6 assertions pinned to the
+    output template even if an earlier fenced example (e.g. a command snippet) is
+    added ahead of it in the same section."""
+    for m in re.finditer(r"```[^\n]*\n(.*?)```", text, re.DOTALL):
+        block_lines = m.group(1).splitlines()
+        if any(needle in ln for ln in block_lines):
+            return block_lines
+    return None
+
+
 def test_workflow_has_preflight_detection_step(release_notes_md: str) -> None:
     """The Workflow must open with a Step 0 pre-flight that detects both the
     grouping mode and the CHANGELOG style before any gather/classify step —
     making the detection mandatory rather than a branch buried in Step 2."""
     preflight = _block(release_notes_md, "### 0.", "### ", "## ")
     heading_line = next(
-        (ln for ln in release_notes_md.splitlines() if ln.startswith("### 0.")), ""
+        (
+            ln
+            for ln, fenced in _lines_with_fence_state(release_notes_md)
+            if not fenced and ln.startswith("### 0.")
+        ),
+        "",
     ).lower()
     assert "pre-flight" in heading_line or "detect" in heading_line, (
         "Step 0 heading is not the detection pre-flight"
@@ -115,9 +133,8 @@ def test_step6_preamble_declares_detected_conventions(release_notes_md: str) -> 
     grouping mode and CHANGELOG style, positioned before the Range line — the
     keystone that turns a silent decision into a falsifiable claim."""
     step6 = _block(release_notes_md, "### 6.", "### ", "## ")
-    block = re.search(r"```[^\n]*\n(.*?)```", step6, re.DOTALL)
-    assert block, "Step 6 has no fenced output template"
-    lines = block.group(1).splitlines()
+    lines = _fenced_block_with(step6, "Range:")
+    assert lines is not None, "Step 6 has no fenced output template with a Range: line"
     detected = next((ln for ln in lines if ln.strip().startswith("Detected:")), None)
     assert detected is not None, (
         "the Step 6 output template carries no 'Detected:' preamble line"
@@ -141,9 +158,8 @@ def test_step6_preamble_renders_the_detected_forge(release_notes_md: str) -> Non
     proposal preamble; the Step 6 output template must actually render a
     `forge=` line so that claim isn't documentation-only."""
     step6 = _block(release_notes_md, "### 6.", "### ", "## ")
-    block = re.search(r"```[^\n]*\n(.*?)```", step6, re.DOTALL)
-    assert block, "Step 6 has no fenced output template"
-    lines = block.group(1).splitlines()
+    lines = _fenced_block_with(step6, "Range:")
+    assert lines is not None, "Step 6 has no fenced output template with a Range: line"
     assert any(ln.strip().startswith("forge=") for ln in lines), (
         "the Step 6 output template renders no 'forge=' line, so the Inputs "
         "forge guard's promise to surface it stays documentation-only"
