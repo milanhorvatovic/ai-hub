@@ -30,7 +30,7 @@ Run external markdown formatters and yamllint on existing repo docs; emit findin
 - **Is:** an orchestrator that runs markdown formatters + yamllint on existing repo docs and emits findings.
 - **Is not:** a doc generator, a code editor, a code reviewer, a native markdown parser. Whatever checks the chosen formatter performs are the checks that fire — the skill adds no rules of its own beyond the bundled fallback configs (step 4).
 
-The skill respects whatever formatter / linter config the repo declares; any concern with no repo-declared config falls back to the skill's bundled configs.
+The skill respects whatever formatter / linter config the repo declares; an undeclared concern gets the bundled fallback where the skill ships one, tool defaults otherwise.
 
 ## Supported file types
 
@@ -42,7 +42,7 @@ No other file types are handled.
 ## Triggers
 
 - "Audit docs" / "check docs" / "review markdown"
-- "Format docs" / "format markdown" / "fix markdown" / "rewrite docs"
+- "Format docs" / "format markdown" / "fix markdown" / "reformat docs"
 - "Audit frontmatter" / "lint frontmatter" / "check yaml in docs"
 - "What tools do I need to install?" / "recommend doc tools"
 - Before tagging a release (run audit; resolve findings)
