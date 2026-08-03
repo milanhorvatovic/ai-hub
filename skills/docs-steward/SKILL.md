@@ -6,13 +6,13 @@ description: >
   config declares (markdownlint-cli2 / markdownlint / prettier / mdformat /
   dprint / remark) plus a complementary lint pass, and runs a yamllint
   audit over frontmatter and fenced YAML blocks; bundled fallbacks
-  cover what the repo leaves undeclared. Read-only until fixes are
+  fill what the repo leaves undeclared. Read-only until fixes are
   approved; emits
   NDJSON findings the invoking agent renders and offers to fix. Triggers
   on "steward the docs", "audit docs", "check docs", "review markdown",
   "format docs", "fix markdown", "audit frontmatter", "lint frontmatter",
-  "recommend doc tools", pre-release doc sweeps, or /docs-steward. Never
-  writes new prose, never enforces undeclared style rules, never
+  "recommend doc tools", pre-release sweeps, or /docs-steward. Never
+  writes new prose, adds no rules beyond its bundled fallbacks, never
   auto-installs tools.
 allowed-tools: Bash Read Grep Edit Write
 metadata:
