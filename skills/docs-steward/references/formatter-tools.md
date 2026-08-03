@@ -32,7 +32,7 @@ command -v dprint            >/dev/null 2>&1 && echo dprint
 command -v remark            >/dev/null 2>&1 && echo remark
 ```
 
-When the **baseline** matches a config family (e.g. `.markdownlint.json`) but none of that family's preferred tools is on PATH, `selector.select_tool` falls back to the next available tool in `FALLBACK_ORDER` (`prettier` → `markdownlint-cli2` → `markdownlint` → `mdformat` → `dprint` → `remark`) and runs the first one it finds. The `selected` NDJSON event records the engine that actually ran so consumers can see when the chosen formatter diverges from the baseline-declared family. Only when every tool in `FALLBACK_ORDER` is absent does `selector.select_tool` return `None`: `runner.run_tool` emits a single `MISSING` event with the install hint and exits 3. There is no implicit hand-rolled-edits path — addressing the missing toolchain is the caller's responsibility, typically by running `recommend-tools.py` to surface install commands.
+When the **baseline** matches a config family (e.g. `.markdownlint.json`) but none of that family's preferred tools is on PATH, `selector.select_tool` falls back to the next available tool in `FALLBACK_ORDER` (`prettier` → `markdownlint-cli2` → `markdownlint` → `mdformat` → `dprint` → `remark`) and runs the first one it finds. The `selected` NDJSON event records the engine that actually ran so consumers can see when the chosen formatter diverges from the baseline-declared family. Only when every tool in `FALLBACK_ORDER` is absent does `selector.select_tool` return `None`: `runner.run_tool` emits a single `missing` event with the install hint and exits 3. There is no implicit hand-rolled-edits path — addressing the missing toolchain is the caller's responsibility, typically by running `recommend-tools.py` to surface install commands.
 
 ## Per-tool commands
 
@@ -51,7 +51,7 @@ Pairs with the markdownlint-family configs — rule configs and cli2-only config
 | Format (older CLI) | `markdownlint --fix --ignore-path .gitignore "**/*.md" "**/*.markdown"` |
 
 - **Exit 0** = no findings; **exit 1** = findings present; **exit 2** = config / invocation error.
-- **Output line shape**: `path/to/file.md:LINE:COL MD### name "fragment"`. The skill emits each non-empty stdout/stderr line verbatim as a `finding` event detail string — no parsing, no field extraction. The line:col prefix IS stripped internally by `runner._normalize_finding_key` when computing the `md-fix` DELTA so an unfixed finding at a shifted line still counts as `still_open` rather than `resolved + new`, but consumers reading the NDJSON `finding.detail` see the raw line. To skip the line:col prefix for display, parse `^([^:]+):(\d+)(?::(\d+))? (MD\d{3})(?:/(\S+))? (.*)$` on the consumer side.
+- **Output line shape**: `path/to/file.md:LINE:COL MD### name "fragment"`. The skill emits each non-empty stdout/stderr line verbatim as a `finding` event detail string — no parsing, no field extraction. The line:col prefix IS stripped internally by `runner._normalize_finding_key` when computing the `md-fix` `delta` event so an unfixed finding at a shifted line still counts as `still_open` rather than `resolved + new`, but consumers reading the NDJSON `finding.detail` see the raw line. To skip the line:col prefix for display, parse `^([^:]+):(\d+)(?::(\d+))? (MD\d{3})(?:/(\S+))? (.*)$` on the consumer side.
 - **Install hints**: `npm install -g markdownlint-cli2` (canonical — substitute `markdownlint-cli` for the older CLI); `pnpm add -g markdownlint-cli2` / `bun add -g markdownlint-cli2` / `yarn global add markdownlint-cli2` (alternative JS package managers); `mise use -g npm:markdownlint-cli2` (mise via npm backend). No standalone binary; requires a Node runtime.
 - **Config argv shape**: a config path is passed as two separate argv elements (`--config <path>`), never the combined `--config=<path>` form — markdownlint-cli2 silently rejects the combined form and treats it as a file glob.
 
@@ -148,7 +148,7 @@ The skill must distinguish the three classes for every tool:
 | --- | --- |
 | **Clean** (exit 0 in audit) | No findings; skip the file in the report. |
 | **Findings** (exit 1 in audit) | Stream each non-empty stdout line verbatim as a `finding` event (and stderr too in AUDIT mode — some tools emit findings there). No rule-code synthesis: consumers that want a `<RULE>` slot should parse the tool's own format from `finding.detail` (e.g. `MD\d{3}` for markdownlint, the rule field in remark's parsable output). The skill stays out of the synthesis business so it doesn't paper over consumer-side variation. |
-| **Tool error** (exit ≥ 2, or unexpected stderr) | Append the tool's stdout/stderr as event-stream lines, then emit a single `ERROR` event with `{"exit": N}` and exit 2. There is no implicit hand-rolled-edits fallback after a tool error — addressing the failing tool is on the caller. |
+| **Tool error** (exit ≥ 2, or unexpected stderr) | Append the tool's stdout/stderr as event-stream lines, then emit a single `error` event with `{"exit": N}` and exit 2. There is no implicit hand-rolled-edits fallback after a tool error — addressing the failing tool is on the caller. |
 
 ## Caveats
 
