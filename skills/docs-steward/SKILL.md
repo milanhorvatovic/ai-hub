@@ -42,7 +42,7 @@ No other file types are handled.
 ## Triggers
 
 - "Audit docs" / "check docs" / "review markdown"
-- "Format docs" / "format markdown" / "rewrite docs"
+- "Format docs" / "format markdown" / "fix markdown" / "rewrite docs"
 - "Audit frontmatter" / "lint frontmatter" / "check yaml in docs"
 - "What tools do I need to install?" / "recommend doc tools"
 - Before tagging a release (run audit; resolve findings)

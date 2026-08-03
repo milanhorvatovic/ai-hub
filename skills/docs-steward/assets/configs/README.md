@@ -1,6 +1,6 @@
 # Bundled fallback configs
 
-These files are formatter configs the skill uses **only when the target repo declares none of its own for that tool family**. Repo config always wins — `docs_steward.baseline.detect_baselines` surfaces everything the repo declares and `docs_steward.selector.build_audit_plan` gives each family's pass its own config; only when a concern resolves to the `universal-subset` sentinel does `docs_steward.bundled_config.bundled_config_for` substitute a file from this directory for that pass.
+These files are tool configs the skill uses **only when the target repo declares none of its own for that tool family**. Repo config always wins — `docs_steward.baseline.detect_baselines` surfaces everything the repo declares and `docs_steward.selector.build_audit_plan` gives each family's pass its own config; only when a concern resolves to the `universal-subset` sentinel does `docs_steward.bundled_config.bundled_config_for` substitute a file from this directory for that pass.
 
 ## What is shipped
 

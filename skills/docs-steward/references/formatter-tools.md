@@ -36,7 +36,7 @@ When the **baseline** matches a config family (e.g. `.markdownlint.json`) but no
 
 ## Per-tool commands
 
-For each tool, columns are: **Probe** (one-shot detect + version), **Audit** (read-only, parseable output, non-zero exit on findings), **Format** (write-mode, idempotent), **Notes**.
+For each tool, columns are: **Probe** (one-shot detect + version), **Audit** (read-only, parseable output, non-zero exit on findings), **Format** (write-mode, idempotent), **Notes**. The Audit / Format rows show each tool's canonical glob invocation; CLI-driven runs scope every pass to the shared inventory, so the actual `selected` event's `cmd` carries explicit file paths in place of these globs.
 
 ### markdownlint-cli2 / markdownlint
 
