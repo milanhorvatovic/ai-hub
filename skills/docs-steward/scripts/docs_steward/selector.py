@@ -205,12 +205,25 @@ def build_audit_plan(
     if formatter is None or formatter.tool in LINT_TOOLS:
         return AuditPlan(formatter, formatter_baseline, linter=None)
 
-    lint_tool = next((t for t in LINT_TOOLS if runner.which(t.value)), None)
-    if lint_tool is None:
-        return AuditPlan(formatter, formatter_baseline, linter=None)
     lint_baseline = next(
         (b for b in detected if _is_lint_family(b)), UNIVERSAL_SUBSET
     )
+    # Prefer a binary from the declared config's own family so the config
+    # can actually be forwarded (a CLI2-only config routes to cli2 alone).
+    lint_family = (
+        _family(lint_baseline) if lint_baseline != UNIVERSAL_SUBSET else LINT_TOOLS
+    )
+    lint_tool = next((t for t in lint_family or () if runner.which(t.value)), None)
+    if lint_tool is None:
+        # None of the config's own binaries is on PATH. Another markdownlint
+        # binary can still lint — but only under the bundled rules: the
+        # foreign-family config cannot be forwarded, and running on tool
+        # defaults would give the pass neither the repo's rules nor the
+        # bundled ones, breaking the repo-config-or-bundled contract.
+        lint_tool = next((t for t in LINT_TOOLS if runner.which(t.value)), None)
+        lint_baseline = UNIVERSAL_SUBSET
+    if lint_tool is None:
+        return AuditPlan(formatter, formatter_baseline, linter=None)
     return AuditPlan(
         formatter, formatter_baseline, linter=PlannedPass(lint_tool, lint_baseline)
     )

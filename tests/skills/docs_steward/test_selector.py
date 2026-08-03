@@ -324,6 +324,26 @@ class BuildAuditPlanTests(unittest.TestCase):
         )
         self.assertIsNone(plan.linter)
 
+    def test_cli2_only_config_routes_to_cli2_when_available(self) -> None:
+        runner = _runner_with(
+            Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2, Tool.MARKDOWNLINT
+        )
+        plan = build_audit_plan((".markdownlint-cli2.jsonc",), runner)
+        self.assertEqual(
+            plan.linter,
+            PlannedPass(Tool.MARKDOWNLINT_CLI2, ".markdownlint-cli2.jsonc"),
+        )
+
+    def test_cli2_only_config_with_legacy_binary_falls_back_to_bundled(self) -> None:
+        # A CLI2-only config can't be forwarded to the legacy markdownlint
+        # binary; the lint pass must run under the bundled rules rather
+        # than the tool's own defaults (repo-config-or-bundled contract).
+        runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT)
+        plan = build_audit_plan((".markdownlint-cli2.jsonc",), runner)
+        self.assertEqual(
+            plan.linter, PlannedPass(Tool.MARKDOWNLINT, UNIVERSAL_SUBSET)
+        )
+
     def test_no_lint_binary_soft_skips_lint_pass(self) -> None:
         runner = _runner_with(Tool.PRETTIER)
         plan = build_audit_plan((".markdownlint.json",), runner)
