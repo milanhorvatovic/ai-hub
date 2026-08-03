@@ -1,20 +1,18 @@
 ---
 name: docs-steward
 description: >
-  Audits and reformats markdown documentation by orchestrating external
-  formatters (markdownlint-cli2 / markdownlint / prettier / mdformat /
-  dprint / remark) and a YAML linter (yamllint) for frontmatter + fenced
-  YAML blocks. Emits NDJSON findings on stdout; an invoking agent renders
-  the report and offers fixes. Operates without hardcoded paths — discovers
-  every `.md` / `.markdown` file (skipping `node_modules`, `.git`, `dist`,
-  `build`, `.venv`, vendored trees). Read-only by default; on approval,
-  runs the chosen formatter's --fix / --write mode. Ships bundled fallback
-  configs (markdownlint.json, prettierrc.json, yamllint.yaml) used only
-  when the repo declares none. Triggers when the user says "steward the
-  docs", "audit docs", "check docs", "review markdown", "audit
-  frontmatter", "lint frontmatter", or invokes `/docs-steward`. Does not
-  write new prose, does not enforce style rules beyond what the chosen
-  formatter applies, does not auto-install any tool.
+  Use when markdown docs need checking or fixing, not writing: the skill
+  audits and formats a repo's markdown by orchestrating the formatter its
+  config declares (markdownlint-cli2 / markdownlint / prettier / mdformat /
+  dprint / remark) plus a complementary lint pass, and runs a yamllint
+  audit over YAML frontmatter and fenced YAML blocks; with no repo config,
+  bundled fallbacks apply. Read-only until fixes are approved — emits
+  NDJSON findings the invoking agent renders and offers to fix. Triggers
+  on "steward the docs", "audit docs", "check docs", "review markdown",
+  "format docs", "fix markdown", "audit frontmatter", "lint frontmatter",
+  "recommend doc tools", pre-release doc sweeps, or /docs-steward. Never
+  writes new prose, never enforces undeclared style rules, never
+  auto-installs tools.
 allowed-tools: Bash Read Grep Edit Write
 metadata:
   version: "1.1.0" # x-release-please-version
