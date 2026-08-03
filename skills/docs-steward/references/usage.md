@@ -1,6 +1,6 @@
 # Usage
 
-Concrete commands the skill ships. SKILL.md describes what each does conceptually; this file is the cheatsheet.
+Concrete commands the skill ships. SKILL.md describes what each does conceptually; this file owns the CLI I/O contract: the cheatsheet, discovery, and the stdout / exit-code semantics.
 
 ## Entry shims
 
@@ -18,6 +18,8 @@ scripts/md-fix.py [--unwrap] [--baseline FILE] [--quiet] [FILE...]     # one-sho
 scripts/md-audit-frontmatter.py [FILE...]                 # lint YAML frontmatter + fenced YAML blocks (yamllint)
 scripts/md-audit-frontmatter.py --yamllint-config .yamllint  # force a specific yamllint config (overrides auto-discovery)
 ```
+
+**Discovery:** `discovery.list_markdown_files` returns absolute paths to every `.md` / `.markdown` file under the repo root, via `git ls-files --cached --others --exclude-standard` (covers tracked and untracked-but-not-ignored files; respects `.gitignore`) or, when git is unavailable, an `os.walk` fallback. Either path filters entries under `node_modules`, `.git`, `dist`, `build`, `.venv`, `venv`, `target` and drops paths whose working-tree file is missing or is a directory. Repo-root detection (`repo.repo_root`) uses `git rev-parse --show-toplevel`, falling back to the current working directory when git is absent. Per-tool ignore files (`.prettierignore`, `.markdownlintignore`) still apply within each tool's own pass.
 
 **Per-file targeting:** any audit/format/fix entry accepts positional file paths as the last arguments. When provided, they replace the discovered inventory for every pass of the run; when omitted, `discovery.list_markdown_files` supplies the shared inventory and each tool is invoked on that explicit list rather than its own default glob. Works without git — explicit files are passed through as given.
 
