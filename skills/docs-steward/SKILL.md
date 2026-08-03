@@ -56,13 +56,13 @@ Do **not** trigger when: the user wants new prose written (authoring, not mainte
 
 ## Reference ownership
 
-Each fact lives in exactly one file; this router links and summarizes, never restates. [`references/formatter-tools.md`](references/formatter-tools.md) owns tool facts: baseline detection and selection order (fed by `selector.py`), per-tool commands, output parsing, install hints. [`references/usage.md`](references/usage.md) owns CLI I/O: the invocation cheatsheet, flags, discovery, the stdout and exit-code contract. [`references/ndjson-schema.md`](references/ndjson-schema.md) owns event semantics. [`references/report-format.md`](references/report-format.md) owns the agent-rendered report shape. [`assets/configs/README.md`](assets/configs/README.md) owns bundled-config policy. [`references/architecture.md`](references/architecture.md) owns the `scripts/` layout and extension recipes.
+Each fact lives in one file and this router links and summarizes instead of restating — with two deliberate, contract-tested exceptions stated in both places: the formatter fallback chain and the skip-directory list, which the doc-vs-code suite pins to the code wherever they appear. [`references/formatter-tools.md`](references/formatter-tools.md) owns tool facts: baseline detection and selection order (fed by `selector.py`), per-tool commands, output parsing, install hints. [`references/usage.md`](references/usage.md) owns CLI I/O: the invocation cheatsheet, flags, discovery, the stdout and exit-code contract. [`references/ndjson-schema.md`](references/ndjson-schema.md) owns event semantics. [`references/report-format.md`](references/report-format.md) owns the agent-rendered report shape. [`assets/configs/README.md`](assets/configs/README.md) owns bundled-config policy. [`references/architecture.md`](references/architecture.md) owns the `scripts/` layout and extension recipes.
 
 ## Workflow
 
 ### 1. Locate repo root
 
-`git rev-parse --show-toplevel`; outside a git repo, fall back to the current working directory and note the limitation in the report (no rename inference, no `git log`).
+`git rev-parse --show-toplevel`; outside a git repo, fall back to the current working directory — discovery then walks the filesystem instead of asking git, so `.gitignore` is not respected (only the built-in skip list applies); a limitation worth noting in the report.
 
 ### 2. Inventory markdown files
 
