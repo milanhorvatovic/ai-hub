@@ -4,7 +4,7 @@ Load on demand from `SKILL.md` step 4 (audit) and step 6 (fix). Five tools, two 
 
 ## Detection probe
 
-Run once per audit; cache the result for the session. The listing follows `selector.FALLBACK_ORDER` (prettier first); the first matching tool **whose corresponding config file was chosen as the baseline** (step 3 of `SKILL.md`) still wins. When no tool matches, selection walks `FALLBACK_ORDER` and picks the first formatter on PATH (see "Baseline-matched tool missing" below); only when no formatter at all is available does the skill emit `MISSING` and exit 3 — there is no implicit hand-rolled-edits path.
+Run once per audit; cache the result for the session. The listing follows `selector.FALLBACK_ORDER` (prettier first). `selector.build_audit_plan` derives the run from every detected config (step 3 of `SKILL.md`): the first formatter-family config's preferred tool becomes the write-capable owner, and a markdownlint binary — when the owner isn't one — runs the read-only complementary lint pass with the repo's own markdownlint config (bundled fallback otherwise). When a declared family's tools are absent, owner selection walks `FALLBACK_ORDER` and picks the first formatter on PATH (see "Baseline-matched tool missing" below); only when no formatter at all is available does the skill emit `MISSING` and exit 3 — there is no implicit hand-rolled-edits path.
 
 ```sh
 command -v prettier          >/dev/null 2>&1 && echo prettier

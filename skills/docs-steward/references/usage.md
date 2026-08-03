@@ -9,7 +9,7 @@ scripts/probe.py                                          # list available forma
 scripts/recommend-tools.py                                # prioritized install recommendations for what is missing
 scripts/md-audit.py                                       # read-only check; auto-detect baseline + tool
 scripts/md-audit.py --unwrap                              # also pass --prose-wrap=never / --wrap=no
-scripts/md-audit.py --baseline .prettierrc                # force baseline (skip detection)
+scripts/md-audit.py --baseline .prettierrc                # force the formatter owner's baseline (complementary passes stay repo-derived)
 scripts/md-audit.py --quiet                               # drop formatter preamble (banner / summary lines)
 scripts/md-audit.py docs/intro.md README.md               # scope to explicit files (per-file targeting)
 scripts/md-format.py [--unwrap] [--baseline FILE] [--quiet] [FILE...]  # write mode (modifies files)
@@ -19,7 +19,9 @@ scripts/md-audit-frontmatter.py [FILE...]                 # lint YAML frontmatte
 scripts/md-audit-frontmatter.py --yamllint-config .yamllint  # force a specific yamllint config (overrides auto-discovery)
 ```
 
-**Per-file targeting:** any audit/format/fix entry accepts positional file paths as the last arguments. When provided, the formatter scopes to exactly those files (bypassing its default glob). Works without git — the file list is passed verbatim.
+**Per-file targeting:** any audit/format/fix entry accepts positional file paths as the last arguments. When provided, they replace the discovered inventory for every pass of the run; when omitted, `discovery.list_markdown_files` supplies the shared inventory and each tool is invoked on that explicit list rather than its own default glob. Works without git — explicit files are passed through as given.
+
+**Composite audit:** `md-audit` (and `md-fix` after its cycle) runs every applicable pass — the formatter owner, the complementary markdownlint lint pass, and (when `yamllint` is on PATH) the frontmatter pass — each with its own `selected` event and its own family's config, aggregated into one exit code via maximum. An empty inventory short-circuits with a single `clean` event and exit 0.
 
 **`--quiet`:** suppresses formatter preamble lines (banners like `Linting: 3 file(s)` / `Summary: 0 error(s)`). Real `finding` / `changed` / `error` events still flow.
 

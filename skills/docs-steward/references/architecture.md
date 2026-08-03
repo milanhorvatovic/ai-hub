@@ -21,7 +21,7 @@ scripts/
 │   ├── modes.py          Mode enum (AUDIT, FORMAT)
 │   ├── priority.py       INSTALL_PRIORITY (6-tool install-recommendation order)
 │   ├── hints.py          install_hints(tool) — per-tool install commands across platforms
-│   ├── baseline.py       BASELINE_CANDIDATES + detect_baseline(fs, root, override)
+│   ├── baseline.py       BASELINE_CANDIDATES + detect_baselines(fs, root)
 │   ├── selector.py       select_tool(baseline, runner) — preference + fallback semantics
 │   ├── commands.py       build_command(tool, mode, unwrap, config_path) — registry-driven argv
 │   ├── bundled_config.py bundled_config_for(tool) — path to shipped fallback config
@@ -61,7 +61,7 @@ tests/
 
 ## Port + adapter rationale
 
-The `ProcessRunner` and `FileSystem` Protocols are the only seams between the package and the host environment. Every service function (`probe_tools`, `recommend_installs`, `run_tool`, `audit_frontmatter`, `repo_root`, `detect_baseline`) takes a port instance as a parameter — production code wires `SubprocessRunner` / `OsFileSystem`, tests inject `FakeProcessRunner` / `FakeFileSystem` from `tests/fakes.py`. No global state, no module-level subprocess calls, no implicit `os.getcwd()` inside business logic. Coverage stays at ≥95% on the orchestration codebase because every branch is reachable through fake-only setup; the uncovered lines are the real-I/O adapter bodies themselves (intentional — adapter-level tests would require a real subprocess and lose the speed guarantee).
+The `ProcessRunner` and `FileSystem` Protocols are the only seams between the package and the host environment. Every service function (`probe_tools`, `recommend_installs`, `run_tool`, `audit_frontmatter`, `repo_root`, `detect_baselines`, `build_audit_plan`) takes a port instance as a parameter — production code wires `SubprocessRunner` / `OsFileSystem`, tests inject `FakeProcessRunner` / `FakeFileSystem` from `tests/fakes.py`. No global state, no module-level subprocess calls, no implicit `os.getcwd()` inside business logic. Coverage stays at ≥95% on the orchestration codebase because every branch is reachable through fake-only setup; the uncovered lines are the real-I/O adapter bodies themselves (intentional — adapter-level tests would require a real subprocess and lose the speed guarantee).
 
 ## Adding a new formatter
 

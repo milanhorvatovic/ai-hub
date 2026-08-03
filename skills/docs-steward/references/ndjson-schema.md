@@ -41,7 +41,7 @@ Emitted once per markdown-formatter pass. A single invocation is usually one pas
 | `unwrap` | bool | Whether `--unwrap` was passed (adds `--prose-wrap=never` / `--wrap=no` to the cmd) |
 | `config_source` | string | `"repo"` (repo declares config), `"bundled"` (bundled fallback used), or `"tool-default"` (no config passed) |
 | `cmd` | string | The exact formatter argv as a space-joined string |
-| `files_scoped` | int or null | Count of positional file args, or null when scope is the formatter's default glob |
+| `files_scoped` | int or null | Count of files the pass is scoped to. CLI-driven runs always scope to the shared inventory (explicit positional args or the discovered list), so the count is a concrete int; null occurs only when `run_tool` is called directly with `files=None` (default-glob scope) |
 | `dry_run` | bool | Whether `--dry-run` was passed (md-format only); always false for md-audit |
 
 #### Frontmatter audit variant
