@@ -22,10 +22,10 @@ import os
 import sys
 from collections.abc import Callable, Iterable, Sequence
 
-from .baseline import UNIVERSAL_SUBSET, detect_baseline
+from .baseline import detect_baselines
 from .discovery import list_markdown_files
 from .emit import serialize
-from .events import Event
+from .events import Event, EventType
 from .fs import FileSystem, OsFileSystem
 from .modes import Mode
 from .paths import is_absolute, posix_join, to_posix
@@ -35,7 +35,7 @@ from .process import ProcessRunner, SubprocessRunner
 from .recommend import recommend_installs
 from .repo import repo_root
 from .runner import run_fix_cycle, run_tool
-from .selector import select_tool
+from .selector import AuditPlan, build_audit_plan
 from .tools import Tool
 from .yaml_audit import audit_frontmatter
 
@@ -163,73 +163,119 @@ def _dispatch_format(args: argparse.Namespace, runner: ProcessRunner) -> tuple[l
     return _dispatch_run(args, runner, Mode.FORMAT, dry_run=getattr(args, "dry_run", False))
 
 
+_NO_FILES_EVENT = Event(
+    EventType.CLEAN, "all", "no markdown files discovered"
+)
+
+
 def _dispatch_run(
     args: argparse.Namespace, runner: ProcessRunner, mode: Mode, dry_run: bool = False,
 ) -> tuple[list[Event], int]:
     fs = OsFileSystem()
     root = repo_root(runner)
-    baseline = detect_baseline(fs, root, args.baseline)
-    files = _files_or_none(args)
-    plugin_events = _maybe_plugin_missing_events(runner, fs, baseline, files, root)
+    inventory = _inventory(args, runner, fs, root)
+    if not inventory:
+        return [_NO_FILES_EVENT], 0
+    plan = build_audit_plan(
+        detect_baselines(fs, root), runner, forced_baseline=args.baseline
+    )
+    quiet = getattr(args, "quiet", False)
+    plugin_events = _maybe_plugin_missing_events(runner, fs, plan, inventory, root)
     events, code = run_tool(
         mode=mode,
-        baseline=baseline,
+        baseline=plan.formatter_baseline,
         unwrap=args.unwrap,
         runner=runner,
         root=root,
-        files=files,
-        quiet=getattr(args, "quiet", False),
+        files=inventory,
+        quiet=quiet,
         dry_run=dry_run,
+        tool_override=plan.formatter.tool if plan.formatter else None,
     )
-    lint_events, lint_code = _markdownlint_lint_pass(
-        args, runner, root, baseline, files, mode
+    if mode != Mode.AUDIT:
+        # FORMAT writes through the single owner only; the complementary
+        # passes are read-only audit concerns.
+        return plugin_events + events, code
+    if plan.formatter is None:
+        # No usable markdown formatter: the owner call just emitted the
+        # canonical MISSING / exit-3 result. Stop there — running the
+        # complementary passes anyway would mix content findings into a
+        # run whose exit code says "install a tool". The standalone
+        # md-audit-frontmatter subcommand remains the yamllint-only path.
+        return plugin_events + events, code
+    lint_events, lint_code = _lint_pass(plan, runner, root, inventory, quiet)
+    fm_events, fm_code = _frontmatter_pass(runner, fs, root, inventory)
+    return (
+        plugin_events + events + lint_events + fm_events,
+        max(code, lint_code, fm_code),
     )
-    return plugin_events + events + lint_events, max(code, lint_code)
 
 
-_MARKDOWNLINT_TOOLS: tuple[Tool, ...] = (Tool.MARKDOWNLINT_CLI2, Tool.MARKDOWNLINT)
+def _inventory(
+    args: argparse.Namespace, runner: ProcessRunner, fs: FileSystem, root: str,
+) -> tuple[str, ...]:
+    """The one markdown file inventory every pass of a run shares.
+
+    Explicit positional files win; otherwise `discovery.list_markdown_files`
+    supplies the repo-wide list (git-aware, skip-dirs filtered). Every tool
+    invocation is scoped to this inventory instead of the tool's own default
+    glob, so all passes see the same files, the scanned-file count in each
+    SELECTED event is accurate, and an extension with zero matches can't
+    error a tool invocation. Empty means "nothing to do" — the dispatcher
+    short-circuits with a CLEAN event rather than invoking any tool on an
+    empty file list.
+    """
+    files = _files_or_none(args)
+    if files is not None:
+        return tuple(files)
+    return tuple(list_markdown_files(runner, root, fs))
 
 
-def _markdownlint_lint_pass(
-    args: argparse.Namespace,
+def _lint_pass(
+    plan: AuditPlan,
     runner: ProcessRunner,
     root: str,
-    baseline: str,
-    files: Sequence[str] | None,
-    mode: Mode,
+    files: Sequence[str],
+    quiet: bool,
 ) -> tuple[list[Event], int]:
-    """Complementary markdownlint lint pass, run alongside the formatter.
+    """Read-only complementary markdownlint pass from the audit plan.
 
-    In AUDIT mode, when the chosen formatter is not markdownlint and a
-    markdownlint binary is on PATH, run markdownlint lint-only (bundled
-    config) so the semantic `MD###` rules are reported even though prettier
-    (or another formatter) owns formatting — prettier handles wrap/tables/
-    whitespace, markdownlint flags MD040 / MD036 / MD033 / MD034 / … that
-    prettier ignores. Returns `([], 0)` (no-op) outside audit, when no
-    markdownlint binary is available, or when the formatter already IS
-    markdownlint (its own pass covers the rules).
+    The plan carries the repo's own markdownlint-family config when one is
+    declared (bundled fallback otherwise) — forcing a formatter via
+    `--baseline` therefore never downgrades this pass to bundled rules.
+    No-op when the plan has no lint pass: the owner already is a
+    markdownlint binary, or none is on PATH (optional pass, soft skip).
     """
-    if mode != Mode.AUDIT:
+    if plan.linter is None:
         return [], 0
-    if select_tool(baseline, runner) in _MARKDOWNLINT_TOOLS:
-        return [], 0
-    linter = next(
-        (t for t in _MARKDOWNLINT_TOOLS if runner.which(t.value)), None
-    )
-    if linter is None:
-        return [], 0
-    # UNIVERSAL_SUBSET routes run_tool to the bundled markdownlint config —
-    # the right choice here, since a repo that declared a markdownlint config
-    # would have selected markdownlint as the formatter (skipped above).
     return run_tool(
         mode=Mode.AUDIT,
-        baseline=UNIVERSAL_SUBSET,
+        baseline=plan.linter.baseline,
         unwrap=False,
         runner=runner,
         root=root,
         files=files,
-        quiet=getattr(args, "quiet", False),
-        tool_override=linter,
+        quiet=quiet,
+        tool_override=plan.linter.tool,
+    )
+
+
+def _frontmatter_pass(
+    runner: ProcessRunner, fs: FileSystem, root: str, files: Sequence[str],
+) -> tuple[list[Event], int]:
+    """YAML frontmatter validation folded into the audit aggregate.
+
+    Uses the same repo-config discovery as the standalone
+    `md-audit-frontmatter` subcommand. Soft-skips when yamllint is absent —
+    inside the composite audit the pass is optional, mirroring the
+    markdownlint pass; the standalone subcommand keeps its hard
+    MISSING / exit-3 semantics for callers who ask for it by name.
+    """
+    if runner.which(Tool.YAMLLINT.value) is None:
+        return [], 0
+    config = _discover_repo_yamllint_config(fs, root)
+    return audit_frontmatter(
+        runner, fs, _resolve_against_root(files, root), config_path=config
     )
 
 
@@ -238,58 +284,70 @@ def _dispatch_fix(
 ) -> tuple[list[Event], int]:
     fs = OsFileSystem()
     root = repo_root(runner)
-    baseline = detect_baseline(fs, root, args.baseline)
-    files = _files_or_none(args)
-    plugin_events = _maybe_plugin_missing_events(runner, fs, baseline, files, root)
+    inventory = _inventory(args, runner, fs, root)
+    if not inventory:
+        return [_NO_FILES_EVENT], 0
+    plan = build_audit_plan(
+        detect_baselines(fs, root), runner, forced_baseline=args.baseline
+    )
+    quiet = getattr(args, "quiet", False)
+    plugin_events = _maybe_plugin_missing_events(runner, fs, plan, inventory, root)
     events, code = run_fix_cycle(
         runner=runner,
         root=root,
-        baseline=baseline,
+        baseline=plan.formatter_baseline,
         unwrap=args.unwrap,
-        files=files,
-        quiet=getattr(args, "quiet", False),
+        files=inventory,
+        quiet=quiet,
+        tool_override=plan.formatter.tool if plan.formatter else None,
     )
-    # Mirror md-audit's complementary markdownlint lint pass. The fix cycle
-    # only resolves what the chosen formatter (prettier) can auto-fix, so
-    # without this pass a file violating only semantic MD### rules (MD040,
-    # MD036, …) would make md-audit exit 1 while md-fix emitted a zero delta
-    # and exited 0 — the two subcommands would disagree on the same repo.
-    # The pass is read-only AUDIT, self-skips when the formatter already IS
-    # markdownlint or no markdownlint binary is on PATH, and contributes its
-    # exit code via max() so md-fix matches md-audit. Findings stay out of
-    # the DELTA (which measures only the format pass's resolved/still_open/
-    # new) and surface as their own FINDING events after it.
-    lint_events, lint_code = _markdownlint_lint_pass(
-        args, runner, root, baseline, files, Mode.AUDIT
+    if plan.formatter is None:
+        # Same guard as md-audit: the cycle's pre-audit just emitted the
+        # canonical MISSING / exit-3 result, so the complementary passes
+        # must not mix content findings into a missing-tool run.
+        return plugin_events + events, code
+    # Mirror md-audit's complementary passes. The fix cycle only resolves
+    # what the formatter owner can auto-fix, so without these a file
+    # violating only semantic MD### rules or carrying broken frontmatter
+    # would make md-audit exit 1 while md-fix emitted a zero delta and
+    # exited 0 — the two subcommands would disagree on the same repo.
+    # Both passes are read-only, self-skip when inapplicable, and
+    # contribute their exit codes via max() so md-fix matches md-audit.
+    # Findings stay out of the DELTA (which measures only the format
+    # pass's resolved/still_open/new) and surface as their own events
+    # after it.
+    lint_events, lint_code = _lint_pass(plan, runner, root, inventory, quiet)
+    fm_events, fm_code = _frontmatter_pass(runner, fs, root, inventory)
+    return (
+        plugin_events + events + lint_events + fm_events,
+        max(code, lint_code, fm_code),
     )
-    return plugin_events + events + lint_events, max(code, lint_code)
 
 
 def _maybe_plugin_missing_events(
     runner: ProcessRunner,
     fs: FileSystem,
-    baseline: str,
-    files: Sequence[str] | None,
+    plan: AuditPlan,
+    files: Sequence[str],
     root: str,
 ) -> list[Event]:
-    """Emit `plugin-missing` events when the selected tool would be mdformat
+    """Emit `plugin-missing` events when the formatter owner is mdformat
     and target files contain syntax requiring an absent plugin.
 
     No-op when:
-    - The selected tool is not mdformat.
+    - The formatter owner is not mdformat.
     - mdformat-gfm is already installed (covers the only auto-emitted check
       today; other plugins are detected by `probe.py` but not auto-flagged
       against file content).
     - No target file contains GFM-only syntax.
 
-    Fires once per CLI invocation (before the formatter runs).
+    Fires once per CLI invocation (before the formatter runs), against the
+    same shared inventory every other pass uses.
     """
-    tool = select_tool(baseline, runner)
-    if tool != Tool.MDFORMAT:
+    if plan.formatter is None or plan.formatter.tool != Tool.MDFORMAT:
         return []
     installed = detect_installed_plugin_labels(runner)
-    target_files = files if files is not None else tuple(list_markdown_files(runner, root))
-    return emit_plugin_missing(_resolve_against_root(target_files, root), fs.read_text, installed)
+    return emit_plugin_missing(_resolve_against_root(files, root), fs.read_text, installed)
 
 
 def _dispatch_audit_frontmatter(

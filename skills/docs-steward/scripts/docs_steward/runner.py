@@ -191,7 +191,7 @@ def run_tool(
       exit-3 (no usable formatter) result when the override isn't on PATH —
       the same contract as the selector path. Callers that want a *soft* skip
       when the tool is absent (the lint pass is optional) must pre-check with
-      `runner.which` and not call run_tool at all; see `_markdownlint_lint_pass`.
+      `runner.which` and not call run_tool at all; see `cli._lint_pass`.
     """
     effective_mode = mode
     # dry_run on FORMAT mode delegates to the AUDIT invocation under the hood
@@ -207,7 +207,7 @@ def run_tool(
     # exit-2 (invocation error). Callers wanting a *soft* skip when the tool is
     # absent (the complementary markdownlint lint pass is optional, not
     # required) must pre-check with runner.which and not call run_tool at all —
-    # see cli._markdownlint_lint_pass.
+    # see cli._lint_pass.
     if tool_override is not None:
         tool = tool_override if runner.which(tool_override.value) is not None else None
     else:
@@ -349,6 +349,7 @@ def run_fix_cycle(
     unwrap: bool,
     files: Sequence[str] | None = None,
     quiet: bool = False,
+    tool_override: Tool | None = None,
 ) -> tuple[list[Event], int]:
     """One-shot loopback: audit → format → re-audit → emit DELTA.
 
@@ -360,11 +361,16 @@ def run_fix_cycle(
     or the format phase errors out (exit ≥ 2), the cycle bails early and
     the post-audit is not run.
 
+    `tool_override` pins all three phases to one tool (the audit plan's
+    formatter owner) instead of re-selecting from `baseline` each time —
+    same contract as `run_tool`'s parameter of the same name.
+
     Exit code reflects the latest completed phase: 0 clean after fix (or
     clean pre-audit), 1 findings still present, 2 formatter/audit error.
     """
     pre_events, pre_exit = run_tool(
-        Mode.AUDIT, baseline, unwrap, runner, root, files=files, quiet=quiet
+        Mode.AUDIT, baseline, unwrap, runner, root, files=files, quiet=quiet,
+        tool_override=tool_override,
     )
 
     pre_findings = _finding_keys(pre_events)
@@ -396,13 +402,15 @@ def run_fix_cycle(
         return pre_events, pre_exit
 
     fmt_events, fmt_exit = run_tool(
-        Mode.FORMAT, baseline, unwrap, runner, root, files=files, quiet=quiet
+        Mode.FORMAT, baseline, unwrap, runner, root, files=files, quiet=quiet,
+        tool_override=tool_override,
     )
     if fmt_exit >= 2:
         return pre_events + fmt_events, fmt_exit
 
     post_events, post_exit = run_tool(
-        Mode.AUDIT, baseline, unwrap, runner, root, files=files, quiet=quiet
+        Mode.AUDIT, baseline, unwrap, runner, root, files=files, quiet=quiet,
+        tool_override=tool_override,
     )
     if post_exit >= 2:
         # Post-audit errored before producing FINDING events. Computing a

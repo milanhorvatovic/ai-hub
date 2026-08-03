@@ -106,11 +106,15 @@ def _try_git_ls_files(
     # insensitive filesystems) doesn't pass the filter and trigger an
     # IsADirectoryError downstream. `FileSystem.exists` / `OsFileSystem.exists`
     # already enforce regular-files-only.
+    # Probe the same forward-slash-joined path this function returns, so
+    # the existence check and the returned inventory name one identical
+    # path on every host (os.path.join would insert backslashes on
+    # Windows while the return value stays POSIX-normalized).
     exists = fs.exists if fs is not None else os.path.isfile
     return [
-        _posix_join(root, rel)
+        joined
         for rel in unique_rels
-        if exists(os.path.join(root, rel))
+        if exists(joined := _posix_join(root, rel))
     ]
 
 

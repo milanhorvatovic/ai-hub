@@ -1,12 +1,16 @@
-"""selector.select_tool — baseline preference + fallback order semantics."""
+"""selector.select_tool — baseline preference + fallback order semantics —
+and selector.build_audit_plan — composite-plan derivation."""
 
 from __future__ import annotations
 
 import unittest
 
+from docs_steward.baseline import UNIVERSAL_SUBSET
 from docs_steward.selector import (
     FALLBACK_ORDER,
+    PlannedPass,
     baseline_belongs_to_tool,
+    build_audit_plan,
     select_tool,
 )
 from docs_steward.tools import Tool
@@ -238,6 +242,119 @@ class BaselineBelongsToToolTests(unittest.TestCase):
                 baseline_belongs_to_tool(name, Tool.MARKDOWNLINT),
                 name,
             )
+
+
+class BuildAuditPlanTests(unittest.TestCase):
+    """Per-family plan derivation: one formatter owner + optional lint pass,
+    each governed by its own family's config."""
+
+    def test_both_configs_yield_both_passes_with_own_configs(self) -> None:
+        # The headline defect: a lint config used to win first-match
+        # detection and suppress the formatter check entirely. Both
+        # concerns now resolve independently to their own repo configs.
+        runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2)
+        plan = build_audit_plan((".markdownlint.json", ".prettierrc"), runner)
+        self.assertEqual(plan.formatter, PlannedPass(Tool.PRETTIER, ".prettierrc"))
+        self.assertEqual(
+            plan.linter, PlannedPass(Tool.MARKDOWNLINT_CLI2, ".markdownlint.json")
+        )
+
+    def test_lint_only_repo_gets_bundled_formatter_and_repo_lint_config(self) -> None:
+        # A repo declaring only a lint config has declared nothing about
+        # formatting — the formatter concern falls back to the bundled
+        # default, and the lint pass honors the repo's own rules.
+        runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2)
+        plan = build_audit_plan((".markdownlint.json",), runner)
+        self.assertEqual(plan.formatter, PlannedPass(Tool.PRETTIER, UNIVERSAL_SUBSET))
+        self.assertEqual(
+            plan.linter, PlannedPass(Tool.MARKDOWNLINT_CLI2, ".markdownlint.json")
+        )
+
+    def test_formatter_only_repo_gets_bundled_lint_rules(self) -> None:
+        runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2)
+        plan = build_audit_plan((".prettierrc",), runner)
+        self.assertEqual(plan.formatter, PlannedPass(Tool.PRETTIER, ".prettierrc"))
+        self.assertEqual(
+            plan.linter, PlannedPass(Tool.MARKDOWNLINT_CLI2, UNIVERSAL_SUBSET)
+        )
+
+    def test_no_configs_yield_bundled_fallbacks_for_both_passes(self) -> None:
+        runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2)
+        plan = build_audit_plan((), runner)
+        self.assertEqual(plan.formatter, PlannedPass(Tool.PRETTIER, UNIVERSAL_SUBSET))
+        self.assertEqual(
+            plan.linter, PlannedPass(Tool.MARKDOWNLINT_CLI2, UNIVERSAL_SUBSET)
+        )
+
+    def test_editorconfig_belongs_to_no_family_so_bundled_default_applies(self) -> None:
+        # `.editorconfig` is a cross-tool style hint, not a formatter
+        # config — its presence must not claim the formatter concern and
+        # suppress the bundled default.
+        runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2)
+        plan = build_audit_plan((".editorconfig",), runner)
+        self.assertEqual(plan.formatter, PlannedPass(Tool.PRETTIER, UNIVERSAL_SUBSET))
+
+    def test_forced_formatter_keeps_repo_lint_config(self) -> None:
+        # Forcing the formatter (--baseline) must not downgrade the lint
+        # pass to bundled rules when the repo declares its own.
+        runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2)
+        plan = build_audit_plan(
+            (".markdownlint.json",), runner, forced_baseline=".prettierrc"
+        )
+        self.assertEqual(plan.formatter, PlannedPass(Tool.PRETTIER, ".prettierrc"))
+        self.assertEqual(
+            plan.linter, PlannedPass(Tool.MARKDOWNLINT_CLI2, ".markdownlint.json")
+        )
+
+    def test_forced_lint_family_baseline_collapses_lint_pass_into_owner(self) -> None:
+        runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2)
+        plan = build_audit_plan((), runner, forced_baseline=".markdownlint.json")
+        self.assertEqual(
+            plan.formatter, PlannedPass(Tool.MARKDOWNLINT_CLI2, ".markdownlint.json")
+        )
+        self.assertIsNone(plan.linter)
+
+    def test_markdownlint_owner_via_fallback_covers_lint_itself(self) -> None:
+        # Only markdownlint on PATH: FALLBACK_ORDER makes it the owner and
+        # a second lint pass would double-lint.
+        runner = _runner_with(Tool.MARKDOWNLINT_CLI2)
+        plan = build_audit_plan((), runner)
+        self.assertEqual(
+            plan.formatter, PlannedPass(Tool.MARKDOWNLINT_CLI2, UNIVERSAL_SUBSET)
+        )
+        self.assertIsNone(plan.linter)
+
+    def test_cli2_only_config_routes_to_cli2_when_available(self) -> None:
+        runner = _runner_with(
+            Tool.PRETTIER, Tool.MARKDOWNLINT_CLI2, Tool.MARKDOWNLINT
+        )
+        plan = build_audit_plan((".markdownlint-cli2.jsonc",), runner)
+        self.assertEqual(
+            plan.linter,
+            PlannedPass(Tool.MARKDOWNLINT_CLI2, ".markdownlint-cli2.jsonc"),
+        )
+
+    def test_cli2_only_config_with_legacy_binary_falls_back_to_bundled(self) -> None:
+        # A CLI2-only config can't be forwarded to the legacy markdownlint
+        # binary; the lint pass must run under the bundled rules rather
+        # than the tool's own defaults (repo-config-or-bundled contract).
+        runner = _runner_with(Tool.PRETTIER, Tool.MARKDOWNLINT)
+        plan = build_audit_plan((".markdownlint-cli2.jsonc",), runner)
+        self.assertEqual(
+            plan.linter, PlannedPass(Tool.MARKDOWNLINT, UNIVERSAL_SUBSET)
+        )
+
+    def test_no_lint_binary_soft_skips_lint_pass(self) -> None:
+        runner = _runner_with(Tool.PRETTIER)
+        plan = build_audit_plan((".markdownlint.json",), runner)
+        self.assertEqual(plan.formatter, PlannedPass(Tool.PRETTIER, UNIVERSAL_SUBSET))
+        self.assertIsNone(plan.linter)
+
+    def test_no_tools_at_all_preserves_owner_baseline_for_reporting(self) -> None:
+        plan = build_audit_plan((".prettierrc",), FakeProcessRunner())
+        self.assertIsNone(plan.formatter)
+        self.assertEqual(plan.formatter_baseline, ".prettierrc")
+        self.assertIsNone(plan.linter)
 
 
 if __name__ == "__main__":

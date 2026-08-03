@@ -1,8 +1,7 @@
-"""cli.main — end-to-end through serialization, with patched runner."""
+"""cli.main — end-to-end through serialization, with patched runner + fs."""
 
 from __future__ import annotations
 
-import argparse
 import io
 import json
 import unittest
@@ -13,78 +12,141 @@ from docs_steward.bundled_config import bundled_config_for
 from docs_steward.cli import (
     YAMLLINT_REPO_CANDIDATES,
     _discover_repo_yamllint_config,
-    _markdownlint_lint_pass,
+    _frontmatter_pass,
+    _lint_pass,
     _resolve_against_root,
     _resolve_config_against_cwd,
     main,
 )
-from docs_steward.commands import build_command
 from docs_steward.events import EventType
-from docs_steward.modes import Mode
 from docs_steward.process import ProcessResult
+from docs_steward.selector import AuditPlan, PlannedPass
 from docs_steward.tools import Tool
 
 from .fakes import FakeFileSystem, FakeProcessRunner
 
+_GIT_TOPLEVEL = ("git", "rev-parse", "--show-toplevel")
+_GIT_LS_FILES = (
+    "git", "ls-files", "--cached", "--others", "--exclude-standard",
+    "--", ":(glob)**/*.md", ":(glob)**/*.markdown",
+)
 
-class MarkdownlintLintPassTests(unittest.TestCase):
-    """The complementary markdownlint lint pass the audit dispatch runs
-    alongside a non-markdownlint formatter."""
 
-    _ARGS = argparse.Namespace(quiet=False)
+def _repo_fs(*config_names: str, readme: str = "# Title\n") -> FakeFileSystem:
+    """FakeFileSystem seeded with /repo/README.md plus named root configs."""
+    files = {"/repo/README.md": readme}
+    for name in config_names:
+        files[f"/repo/{name}"] = ""
+    return FakeFileSystem(files=files)
 
-    def test_runs_markdownlint_alongside_prettier_in_audit(self) -> None:
-        cfg = bundled_config_for(Tool.MARKDOWNLINT_CLI2)
-        cmd = tuple(
-            build_command(
-                Tool.MARKDOWNLINT_CLI2, Mode.AUDIT, unwrap=False, config_path=cfg
-            )
+
+def _repo_results(
+    extra: dict[tuple[str, ...], ProcessResult] | None = None,
+) -> dict[tuple[str, ...], ProcessResult]:
+    """Baseline argv→result map: repo root at /repo, inventory of README.md."""
+    results = {
+        _GIT_TOPLEVEL: ProcessResult(0, "/repo\n", ""),
+        _GIT_LS_FILES: ProcessResult(0, "README.md\n", ""),
+    }
+    results.update(extra or {})
+    return results
+
+
+def _prettier_plan(lint_baseline: str | None = None) -> AuditPlan:
+    linter = (
+        PlannedPass(Tool.MARKDOWNLINT_CLI2, lint_baseline)
+        if lint_baseline is not None
+        else None
+    )
+    return AuditPlan(
+        formatter=PlannedPass(Tool.PRETTIER, ".prettierrc"),
+        formatter_baseline=".prettierrc",
+        linter=linter,
+    )
+
+
+class LintPassTests(unittest.TestCase):
+    """The plan-driven complementary markdownlint pass."""
+
+    def test_runs_planned_linter_with_its_repo_config(self) -> None:
+        cmd = (
+            "markdownlint-cli2", "--config", "/repo/.markdownlint.json",
+            "--", "/repo/README.md",
         )
         runner = FakeProcessRunner(
-            paths={"prettier": "/x/prettier", "markdownlint-cli2": "/x/mdl2"},
-            results={cmd: ProcessResult(1, "foo.md:1 MD040 no language\n", "")},
+            paths={"markdownlint-cli2": "/x/mdl2"},
+            results={cmd: ProcessResult(1, "README.md:1 MD040 no language\n", "")},
         )
-        events, code = _markdownlint_lint_pass(
-            self._ARGS, runner, "/repo", UNIVERSAL_SUBSET, None, Mode.AUDIT
+        events, code = _lint_pass(
+            _prettier_plan(lint_baseline=".markdownlint.json"),
+            runner, "/repo", ("/repo/README.md",), quiet=False,
         )
         self.assertEqual(code, 1)
         selected = next(e for e in events if e.event == EventType.SELECTED)
         self.assertEqual(selected.tool, "markdownlint-cli2")
+        self.assertEqual(selected.detail["baseline"], ".markdownlint.json")
         self.assertTrue(any(e.event == EventType.FINDING for e in events))
 
-    def test_skipped_when_formatter_is_markdownlint(self) -> None:
-        # A repo declaring .markdownlint.json selects markdownlint as the
-        # formatter; the lint pass would duplicate it, so it no-ops.
-        runner = FakeProcessRunner(paths={"markdownlint-cli2": "/x/mdl2"})
-        events, code = _markdownlint_lint_pass(
-            self._ARGS, runner, "/repo", ".markdownlint.json", None, Mode.AUDIT
-        )
-        self.assertEqual((events, code), ([], 0))
-
-    def test_noop_in_format_mode(self) -> None:
+    def test_runs_bundled_rules_when_plan_carries_the_sentinel(self) -> None:
+        cfg = bundled_config_for(Tool.MARKDOWNLINT_CLI2)
+        cmd = ("markdownlint-cli2", "--config", cfg, "--", "/repo/README.md")
         runner = FakeProcessRunner(
-            paths={"prettier": "/x/prettier", "markdownlint-cli2": "/x/mdl2"}
+            paths={"markdownlint-cli2": "/x/mdl2"},
+            results={cmd: ProcessResult(0, "", "")},
         )
-        events, code = _markdownlint_lint_pass(
-            self._ARGS, runner, "/repo", UNIVERSAL_SUBSET, None, Mode.FORMAT
+        events, code = _lint_pass(
+            _prettier_plan(lint_baseline=UNIVERSAL_SUBSET),
+            runner, "/repo", ("/repo/README.md",), quiet=False,
+        )
+        self.assertEqual(code, 0)
+        self.assertTrue(any(e.event == EventType.CLEAN for e in events))
+
+    def test_noop_when_plan_has_no_lint_pass(self) -> None:
+        events, code = _lint_pass(
+            _prettier_plan(lint_baseline=None),
+            FakeProcessRunner(), "/repo", ("/repo/README.md",), quiet=False,
         )
         self.assertEqual((events, code), ([], 0))
 
-    def test_noop_when_no_markdownlint_on_path(self) -> None:
-        runner = FakeProcessRunner(paths={"prettier": "/x/prettier"})
-        events, code = _markdownlint_lint_pass(
-            self._ARGS, runner, "/repo", UNIVERSAL_SUBSET, None, Mode.AUDIT
+
+class FrontmatterPassTests(unittest.TestCase):
+    """The frontmatter pass folded into the composite audit."""
+
+    def test_soft_skips_when_yamllint_absent(self) -> None:
+        events, code = _frontmatter_pass(
+            FakeProcessRunner(), _repo_fs(), "/repo", ("/repo/README.md",)
         )
         self.assertEqual((events, code), ([], 0))
+
+    def test_uses_repo_yamllint_config_when_declared(self) -> None:
+        fs = _repo_fs(".yamllint", readme="---\ntitle: x\n---\n# Title\n")
+        cmd = ("yamllint", "-f", "parsable", "-s", "-c", "/repo/.yamllint", "-")
+        runner = FakeProcessRunner(
+            paths={"yamllint": "/x/yamllint"},
+            results={cmd: ProcessResult(0, "", "")},
+        )
+        events, code = _frontmatter_pass(runner, fs, "/repo", ("/repo/README.md",))
+        self.assertEqual(code, 0)
+        selected = next(e for e in events if e.event == EventType.SELECTED)
+        self.assertEqual(selected.detail["config_source"], "repo")
 
 
 class CliEndToEndTests(unittest.TestCase):
-    def _run(self, runner: FakeProcessRunner, argv: list[str]) -> tuple[int, list[dict]]:
+    def _run(
+        self,
+        runner: FakeProcessRunner,
+        argv: list[str],
+        fs: FakeFileSystem | None = None,
+    ) -> tuple[int, list[dict]]:
         buf = io.StringIO()
         with patch("docs_steward.cli.SubprocessRunner", return_value=runner), patch(
             "sys.stdout", buf
         ):
-            code = main(argv)
+            if fs is not None:
+                with patch("docs_steward.cli.OsFileSystem", return_value=fs):
+                    code = main(argv)
+            else:
+                code = main(argv)
         lines = [line for line in buf.getvalue().splitlines() if line.strip()]
         return code, [json.loads(line) for line in lines]
 
@@ -101,21 +163,22 @@ class CliEndToEndTests(unittest.TestCase):
         self.assertEqual(len(recommends), 6)
         self.assertEqual([r["detail"]["priority_rank"] for r in recommends], [1, 2, 3, 4, 5, 6])
 
-    def test_audit_baseline_override_skips_detection(self) -> None:
-        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+    def test_audit_baseline_override_forces_the_formatter_owner(self) -> None:
+        cmd = (
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown", "--", "/repo/README.md",
+        )
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
-            results={
-                ("git", "rev-parse", "--show-toplevel"): ProcessResult(
-                    0, "/repo\n", ""
-                ),
-                cmd: ProcessResult(0, "", ""),
-            },
+            results=_repo_results({cmd: ProcessResult(0, "", "")}),
         )
-        code, events = self._run(runner, ["md-audit", "--baseline", ".prettierrc"])
+        code, events = self._run(
+            runner, ["md-audit", "--baseline", ".prettierrc"], fs=_repo_fs()
+        )
         self.assertEqual(code, 0)
         selected = [e for e in events if e["event"] == "selected"][0]
         self.assertEqual(selected["detail"]["baseline"], ".prettierrc")
+        self.assertEqual(selected["detail"]["files_scoped"], 1)
 
     def test_format_with_unwrap_propagates_flag_through_to_command(self) -> None:
         cmd = (
@@ -126,18 +189,16 @@ class CliEndToEndTests(unittest.TestCase):
             "--write",
             "--parser",
             "markdown",
-            "**/*.md",
-            "**/*.markdown",
+            "--",
+            "/repo/README.md",
         )
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
-            results={
-                ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, "/repo\n", ""),
-                cmd: ProcessResult(0, "foo.md 12ms\n", ""),
-            },
+            results=_repo_results({cmd: ProcessResult(0, "foo.md 12ms\n", "")}),
         )
         code, events = self._run(
-            runner, ["md-format", "--baseline", ".prettierrc", "--unwrap"]
+            runner, ["md-format", "--baseline", ".prettierrc", "--unwrap"],
+            fs=_repo_fs(),
         )
         self.assertEqual(code, 1)
         selected = [e for e in events if e["event"] == "selected"][0]
@@ -176,18 +237,21 @@ class CliEndToEndTests(unittest.TestCase):
         self.assertEqual(selected["detail"]["files_scoped"], 1)
 
     def test_md_audit_quiet_filters_preamble(self) -> None:
-        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = (
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown", "--", "/repo/README.md",
+        )
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
-            results={
-                ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, "/repo\n", ""),
+            results=_repo_results({
                 cmd: ProcessResult(
                     1, "Linting: 3 file(s)\nSummary: 1 error(s)\nfoo.md:1 MD040\n", "",
                 ),
-            },
+            }),
         )
         code, events = self._run(
             runner, ["md-audit", "--baseline", ".prettierrc", "--quiet"],
+            fs=_repo_fs(),
         )
         self.assertEqual(code, 1)
         findings = [e for e in events if e["event"] == "finding"]
@@ -195,16 +259,17 @@ class CliEndToEndTests(unittest.TestCase):
         self.assertIn("MD040", findings[0]["detail"])
 
     def test_md_format_dry_run_emits_would_change(self) -> None:
-        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = (
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown", "--", "/repo/README.md",
+        )
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
-            results={
-                ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, "/repo\n", ""),
-                audit_cmd: ProcessResult(1, "foo.md\n", ""),
-            },
+            results=_repo_results({audit_cmd: ProcessResult(1, "foo.md\n", "")}),
         )
         code, events = self._run(
             runner, ["md-format", "--baseline", ".prettierrc", "--dry-run"],
+            fs=_repo_fs(),
         )
         self.assertEqual(code, 1)
         self.assertEqual(
@@ -292,29 +357,31 @@ class CliEndToEndTests(unittest.TestCase):
 
     def test_md_audit_skips_plugin_check_when_tool_is_not_mdformat(self) -> None:
         # prettier selected → no plugin-missing event regardless of file content.
-        cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        cmd = (
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown", "--", "/repo/README.md",
+        )
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
-            results={
-                ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, "/repo\n", ""),
-                cmd: ProcessResult(0, "", ""),
-            },
+            results=_repo_results({cmd: ProcessResult(0, "", "")}),
         )
-        code, events = self._run(runner, ["md-audit", "--baseline", ".prettierrc"])
+        code, events = self._run(
+            runner, ["md-audit", "--baseline", ".prettierrc"], fs=_repo_fs()
+        )
         self.assertEqual(code, 0)
         self.assertEqual([e for e in events if e["event"] == "plugin-missing"], [])
 
     def test_md_fix_clean_yields_zero_delta(self) -> None:
-        audit_cmd = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
+        audit_cmd = (
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown", "--", "/repo/README.md",
+        )
         runner = FakeProcessRunner(
             paths={"prettier": "/x/prettier", "git": "/x/git"},
-            results={
-                ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, "/repo\n", ""),
-                audit_cmd: ProcessResult(0, "", ""),
-            },
+            results=_repo_results({audit_cmd: ProcessResult(0, "", "")}),
         )
         code, events = self._run(
-            runner, ["md-fix", "--baseline", ".prettierrc"],
+            runner, ["md-fix", "--baseline", ".prettierrc"], fs=_repo_fs(),
         )
         self.assertEqual(code, 0)
         deltas = [e for e in events if e["event"] == "delta"]
@@ -329,14 +396,14 @@ class CliEndToEndTests(unittest.TestCase):
         # (MD040), md-fix used to exit 0 while md-audit exited 1. The
         # complementary lint pass now surfaces the MD### finding and drives
         # the exit code, while the delta stays prettier-only (zeros).
-        prettier_audit = ("prettier", "--config", "/repo/.prettierrc", "--check", "--parser", "markdown", "**/*.md", "**/*.markdown")
-        mdl_cmd = tuple(
-            build_command(
-                Tool.MARKDOWNLINT_CLI2,
-                Mode.AUDIT,
-                unwrap=False,
-                config_path=bundled_config_for(Tool.MARKDOWNLINT_CLI2),
-            )
+        prettier_audit = (
+            "prettier", "--config", "/repo/.prettierrc",
+            "--check", "--parser", "markdown", "--", "/repo/README.md",
+        )
+        mdl_cmd = (
+            "markdownlint-cli2",
+            "--config", bundled_config_for(Tool.MARKDOWNLINT_CLI2),
+            "--", "/repo/README.md",
         )
         runner = FakeProcessRunner(
             paths={
@@ -344,13 +411,14 @@ class CliEndToEndTests(unittest.TestCase):
                 "markdownlint-cli2": "/x/mdl2",
                 "git": "/x/git",
             },
-            results={
-                ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, "/repo\n", ""),
+            results=_repo_results({
                 prettier_audit: ProcessResult(0, "", ""),
                 mdl_cmd: ProcessResult(1, "foo.md:1 MD040 no language\n", ""),
-            },
+            }),
         )
-        code, events = self._run(runner, ["md-fix", "--baseline", ".prettierrc"])
+        code, events = self._run(
+            runner, ["md-fix", "--baseline", ".prettierrc"], fs=_repo_fs()
+        )
         # Exit code matches md-audit on the same repo (markdownlint finding).
         self.assertEqual(code, 1)
         # Delta stays prettier-only — the format pass resolved nothing.
@@ -373,27 +441,170 @@ class CliEndToEndTests(unittest.TestCase):
         # When the repo selects markdownlint as the formatter, the fix cycle
         # already covers the MD### rules; the complementary pass must no-op so
         # the run isn't double-linted.
-        audit_cmd = tuple(
-            build_command(
-                Tool.MARKDOWNLINT_CLI2,
-                Mode.AUDIT,
-                unwrap=False,
-                config_path="/repo/.markdownlint.json",
-            )
+        audit_cmd = (
+            "markdownlint-cli2", "--config", "/repo/.markdownlint.json",
+            "--", "/repo/README.md",
         )
         runner = FakeProcessRunner(
             paths={"markdownlint-cli2": "/x/mdl2", "git": "/x/git"},
-            results={
-                ("git", "rev-parse", "--show-toplevel"): ProcessResult(0, "/repo\n", ""),
-                audit_cmd: ProcessResult(0, "", ""),
-            },
+            results=_repo_results({audit_cmd: ProcessResult(0, "", "")}),
         )
-        code, events = self._run(runner, ["md-fix", "--baseline", ".markdownlint.json"])
+        code, events = self._run(
+            runner, ["md-fix", "--baseline", ".markdownlint.json"], fs=_repo_fs()
+        )
         self.assertEqual(code, 0)
         selected = [e for e in events if e["event"] == "selected"]
         # Exactly one tool selected (the fix-cycle's markdownlint), no second
         # complementary pass.
         self.assertTrue(all(e["tool"] == "markdownlint-cli2" for e in selected))
+
+
+class CompositeAuditEndToEndTests(unittest.TestCase):
+    """The composite audit plan, end to end: a repo declaring complementary
+    formatter and linter configs gets every applicable check, each pass
+    honoring its own family's config, aggregated into one verdict."""
+
+    _PRETTIER_REPO_CMD = (
+        "prettier", "--config", "/repo/.prettierrc",
+        "--check", "--parser", "markdown", "--", "/repo/README.md",
+    )
+    _MDL_REPO_CMD = (
+        "markdownlint-cli2", "--config", "/repo/.markdownlint.json",
+        "--", "/repo/README.md",
+    )
+
+    def _run(
+        self, runner: FakeProcessRunner, argv: list[str], fs: FakeFileSystem,
+    ) -> tuple[int, list[dict]]:
+        buf = io.StringIO()
+        with patch("docs_steward.cli.SubprocessRunner", return_value=runner), patch(
+            "docs_steward.cli.OsFileSystem", return_value=fs
+        ), patch("sys.stdout", buf):
+            code = main(argv)
+        lines = [line for line in buf.getvalue().splitlines() if line.strip()]
+        return code, [json.loads(line) for line in lines]
+
+    def _both_tools(
+        self, prettier: ProcessResult, mdl: ProcessResult,
+    ) -> FakeProcessRunner:
+        return FakeProcessRunner(
+            paths={
+                "prettier": "/x/prettier",
+                "markdownlint-cli2": "/x/mdl2",
+                "git": "/x/git",
+            },
+            results=_repo_results({
+                self._PRETTIER_REPO_CMD: prettier,
+                self._MDL_REPO_CMD: mdl,
+            }),
+        )
+
+    def test_multi_config_repo_fails_when_only_the_formatter_fails(self) -> None:
+        # The headline defect: a repo declaring both configs used to run
+        # only the linter, so a document that passed lint but violated the
+        # repo's own formatter config audited clean. Both passes now run
+        # and the formatter failure drives the aggregate.
+        runner = self._both_tools(
+            prettier=ProcessResult(1, "README.md\n", ""),
+            mdl=ProcessResult(0, "", ""),
+        )
+        code, events = self._run(
+            runner, ["md-audit"], _repo_fs(".markdownlint.json", ".prettierrc")
+        )
+        self.assertEqual(code, 1)
+        selected = {e["tool"]: e["detail"]["baseline"] for e in events if e["event"] == "selected"}
+        self.assertEqual(
+            selected,
+            {"prettier": ".prettierrc", "markdownlint-cli2": ".markdownlint.json"},
+        )
+
+    def test_multi_config_repo_fails_when_only_the_linter_fails(self) -> None:
+        runner = self._both_tools(
+            prettier=ProcessResult(0, "", ""),
+            mdl=ProcessResult(1, "README.md:1 MD040 no language\n", ""),
+        )
+        code, events = self._run(
+            runner, ["md-audit"], _repo_fs(".markdownlint.json", ".prettierrc")
+        )
+        self.assertEqual(code, 1)
+        findings = [e for e in events if e["event"] == "finding"]
+        self.assertTrue(any("MD040" in f["detail"] for f in findings))
+
+    def test_forced_formatter_lints_with_repo_config_not_bundled(self) -> None:
+        # Forcing the formatter used to route the complementary lint pass
+        # to the bundled markdownlint rules; the repo's own config must win.
+        runner = self._both_tools(
+            prettier=ProcessResult(0, "", ""),
+            mdl=ProcessResult(0, "", ""),
+        )
+        code, events = self._run(
+            runner,
+            ["md-audit", "--baseline", ".prettierrc"],
+            _repo_fs(".markdownlint.json"),
+        )
+        self.assertEqual(code, 0)
+        lint_selected = next(
+            e for e in events
+            if e["event"] == "selected" and e["tool"] == "markdownlint-cli2"
+        )
+        self.assertEqual(lint_selected["detail"]["baseline"], ".markdownlint.json")
+        self.assertIn("/repo/.markdownlint.json", lint_selected["detail"]["cmd"])
+
+    def test_frontmatter_findings_contribute_to_the_aggregate(self) -> None:
+        yamllint_cmd = (
+            "yamllint", "-f", "parsable", "-s",
+            "-c", bundled_config_for(Tool.YAMLLINT), "-",
+        )
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier", "yamllint": "/x/yamllint", "git": "/x/git"},
+            results=_repo_results({
+                self._PRETTIER_REPO_CMD: ProcessResult(0, "", ""),
+                yamllint_cmd: ProcessResult(
+                    1, "stdin:1:1: [error] too few spaces (commas)\n", "",
+                ),
+            }),
+        )
+        code, events = self._run(
+            runner,
+            ["md-audit", "--baseline", ".prettierrc"],
+            _repo_fs(readme="---\ntitle: x\n---\n# Title\n"),
+        )
+        self.assertEqual(code, 1)
+        findings = [e for e in events if e["event"] == "finding" and e["tool"] == "yamllint"]
+        self.assertTrue(findings)
+
+    def test_no_markdown_files_short_circuits_clean(self) -> None:
+        runner = FakeProcessRunner(
+            paths={"prettier": "/x/prettier", "git": "/x/git"},
+            results={
+                _GIT_TOPLEVEL: ProcessResult(0, "/repo\n", ""),
+                _GIT_LS_FILES: ProcessResult(0, "", ""),
+            },
+        )
+        code, events = self._run(runner, ["md-audit"], FakeFileSystem())
+        self.assertEqual(code, 0)
+        self.assertEqual(
+            events,
+            [{"event": "clean", "tool": "all", "detail": "no markdown files discovered"}],
+        )
+        # No formatter/linter invocation happened — only the two git calls.
+        self.assertEqual(len(runner.calls), 2)
+
+    def test_no_usable_tool_still_exits_3_with_missing_event(self) -> None:
+        # yamllint IS on PATH but its argv is deliberately unconfigured:
+        # if the missing-formatter run leaked into the frontmatter pass,
+        # the fake would fail loudly. Exit 3 keeps its crisp meaning —
+        # nothing was audited — and no content findings mix into the run;
+        # md-audit-frontmatter stays the yamllint-only path.
+        runner = FakeProcessRunner(
+            paths={"git": "/x/git", "yamllint": "/x/yamllint"},
+            results=_repo_results(),
+        )
+        code, events = self._run(
+            runner, ["md-audit"], _repo_fs(readme="---\ntitle: x\n---\n# T\n")
+        )
+        self.assertEqual(code, 3)
+        self.assertEqual([e["event"] for e in events], ["missing"])
 
 
 class ResolveAgainstRootTests(unittest.TestCase):

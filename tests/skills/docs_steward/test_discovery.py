@@ -16,7 +16,9 @@ def _fs_with(root: str, *rels: str) -> FakeFileSystem:
     """Mark each relative path as existing under `root` for discovery's
     on-disk filter step. Content is empty (the filter only consults
     `exists`, not `read_text`)."""
-    return FakeFileSystem(files={os.path.join(root, rel): "" for rel in rels})
+    # Forward-slash join matches discovery's probe path exactly on every
+    # host (discovery checks the POSIX-normalized path it returns).
+    return FakeFileSystem(files={f"{root}/{rel}": "" for rel in rels})
 
 
 class GitLsFilesPathTests(unittest.TestCase):

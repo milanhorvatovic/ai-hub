@@ -1,27 +1,26 @@
 """Style-baseline detection.
 
-`detect_baseline(fs, root, override=None)` walks the candidate list in
-declaration order and returns the first existing config filename, or
-`UNIVERSAL_SUBSET` when none match. `override` short-circuits detection;
-it is passed through verbatim so the caller can force any path.
+`detect_baselines(fs, root)` walks the candidate list in declaration order
+and returns every config filename that exists at the repo root — the raw
+material `selector.build_audit_plan` partitions into a formatter owner and
+complementary lint passes. An empty result means the repo declares nothing;
+the plan builder then applies `UNIVERSAL_SUBSET` per tool family.
 
 The candidate list mirrors SKILL.md section 3 step ordering — markdownlint
 configs first, then prettier, then remark, mdformat, dprint, editorconfig.
-`dprint.json` ranks above `.editorconfig` (round 8e) so a repo that
-declares both is matched against the formatter-specific config (routes
-to Tool.DPRINT) rather than the cross-tool style hint that has no
-preferred-tool entry. Adding a candidate is a one-line edit here;
+Declaration order doubles as the precedence policy when a repo declares two
+configs of the same kind (e.g. `.prettierrc` and `dprint.json`): the earlier
+candidate owns its concern. Adding a candidate is a one-line edit here;
 downstream modules iterate this list.
 """
 
 from __future__ import annotations
 
-import os.path
-
 from .fs import FileSystem
+from .paths import posix_join
 
 UNIVERSAL_SUBSET = "universal-subset"
-"""Sentinel returned when no baseline config is detected. Downstream code
+"""Sentinel used when no baseline config governs a concern. Downstream code
 checks for equality with this constant; do not parse it as a path."""
 
 
@@ -54,25 +53,24 @@ BASELINE_CANDIDATES: tuple[str, ...] = (
     # `dprint.json` ranks ABOVE `.editorconfig` so a repo that declares
     # both is matched against the formatter-specific config the user
     # explicitly wrote rather than the cross-tool style hint that has
-    # no selector preference. `.editorconfig` left below means: if it's
-    # the ONLY config a repo declares, selection falls through to
-    # FALLBACK_ORDER (which is fine — the user gets whatever formatter
-    # is on PATH and editorconfig itself is consumed by tools that
-    # support it via their own mechanism, not via --config forwarding).
+    # no selector preference. `.editorconfig` belongs to no tool family,
+    # so its presence never claims a concern — a repo declaring only
+    # `.editorconfig` gets the bundled fallback for both the formatter
+    # and lint concerns, exactly like a repo that declares nothing.
     "dprint.json",
     ".editorconfig",
 )
 
 
-def detect_baseline(
-    fs: FileSystem, root: str, override: str | None = None
-) -> str:
-    """Return the chosen style-baseline filename relative to `root`, or
-    `UNIVERSAL_SUBSET` when nothing matches. When `override` is provided,
-    return it verbatim without checking existence — the caller asked for it."""
-    if override:
-        return override
-    for candidate in BASELINE_CANDIDATES:
-        if fs.exists(os.path.join(root, candidate)):
-            return candidate
-    return UNIVERSAL_SUBSET
+def detect_baselines(fs: FileSystem, root: str) -> tuple[str, ...]:
+    """Return every baseline candidate present at `root`, in declaration
+    order. Empty tuple when the repo declares none — the caller applies
+    `UNIVERSAL_SUBSET` per concern.
+
+    Probes with forward-slash joins (like the rest of the package feeds
+    the FileSystem port) so the checked path is identical on every host."""
+    return tuple(
+        candidate
+        for candidate in BASELINE_CANDIDATES
+        if fs.exists(posix_join(root, candidate))
+    )

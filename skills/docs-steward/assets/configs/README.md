@@ -1,6 +1,6 @@
 # Bundled fallback configs
 
-These files are formatter configs the skill uses **only when the target repo declares none of its own**. Repo config always wins — `docs_steward.baseline.detect_baseline` returns whatever the repo declares first; only when the result is `universal-subset` does `docs_steward.bundled_config.bundled_config_for` substitute a file from this directory.
+These files are formatter configs the skill uses **only when the target repo declares none of its own for that tool family**. Repo config always wins — `docs_steward.baseline.detect_baselines` surfaces everything the repo declares and `docs_steward.selector.build_audit_plan` gives each family's pass its own config; only when a concern resolves to the `universal-subset` sentinel does `docs_steward.bundled_config.bundled_config_for` substitute a file from this directory for that pass.
 
 ## What is shipped
 
@@ -35,8 +35,8 @@ All defaults track one rule: never hard-wrap prose — line-width is the preview
 
 Two ways:
 
-1. **Add a config to your repo.** `docs_steward.baseline.detect_baseline` will pick it up; the bundled fallback is skipped. For yamllint specifically, `md-audit-frontmatter.py` auto-discovers `.yamllint` / `.yamllint.yaml` / `.yamllint.yml` at the repo root (mirroring yamllint's own standalone lookup) — the bundled `yamllint.yaml` only kicks in when none of those is present.
-2. **Pass `--baseline FILE` to `../../scripts/md-audit.py` / `../../scripts/md-format.py` / `../../scripts/md-fix.py`.** Forces a specific config path and skips auto-detection. The bundled fallback fires only when the resolved baseline is the `universal-subset` sentinel: an arbitrary file path therefore opts out of the bundled defaults, but explicit `--baseline universal-subset` is the same code path as "no config detected" and still applies the bundled config. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag — supplying it overrides both auto-discovery and the bundled fallback.
+1. **Add a config to your repo.** `docs_steward.baseline.detect_baselines` will pick it up; the bundled fallback is skipped for that tool family's pass. For yamllint specifically, `md-audit-frontmatter.py` auto-discovers `.yamllint` / `.yamllint.yaml` / `.yamllint.yml` at the repo root (mirroring yamllint's own standalone lookup) — the bundled `yamllint.yaml` only kicks in when none of those is present.
+2. **Pass `--baseline FILE` to `../../scripts/md-audit.py` / `../../scripts/md-format.py` / `../../scripts/md-fix.py`.** Forces a specific config path onto the formatter owner (the complementary lint and frontmatter passes stay derived from what the repo declares). The bundled fallback fires only when the resolved baseline is the `universal-subset` sentinel: an arbitrary file path therefore opts out of the bundled defaults, but explicit `--baseline universal-subset` is the same code path as "no config detected" and still applies the bundled config. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag — supplying it overrides both auto-discovery and the bundled fallback.
 
 ## Editing these files
 
