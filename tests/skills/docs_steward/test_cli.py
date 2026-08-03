@@ -591,13 +591,20 @@ class CompositeAuditEndToEndTests(unittest.TestCase):
         self.assertEqual(len(runner.calls), 2)
 
     def test_no_usable_tool_still_exits_3_with_missing_event(self) -> None:
+        # yamllint IS on PATH but its argv is deliberately unconfigured:
+        # if the missing-formatter run leaked into the frontmatter pass,
+        # the fake would fail loudly. Exit 3 keeps its crisp meaning —
+        # nothing was audited — and no content findings mix into the run;
+        # md-audit-frontmatter stays the yamllint-only path.
         runner = FakeProcessRunner(
-            paths={"git": "/x/git"},
+            paths={"git": "/x/git", "yamllint": "/x/yamllint"},
             results=_repo_results(),
         )
-        code, events = self._run(runner, ["md-audit"], _repo_fs())
+        code, events = self._run(
+            runner, ["md-audit"], _repo_fs(readme="---\ntitle: x\n---\n# T\n")
+        )
         self.assertEqual(code, 3)
-        self.assertEqual(events[0]["event"], "missing")
+        self.assertEqual([e["event"] for e in events], ["missing"])
 
 
 class ResolveAgainstRootTests(unittest.TestCase):

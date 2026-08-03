@@ -196,6 +196,13 @@ def _dispatch_run(
         # FORMAT writes through the single owner only; the complementary
         # passes are read-only audit concerns.
         return plugin_events + events, code
+    if plan.formatter is None:
+        # No usable markdown formatter: the owner call just emitted the
+        # canonical MISSING / exit-3 result. Stop there — running the
+        # complementary passes anyway would mix content findings into a
+        # run whose exit code says "install a tool". The standalone
+        # md-audit-frontmatter subcommand remains the yamllint-only path.
+        return plugin_events + events, code
     lint_events, lint_code = _lint_pass(plan, runner, root, inventory, quiet)
     fm_events, fm_code = _frontmatter_pass(runner, fs, root, inventory)
     return (
@@ -294,6 +301,11 @@ def _dispatch_fix(
         quiet=quiet,
         tool_override=plan.formatter.tool if plan.formatter else None,
     )
+    if plan.formatter is None:
+        # Same guard as md-audit: the cycle's pre-audit just emitted the
+        # canonical MISSING / exit-3 result, so the complementary passes
+        # must not mix content findings into a missing-tool run.
+        return plugin_events + events, code
     # Mirror md-audit's complementary passes. The fix cycle only resolves
     # what the formatter owner can auto-fix, so without these a file
     # violating only semantic MD### rules or carrying broken frontmatter
