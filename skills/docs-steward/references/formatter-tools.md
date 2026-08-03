@@ -63,9 +63,9 @@ Pairs with the prettier-family configs listed under "Baseline detection and sele
 | --- | --- |
 | Probe | `prettier --version` |
 | Audit | `prettier --check --parser markdown "**/*.md" "**/*.markdown"` |
-| Audit (with `--unwrap`) | `prettier --check --parser markdown --prose-wrap=never "**/*.md" "**/*.markdown"` |
+| Audit (with `--unwrap`) | `prettier --prose-wrap=never --check --parser markdown "**/*.md" "**/*.markdown"` |
 | Format | `prettier --write --parser markdown "**/*.md" "**/*.markdown"` |
-| Format (with `--unwrap`) | `prettier --write --parser markdown --prose-wrap=never "**/*.md" "**/*.markdown"` |
+| Format (with `--unwrap`) | `prettier --prose-wrap=never --write --parser markdown "**/*.md" "**/*.markdown"` |
 
 - **Exit 0** = formatted; **exit 1** = unformatted files exist (audit) or write error (format); **exit 2** = config / invocation error.
 - **Output**: structured but per-mode. In **audit mode** (`--check`) Prettier emits a `Checking formatting...` banner, then one `[warn] <path>` line per unformatted file, then a `Code style issues found in N files. Run Prettier with --write to fix.` summary; in **format mode** (`--write`) it emits `<file> Nms` per write. The skill does not synthesize messages, so each non-empty stdout/stderr line lands verbatim as a `finding` event detail string (audit) or a `changed` event detail string (format) — the `[warn]` prefix on each audit line and the summary line both reach the consumer. NDJSON has no INFO/severity concept; consumers that want bare file paths must strip the `[warn] ` prefix locally (or filter the trailing summary line on text). `--quiet` drops the banner + summary via the preamble filter; the `[warn] <path>` lines are preserved as findings.
@@ -82,7 +82,7 @@ Pairs with `.mdformat.toml` at the repo root. mdformat itself also reads a `[too
 | Probe | `mdformat --version` |
 | Audit | `mdformat --check .` (recursive on the working dir) |
 | Audit (single file) | `mdformat --check path/to/file.md` |
-| Audit (with `--unwrap`) | `mdformat --check --wrap=no .` |
+| Audit (with `--unwrap`) | `mdformat --wrap=no --check .` |
 | Format | `mdformat .` |
 | Format (with `--unwrap`) | `mdformat --wrap=no .` |
 | Format (preserve width) | `mdformat --wrap=N .` |
