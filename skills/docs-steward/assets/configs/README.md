@@ -6,9 +6,9 @@ These files are formatter configs the skill uses **only when the target repo dec
 
 | Tool | File | Reason |
 | --- | --- | --- |
-| `markdownlint` / `markdownlint-cli2` | [`markdownlint.json`](markdownlint.json) | Tool accepts `--config <path>` reliably; covers full rule set in one file. |
-| `prettier` | [`prettierrc.json`](prettierrc.json) | Tool accepts `--config <path>`; markdown overrides only, no global side effects. |
-| `yamllint` | [`yamllint.yaml`](yamllint.yaml) | Tool accepts `-c <path>`; used by `md-audit-frontmatter` for frontmatter + fenced YAML block linting. Disables line-length, relaxes document-start, allows `true`/`false` only for truthy, keeps key-duplicates as error. |
+| `markdownlint` / `markdownlint-cli2` | `markdownlint.json` | Tool accepts `--config <path>` reliably; covers full rule set in one file. |
+| `prettier` | `prettierrc.json` | Tool accepts `--config <path>`; markdown overrides only, no global side effects. |
+| `yamllint` | `yamllint.yaml` | Tool accepts `-c <path>`; used by `md-audit-frontmatter` for frontmatter + fenced YAML block linting. Disables line-length, relaxes document-start, allows `true`/`false` only for truthy, keeps key-duplicates as error. |
 
 ## What is intentionally **not** shipped
 
@@ -39,7 +39,7 @@ These bundled files are machine-local: they ship with the skill and are never co
 Two ways to override:
 
 1. **Add a config to your repo.** `docs_steward.baseline.detect_baselines` will pick it up; the bundled fallback is skipped for that tool family's pass. For yamllint specifically, `md-audit-frontmatter.py` auto-discovers `.yamllint` / `.yamllint.yaml` / `.yamllint.yml` at the repo root (mirroring yamllint's own standalone lookup) — the bundled `yamllint.yaml` only kicks in when none of those is present.
-2. **Pass `--baseline FILE` to `../../scripts/md-audit.py` / `../../scripts/md-format.py` / `../../scripts/md-fix.py`.** Forces a specific config path onto the formatter owner (the complementary lint and frontmatter passes stay derived from what the repo declares). The bundled fallback fires only when the resolved baseline is the `universal-subset` sentinel: an arbitrary file path therefore opts out of the bundled defaults, but explicit `--baseline universal-subset` is the same code path as "no config detected" and still applies the bundled config. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag — supplying it overrides both auto-discovery and the bundled fallback.
+2. **Pass `--baseline FILE` to the `md-audit.py` / `md-format.py` / `md-fix.py` entry shims.** Forces a specific config path onto the formatter owner (the complementary lint and frontmatter passes stay derived from what the repo declares). The bundled fallback fires only when the resolved baseline is the `universal-subset` sentinel: an arbitrary file path therefore opts out of the bundled defaults, but explicit `--baseline universal-subset` is the same code path as "no config detected" and still applies the bundled config. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag — supplying it overrides both auto-discovery and the bundled fallback.
 
 ## Editing these files
 

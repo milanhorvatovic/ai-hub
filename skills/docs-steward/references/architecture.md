@@ -72,7 +72,7 @@ Single source of truth: `docs_steward/tools.py`.
 3. Add a `selector.py` `_BASELINE_PREFERENCES` entry mapping the tool's config-filename prefix to the tool.
 4. Add a `hints.py` `_HINTS` entry with platform-specific install commands.
 5. Decide whether the tool warrants priority — if yes, add to `priority.INSTALL_PRIORITY`.
-6. Decide whether a bundled fallback config is shippable — if yes, drop the file in beside the other bundled configs (`../assets/configs/README.md` covers scope + rationale) and wire it into `bundled_config.py`.
+6. Decide whether a bundled fallback config is shippable — if yes, drop the file in beside the other bundled configs (the bundled-configs `README.md` covers scope + rationale) and wire it into `bundled_config.py`.
 7. Add tests in `tests/test_commands.py` (per-mode argv) and `tests/test_selector.py` (baseline-preference resolution).
 
 No changes to `runner.py`, `cli.py`, or any entry shim — the architecture absorbs new formatters by registry extension.
