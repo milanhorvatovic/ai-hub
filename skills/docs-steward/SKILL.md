@@ -98,7 +98,7 @@ After rendering, the agent pauses for the user; the skill has already exited. On
 
 ## Exit codes
 
-Uniform across all entry shims: `0` clean · `1` findings or files changed · `2` invocation error · `3` no usable tool.
+Uniform across the entry shims: `0` clean · `1` findings or files changed · `2` invocation error · `3` no usable tool — except `recommend-tools.py`, which exits `0` (top-priority tool present) or `1` (at least one priority tool missing) only.
 
 ## Anti-patterns
 
