@@ -5,8 +5,9 @@ description: >
   audits and formats a repo's markdown by orchestrating the formatter its
   config declares (markdownlint-cli2 / markdownlint / prettier / mdformat /
   dprint / remark) plus a complementary lint pass, and runs a yamllint
-  audit over YAML frontmatter and fenced YAML blocks; with no repo config,
-  bundled fallbacks apply. Read-only until fixes are approved — emits
+  audit over frontmatter and fenced YAML blocks; bundled fallbacks
+  cover what the repo leaves undeclared. Read-only until fixes are
+  approved; emits
   NDJSON findings the invoking agent renders and offers to fix. Triggers
   on "steward the docs", "audit docs", "check docs", "review markdown",
   "format docs", "fix markdown", "audit frontmatter", "lint frontmatter",
@@ -29,7 +30,7 @@ Run external markdown formatters and yamllint on existing repo docs; emit findin
 - **Is:** an orchestrator that runs markdown formatters + yamllint on existing repo docs and emits findings.
 - **Is not:** a doc generator, a code editor, a code reviewer, a native markdown parser. Whatever checks the chosen formatter performs are the checks that fire — the skill adds no rules of its own beyond the bundled fallback configs (step 4).
 
-The skill respects whatever formatter / linter config the repo declares; when the repo is silent, it falls back to the skill's bundled configs.
+The skill respects whatever formatter / linter config the repo declares; any concern with no repo-declared config falls back to the skill's bundled configs.
 
 ## Supported file types
 
@@ -85,7 +86,7 @@ Flags (`--unwrap`, `--baseline`, `--quiet`, positional files) live in [`referenc
 
 **Bundled fallback configs.** When a concern resolves to `universal-subset`, the runner injects the shipped config for that pass's tool (markdownlint, prettier, yamllint) and emits a `bundled-config` event; the repo's own config always wins when present, and `--baseline FILE` forces the formatter owner only — complementary passes stay derived from what the repo declares. Policy, settings rationale, and override paths: [`assets/configs/README.md`](assets/configs/README.md).
 
-**Out of scope:** anything the chosen formatter (or yamllint on frontmatter) does not check — prose style, sentence length, emoji policy, capitalization, line width (`MD013` disabled; bundled `proseWrap: "never"`), and the like. The skill adds no rules of its own — full stop.
+**Out of scope:** anything the chosen formatter (or yamllint on frontmatter) does not check — prose style, sentence length, emoji policy, capitalization, and the like. Under the bundled defaults that includes line width (`MD013` disabled; `proseWrap: "never"`); a repo config that enforces a width is honored like any other repo rule. The skill adds no rules of its own — full stop.
 
 ### 5. Report (agent-rendered)
 
@@ -104,7 +105,7 @@ Uniform across all entry shims: `0` clean · `1` findings or files changed · `2
 - Don't run on every prompt — only when triggered. The audit shells out to formatters and is non-trivially slow on large repos.
 - Don't invent fixes — only the chosen formatter's `--fix` / `--write` mode applies edits; the agent does not synthesize its own.
 - Don't enforce style the repo has not declared, beyond the bundled fallback configs. The skill mirrors local conventions; it does not import opinions.
-- Don't impose a line width — no column limit is enforced. The default formatter (prettier under the bundled config) removes existing hard wraps on format; it never introduces them.
+- Don't impose a line width — the bundled defaults enforce no column limit (a repo's own config may). The default formatter (prettier under the bundled config) removes existing hard wraps on format; it never introduces them.
 - Don't auto-install any orchestrated tool — detect via `probe.py`, surface hints via `recommend-tools.py`, and let the user run the install.
 
 ## Boundary with related concerns
