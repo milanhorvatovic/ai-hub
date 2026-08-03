@@ -63,13 +63,13 @@ Pairs with the prettier-family configs listed under "Baseline detection and sele
 | --- | --- |
 | Probe | `prettier --version` |
 | Audit | `prettier --check --parser markdown "**/*.md" "**/*.markdown"` |
-| Audit (unwrap-respecting) | `prettier --check --parser markdown --prose-wrap=never "**/*.md" "**/*.markdown"` |
+| Audit (with `--unwrap`) | `prettier --check --parser markdown --prose-wrap=never "**/*.md" "**/*.markdown"` |
 | Format | `prettier --write --parser markdown "**/*.md" "**/*.markdown"` |
-| Format (unwrap) | `prettier --write --parser markdown --prose-wrap=never "**/*.md" "**/*.markdown"` |
+| Format (with `--unwrap`) | `prettier --write --parser markdown --prose-wrap=never "**/*.md" "**/*.markdown"` |
 
 - **Exit 0** = formatted; **exit 1** = unformatted files exist (audit) or write error (format); **exit 2** = config / invocation error.
 - **Output**: structured but per-mode. In **audit mode** (`--check`) Prettier emits a `Checking formatting...` banner, then one `[warn] <path>` line per unformatted file, then a `Code style issues found in N files. Run Prettier with --write to fix.` summary; in **format mode** (`--write`) it emits `<file> Nms` per write. The skill does not synthesize messages, so each non-empty stdout/stderr line lands verbatim as a `finding` event detail string (audit) or a `changed` event detail string (format) — the `[warn]` prefix on each audit line and the summary line both reach the consumer. NDJSON has no INFO/severity concept; consumers that want bare file paths must strip the `[warn] ` prefix locally (or filter the trailing summary line on text). `--quiet` drops the banner + summary via the preamble filter; the `[warn] <path>` lines are preserved as findings.
-- `--prose-wrap=never` is appended when the caller passes `--unwrap` — a caller decision, not a config-derived one; the flag keeps a write from re-wrapping prose.
+- `--prose-wrap=never` is appended when the caller passes `--unwrap`, in both audit and format modes — a caller decision, not a config-derived one: a format run then never re-wraps prose, and an audit run checks against that same unwrapped layout.
 - Honors `.prettierignore`; the glob is otherwise unfiltered.
 - **Install hints**: `npm install -g prettier` (canonical); `pnpm add -g prettier` / `bun add -g prettier` / `yarn global add prettier` (alternative JS package managers); `volta install prettier` (toolchain manager); `mise use -g npm:prettier` (mise via npm backend); `npx prettier@latest` (one-shot, no install). Requires a Node runtime.
 
@@ -82,13 +82,14 @@ Pairs with `.mdformat.toml` at the repo root. mdformat itself also reads a `[too
 | Probe | `mdformat --version` |
 | Audit | `mdformat --check .` (recursive on the working dir) |
 | Audit (single file) | `mdformat --check path/to/file.md` |
+| Audit (with `--unwrap`) | `mdformat --check --wrap=no .` |
 | Format | `mdformat .` |
-| Format (unwrap) | `mdformat --wrap=no .` |
+| Format (with `--unwrap`) | `mdformat --wrap=no .` |
 | Format (preserve width) | `mdformat --wrap=N .` |
 
 - **Exit 0** = formatted (audit) or success (format); **non-zero** = changes needed (audit) or error (format).
 - **Output**: file paths only. Each non-empty stdout/stderr line is emitted verbatim as a `finding` event detail string (audit) or `changed` (format); no per-file message synthesis.
-- `--wrap=no` is appended when the caller passes `--unwrap` — same rule as prettier's `--prose-wrap=never` above.
+- `--wrap=no` is appended when the caller passes `--unwrap`, in both audit and format modes — same rule as prettier's `--prose-wrap=never` above.
 - Plugins (`mdformat-gfm`, `mdformat-tables`, `mdformat-frontmatter`, `mdformat-footnote`, `mdformat-toc`) extend syntax coverage but are not auto-installed. `probe.py` emits a `plugin-available` event per installed plugin during inventory. The CLI also emits a `plugin-missing` event when mdformat is the selected tool, a target file contains GFM syntax (tables / task lists / strikethrough / bare autolinks), and `mdformat-gfm` is NOT installed — that one absent-plugin case has a dedicated content sniffer in `plugins.needs_gfm`. Other plugins are surfaced only via `plugin-available` during probe; the skill does not auto-detect when a file would benefit from `mdformat-tables` / `mdformat-frontmatter` / `mdformat-footnote` / `mdformat-toc` and does not emit `plugin-missing` for them.
 - **Install hints**: `pipx install mdformat` (preferred — isolated); `uv tool install mdformat` (fast); `pip install --user mdformat` (user-site); `brew install mdformat` (macOS); `mise use -g pipx:mdformat` (mise via pipx backend); add `mdformat-gfm` for GitHub-flavored markdown. Pure-Python; no Node required.
 
