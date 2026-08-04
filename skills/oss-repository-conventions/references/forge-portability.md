@@ -1,6 +1,6 @@
 # Forge portability
 
-Load this when the skill is run against a repo whose forge is not GitHub. The house style and most checks assume GitHub (`gh`, Actions, rulesets, Dependabot, the community-profile API), but the *concepts* — CI, protected branches, dependency bots, releases, vulnerability reporting — exist on every modern forge under different names. This reference says what's GitHub-specific, how it maps, and how to **degrade rather than fabricate** on GitLab, Gitea/Forgejo (Codeberg), and Bitbucket.
+Load this when the skill is run against a repo whose forge is not GitHub. The house style and most checks assume GitHub (`gh`, Actions, rulesets, Dependabot, the community-profile API), but the *concepts* — CI, protected branches, dependency bots, releases, vulnerability reporting — exist on every modern forge under different names. This reference says what's GitHub-specific, how it maps, and how to **degrade rather than fabricate** on GitLab, Codeberg/Forgejo, and Bitbucket Cloud.
 
 ## Detecting the forge
 
@@ -14,24 +14,24 @@ git remote get-url origin
 |---|---|---|
 | `github.com`, `ghe.*` | GitHub | `gh` |
 | `gitlab.com`, self-hosted GitLab | GitLab | `glab` |
-| `codeberg.org`, any Forgejo/Gitea host | Forgejo / Gitea | `tea` |
-| `bitbucket.org` | Bitbucket Cloud | HTTP API via `curl` |
+| `codeberg.org`, any Forgejo instance | Codeberg / Forgejo | `tea` (the Gitea CLI; Forgejo is wire-compatible) |
+| `bitbucket.org` | Bitbucket Cloud | `curl` + scoped API token |
 
 For ambiguous self-hosted hosts, probe `…/api/v4/version` (GitLab) or `…/api/v1/version` (Gitea/Forgejo). No match → report "forge unknown; GitHub-specific checks marked `unknown`" and audit on-disk files only.
 
 ## What's GitHub-specific in this skill, and how it maps
 
-| Skill concept (capability) | GitHub | GitLab | Forgejo / Gitea | Bitbucket |
+| Skill concept (capability) | GitHub | GitLab | Codeberg / Forgejo | Bitbucket Cloud |
 |---|---|---|---|---|
 | CI workflows (ci-automation, automation-baseline) | Actions `.github/workflows/` | `.gitlab-ci.yml` | Actions (Forgejo) / Woodpecker | Pipelines `bitbucket-pipelines.yml` |
 | Branch/tag protection (branch-protection.md) | rulesets / branch protection | protected branches + push rules | branch protection | branch restrictions |
 | Required-checks gate (pr-autonomy) | required status checks | MR pipeline-must-succeed | status checks | merge checks |
-| Auto-merge (pr-autonomy, dependency-supply-chain) | `gh pr merge --auto` | MR "merge when pipeline succeeds" | limited | "auto-merge" (limited) |
+| Auto-merge (pr-autonomy, dependency-supply-chain) | `gh pr merge --auto` | MR auto-merge (`glab mr merge --auto-merge`) | API-only (`merge_when_checks_succeed`; not exposed by `tea`) | "merge when builds pass" — a branch-restriction merge check; per-PR arming is UI-only |
 | Dependency updates (dependency-supply-chain) | Dependabot | Renovate / GitLab Dependency Scanning | Renovate | Renovate |
 | Code scanning (security-policy, automation-baseline) | CodeQL | GitLab SAST | external SAST | external SAST |
 | Releases (release-versioning) | Releases + `gh release` | Releases + `glab release` | Releases + `tea release` | no native Releases (tags + downloads) |
 | Health % (oss-health-rubric.md) | community-profile API | none — score the files directly | none | none |
-| Automation identity (automation-identity.md) | GitHub App / fine-grained PAT | project/group access token, CI job token | app/access token | app password / OAuth |
+| Automation identity (automation-identity.md) | GitHub App / fine-grained PAT | project/group access token, CI job token | app/access token | scoped API token (app passwords no longer work) / OAuth |
 | Secret stores (automation-prerequisites.md) | Actions + Dependabot stores | CI/CD variables (no split) | secrets | repository variables |
 
 ## Degrade rules
