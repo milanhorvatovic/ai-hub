@@ -250,8 +250,8 @@ def test_rule_id_table_columns_resolve_to_the_registry(
     references_dir: Path, capabilities_dir: Path
 ) -> None:
     """Capability check tables declare their vocabulary in a `Rule id` column
-    (commit-message Step 2, commit-amend-message Step 3); every cited id must
-    be a registry member."""
+    (commit-message REVIEW Step 2); every cited id must be a registry
+    member."""
     enum = set(_schema(references_dir)["properties"]["rule"]["enum"])
     offenders: list[str] = []
     found = 0

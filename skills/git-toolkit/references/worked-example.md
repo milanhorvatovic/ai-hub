@@ -140,9 +140,9 @@ git push -u origin fix/upload-queue-retry
 gh pr create --draft  # creates the PR (#729 in this walkthrough) with no body
 ```
 
-## Step 8 — `pr-description-write` (GitHub-side)
+## Step 8 — `pr-description` WRITE mode (GitHub-side)
 
-The PR has no body. Trigger: "write a PR description".
+The PR has no body, so the capability's mode detection picks WRITE. Trigger: "write a PR description".
 
 Capability output:
 
@@ -194,9 +194,9 @@ Apply with: gh pr edit 729 --body-file <mktemp-path>
 
 You apply.
 
-## Step 10 — `pr-description-sync` (GitHub-side)
+## Step 10 — `pr-description` SYNC mode (GitHub-side)
 
-A reviewer asks for changes. You add a follow-up commit that lowers the max attempts from 3 to 2 based on backend load testing. Trigger: "is the PR body still accurate?".
+A reviewer asks for changes. You add a follow-up commit that lowers the max attempts from 3 to 2 based on backend load testing. The body is substantive now, so mode detection picks SYNC. Trigger: "is the PR body still accurate?".
 
 ```
 Divergence classification: MINOR-UPDATE.
@@ -334,10 +334,10 @@ Contributors: @author, @reviewer-1, @reviewer-2, @reviewer-3
 Apply with: gh release create v2.4.0 --notes-file <mktemp-path>
 ```
 
-## Capabilities not used in this walkthrough
+## Capabilities and modes not used in this walkthrough
 
 - **`worktree-setup`** — useful when working on multiple branches in parallel; not needed for a single change.
-- **`commit-amend-message`** — useful for fixing only the wording of HEAD (no diff change); not needed here since the messages were good on first draft.
+- **`commit-message` AMEND mode** — useful for fixing only the wording of HEAD (no diff change); not needed here since the messages were good on first draft.
 - **`commit-body-reflow`** — useful when switching style across many commits at once; not needed for a 3-commit PR.
 
 Each is documented in its own `capabilities/<name>/capability.md`.

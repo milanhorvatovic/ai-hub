@@ -12,7 +12,7 @@ description: >
 
 # commit-body-reflow capability
 
-Rewrites the bodies of many commits at once to switch between flowing-paragraph and hard-wrap styles, preserving subjects and trailers byte-for-byte. Use this when the entire branch (or set of branches) needs a consistent body style and per-commit `commit-amend-message` would be too tedious.
+Rewrites the bodies of many commits at once to switch between flowing-paragraph and hard-wrap styles, preserving subjects and trailers byte-for-byte. Use this when the entire branch (or set of branches) needs a consistent body style and per-commit amending via `commit-message` (AMEND mode) would be too tedious.
 
 ## Scope: git-side
 
@@ -30,7 +30,7 @@ This capability uses only `git` operations (`filter-branch`, `filter-repo`, `reb
 ## Input guards
 
 - Must be inside a git repo, working tree clean.
-- Range must contain ≥2 commits; for a single commit, redirect to `commit-amend-message`.
+- Range must contain ≥2 commits; for a single commit, redirect to `commit-message` (AMEND mode).
 - Identify all branches whose commits fall within the rewrite scope. Surface as a **Scope** block before any plan.
 - **Bot guard** — per the router rule, skip bot-authored commits. The transformation script must match `git log -1 --pretty=format:'%ae' <sha>` against the patterns catalogued in `../../references/bot-signatures.md` and emit the message unchanged for matches.
 - **Pushed-state check** — emit the Force-Push Impact block per `../../references/force-push-impact.md` for each affected branch before showing the plan.

@@ -135,20 +135,18 @@ def test_example_ndjson_matches_schema_invariants(references_dir: Path) -> None:
 # untrusted-content guard so the indirect-prompt-injection defense (Snyk W011)
 # cannot be silently dropped when a capability is edited. Membership is literal
 # by decision: capabilities whose only third-party read is the Force-Push
-# Impact enrichment (commit-amend-message, commit-body-reflow, commit-fixup,
-# rebase-cleanup) carry their own link rather than relying on
-# force-push-impact.md's guarded anchor-read, so this list needs no exemptions.
+# Impact enrichment (commit-body-reflow, commit-fixup, rebase-cleanup)
+# carry their own link rather than relying on force-push-impact.md's guarded
+# anchor-read, so this list needs no exemptions.
 INGESTION_CAPABILITIES = [
-    "pr-description-sync",
+    "pr-description",
     "pr-checks-summary",
     "pr-conversation-resolve",
     "pr-link-issues",
-    "pr-description-write",
     "release-notes",
     "merge-readiness",
     "merge-execute",
     "commit-message",
-    "commit-amend-message",
     "commit-body-reflow",
     "commit-fixup",
     "rebase-cleanup",
@@ -183,7 +181,6 @@ def test_ingestion_capabilities_link_untrusted_content_guard(
 # --force-with-lease surfacing policy) instead of restating any of it.
 FORCE_PUSH_CONSUMERS = [
     "commit-message",
-    "commit-amend-message",
     "commit-body-reflow",
     "commit-fixup",
     "rebase-cleanup",
@@ -193,8 +190,7 @@ FORCE_PUSH_CONSUMERS = [
 # standard input-guard sequence by linking the shared pr-input-guards
 # reference, declaring only its deviations inline.
 GITHUB_SIDE_CAPABILITIES = [
-    "pr-description-write",
-    "pr-description-sync",
+    "pr-description",
     "pr-link-issues",
     "pr-checks-summary",
     "pr-conversation-resolve",
@@ -302,11 +298,9 @@ def test_no_capability_restates_pr_resolution(capabilities_dir: Path) -> None:
 # always literal.
 SECRET_SCAN_CAPABILITIES = [
     "commit-message",
-    "commit-amend-message",
     "commit-body-reflow",
     "rebase-cleanup",
-    "pr-description-write",
-    "pr-description-sync",
+    "pr-description",
     "pr-link-issues",
     "pr-conversation-resolve",
     "release-notes",
@@ -321,15 +315,13 @@ SECRET_SCAN_CAPABILITIES = [
 # (asserted by test_pr_input_guards_reference_is_the_single_home).
 BOT_GUARD_CAPABILITIES = [
     "commit-message",
-    "commit-amend-message",
     "commit-body-reflow",
     "commit-fixup",
     "rebase-cleanup",
     "release-notes",
     "merge-readiness",
     "merge-execute",
-    "pr-description-sync",
-    "pr-description-write",
+    "pr-description",
     "pr-link-issues",
     "pr-conversation-resolve",
     "pr-checks-summary",

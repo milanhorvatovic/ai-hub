@@ -49,7 +49,7 @@ statusCheckRollup,additions,deletions,changedFiles,isCrossRepository
 | **Approvals** | `reviewDecision == APPROVED` | Fail on `REVIEW_REQUIRED` or `CHANGES_REQUESTED` |
 | **No unresolved threads** | GraphQL `pullRequest.reviewThreads { isResolved }` (REST `pulls/{n}/comments` doesn't expose resolution state) — see `../../references/git-gh-quirks.md` (Review-thread resolution state) for the canonical paginated query | Warn (not fail) — some teams allow merge with open threads |
 | **No WIP commits** | Scan commit subjects for `WIP`/`wip`/`[WIP]`/`fixup!`/`squash!`. Use local `git log --no-merges <base>..HEAD --pretty='%s'` only when the PR head is checked out locally (local `HEAD == headRefOid` and not `isCrossRepository`); otherwise read remote-authoritative subjects via `gh pr view <num> --json commits --jq '.commits[].messageHeadline'` per `../../references/git-gh-quirks.md` (fork PRs / when local HEAD ≠ `headRefOid`) | Fail; redirect to `rebase-cleanup` |
-| **Description in sync** | Run a light version of `pr-description-sync` workflow (does body claim work that's still in the diff?) | Warn if MINOR-UPDATE; Fail if MAJOR-REWRITE or HANDOFF-TO-WRITE |
+| **Description in sync** | Run a light version of the `pr-description` SYNC workflow (does the body claim work that's still in the diff?) | Warn if MINOR-UPDATE; Fail if MAJOR-REWRITE or HANDOFF-TO-WRITE |
 | **No outdated PR** | `headRefOid` matches the SHA the latest review was against (best-effort) | Warn if reviewers approved a different SHA |
 | **Branch-protection rules satisfied** | `gh api repos/{o}/{r}/branches/<base>/protection` (best-effort; requires permissions) | Mention rules that are configured |
 | **No release branch lockdown** | Check `CONTRIBUTING.md` or repo notes for freeze periods | Warn (manual; hard to detect) |
@@ -84,7 +84,7 @@ Next steps:
   - Fix CI: `gh pr checks 42 --watch` then debug failing checks
   - Request review from second approver (suggested: @api-team via CODEOWNERS)
   - Address open threads (or invoke pr-conversation-resolve to draft responses)
-  - Optionally: invoke pr-description-sync to apply the MINOR-UPDATE
+  - Optionally: invoke pr-description (SYNC mode) to apply the MINOR-UPDATE
 ```
 
 For PASS or PARTIAL, also note what the user would run to merge:
@@ -108,4 +108,4 @@ When ready, merge with:
 - Don't downgrade FAIL gates to WARN to make the verdict look better — accuracy over optimism.
 - Don't suggest force-pushing to "fix" failed gates (e.g. squashing WIPs via rebase) without going through `rebase-cleanup` for proper analysis.
 - Don't fire if the user just wants to merge — that's `merge-execute`. This capability is a check, not an action.
-- Don't run the full `pr-description-sync` workflow inline — do a lightweight check and surface "run pr-description-sync for details" if MINOR/MAJOR.
+- Don't run the full `pr-description` SYNC workflow inline — do a lightweight check and surface "run pr-description for details" if MINOR/MAJOR.

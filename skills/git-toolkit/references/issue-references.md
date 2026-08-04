@@ -58,7 +58,7 @@ These don't trigger auto-close (only the prose closing-keywords do). They're use
 
 ## When the skill flags issue references
 
-`pr-description-sync` and `pr-description-write` should classify every issue reference in a body:
+`pr-description` (both modes) should classify every issue reference in a body:
 
 | Pattern | Class | Action |
 |---|---|---|

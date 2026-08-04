@@ -41,7 +41,7 @@ Shared references at this skill's root hold the canonical format spec, trailer r
 
 - **Scope discipline: git-side vs GitHub-side.** Capabilities are classified as either **git-side** (work with just `git`, no `gh` required; usable on any forge or none) or **GitHub-side** (need `gh` auth, PR/Release concepts, GitHub-specific APIs). A capability stays on one side; mixing is a smell. When a git-side capability benefits from GitHub context (e.g. `commit-message` review using PR base; `rebase-cleanup` warning on PR reviews), the GH lookup is an **optional enrichment** — the capability must still complete its core task without `gh`. New capabilities are classified before they're added.
 - **One source of truth for format.** Conventional-commits syntax, imperative mood, length caps, body wrap, breaking-change markers all live in `references/format-conventions.md`. Capabilities apply them; they do not re-specify.
-- **Format ≠ content accuracy.** `commit-message` and `pr-description-write` enforce format. `pr-description-sync` enforces content accuracy (claims match diff). Both can fire on the same PR; they are complementary.
+- **Format ≠ content accuracy.** `commit-message` and `pr-description` WRITE mode enforce format. `pr-description` SYNC mode enforces content accuracy (claims match diff). Both concerns can fire on the same PR; they are complementary.
 - **Repo conventions override defaults.** Every capability checks `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `.commitlintrc*`, the PR template — if present, those rules supersede the generic spec. Precedence: agent-instruction file > `CONTRIBUTING.md` > commit-lint config > generic defaults.
 - **Discovery and enforcement state the same rules.** This skill is the discovery side of a convention contract; an agent-instruction declaration (`AGENTS.md`, `CONTRIBUTING.md`) and a commit-style gate (CI linter, commit-msg hook) are the enforcement side of the same contract. Where all three exist — as in the repo that ships this skill — a convention change must touch declaration, gate, and skill text together, or the untouched surfaces keep asserting the old rule.
 - **Never auto-publish.** Commit-message rewrites, PR description edits, branch creates, rebases, release publishes — all require user confirmation. Show the proposal and the exact apply command; let the user run it.
@@ -66,9 +66,8 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 
 | Capability | Trigger | Path |
 |---|---|---|
-| commit-message | [git-side, optional `gh` enrichment] About to commit staged changes (asked for a message or not) — write the subject + body; or review one existing commit / a range for format compliance and propose fixes | capabilities/commit-message/capability.md |
+| commit-message | [git-side, optional `gh` enrichment] About to commit staged changes (asked for a message or not) — write the subject + body; review one existing commit / a range for format compliance and propose fixes; or reword HEAD's message without touching the diff (validates against format conventions; warns on pushed commits) | capabilities/commit-message/capability.md |
 | commit-fixup | [git-side] Staged changes belong to an earlier commit on the branch — detect which and propose `git commit --fixup <sha>` plus the follow-up rebase command | capabilities/commit-fixup/capability.md |
-| commit-amend-message | [git-side] Rewording HEAD's message without touching the diff — validate against format conventions; warn on pushed commits | capabilities/commit-amend-message/capability.md |
 
 ### Tidying history before review
 
@@ -81,8 +80,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 
 | Capability | Trigger | Path |
 |---|---|---|
-| pr-description-write | [GitHub-side] Opening a PR, or its body is empty / `WIP` / an unfilled template — author the description from scratch | capabilities/pr-description-write/capability.md |
-| pr-description-sync | [GitHub-side] Branch changed after the body was written, or asked whether the description still matches — classify divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE`; propose a fix | capabilities/pr-description-sync/capability.md |
+| pr-description | [GitHub-side] Opening a PR or keeping its body honest — WRITE mode authors the description from scratch when the body is empty / `WIP` / a one-liner / an unfilled template; SYNC mode fires when the branch changed after the body was written, or when asked whether the description still matches — classifying divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE` and proposing a fix | capabilities/pr-description/capability.md |
 | pr-link-issues | [GitHub-side] PR addresses issues its body doesn't reference — auto-detect them (from branch, commits, body), verify the diff resolves them, propose `Closes` / `Refs` keywords to add | capabilities/pr-link-issues/capability.md |
 
 ### Working through review
@@ -106,7 +104,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 - `[git-side, optional gh enrichment]` — git-side at core; uses `gh` when available for richer context (e.g. PR base resolution, review-state checks) but degrades gracefully without it.
 - `[GitHub-side]` — requires `gh` auth and GitHub-specific concepts (PR metadata, merge policy, Releases).
 
-When the choice between `pr-description-write` and `pr-description-sync` is unclear: a substantive existing body always goes to `pr-description-sync` (which may itself escalate to `MAJOR-REWRITE` and produce a full replacement). Only empty / WIP / unfilled-template bodies go to `pr-description-write`.
+Within `pr-description`, the body's state picks the mode: a substantive existing body always takes the SYNC path (which may itself escalate to `MAJOR-REWRITE` and produce a full replacement). Only empty / WIP / one-liner / unfilled-template bodies take the WRITE path.
 
 ## Shared references
 
@@ -159,12 +157,12 @@ A typical end-to-end lifecycle for a change. Each step is independent and option
 | Phase | Capability | Side |
 |---|---|---|
 | Starting a new branch | `branch-name` → optionally `worktree-setup` for parallel work | git |
-| Writing commits during work | `commit-message` (write mode) | git |
-| Quick mid-work fixes | `commit-fixup` for amending an earlier commit; `commit-amend-message` for fixing the last commit's wording | git |
-| Before requesting review (clean history) | `rebase-cleanup` → `commit-message` (review mode) | git |
-| Before requesting review (PR body) | `pr-description-sync` → if empty / WIP, hand off to `pr-description-write` | GitHub |
+| Writing commits during work | `commit-message` (WRITE mode) | git |
+| Quick mid-work fixes | `commit-fixup` for amending an earlier commit; `commit-message` (AMEND mode) for fixing the last commit's wording | git |
+| Before requesting review (clean history) | `rebase-cleanup` → `commit-message` (REVIEW mode) | git |
+| Before requesting review (PR body) | `pr-description` — SYNC mode; switches to WRITE mode when the body is empty / WIP / one-liner / unfilled-template | GitHub |
 | Before requesting review (issue refs) | `pr-link-issues` to add `Closes` / `Refs` keywords | GitHub |
-| After applying body changes | Re-run `pr-description-sync` to confirm `IN-SYNC` | GitHub |
+| After applying body changes | Re-run `pr-description` (SYNC mode) to confirm `IN-SYNC` | GitHub |
 | Mid-review (CI red) | `pr-checks-summary` to interpret failures and propose fixes | GitHub |
 | Wrapping up review feedback | `pr-conversation-resolve` for unresolved threads | GitHub |
 | Pre-merge gate | `merge-readiness` (verdict) → `merge-execute` (the command) | GitHub |

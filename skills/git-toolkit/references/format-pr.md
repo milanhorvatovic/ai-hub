@@ -46,7 +46,7 @@ When the repo squash-merges with `squash_merge_commit_message == "COMMIT_MESSAGE
 ## Anti-patterns
 
 - **Unfilled template sections.** A PR body that ships with the template's `<description here>` placeholders still in place is worse than no body at all — it signals the author didn't read the template. The capability flags any line containing `TODO`, `<...>`, `[describe ...]`, or empty checklist items in non-checkbox positions.
-- **Stale claims after follow-up commits.** Once the body says "max 3 attempts" but a follow-up commit changes it to 2, the body is wrong. `pr-description-sync` exists to catch this; emit a `MINOR-UPDATE` proposal.
+- **Stale claims after follow-up commits.** Once the body says "max 3 attempts" but a follow-up commit changes it to 2, the body is wrong. `pr-description` SYNC mode exists to catch this; emit a `MINOR-UPDATE` proposal.
 - **Conversational fluff.** "Hey team! I've been working on this for a few days and I think it's almost ready 🚀" — strip and replace with the Summary section.
 - **Embedded auto-attribution trailers.** PR bodies are not commits; trailers in PR bodies are usually accidental copy-paste from a commit-message editor. See `trailer-semantics.md`.
 
