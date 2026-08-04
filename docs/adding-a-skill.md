@@ -77,7 +77,7 @@ The manifest value must equal `SKILL.md`'s `metadata.version` — the sync test 
 
 ## 4. Tests
 
-Do not write structure tests for the new skill: the parametrized suite in `tests/skills/test_structure_all.py` picks it up automatically from its first run. Add a `tests/skills/<snake_name>/` module only for content contracts unique to the skill — counts, schemas, or invariants a generic structural check cannot know (for example, coding-principles pins its mantra and principle counts, and git-toolkit validates its NDJSON output schema).
+Do not write structure tests for the new skill: the parametrized suite in `tests/skills/test_structure_all.py` picks it up automatically from its first run. Add a `tests/skills/<snake_name>/` module (the skill name snake_cased — the test directories are Python packages, so hyphens become underscores: `git-toolkit` → `tests/skills/git_toolkit/`) only for content contracts unique to the skill — counts, schemas, or invariants a generic structural check cannot know (for example, coding-principles pins its mantra and principle counts, and git-toolkit validates its NDJSON output schema).
 
 ## 5. The pull request
 

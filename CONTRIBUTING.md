@@ -21,14 +21,14 @@ Thanks for your interest! ai-hub is an incubator for AI-agnostic artifacts — s
 ## Repository layout
 
 - `skills/<name>/` — one skill per directory: `SKILL.md` (the always-loaded router), optional `capabilities/<name>/capability.md`, and shared `references/`.
-- `tests/skills/` — stdlib-only pytest suite: `test_structure_all.py` validates every skill's structure generically (frontmatter, spec limits, annotated semver, capability routing, link resolution); `tests/skills/<name>/` holds the content contracts unique to one skill.
+- `tests/skills/` — stdlib-only pytest suite: `test_structure_all.py` validates every skill's structure generically (frontmatter, spec limits, annotated semver, capability routing, link resolution); `tests/skills/<snake_name>/` (the skill name snake_cased) holds the content contracts unique to one skill.
 - `tests/skill-corpus/<name>/skill.json` — description-activation corpora: positive prompts that should route to the skill, negatives drawn from sibling domains. The `description-eval` workflow scores them against the live descriptions with the pinned skill-system-foundry evaluator — precision/recall is advisory, but a stale `description_sha256` blocks.
 
 ## Making a change
 
 - Create a topic branch from `main`.
 - Keep changes focused; one logical change per pull request.
-- The generic structural suite (`tests/skills/test_structure_all.py`) validates every skill automatically — a new skill needs no test directory to be covered. Add tests under `tests/skills/<name>/` only for contracts unique to that skill.
+- The generic structural suite (`tests/skills/test_structure_all.py`) validates every skill automatically — a new skill needs no test directory to be covered. Add tests under `tests/skills/<snake_name>/` only for contracts unique to that skill.
 - Editing a skill's frontmatter `description` means reviewing its corpus: adjust `tests/skill-corpus/<name>/skill.json` if the routing boundary moved, then refresh the recorded hash with the evaluator from [skill-system-foundry](https://github.com/milanhorvatovic/skill-system-foundry) (`evaluate_descriptions.py tests/skill-corpus --skill-set skills --backfill-hash`) — the `description-eval` workflow blocks on a stale hash.
 - Run `./venv/bin/pytest -q` before pushing. Markdown is formatted with Prettier (`proseWrap: never`) per `.prettierrc.json` — author prose as one line per paragraph and let it wrap.
 - Optional but recommended: `git config core.hooksPath .githooks` turns on a `commit-msg` hook that checks each commit message as you write it — the same linter CI runs on every PR (see [Commit messages](#commit-messages)). If you use the repo's opt-in [pre-commit](.pre-commit-config.yaml) hooks, note that `core.hooksPath` takes over hook dispatch: the bundled `.githooks/pre-commit` delegates to `pre-commit` automatically, so skip `pre-commit install`.
