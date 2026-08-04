@@ -1,0 +1,34 @@
+{
+  "target": "coding-principles",
+  "kind": "skill",
+  "_comment": "Implementation-discipline corpus: positives are write/fix/refactor/review-code intents; negatives are sibling domains — change narration (git-toolkit), repo health (oss-repository-conventions), markdown stewardship (docs-steward). 'write a commit message' must not activate on the 'write' verb alone.",
+  "positive": [
+    "implement this task in python with clean code",
+    "add a small feature and refactor the surrounding python code",
+    "fix this bash code and review the error handling",
+    "refactor this python code for a cleaner design",
+    "clean up this messy code before the next task",
+    "review this code against our coding principles and design rules",
+    "write clean python code for this task",
+    "review this typescript code for design discipline",
+    "this rust code needs a fix — the design is over-abstracted",
+    "implement the fix for this rust task",
+    "write the bash code for this task and review it",
+    "fixing the review findings in this python code"
+  ],
+  "negative": [
+    "write a commit message for my staged changes",
+    "squash and reorder my branch's commits before review",
+    "draft the pull request description for this branch",
+    "what house files should a healthy open-source repo have?",
+    "scaffold a code of conduct and security policy",
+    "check our markdown for lint violations",
+    "normalize heading styles across the docs folder",
+    "is my pull request ready to merge?",
+    "audit this repository against OSS best practices",
+    "propose release notes for version 2.0",
+    "run the docs through prettier and report drift",
+    "set up dependabot and pin the CI actions"
+  ],
+  "description_sha256": "915cbeaab248a782891e5eb7edd7c52ac0976efb313502bbb3f4c44ec51cd014"
+}

@@ -1,0 +1,34 @@
+{
+  "target": "oss-repository-conventions",
+  "kind": "skill",
+  "_comment": "Repo-health corpus: positives are scan/audit/scaffold intents over community, security, CI, and release conventions; negatives are sibling domains — change narration (git-toolkit), code quality (coding-principles), markdown stewardship (docs-steward). Release *automation* is positive here; release *notes* belong to git-toolkit.",
+  "positive": [
+    "audit this repo's health and score it against best practice",
+    "what community files is this repository missing?",
+    "add a SECURITY policy to this open source repo",
+    "scaffold CONTRIBUTING and a code of conduct for the repo",
+    "pick the license and set up licensing conventions",
+    "make this open source repository top notch",
+    "harden the dependency supply chain for this repo",
+    "set up automation for the dependency updates in CI",
+    "level up our CI automation to OSS best practice",
+    "does this repo meet open-source community health standards?",
+    "first touch onboarding: scan what conventions this repo declares",
+    "score the repo's branch protection and release automation setup"
+  ],
+  "negative": [
+    "write a commit message for the staged refactor",
+    "draft release notes from the commits since the last tag",
+    "tidy the branch's commits into a reviewable history",
+    "audit the markdown formatting in the docs folder",
+    "lint the frontmatter in every doc page",
+    "fix the null-pointer bug in the session handler",
+    "refactor this service for testability",
+    "check whether my pull request passes its merge gates",
+    "review this code change for design smells",
+    "reformat the docs with prettier",
+    "open a PR with a description of these changes",
+    "add retry with backoff to the fetch layer"
+  ],
+  "description_sha256": "5ae231f8583ab4b6e1dc2eec4cc0d0ebffef4059fe52057e1551bd5844fcc5ab"
+}

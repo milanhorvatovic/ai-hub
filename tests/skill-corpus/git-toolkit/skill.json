@@ -1,0 +1,34 @@
+{
+  "target": "git-toolkit",
+  "kind": "skill",
+  "_comment": "Change-narration corpus: positives are lifecycle intents (commit text, branches, PR bodies, CI triage, merge gates, release notes); negatives are sibling domains — code quality (coding-principles), repo health (oss-repository-conventions), markdown stewardship (docs-steward).",
+  "positive": [
+    "write the commit text for my staged work",
+    "I'm about to commit this staged work — draft it in imperative mood",
+    "propose branch naming and worktree setup for this new work",
+    "clean up my branch history before I request review",
+    "is the PR text in sync with the diff after my latest commits?",
+    "opening a PR for this branch — write its description with issue linking",
+    "amending the last commit's text without changing the staged diff",
+    "check merge readiness on this PR — CI status and review thread resolution",
+    "preparing a release — draft the notes from the commit log",
+    "my commit subjects look inconsistent — review the branch against conventional commits",
+    "triage this PR's CI failure and the status checks",
+    "validate trailer placement in the commit text before I push"
+  ],
+  "negative": [
+    "review this diff for bugs and code quality issues",
+    "refactor the parser module so it reads better",
+    "add a license and contributing guide to this repository",
+    "score this repo's community health against best practice",
+    "audit the markdown docs for formatting drift",
+    "lint the frontmatter in our documentation tree",
+    "set up release-please automation for this repo",
+    "implement retry logic in the HTTP client",
+    "what health files is this repository missing?",
+    "reformat every README with prettier",
+    "fix the flaky unit test in the auth suite",
+    "harden the repo's dependency supply chain and CI"
+  ],
+  "description_sha256": "ca58dbe8e20836b0294480b827b25f774371d44a26648bafbb5efc93e948880d"
+}

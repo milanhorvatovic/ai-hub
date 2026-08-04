@@ -1,0 +1,68 @@
+name: description-eval
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "skills/**/SKILL.md"
+      - "tests/skill-corpus/**"
+      - ".github/workflows/description-eval.yml"
+  push:
+    branches: [main]
+    paths:
+      - "skills/**/SKILL.md"
+      - "tests/skill-corpus/**"
+      - ".github/workflows/description-eval.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: description-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evaluate:
+    name: corpus scoring
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # actions/checkout v4.3.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      # The corpus format and scorer come from the skill-system-foundry, pinned
+      # by commit; refresh the pin deliberately alongside any corpus-contract
+      # change. actions/checkout v4.3.0
+      - name: Check out the pinned foundry
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          repository: milanhorvatovic/skill-system-foundry
+          ref: be14dfb78c71d7736b4b188e44ccdde8dc3b4e90
+          path: .skill-system-foundry
+
+      # actions/setup-python v5.6.0
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version-file: ".python-version"
+
+      # --soft: precision/recall breaches report without blocking (the Jaccard
+      # heuristic is a smoke check, not ground truth); malformed corpora and
+      # missing targets still fail.
+      - name: Score descriptions against the corpora (advisory)
+        run: >
+          python
+          .skill-system-foundry/skill-system-foundry/scripts/evaluate_descriptions.py
+          tests/skill-corpus --skill-set skills --soft --verbose
+
+      # A stale hash means a SKILL.md description changed without its corpus
+      # being reviewed; that blocks, unlike the advisory scores above.
+      - name: Check corpus hashes are fresh
+        run: |
+          python \
+            .skill-system-foundry/skill-system-foundry/scripts/evaluate_descriptions.py \
+            tests/skill-corpus --skill-set skills --backfill-hash
+          if ! git diff --exit-code -- tests/skill-corpus; then
+            echo "::error::description_sha256 is stale: a description changed without a corpus review. Re-run the foundry evaluator with --backfill-hash, review the prompts against the new description, and commit both."
+            exit 1
+          fi
