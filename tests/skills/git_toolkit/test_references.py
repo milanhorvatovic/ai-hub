@@ -4,10 +4,10 @@ Generic link/pointer resolution across the skill tree lives in the fleet-wide
 suite (`tests/skills/test_structure_all.py`); what stays here are the
 contracts unique to this skill: the review-output NDJSON schema (validity,
 prose agreement, worked-example conformance), the shared-reference wiring for
-the force-push-impact and pr-input-guards blocks (each block lives in exactly
-one reference; consumers link it and never restate it), and the safety-wiring
-matrix — SKILL.md's "safety wiring is a checklist" principle enforced as a
-test. Each safety reference (untrusted-content, secret-patterns,
+the force-push-impact, pr-input-guards, and forge-adapters blocks (each block
+lives in exactly one reference; consumers link it and never restate it), and
+the safety-wiring matrix — SKILL.md's "safety wiring is a checklist" principle
+enforced as a test. Each safety reference (untrusted-content, secret-patterns,
 bot-signatures, harness-safety-nets) has a maintained consumer-class list
 below; every capability must appear in the classes that fit it, and a
 completeness check forces new capabilities to declare their classes.
@@ -186,10 +186,10 @@ FORCE_PUSH_CONSUMERS = [
     "rebase-cleanup",
 ]
 
-# GitHub-side capabilities per the SKILL.md scope legend. Each must run the
+# Forge-side capabilities per the SKILL.md scope legend. Each must run the
 # standard input-guard sequence by linking the shared pr-input-guards
 # reference, declaring only its deviations inline.
-GITHUB_SIDE_CAPABILITIES = [
+FORGE_SIDE_CAPABILITIES = [
     "pr-description",
     "pr-link-issues",
     "pr-checks-summary",
@@ -226,8 +226,9 @@ def test_force_push_impact_reference_is_the_single_home(references_dir: Path) ->
 
 def test_pr_input_guards_reference_is_the_single_home(references_dir: Path) -> None:
     """pr-input-guards.md must exist and cover the full guard sequence the
-    GitHub-side capabilities used to restate: forge detection, PR resolution,
-    state guard, bot guard, gh-auth handling, untrusted-content pointer."""
+    forge-side capabilities used to restate: forge detection and command-lane
+    selection, PR resolution, state guard, bot guard, auth handling,
+    untrusted-content pointer."""
     ref = references_dir / "pr-input-guards.md"
     assert ref.is_file(), "references/pr-input-guards.md not found"
     text = ref.read_text(encoding="utf-8")
@@ -253,13 +254,13 @@ def test_history_rewriters_link_force_push_impact(
     )
 
 
-@pytest.mark.parametrize("cap_name", GITHUB_SIDE_CAPABILITIES)
-def test_github_side_capabilities_link_pr_input_guards(
+@pytest.mark.parametrize("cap_name", FORGE_SIDE_CAPABILITIES)
+def test_forge_side_capabilities_link_pr_input_guards(
     cap_name: str, capabilities_dir: Path
 ) -> None:
     text = (capabilities_dir / cap_name / "capability.md").read_text(encoding="utf-8")
     assert "../../references/pr-input-guards.md" in text, (
-        f"{cap_name} is GitHub-side but does not link "
+        f"{cap_name} is forge-side but does not link "
         "../../references/pr-input-guards.md"
     )
 
@@ -274,6 +275,34 @@ def test_no_capability_restates_the_impact_template(capabilities_dir: Path) -> N
     ]
     assert not offenders, (
         f"capabilities restate the Force-Push Impact template: {offenders}"
+    )
+
+
+def test_forge_adapter_mapping_is_the_single_home(
+    references_dir: Path, capabilities_dir: Path
+) -> None:
+    """The alternative-CLI mapping (GitLab `glab`, Forgejo `tea`) lives only
+    in forge-adapters.md. Capability bodies express each operation once, with
+    the gh command as the GitHub worked example, and route other forges
+    through the adapter table — naming an alternative CLI inline would fork
+    the mapping."""
+    adapters = (references_dir / "forge-adapters.md").read_text(encoding="utf-8")
+    for cli in ("glab", "tea"):
+        assert re.search(rf"\b{cli}\b", adapters), (
+            f"forge-adapters.md no longer documents the `{cli}` lane"
+        )
+    pattern = re.compile(r"\b(glab|tea)\b")
+    offenders = [
+        f"{cap.parent.name}:{lineno}: {line.strip()}"
+        for cap in sorted(capabilities_dir.glob("*/capability.md"))
+        for lineno, line in enumerate(
+            cap.read_text(encoding="utf-8").splitlines(), start=1
+        )
+        if pattern.search(line)
+    ]
+    assert not offenders, (
+        "capability bodies name an alternative forge CLI — the mapping's "
+        "single home is forge-adapters.md:\n" + "\n".join(offenders)
     )
 
 
@@ -393,8 +422,8 @@ def test_every_capability_is_classified(capabilities_dir: Path) -> None:
     """Safety wiring is a checklist: a new capability must be placed in the
     safety classes that fit it (or explicitly among the unclassified-safe)
     before it lands, and a deleted capability must leave every list.
-    Membership in the non-safety lists (GITHUB_SIDE, FORCE_PUSH) deliberately
-    does NOT count as classified — being GitHub-side says nothing about
+    Membership in the non-safety lists (FORGE_SIDE, FORCE_PUSH) deliberately
+    does NOT count as classified — being forge-side says nothing about
     whether the capability's safety classes were considered."""
     safety_classes = set(
         INGESTION_CAPABILITIES
@@ -404,7 +433,7 @@ def test_every_capability_is_classified(capabilities_dir: Path) -> None:
     )
     safety_classified = safety_classes | set(UNCLASSIFIED_SAFE_CAPABILITIES)
     every_list = safety_classified | set(FORCE_PUSH_CONSUMERS) | set(
-        GITHUB_SIDE_CAPABILITIES
+        FORGE_SIDE_CAPABILITIES
     )
     on_disk = {p.parent.name for p in capabilities_dir.glob("*/capability.md")}
     unclassified = on_disk - safety_classified

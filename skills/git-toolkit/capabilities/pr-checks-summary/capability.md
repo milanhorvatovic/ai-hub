@@ -16,9 +16,9 @@ Interprets failed CI checks and proposes likely fixes; doesn't just list status.
 
 ## Input guards
 
-Resolve the target PR and run the standard guard sequence — forge detection, PR resolution order, state guard, bot guard, gh-auth handling — per `../../references/pr-input-guards.md`. For this capability:
+Resolve the target PR and run the standard guard sequence — forge detection and command lane, PR resolution order, state guard, bot guard, CLI-auth handling — per `../../references/pr-input-guards.md`. For this capability:
 
-- **Forge** — this capability parses GitHub Actions log shape that has no portable equivalent on other forges: refuse cleanly on non-GitHub remotes rather than producing a degraded GitHub-shaped output.
+- **Forge routing** — log interpretation parses GitHub Actions shape and stays GitHub-only. On GitLab, degrade to a labeled partial: report pipeline and job status per the adapter table in `../../references/forge-adapters.md`, mark the output `partial: pipeline status only — log interpretation unavailable`, and classify nothing whose log was not read. On Forgejo and Bitbucket, refuse cleanly rather than producing a degraded GitHub-shaped output.
 - **State guard** — not applied: checks remain worth interpreting on merged/closed PRs (post-merge CI triage).
 - **Bot guard** — read-only carve-out: report on bot PRs, mentioning the bot author (matched against the catalog in `../../references/bot-signatures.md`).
 - If no checks are configured: stop with "no CI checks configured for this repo".

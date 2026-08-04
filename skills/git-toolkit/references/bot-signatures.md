@@ -7,7 +7,7 @@ Catalog of author patterns that identify commits / PRs as bot-authored. Capabili
 Two checks are common:
 
 - **Email-pattern check** (commit-message REVIEW mode, rebase-cleanup, commit-body-reflow): `git log -1 --pretty=format:'%ae' <sha>` returns the author email; match against the patterns below.
-- **Login-pattern check** (GitHub-side capabilities with `gh pr view --json author`): `author.login` returns the username; match against the login patterns below.
+- **Login-pattern check** (forge-side capabilities, via the PR-metadata read — `gh pr view --json author` on GitHub): `author.login` returns the username; match against the login patterns below.
 
 A capability that matches either pattern should skip the commit / PR with a one-line note in the proposal preamble: `Skipping <sha-or-pr>: bot author <pattern> (see bot-signatures.md)`.
 

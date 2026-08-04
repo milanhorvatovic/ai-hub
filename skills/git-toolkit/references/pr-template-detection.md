@@ -16,6 +16,16 @@ GitHub looks for PR templates in these locations, case-sensitive on case-sensiti
 
 For multi-template repos, the user could have started from any of the templates in `.github/PULL_REQUEST_TEMPLATE/`. Check each one against the body and treat as "unfilled" if any matches the threshold below.
 
+### Other forges
+
+Template detection is an on-disk read, so it works on every forge — only the paths differ:
+
+- **GitLab** — `.gitlab/merge_request_templates/*.md` on the default branch; each file is a selectable template (the GitLab analog of the multi-template directory). A template named `Default.md` (case-insensitive) auto-applies to new MRs; projects on paid tiers can instead set a default in project settings, which takes priority over `Default.md`.
+- **Gitea / Forgejo (Codeberg)** — single template only, no PR-template chooser: `PULL_REQUEST_TEMPLATE` / `pull_request_template` with `.md` / `.yaml` / `.yml`, in the repo root, `.gitea/`, or `.github/`; Forgejo also reads `.forgejo/`. First match wins.
+- **Bitbucket Cloud** — no repository-file PR-template convention; skip template detection.
+
+The parsing, comment-stripping, and unfilled-threshold rules below are forge-independent.
+
 ## Comment stripping
 
 Strip HTML comments from both the template content and the current PR body before comparing:

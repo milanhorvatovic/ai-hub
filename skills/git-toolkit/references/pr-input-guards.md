@@ -1,10 +1,18 @@
-# PR input guards — canonical sequence for GitHub-side capabilities
+# PR input guards — canonical sequence for forge-side capabilities
 
-The standard input-guard block every GitHub-side capability runs before any work. Capabilities reference this file instead of restating the sequence; each declares only its deviations (a stricter state guard, a mention-and-proceed bot carve-out, a refuse-instead-of-degrade forge stance) in its own guard section.
+The standard input-guard block every forge-side capability runs before any work. Capabilities reference this file instead of restating the sequence; each declares only its deviations (a stricter state guard, a mention-and-proceed bot carve-out, its per-forge routing stance) in its own guard section.
 
-## 1. Forge detection
+## 1. Forge detection and command lane
 
-Run `git remote get-url origin` and classify per `forge-adapters.md`. Surface `forge=<x>; capability assumes GitHub gh by default` in the proposal preamble. On non-GitHub remotes (GitLab / Codeberg / Bitbucket), follow the degrade path in `forge-adapters.md`: degrade to the portable equivalent when one exists, refuse cleanly when none does — the capability's own guard section says which applies to it.
+Run `git remote get-url origin` and classify per `forge-adapters.md`. The result selects the command lane for every forge operation — in the steps below and in the capability body. Capability bodies show the GitHub (`gh`) form as the worked example; `forge-adapters.md` owns each operation's equivalent on the other lanes:
+
+- **GitHub** → run the `gh` commands as written.
+- **GitLab / Forgejo (Codeberg)** → translate each operation per the adapter table; the capability's guard section states what routes fully, what degrades to a labeled partial, and what refuses.
+- **Bitbucket / unknown forge** → forge-side operations are not wired: refuse with the documented reason and offer the git-side equivalent when one exists.
+
+If the selected lane's CLI is missing or unauthenticated, stop and say which CLI and where it comes from (per `forge-adapters.md`) — never fall back to `gh` against a non-GitHub remote, and never emit one forge's commands for another.
+
+Surface `forge=<x>; commands via <cli>` in the proposal preamble.
 
 ## 2. Resolve the target PR
 
@@ -27,9 +35,9 @@ If `author.login` matches a pattern in `bot-signatures.md` (dependabot, renovate
 - **Format-mutating** capabilities skip the PR — its format is bot-controlled and any rewrite is overwritten on the bot's next run.
 - **Read-only / informational** capabilities mention the bot author and proceed — the router's deliberate carve-out (see `../SKILL.md` Principles): they report rather than rewrite, so the overwrite rationale doesn't apply.
 
-## 5. gh auth
+## 5. CLI auth
 
-On an auth failure from any `gh` call, stop and tell the user to run `gh auth login`. Do not parse the error beyond detecting it's auth-related, and do not fall back to anonymous API calls — details in `git-gh-quirks.md`.
+On an auth failure from any forge-CLI call, stop and tell the user to authenticate — `gh auth login` on GitHub; the adapter table names the equivalent on the other lanes. Do not parse the error beyond detecting it's auth-related, and do not fall back to anonymous API calls — details in `git-gh-quirks.md`.
 
 ## 6. Untrusted content
 
