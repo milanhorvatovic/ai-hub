@@ -1,3 +1,10 @@
+# contributing — scaffold templates
+
+Template for the `contributing` capability's scaffold mode. Fill it from the repo's reality, not placeholders: the actual setup and test commands, and the maintainer's chosen contribution basis (keep one of the three basis bullets, delete the others). House style keeps the file at repo root.
+
+## Contributing guide — `CONTRIBUTING.md`
+
+```markdown
 # Contributing to <project>
 
 Thanks for your interest in contributing! This guide covers how to get set up, the change process, and what we expect in a pull request.
@@ -34,3 +41,4 @@ Thanks for your interest in contributing! This guide covers how to get set up, t
 ## Code of conduct
 
 This project follows its [Code of Conduct](CODE_OF_CONDUCT.md). By participating you agree to uphold it.
+```

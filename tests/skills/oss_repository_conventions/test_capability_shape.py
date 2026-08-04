@@ -6,6 +6,13 @@ declares its audit checks in one uniform bullet form
 new or edited capability can't silently drift from the contract recorded in
 `references/oss-health-rubric.md`. `## Languages` is intentionally optional —
 language-agnostic domains (governance, security-policy, …) omit it.
+
+The scaffold-template convention is part of the shape: every capability's
+scaffold content lives in `references/scaffold-templates.md` as fenced blocks
+(the structural suite's collectors treat fenced content as data, so
+target-repo links inside a template are never mistaken for skill navigation),
+with the H1 naming the capability and the file. The one exemption is raw
+copyable artifacts, named `*.example.*` and never markdown.
 """
 
 from __future__ import annotations
@@ -44,6 +51,54 @@ def test_every_capability_has_required_sections(capabilities_dir: Path) -> None:
         if missing:
             bad.append(f"{cap.parent.name}: missing {sorted(missing)}")
     assert not bad, "capabilities missing required sections:\n" + "\n".join(bad)
+
+
+def test_scaffold_templates_present_and_titled(capabilities_dir: Path) -> None:
+    """Every capability ships `references/scaffold-templates.md`, and its H1
+    is `# <capability> — scaffold templates` — one predictable home per
+    capability for scaffold content."""
+    bad: list[str] = []
+    for cap in _capabilities(capabilities_dir):
+        templates = cap.parent / "references" / "scaffold-templates.md"
+        if not templates.is_file():
+            bad.append(f"{cap.parent.name}: missing references/scaffold-templates.md")
+            continue
+        first_line = templates.read_text(encoding="utf-8").splitlines()[0]
+        expected = f"# {cap.parent.name} — scaffold templates"
+        if first_line != expected:
+            bad.append(f"{cap.parent.name}: H1 {first_line!r} != {expected!r}")
+    assert not bad, "scaffold-template convention violations:\n" + "\n".join(bad)
+
+
+def test_template_content_is_fenced(capabilities_dir: Path) -> None:
+    """Template content is data, carried in fenced blocks — every
+    scaffold-templates.md has at least one fence, and no capability ships a
+    raw `*.template.*` file (whose live relative links would read as skill
+    navigation)."""
+    raw_templates = [
+        str(f.relative_to(capabilities_dir))
+        for f in sorted(capabilities_dir.glob("*/references/*"))
+        if ".template." in f.name
+    ]
+    assert not raw_templates, f"raw template files: {raw_templates}"
+    unfenced = [
+        str(f.relative_to(capabilities_dir))
+        for f in sorted(capabilities_dir.glob("*/references/scaffold-templates.md"))
+        if not re.search(r"^\s{0,3}(?:`{3,}|~{3,})", f.read_text(encoding="utf-8"), re.MULTILINE)
+    ]
+    assert not unfenced, f"scaffold-templates.md without a fenced block: {unfenced}"
+
+
+def test_raw_reference_files_carry_example_marker(capabilities_dir: Path) -> None:
+    """The only non-markdown reference files are copyable raw artifacts named
+    `*.example.*` (e.g. a JSON payload passed to a CLI as-is) — the documented
+    exemption from the fenced-template convention."""
+    bad = [
+        str(f.relative_to(capabilities_dir))
+        for f in sorted(capabilities_dir.glob("*/references/*"))
+        if f.is_file() and f.suffix != ".md" and ".example." not in f.name
+    ]
+    assert not bad, f"raw reference files without the .example. marker: {bad}"
 
 
 def test_audit_check_bullets_are_well_formed(capabilities_dir: Path) -> None:

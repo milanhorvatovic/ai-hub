@@ -1,4 +1,4 @@
-# licensing — scaffold snippets
+# licensing — scaffold templates
 
 Small reusable pieces for the `licensing` capability's scaffold mode. The full `LICENSE` text itself is fetched canonically (`gh api /licenses/{spdx} --jq .body`) rather than templated here — only fill the `[year]` / `[fullname]` placeholders.
 

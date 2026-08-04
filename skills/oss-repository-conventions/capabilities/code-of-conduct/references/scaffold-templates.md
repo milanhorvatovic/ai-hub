@@ -1,6 +1,13 @@
-# Contributor Covenant Code of Conduct
+# code-of-conduct — scaffold templates
 
-> This is a condensed scaffold of the Contributor Covenant v2.1. Fetch the canonical full text from <https://www.contributor-covenant.org/version/2/1/code_of_conduct/> and replace `<ENFORCEMENT CONTACT>` with a real, reachable contact before use.
+Template for the `code-of-conduct` capability's scaffold mode. Replace `<ENFORCEMENT CONTACT>` with a real, reachable contact before writing — never write the file with the placeholder left in. House style places the file at repo root.
+
+## Contributor Covenant (condensed) — `CODE_OF_CONDUCT.md`
+
+A condensed scaffold of the Contributor Covenant v2.1. When the maintainer wants the complete document, fetch the canonical full text from <https://www.contributor-covenant.org/version/2/1/code_of_conduct/> instead.
+
+```markdown
+# Contributor Covenant Code of Conduct
 
 ## Our Pledge
 
@@ -21,3 +28,4 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 2.1.
 
 [homepage]: https://www.contributor-covenant.org
+```

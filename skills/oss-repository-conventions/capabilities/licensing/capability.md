@@ -78,8 +78,8 @@ Then:
 1. Fetch canonical text — prefer `gh api /licenses/{spdx} --jq .body` (authoritative, fills the copyright placeholder), or use the SPDX-listed text. Never hand-edit license bodies beyond the `[year]` / `[fullname]` placeholders.
 2. Write to `LICENSE` at repo root (house style: root, plain `LICENSE`).
 3. Sync metadata: update the `license` field in `package.json` / `pyproject.toml` / `Cargo.toml` to the same SPDX id (Edit, shown first).
-4. Optional on request: add `SPDX-License-Identifier: <id>` headers to source files (snippet: `references/scaffold-snippets.md`), and/or set up REUSE with a `LICENSES/` dir.
-5. Dual-licensing: write `LICENSE-MIT` + `LICENSE-APACHE` and add the "either at your option" notice from `references/scaffold-snippets.md` to `README`.
+4. Optional on request: add `SPDX-License-Identifier: <id>` headers to source files (snippet: `references/scaffold-templates.md`), and/or set up REUSE with a `LICENSES/` dir.
+5. Dual-licensing: write `LICENSE-MIT` + `LICENSE-APACHE` and add the "either at your option" notice from `references/scaffold-templates.md` to `README`.
 
 One confirmation per file. For an existing `LICENSE`, show a diff before replacing.
 

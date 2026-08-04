@@ -68,7 +68,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 
 ## Scaffold
 
-`SECURITY.md` — write after confirmation from `references/security-md.template.md`, tailored to the repo's reporting choice and real supported-versions (don't guess the table). House style places it at `.github/SECURITY.md`.
+`SECURITY.md` — write after confirmation from `references/scaffold-templates.md`, tailored to the repo's reporting choice and real supported-versions (don't guess the table). House style places it at `.github/SECURITY.md`.
 
 Settings — **propose, never apply** (the user runs these); show the exact command and what it changes:
 
