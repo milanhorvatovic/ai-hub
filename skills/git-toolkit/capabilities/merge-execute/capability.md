@@ -71,7 +71,7 @@ Repo merge policy:
 Notes:
   - Branch `feature/streaming-parser` will be deleted after merge.
   - The PR body becomes the squash commit body (sm == "PR_BODY"); confirm
-    body is in shape via pr-description-sync if you haven't.
+    body is in shape via pr-description (SYNC mode) if you haven't.
   - Auto-merge not enabled; this will merge immediately.
 ```
 

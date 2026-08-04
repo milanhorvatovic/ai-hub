@@ -148,13 +148,13 @@ Subject uses a path prefix or a filename to scope the change.
 
 **Pattern**: PR body contains `<...>`, `[describe ...]`, `TODO`, `TBD`, `<!--`, or empty `## Section` headers with no content underneath.
 
-**Fix**: fill in the section, or remove it if irrelevant. See `pr-description-write` capability.
+**Fix**: fill in the section, or remove it if irrelevant. See the `pr-description` capability (WRITE mode).
 
 ### `stale-claim` — body says one thing, diff shows another
 
-**Pattern**: detected by `pr-description-sync`, not by static catalog scan. The capability re-reads the body after each commit and classifies divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE`.
+**Pattern**: detected by `pr-description` SYNC mode, not by static catalog scan. The capability re-reads the body after each commit and classifies divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE`.
 
-**Fix**: re-run `pr-description-sync` and accept the proposed update.
+**Fix**: re-run `pr-description` (SYNC mode) and accept the proposed update.
 
 ### `conversational-fluff` — "Hey team!", "I've been working on this for…"
 

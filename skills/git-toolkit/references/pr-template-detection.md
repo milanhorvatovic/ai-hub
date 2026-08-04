@@ -50,7 +50,7 @@ The exception: if the template explicitly says `<!-- DELETE THIS LINE -->` and t
 
 ## Using templates when authoring from scratch
 
-When `pr-description-write` is drafting a new body and a template exists:
+When `pr-description` WRITE mode is drafting a new body and a template exists:
 
 1. Pick the primary template (first match from the path order above).
 2. Use the template's section headings VERBATIM — the team has already agreed on these.
@@ -63,4 +63,4 @@ When NO template exists, use the generic structure from `format-conventions.md` 
 
 - Repo has no template files at any of the paths above → skip detection entirely.
 - The PR is bot-authored (filtered at the bot guard) → skip; bot descriptions follow their own structure.
-- The PR body is empty (zero non-whitespace chars) → already MAJOR-REWRITE by the empty-body rule; template detection adds no new information for the verdict but is still useful to `pr-description-write` for picking which template to fill.
+- The PR body is empty (zero non-whitespace chars) → already MAJOR-REWRITE by the empty-body rule; template detection adds no new information for the verdict but is still useful to `pr-description` WRITE mode for picking which template to fill.

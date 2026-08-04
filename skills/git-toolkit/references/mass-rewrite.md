@@ -1,6 +1,6 @@
 # Mass-rewrite procedure
 
-Load this when a capability needs to rewrite messages or bodies of many commits at once (more than ~5) — typically spanning multiple branches that share ancestor commits. Single-commit amends and small interactive rebases are out of scope; use `commit-amend-message` or `rebase-cleanup` for those.
+Load this when a capability needs to rewrite messages or bodies of many commits at once (more than ~5) — typically spanning multiple branches that share ancestor commits. Single-commit amends and small interactive rebases are out of scope; use `commit-message` (AMEND mode) or `rebase-cleanup` for those.
 
 ## Tool choice
 

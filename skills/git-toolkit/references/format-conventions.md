@@ -36,7 +36,7 @@ Pick the slice you need rather than loading this index plus every rule:
 | `format-body.md` | Commit body: flowing-paragraph default, hard-wrap opt-in, body required/optional/none decision tree, body contents required/forbidden, anti-examples |
 | `format-pr.md` | PR description: structure templates, sections to consider, interaction with merge mode, PR-specific anti-patterns |
 
-Capabilities are encouraged to link directly to the slice they need (e.g., `commit-message` write mode loads `format-subject.md` and `format-body.md`; `pr-description-write` loads `format-pr.md` and `format-subject.md` for the title). Linking to this index file works too — it's the legacy entry point — but adds a hop.
+Capabilities are encouraged to link directly to the slice they need (e.g., `commit-message` write mode loads `format-subject.md` and `format-body.md`; `pr-description` write mode loads `format-pr.md` and `format-subject.md` for the title). Linking to this index file works too — it's the legacy entry point — but adds a hop.
 
 ## Tone (cross-cutting)
 

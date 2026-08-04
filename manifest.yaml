@@ -22,7 +22,6 @@ skills:
     type: router
     capabilities:
       - branch-name
-      - commit-amend-message
       - commit-body-reflow
       - commit-fixup
       - commit-message
@@ -30,8 +29,7 @@ skills:
       - merge-readiness
       - pr-checks-summary
       - pr-conversation-resolve
-      - pr-description-sync
-      - pr-description-write
+      - pr-description
       - pr-link-issues
       - rebase-cleanup
       - release-notes
