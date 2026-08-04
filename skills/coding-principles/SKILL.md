@@ -3,7 +3,7 @@ name: coding-principles
 description: >
   Implementation discipline for any coding task — writing, modifying, fixing,
   refactoring, or reviewing code. Carries 16 universal mantras (tiers: goals,
-  design, pruning) and 20 numbered principles with must/should/could severity,
+  design, pruning) and 21 numbered principles with must/should/could severity,
   with on-demand language capabilities (bash, python, typescript, rust) and a
   review workflow. Triggers when the user asks to write, implement, add, fix,
   refactor, clean up, or review code, or via /coding-principles. Skip for
@@ -31,7 +31,7 @@ A rulebook the agent reads before and during code changes — scope, abstraction
 
 This SKILL.md is the always-loaded **router** — the mantra/principle summaries, checklist, and anti-patterns below cover routine work. Load deeper material on demand:
 
-- **Full prose** — `references/mantras.md` (all 16 mantras by tier + reverse map), `references/principles.md` (all 20 principles, full text + severity), `references/glossary.md` (boundary, shape, infrastructure, pure function, trust line, …), `references/smells.md` (observable smell → anchoring principle, for review and write-mode self-check).
+- **Full prose** — `references/mantras.md` (all 16 mantras by tier + reverse map), `references/principles.md` (all 21 principles, full text + severity), `references/glossary.md` (boundary, shape, infrastructure, pure function, trust line, …), `references/smells.md` (observable smell → anchoring principle, for review and write-mode self-check).
 - **Cross-language concern references** — load when the code touches the concern, regardless of language:
 
 | Reference | Load when the code… |
@@ -96,7 +96,7 @@ Each principle carries a severity tag — **must** (non-negotiable; treat violat
 4. **No *speculative* generality (but earn the shape)** — *should* — modular shape is free; infrastructure (plugin points, factories) is not.
 5. **Trust internal code; validate only at boundaries** — *should* — defensive code for impossible states hides real bugs.
 6. **No backwards-compatibility shims unless asked** — *should* — rename, delete; do not leave aliases/re-exports.
-7. **Comments explain *why*, not *what*** — *could* — default to none; avoid PR/ticket references.
+7. **Comments explain *why*, not *what*** — *could* — the code says the what; a comment carries the why; avoid PR/ticket references.
 8. **No half-implementations** — *must* — ship all of A/B/C or none; partial impls silently misbehave at runtime.
 9. **Read before you edit** — *must* — match the file's local conventions even when they differ from your default.
 10. **Verify the change works** — *must* — run tests/exercise UI/CLI; typecheck-passing is not "done."
@@ -110,6 +110,7 @@ Each principle carries a severity tag — **must** (non-negotiable; treat violat
 18. **Single source of truth for state** — *should* — derive don't store; caches are deliberate exceptions with invalidation.
 19. **Boundaries parse input and serialize output** — *should* — `(bytes) -> Typed` at entry, `Typed -> bytes` at exit; explicit serializers. (*must* when the boundary is security-relevant — auth, PII, deserialization.)
 20. **No dead code, no commented-out code** — *could* — delete it; git remembers.
+21. **Comments earn their place: clear, direct, meaningful** — *should* — each comment carries what the code cannot (an invariant, a surprise, a stated deviation, an anchored workaround, a security assumption, profiled performance); revise or remove the rest; value gate before principle 7's content gate.
 
 ## Application checklist
 

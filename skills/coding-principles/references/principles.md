@@ -79,11 +79,13 @@ When in doubt about whether something is published or internal, ask once — do 
 
 ## 7. Comments explain *why*, not *what* — *could*
 
-Default to writing no comments. Well-named identifiers already explain what. Add a comment only when the *why* is non-obvious: a hidden constraint, a workaround for a specific bug, behavior that would surprise a reader, an invariant the type system cannot express.
+Well-named identifiers already explain *what* — a comment that repeats them adds nothing. Write the comment when the *why* is non-obvious: a hidden constraint, a workaround for a specific bug, behavior that would surprise a reader, an invariant the type system cannot express.
 
 Do not write comments that reference the current PR, ticket, or caller ("added for the X flow", "used by Y", "fix for #123") — those rot. Put that in the commit message.
 
 Never write multi-paragraph docstrings or block comments unless the project's existing style demands it (check the repo's declared conventions and sibling files).
+
+**See also:** principle 21 (value gate — whether the comment carries meaning the code cannot, applied before this content gate).
 
 ## 8. No half-implementations — *must*
 
@@ -235,3 +237,19 @@ Exceptions are rare and documented:
 - A platform-specific branch unreachable in the current build target, gated by a feature flag or `cfg!()`, with the gate explicit.
 
 When tempted to comment out instead of delete, ask: "If I needed this back in six months, would I find it faster in git history or in a stale comment?" The answer is always git history.
+
+## 21. Comments earn their place: clear, direct, meaningful — *should*
+
+A good comment is some of the highest-value text in a file — it carries what the code cannot say. This principle does not ban comments; it holds each one to the bar that makes it worth its maintenance cost:
+
+- **Clear** — understandable on its own, without the diff, review thread, or session that produced it.
+- **Direct** — says the thing plainly, in as few words as carry it; no hedging, no narration of the editing process.
+- **Meaningful** — adds information the code cannot express: a hidden invariant the type system cannot state, behavior that would surprise a careful reader, an intentional deviation from convention with its rationale, a non-obvious workaround with a durable external anchor (CVE, upstream bug id, vendor doc), a security-critical assumption ("caller has already validated X; do not re-check"), or a performance-critical decision backed by profiler evidence.
+
+One such purpose is enough — a comment does not need two reasons to live. A comment carrying none of them — restating the code, narrating the edit, marking a section — is noise: it rots under refactor and erodes trust in the comments that matter. Revise it into one that carries meaning, or remove it.
+
+The two comment principles compose as ordered gates. This principle is the **value gate** and runs first: does the comment carry something the code cannot? Principle 7 is the **content gate** and runs second: what it carries is the *why*, not a restatement of the *what*. A comment that serves its reader passes both. (The comments capability, arriving in a follow-up change, carries the full rubric with per-file-type rules.)
+
+Applies to comments in every file type that carries them — source code, configs, workflows, infrastructure, shell scripts, migrations, tests, and markdown HTML comments or frontmatter remarks. Commit messages, PR descriptions, branch names, and release notes are change narration, outside this skill's scope entirely.
+
+**See also:** principle 7 (content gate — why over what, applied after this value gate); principle 20 (commented-out code is a separate smell: dead code, not commentary).

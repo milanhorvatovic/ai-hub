@@ -1,11 +1,11 @@
 """Content-contract tests for the coding-principles skill.
 
 The router advertises specific, countable facts about the skill's body —
-"16 mantras", "20 numbered principles", the per-language seven-file reference
+"16 mantras", "21 numbered principles", the per-language seven-file reference
 set — and the capabilities use portable name slugs. These tests pin those
 numbers, the file set, and the slug pattern so the prose, the reference files,
 and the SKILL.md summary lists cannot drift apart silently (e.g. someone adds
-a 21st principle to principles.md but forgets the router's titles list, or
+a 22nd principle to principles.md but forgets the router's titles list, or
 renames a capability without updating its slug).
 """
 
@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 
 EXPECTED_MANTRAS = 16
-EXPECTED_PRINCIPLES = 20
+EXPECTED_PRINCIPLES = 21
 
 # Each language capability is `capability.md` plus a `references/` subdir
 # holding the same seven supporting files (see the "File layout" section of
@@ -91,8 +91,8 @@ def test_mantra_count_is_consistent(skill_md: Path, references_dir: Path) -> Non
 def test_principle_count_is_consistent(
     skill_md: Path, references_dir: Path
 ) -> None:
-    """20 principle headings in principles.md, 20 numbered titles in the
-    router, and the description's "20 numbered principles" claim all agree."""
+    """21 principle headings in principles.md, 21 numbered titles in the
+    router, and the description's "21 numbered principles" claim all agree."""
     principles_md = (references_dir / "principles.md").read_text(encoding="utf-8")
     headings = re.findall(r"^#{2,3} (\d+)\.", principles_md, flags=re.MULTILINE)
     assert [int(h) for h in headings] == list(range(1, EXPECTED_PRINCIPLES + 1)), (
@@ -108,7 +108,7 @@ def test_principle_count_is_consistent(
 
     assert f"{EXPECTED_PRINCIPLES} numbered principles" in skill_md.read_text(
         encoding="utf-8"
-    ), "description no longer claims '20 numbered principles' — update the count"
+    ), "description no longer claims '21 numbered principles' — update the count"
 
 
 def test_language_capabilities_carry_the_documented_file_set(
