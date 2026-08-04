@@ -45,7 +45,13 @@ CORPUS_DIRS = sorted(
 
 
 def _corpus(name: str) -> dict:
-    return json.loads((CORPUS_ROOT / name / "skill.json").read_text(encoding="utf-8"))
+    path = CORPUS_ROOT / name / "skill.json"
+    if not path.is_file():
+        pytest.fail(f"missing corpus file: {path.relative_to(REPO_ROOT)}")
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        pytest.fail(f"invalid JSON in {path.relative_to(REPO_ROOT)}: {exc}")
 
 
 def _prompts(data: dict, side: str) -> list[str]:
