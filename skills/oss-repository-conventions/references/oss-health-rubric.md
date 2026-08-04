@@ -30,17 +30,32 @@ Capabilities write each check as a single bullet:
 - `id` — **severity** [· scorecard: Name]. <criterion>. <why>.
 ```
 
-At report time each check resolves to a **status** — `pass` / `warn` / `fail` / `skip` — which is what the score and the NDJSON findings record.
+At report time each check resolves to a **status** — `pass` / `warn` / `fail` / `skip` — which is what the score and the NDJSON findings record. `warn` means the convention is present but weak or partial; `fail` means it's missing or broken.
+
+### Conditional severity
+
+A check whose severity depends on the repo's shape declares both values inline, in the bullet's severity slot:
+
+```text
+- `id` — **base** (→ **resolved** when <condition>) [· scorecard: Name]. <criterion>. <why>.
+```
+
+The arrow's right-hand severity applies whenever the condition holds; the base severity otherwise. The condition reads as `when <situation>` or `for <class of repo>` — `(→ **should** for libraries)` resolves to `should` when the repo is a library. Resolution happens at audit time, before scoring: the resolved severity sets the check's weight, and the emitted NDJSON carries the **resolved** value in its `severity` field — the arrow notation exists only in capability bodies, never in output, so `output-format.schema.json`'s single-valued severity enum is unchanged.
+
+A parenthesized qualifier without an arrow — `**severity** (when <condition>)` — is an applicability gate, not a severity swap: when the condition doesn't hold, the check is skipped per [Applicability gates](#applicability-gates).
 
 ## Score
 
 A repo's health score is the share of _applicable_ checks satisfied, weighted by severity. Inapplicable checks are excluded, not failed (a pure-docs repo has no test framework to score).
 
 ```text
-weight: must = 3, should = 2, could = 1
+weight:    must = 3, should = 2, could = 1    (the resolved severity)
+satisfied: status == pass                     (warn and fail earn 0)
 score  = sum(weight of satisfied applicable checks)
          / sum(weight of all applicable checks)   -> 0–100%
 ```
+
+**Satisfied means `pass`, nothing else.** A `warn` counts as unsatisfied — present-but-weak earns no credit, exactly like `fail` in the arithmetic. The two differ only in the report: a `fail` is a missing convention (`→ scaffold available`), a `warn` is a weak one (`→ fix suggested`), and a `warn` never joins the unmet-`must` blockers that gate the cross-domain baseline below. `skip` is excluded from both sides of the division. The rule is deliberately binary so that two auditors following this rubric compute the same number; `worked-example.md` carries one score computed by hand as the proof.
 
 Report the score per domain and rolled up. Always show the unmet `must` and `should` items beside the number — the number alone is not actionable. Mirror GitHub's own community-profile health percentage when it is available (`gh api repos/{owner}/{repo}/community/profile --jq .health_percentage`), and note where this rubric is stricter than GitHub's (GitHub does not score CI, signing, dependency automation, or supply-chain).
 
