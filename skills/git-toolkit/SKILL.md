@@ -161,7 +161,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 | `references/git-gh-quirks.md` (gh portions) | Fork PRs, stacked-PR base resolution via `gh pr view`, the paginated `reviewThreads` resolution-state query, `gh` auth failure handling |
 | `references/forge-adapters.md` | Single home of the forge mapping: remote detection, command-lane selection, per-operation CLI equivalents on GitLab (`glab`) and Codeberg/Forgejo (`tea`), the Bitbucket stance, and degrade rules for unknown forges |
 
-`git-gh-quirks.md` straddles intentionally — both sides need parts of it, but each side reads the section it cares about. Its Windows shell-portability section applies to every apply command on either side: commands are POSIX-form, Git Bash runs them as written, and the recurring patterns have PowerShell alternates there.
+`references/git-gh-quirks.md` straddles intentionally — both sides need parts of it, but each side reads the section it cares about. Its Windows shell-portability section applies to every apply command on either side: commands are POSIX-form, Git Bash runs them as written, and the recurring patterns have PowerShell alternates there.
 
 ## Cross-capability flow
 
