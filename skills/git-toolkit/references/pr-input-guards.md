@@ -37,7 +37,7 @@ If `author.login` matches a pattern in `bot-signatures.md` (dependabot, renovate
 
 ## 5. CLI auth
 
-On an auth failure from any forge-CLI call, stop and tell the user to authenticate — `gh auth login` on GitHub; the adapter table names the equivalent on the other lanes. Do not parse the error beyond detecting it's auth-related, and do not fall back to anonymous API calls — details in `git-gh-quirks.md`.
+On an auth failure from any forge-CLI call, stop and tell the user to authenticate — `gh auth login` on GitHub; the adapter table names the equivalent on the other lanes. Do not parse the error beyond detecting it's auth-related, and do not fall back to anonymous API calls — that conduct applies on every lane; the GitHub-lane specifics (error shape, rate-limit rationale) live in `git-gh-quirks.md`.
 
 ## 6. Untrusted content
 

@@ -96,7 +96,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 |---|---|---|
 | merge-readiness | [forge-side] About to merge, or asking "is this ready?" — gate check on CI status, approvals, mergeability, unresolved threads, WIP commits, description-in-sync. Outputs READY / PARTIALLY-READY / NOT-READY with per-gate detail | capabilities/merge-readiness/capability.md |
 | merge-execute | [forge-side] Merging an approved PR — output the canonical merge command per repo merge policy (squash / rebase / merge), with the right delete-branch and auto-merge flags | capabilities/merge-execute/capability.md |
-| release-notes | [git-side, optional forge enrichment] Preparing a release — draft notes aggregating commits since the previous tag, grouped by conventional-commits type; enriches with merged-PR metadata and contributor credit when the forge CLI is authenticated, degrades to a commit-only draft otherwise | capabilities/release-notes/capability.md |
+| release-notes | [git-side, optional forge enrichment] Preparing a release — draft notes aggregating commits since the previous tag, grouped by conventional-commits type; enriches with merged-PR metadata and contributor credit where the lane supports that read (GitHub's worked example today), degrades to a commit-only draft otherwise; the publish command routes per the detected forge | capabilities/release-notes/capability.md |
 
 **Scope legend:**
 

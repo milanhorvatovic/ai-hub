@@ -166,7 +166,8 @@ Length: <chars>
 
 Apply with (publish step is forge-conditional — emit only the detected forge's line):
   GitHub:            gh release create <tag> --notes-file <path> [--draft] [--prerelease]
-  GitLab/Forgejo:    the release-create command from the adapter table (../../references/forge-adapters.md)
+  GitLab:            its release-create command per the adapter table (../../references/forge-adapters.md)
+  Codeberg/Forgejo:  its release-create command per the same adapter table
   Bitbucket:         no native Releases — paste the draft from <path> into your release mechanism
 
 Or update an existing GitHub release:
