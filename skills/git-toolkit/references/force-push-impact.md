@@ -7,7 +7,7 @@ Load this when a capability proposes rewriting commits that may already exist on
 Classify the rewrite target(s) into exactly one bucket:
 
 - **Never pushed** — local-only commit(s). Standard `git commit --amend` or `git rebase` works; no force-push needed; impact = **none**.
-- **Pushed, no review anchors** — the commit is on a remote tracking branch but has no PR comments anchored to specific SHAs (no PR yet, or no review comments yet). Force-push is needed to publish the rewrite; collaborators with the branch checked out need `git pull --rebase`; CI caches and external links keyed to the old SHAs go stale. Impact = **mild**.
+- **Pushed, no review anchors** — the commit is on a remote tracking branch but has no PR comments anchored to specific SHAs (no PR yet, or no review comments yet). Force-push is needed to publish the rewrite; collaborators with the branch checked out need `git pull --rebase`; CI caches and external links keyed to the old SHAs go stale; impact = **mild**.
 - **Pushed and review-anchored** — a PR exists with at least one review comment anchored to a commit-specific SHA. Force-push is needed AND review anchors will become dangling — reviewers cannot navigate to the original code they commented on. Impact = **high**; surface every anchored thread by URL so the user can decide whether the gain justifies the loss.
 
 ## Detection recipes

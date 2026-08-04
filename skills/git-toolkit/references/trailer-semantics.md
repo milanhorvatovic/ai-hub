@@ -74,8 +74,8 @@ This is a router-level principle. No capability adds a trailer on its own initia
 
 This rule applies across every capability:
 
-- `commit-message` write mode does not append trailers to the proposed message.
-- `commit-message` review mode does not propose adding trailers as a "fix."
+- `commit-message` WRITE mode does not append trailers to the proposed message.
+- `commit-message` REVIEW mode does not propose adding trailers as a "fix."
 - `pr-description` WRITE mode does not include trailers in the proposed body.
 - `pr-description` SYNC mode does not add trailers when rewriting; it only preserves trailers that were already there.
 - `rebase-cleanup` does not introduce new trailers when squashing — only preserves existing ones byte-for-byte.

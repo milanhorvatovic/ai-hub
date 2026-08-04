@@ -157,12 +157,12 @@ A typical end-to-end lifecycle for a change. Each step is independent and option
 | Phase | Capability | Side |
 |---|---|---|
 | Starting a new branch | `branch-name` → optionally `worktree-setup` for parallel work | git |
-| Writing commits during work | `commit-message` (write mode) | git |
-| Quick mid-work fixes | `commit-fixup` for amending an earlier commit; `commit-message` (amend mode) for fixing the last commit's wording | git |
-| Before requesting review (clean history) | `rebase-cleanup` → `commit-message` (review mode) | git |
-| Before requesting review (PR body) | `pr-description` — sync mode; switches to write mode when the body is empty / WIP | GitHub |
+| Writing commits during work | `commit-message` (WRITE mode) | git |
+| Quick mid-work fixes | `commit-fixup` for amending an earlier commit; `commit-message` (AMEND mode) for fixing the last commit's wording | git |
+| Before requesting review (clean history) | `rebase-cleanup` → `commit-message` (REVIEW mode) | git |
+| Before requesting review (PR body) | `pr-description` — SYNC mode; switches to WRITE mode when the body is empty / WIP | GitHub |
 | Before requesting review (issue refs) | `pr-link-issues` to add `Closes` / `Refs` keywords | GitHub |
-| After applying body changes | Re-run `pr-description` (sync mode) to confirm `IN-SYNC` | GitHub |
+| After applying body changes | Re-run `pr-description` (SYNC mode) to confirm `IN-SYNC` | GitHub |
 | Mid-review (CI red) | `pr-checks-summary` to interpret failures and propose fixes | GitHub |
 | Wrapping up review feedback | `pr-conversation-resolve` for unresolved threads | GitHub |
 | Pre-merge gate | `merge-readiness` (verdict) → `merge-execute` (the command) | GitHub |
