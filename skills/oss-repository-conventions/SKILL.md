@@ -142,7 +142,7 @@ Each row routes to a self-sufficient capability; the path column is the file to 
 | `references/output-format.schema.json` | JSON Schema (Draft 2020-12) for the audit NDJSON findings — the machine-checkable contract behind `output-format.md` |
 | `references/output-format.example.ndjson` | Worked fixture for the schema — a valid NDJSON findings stream |
 | `references/untrusted-content.md` | Treats the audited repo's files and `gh`-fetched text as data not instructions; the indirect-prompt-injection guard that bounds the precedence rule |
-| `references/forge-portability.md` | What's GitHub-specific in the skill and how it maps / degrades on GitLab, Forgejo/Gitea, and Bitbucket |
+| `references/forge-portability.md` | What's GitHub-specific in the skill and how it maps / degrades on GitLab, Codeberg/Forgejo, and Bitbucket Cloud |
 | `references/worked-example.md` | End-to-end walkthrough of one repo through full-repo audit → roll-up → scaffold |
 | `references/language-support.md` | Shared language detection method + degrade principle for the language-dependent capabilities (each declares its own tool-bound supported set) |
 | `references/maturity-benchmarks.md` | Maps the rubric to recognized external benchmarks (OpenSSF Best Practices Badge, Scorecard, GitHub community profile, SLSA, CNCF/Apache maturity) for the audit roll-up |
