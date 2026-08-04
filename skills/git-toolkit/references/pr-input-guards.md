@@ -11,7 +11,7 @@ Run `git remote get-url origin` and classify per `forge-adapters.md`. The result
 - **Bitbucket Cloud** → minimal lane: the operations in the adapter's Bitbucket table route through the community `bkt` CLI, falling back to the table's raw REST calls when `bkt` is absent (a scoped API token either way); operations outside that table refuse with the documented reason.
 - **Unknown forge** → forge-side operations are unavailable: refuse and offer the git-side equivalent when one exists.
 
-If the selected lane's CLI is missing or unauthenticated, stop and say which CLI and where it comes from (per `forge-adapters.md`) — never fall back to `gh` against a non-GitHub remote, and never emit one forge's commands for another.
+If the selected lane's CLI is missing or unauthenticated, stop and say which CLI and where it comes from (per `forge-adapters.md`) — except on Bitbucket, where the adapter's CLI-free curl fallback still routes the tabled operations. Never fall back to `gh` against a non-GitHub remote, and never emit one forge's commands for another.
 
 Surface `forge=<x>; commands via <cli>` in the proposal preamble.
 
