@@ -22,7 +22,7 @@ Template detection is an on-disk read, so it works on every forge — only the p
 
 - **GitLab** — `.gitlab/merge_request_templates/*.md` on the default branch; each file is a selectable template (the GitLab analog of the multi-template directory). A template named `Default.md` (case-insensitive) auto-applies to new MRs; projects on paid tiers can instead set a default in project settings, which takes priority over `Default.md`.
 - **Gitea / Forgejo (Codeberg)** — single template only, no PR-template chooser: `PULL_REQUEST_TEMPLATE` / `pull_request_template` with `.md` / `.yaml` / `.yml`, in the repo root, `.gitea/`, or `.github/`; Forgejo also reads `.forgejo/`. First match wins.
-- **Bitbucket Cloud** — no repository-file PR-template convention; skip template detection.
+- **Bitbucket Cloud** — `.bitbucket/pull_request_template.md`, and branch-dependent: the version on the PR's **source branch** wins. A repository-settings "Default description" (with its `{{commit_messages}}` variable) can also apply; it lives in settings, not the tree, so on-disk detection reads the file and, when none exists, notes that a settings default may still be in play rather than concluding "no template".
 
 The parsing, comment-stripping, and unfilled-threshold rules below are forge-independent.
 

@@ -281,17 +281,19 @@ def test_no_capability_restates_the_impact_template(capabilities_dir: Path) -> N
 def test_forge_adapter_mapping_is_the_single_home(
     references_dir: Path, capabilities_dir: Path
 ) -> None:
-    """The alternative-CLI mapping (GitLab `glab`, Forgejo `tea`) lives only
-    in forge-adapters.md. Capability bodies express each operation once, with
-    the gh command as the GitHub worked example, and route other forges
-    through the adapter table — naming an alternative CLI inline would fork
-    the mapping."""
+    """The alternative-lane mapping (GitLab `glab`, Forgejo `tea`, the
+    Bitbucket REST lane) lives only in forge-adapters.md. Capability bodies
+    express each operation once, with the gh command as the GitHub worked
+    example, and route other forges through the adapter table — naming an
+    alternative CLI or the Bitbucket API host inline would fork the
+    mapping."""
     adapters = (references_dir / "forge-adapters.md").read_text(encoding="utf-8")
-    for cli in ("glab", "tea"):
-        assert re.search(rf"\b{cli}\b", adapters), (
-            f"forge-adapters.md no longer documents the `{cli}` lane"
+    for marker in ("glab", "tea", "api.bitbucket.org"):
+        assert re.search(rf"\b{re.escape(marker)}\b", adapters), (
+            f"forge-adapters.md no longer mentions {marker!r} — every lane's "
+            "mapping lives in this file"
         )
-    pattern = re.compile(r"\b(glab|tea)\b")
+    pattern = re.compile(r"\b(glab|tea)\b|api\.bitbucket\.org")
     offenders = [
         f"{cap.parent.name}:{lineno}: {line.strip()}"
         for cap in sorted(capabilities_dir.glob("*/capability.md"))
@@ -301,8 +303,9 @@ def test_forge_adapter_mapping_is_the_single_home(
         if pattern.search(line)
     ]
     assert not offenders, (
-        "capability bodies name an alternative forge CLI — the mapping's "
-        "single home is forge-adapters.md:\n" + "\n".join(offenders)
+        "capability bodies name an alternative forge lane (CLI or Bitbucket "
+        "API host) — the mapping's single home is forge-adapters.md:\n"
+        + "\n".join(offenders)
     )
 
 

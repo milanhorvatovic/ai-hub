@@ -7,12 +7,12 @@ description: >
   GitHub lifecycle: branch naming and worktree setup, commit authoring,
   history cleanup, PR descriptions and issue linking, CI failure triage,
   review-thread resolution, merge readiness and execution, release notes.
-  Enforces conventional-commits (when the repo uses them), imperative mood,
-  ≤72-char subjects, and trailer placement. Also fires on asks to write,
-  validate, review, fix, sync, or clean up that text, and when commits feel
-  inconsistent. Works on GitLab and Codeberg/Forgejo too. Never
-  auto-publishes or auto-adds trailers. Read-only inspection (status, log,
-  diff) stays out.
+  Enforces conventional-commits (when in use), imperative mood, ≤72-char
+  subjects, and trailer placement. Also fires on asks to write, validate,
+  review, fix, sync, or clean up that text, and when commits feel
+  inconsistent. Works on GitLab, Codeberg/Forgejo, and Bitbucket Cloud.
+  Never auto-publishes or auto-adds trailers. Read-only inspection (status,
+  log, diff) stays out.
 allowed-tools: Bash Read Write Grep
 metadata:
   version: "1.1.0" # x-release-please-version
@@ -108,14 +108,14 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 
 | Capability | T1 GitHub | T2 GitLab | T3 Codeberg / Forgejo | T4 Bitbucket Cloud |
 |---|---|---|---|---|
-| pr-description | full | full | full | refuses |
+| pr-description | full | full | full | minimal — view, diff, body edit via the curl lane |
 | pr-link-issues | full | full | partial — no timeline cross-reference read | refuses |
 | pr-checks-summary | full | partial — pipeline status, no log interpretation | refuses | refuses |
 | pr-conversation-resolve | full | full | partial — listing and replies map; resolving stays in the forge UI | refuses |
-| merge-readiness | full | full | partial — fewer gates readable | refuses |
-| merge-execute | full | full | full — no auto-merge flag | refuses |
+| merge-readiness | full | full | partial — fewer gates readable | partial — metadata gates + status aggregate |
+| merge-execute | full | full | full — no auto-merge flag | minimal — merge + strategy read via the curl lane |
 
-Tier semantics: T1 is first-class — every operation, `gh` worked examples. T2 and T3 route each operation through the adapter mapping in `references/forge-adapters.md`; `partial` cells name what is lost. T4 is not wired — forge-side capabilities refuse with the documented reason and name the git-side fallback when one exists (`release-notes` is unaffected: git-side, it drafts on any forge, and only its publish step is forge-conditional). Refusing cleanly beats emitting GitHub-shaped output that cannot work on the detected forge.
+Tier semantics: T1 is first-class — every operation, `gh` worked examples. T2 and T3 route each operation through the adapter mapping in `references/forge-adapters.md`; `partial` cells name what is lost. T4 is a minimal `curl` lane (scoped API token — Bitbucket has no official CLI): the cells above route through the adapter's Bitbucket table, and every other operation refuses with the documented reason, naming the git-side fallback when one exists (`release-notes` is unaffected: git-side, it drafts on any forge, and only its publish step is forge-conditional). Refusing cleanly beats emitting GitHub-shaped output that cannot work on the detected forge.
 
 Within `pr-description`, the body's state picks the mode: a substantive existing body always takes the SYNC path (which may itself escalate to `MAJOR-REWRITE` and produce a full replacement). Only empty / WIP / one-liner / unfilled-template bodies take the WRITE path.
 
