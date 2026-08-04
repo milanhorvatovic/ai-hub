@@ -33,6 +33,10 @@ Thanks for your interest! ai-hub is an incubator for AI-agnostic artifacts — s
 - Run `./venv/bin/pytest -q` before pushing. Markdown is formatted with Prettier (`proseWrap: never`) per `.prettierrc.json` — author prose as one line per paragraph and let it wrap.
 - Optional but recommended: `git config core.hooksPath .githooks` turns on a `commit-msg` hook that checks each commit message as you write it — the same linter CI runs on every PR (see [Commit messages](#commit-messages)). If you use the repo's opt-in [pre-commit](.pre-commit-config.yaml) hooks, note that `core.hooksPath` takes over hook dispatch: the bundled `.githooks/pre-commit` delegates to `pre-commit` automatically, so skip `pre-commit install`.
 
+## Adding a skill
+
+New skills follow the runbook at [docs/adding-a-skill.md](docs/adding-a-skill.md): the skill directory's required shape, the activation corpus, the fleet manifest, the release wiring, and the README entry — with the test that backs each step. The short version: the structural suite validates the skill's shape from its first `pytest` run; staging the skill engages the wiring guards (fleet manifest, release-please config and manifest); the only unguarded step is the README's Skills list. Title the introducing PR with the `repo` scope (see [Pull requests](#pull-requests)) and keep it to one skill.
+
 ## Commit messages
 
 Branch commits are concatenated into the squash commit on `main` (the `COMMIT_MESSAGES` setting), so commit text is permanent public history. A CI job in the `change-intent` workflow lints every branch commit, and the `commit-msg` hook above gives you the same feedback locally at commit time:
