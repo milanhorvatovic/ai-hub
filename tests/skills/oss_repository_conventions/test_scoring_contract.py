@@ -1,9 +1,11 @@
 """Enforce the scoring contract in `references/oss-health-rubric.md`.
 
 Three invariants keep two independent auditors on the same number: every
-check id cited outside its own Audit section (baseline roll-ups, worked
-report lines, NDJSON samples) resolves to a check the named capability
-defines; conditional severities use the one codified notation
+`capability check-id` citation anywhere in the skill's markdown (baseline
+roll-ups, worked report lines, NDJSON samples) resolves to a check the named
+capability's Audit section defines — a definition bullet carries no
+capability-name prefix, so declarations never register as citations;
+conditional severities use the one codified notation
 (`**base** (→ **resolved** when <condition>)`) so the resolved severity is
 always derivable; and the worked score computation in
 `references/worked-example.md` reproduces its stated number under the
