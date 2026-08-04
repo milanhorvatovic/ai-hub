@@ -142,16 +142,17 @@ The apply commands are file-based by design (`git commit -F <path>`, `--body-fil
 | heredoc (`<<'EOF'`) | single-quoted here-string (`@'` … `'@`) — the closing mark must start its own line; the double-quoted form interpolates |
 | `$(cat <path>)` | `(Get-Content <path> -Raw)` — `-Raw` returns one string; without it `Get-Content` (and its `cat` alias) returns an array of lines |
 | `--pretty=format:'%h %s'` and similar mid-token quoting | quote the whole argument instead: `'--pretty=format:%h %s'` — robust across PowerShell versions and argument-mode metacharacters |
-| `curl` (the Bitbucket lane) | call `curl.exe` explicitly — Windows PowerShell 5.1 aliases `curl` to `Invoke-WebRequest`; PowerShell 7 resolves the real binary, but the `.exe` form is unambiguous everywhere |
+| `curl` (the Bitbucket lane's fallback) | call `curl.exe` explicitly — Windows PowerShell 5.1 aliases `curl` to `Invoke-WebRequest`; PowerShell 7 resolves the real binary, but the `.exe` form is unambiguous everywhere |
 
 ### Windows install channels
 
-All three forge CLIs ship Windows builds. winget carries `gh` officially; the glab and tea winget/scoop/choco packages are community-maintained:
+All four forge CLIs ship Windows builds. winget carries `gh` officially; the glab, tea, and bkt packages are community-maintained:
 
 | CLI | winget id | scoop | choco |
 |---|---|---|---|
 | `gh` | `GitHub.cli` | `gh` | `gh` |
 | `glab` | `GLab.GLab` | `glab` | `glab` |
 | `tea` | `Gitea.tea` | `tea` | `tea` — the `gitea` package is the server, not the CLI |
+| `bkt` | `AvivSinai.Bitbucket-CLI` | `bitbucket-cli` — via the project's own bucket (`scoop bucket add avivsinai`) | not packaged — use the release zips |
 
-Official binaries as the fallback: gh's releases (MSI/exe), gitlab-org/cli releases, and dl.gitea.com/tea for `tea`.
+Official binaries as the fallback: gh's releases (MSI/exe), gitlab-org/cli releases, dl.gitea.com/tea for `tea`, and avivsinai/bitbucket-cli releases (windows zip) for `bkt`.
