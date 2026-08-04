@@ -51,7 +51,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 
 ## Scaffold
 
-`CONTRIBUTING.md` — write after confirmation from `references/contributing.template.md`. Fill it from the repo's reality, not placeholders: the actual setup steps (defer detail to the dev-setup capability), the actual test command, and the maintainer's chosen contribution basis (ask DCO vs CLA vs neither). House style keeps `CONTRIBUTING.md` at repo root.
+`CONTRIBUTING.md` — write after confirmation from `references/scaffold-templates.md`. Fill it from the repo's reality, not placeholders: the actual setup steps (defer detail to the dev-setup capability), the actual test command, and the maintainer's chosen contribution basis (ask DCO vs CLA vs neither). House style keeps `CONTRIBUTING.md` at repo root.
 
 If the repo enforces sign-off, document the `git commit -s` requirement and what `Signed-off-by` attests (the DCO) — but never add sign-off trailers to anyone's commits here; that's a change-narration concern.
 

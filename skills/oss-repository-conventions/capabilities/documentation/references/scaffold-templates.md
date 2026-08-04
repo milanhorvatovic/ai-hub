@@ -55,7 +55,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 - <Anything an agent must not do.>
 ```
 
-> Point `CLAUDE.md` and `.github/copilot-instructions.md` at this file rather than duplicating it, e.g. "See [AGENTS.md](AGENTS.md)."
+> Point `CLAUDE.md` and `.github/copilot-instructions.md` at this file rather than duplicating it — each is a one-line "See `AGENTS.md`" linking to it.
 
 ## ADR — `docs/adr/0001-record-architecture-decisions.md`
 

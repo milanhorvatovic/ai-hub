@@ -1,4 +1,4 @@
-# automation-baseline — composable building blocks
+# automation-baseline — scaffold templates
 
 The bare-minimum, composable CI baseline. Each unit is small and reusable; the caller wires them. Pin every third-party action to a commit SHA and keep `permissions` minimal (the ci-automation capability owns hardening). Tailor commands to the stack.
 
