@@ -1,0 +1,34 @@
+{
+  "target": "docs-steward",
+  "kind": "skill",
+  "_comment": "Markdown-stewardship corpus: positives are formatter-driven audit/reformat intents over docs and frontmatter; negatives are sibling domains — repo health (oss-repository-conventions), change narration (git-toolkit), code quality (coding-principles). Writing health files like SECURITY.md is oss work even though the artifact is markdown.",
+  "positive": [
+    "steward the docs and review the formatter findings",
+    "audit the markdown docs for lint findings",
+    "check the yaml frontmatter across the docs with yamllint",
+    "review our markdown against the repo's markdownlint config",
+    "lint the frontmatter and the fenced yaml blocks",
+    "run the prettier check over the markdown docs and fix the findings",
+    "check whether the markdown docs pass mdformat or dprint",
+    "audit the frontmatter blocks for yamllint findings",
+    "reformat the prose and fix the markdown lint findings",
+    "sweep the repo's markdown docs and emit the lint findings",
+    "the docs format drifted — review and fix the markdown",
+    "apply the approved markdownlint fixes across the markdown docs"
+  ],
+  "negative": [
+    "add a license and code of conduct to the repo",
+    "score this repository's community health",
+    "what is this repo missing for OSS readiness?",
+    "write a commit message for these staged docs edits",
+    "draft a pull request description for the docs branch",
+    "refactor this python script for readability",
+    "review the diff for logic errors",
+    "wire a markdown link checker into the CI pipeline",
+    "harden this repo's security policy and disclosures",
+    "clean up the dead code in this module",
+    "propose a branch name for my docs work",
+    "prepare release notes for the upcoming version"
+  ],
+  "description_sha256": "3c9ae8a7fad93c8d2099485dab2e910ca2610a5b25c94dd79d7860f909f1ad88"
+}
