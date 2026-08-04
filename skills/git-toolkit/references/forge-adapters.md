@@ -19,7 +19,7 @@ Pattern match on the host:
 | `github.com`, `*.github.com`, `ghe.*` | GitHub | `gh` |
 | `gitlab.com`, self-hosted GitLab (any host with `/api/v4/`) | GitLab | `glab` |
 | `codeberg.org`, any Forgejo instance | Codeberg / Forgejo | `tea` (the Gitea CLI; Forgejo is wire-compatible — divergences flagged below) |
-| `bitbucket.org` | Bitbucket Cloud | `curl` + scoped API token — minimal lane, see its section below |
+| `bitbucket.org` | Bitbucket Cloud | `bkt` (community CLI) with a tool-free curl fallback — minimal lane, see its section below |
 
 For ambiguous self-hosted instances, fall back to a `curl -s <url>/api/v4/version` probe (GitLab) or `<url>/api/v1/version` (Gitea/Forgejo). If no probe matches, the capability surfaces "forge unknown; forge-side operations unavailable" and offers the git-side equivalent where one exists.
 
@@ -28,9 +28,9 @@ For ambiguous self-hosted instances, fall back to a `curl -s <url>/api/v4/versio
 - **`gh`** — first-class; capability bodies are written in it.
 - **`glab`** (GitLab CLI) — authenticate with `glab auth login`. `glab mr view` / `glab issue view` / `glab ci status` take `-F json` and a built-in `--jq`; `glab api` substitutes `:id`, `:branch`, `:username`, `:fullpath` from the current repo and supports `--paginate` but has **no** built-in `--jq` — pipe to `jq` and name that dependency in the proposal.
 - **`tea`** (Gitea CLI) — authenticate with `tea login add --url <instance> --token <token>`. Works against Forgejo/Codeberg; list commands double as detail views (`tea pr <n>`, `tea issues <n>`) and machine-readable output comes from `--fields` selections rather than JSON.
-- **`curl`** (Bitbucket Cloud) — there is no official CLI: Atlassian's `acli` ships no Bitbucket command group (third-party projects named "acli"/"atlassian-cli" advertise one — different tools, don't conflate), so the guaranteed baseline is the REST API. Authenticate with HTTP Basic auth: the Atlassian account **email** as username and a **scoped API token** (created at id.atlassian.com) as password — app passwords no longer work. Scopes: `read:pullrequest:bitbucket` for PR reads, `write:pullrequest:bitbucket` for edit/merge, `read:repository:bitbucket` for commit statuses. Pipe responses to `jq`.
+- **`bkt`** (Bitbucket Cloud — the community CLI at avivsinai/bitbucket-cli; gh-inspired, MIT, also speaks Bitbucket Data Center; Atlassian's own `acli` ships no Bitbucket command group, and projects named "acli"/"atlassian-cli" that advertise one are different tools) — authenticate with `bkt auth login https://bitbucket.org --kind cloud --username <atlassian-email> --token <api-token>`, using a **scoped API token** created at id.atlassian.com with Bitbucket as the application (general Atlassian tokens won't work; app passwords are dead; OAuth via `--web` is the alternative). Scopes: `read:pullrequest:bitbucket` for PR reads, `write:pullrequest:bitbucket` for edit/merge, `read:repository:bitbucket` for commit statuses. Every command takes `--json` and a built-in `--jq`; `bkt api <path>` is the passthrough for reads without a dedicated command. The project is young (pre-1.0, one primary maintainer) — pin its version in automation, and on command-surface drift trust `--help` and fix this table. The raw REST calls in the lane table are the tool-free fallback: same token, `curl` + `jq`.
 
-A missing or unauthenticated lane CLI stops the capability (per the guard sequence) — name the CLI and its auth command (for Bitbucket: the token scopes above), and never emit another lane's commands as a substitute.
+A missing or unauthenticated lane CLI stops the capability (per the guard sequence) — name the CLI and its auth command, and never emit another lane's commands as a substitute. The one exception is Bitbucket: with `bkt` absent, the lane's curl fallback still routes.
 
 ## Concept vocabulary
 
@@ -124,22 +124,22 @@ tea is the Gitea CLI; Forgejo (which powers Codeberg) stays wire-compatible with
 
 ## Bitbucket Cloud lane (minimal)
 
-The curl baseline routes the highest-value operations only; capabilities whose operations are not in this table refuse on a Bitbucket remote, name that reason, and offer the git-side equivalent where one exists. release-notes is unaffected — it drafts on any forge and surfaces the paste-in note for publishing (Bitbucket has no native Releases; tags and Downloads only).
+The lane routes the highest-value operations through `bkt` (see Command lanes), with the raw REST calls as the tool-free fallback; capabilities whose operations are not in this table refuse on a Bitbucket remote, name that reason, and offer the git-side equivalent where one exists. release-notes is unaffected — it drafts on any forge and surfaces the paste-in note for publishing (Bitbucket has no native Releases and `bkt` has no tag or release commands; tags and Downloads only).
 
-Every call below is `curl -s --user "$ATLASSIAN_EMAIL:$API_TOKEN"` against `https://api.bitbucket.org/2.0/repositories/<workspace>/<repo>` (shortened to `$BB`); `<workspace>/<repo>` comes from the detected remote URL (`bitbucket.org/<workspace>/<repo>.git`). List responses are paginated (default 10, max 100) — follow the `next` link in the body, or raise `pagelen`:
+Fallback calls are `curl -s --user "$ATLASSIAN_EMAIL:$API_TOKEN"` against `https://api.bitbucket.org/2.0/repositories/<workspace>/<repo>` (shortened to `$BB`); `<workspace>/<repo>` comes from the detected remote URL (`bitbucket.org/<workspace>/<repo>.git`). List responses are paginated (default 10, max 100) — follow the `next` link in the body, or raise `pagelen`. `bkt` resolves the repo from the remote and paginates itself:
 
-| Operation | Call |
-|---|---|
-| PR for the current branch | `curl -sG … "$BB/pullrequests" --data-urlencode 'q=source.branch.name = "<branch>" AND state = "OPEN"'` |
-| PR metadata | `GET $BB/pullrequests/<n>` — `state` (`OPEN` / `MERGED` / `DECLINED` / `SUPERSEDED`), `title`, `description`, `draft`, `participants[].approved`, `task_count` (open tasks), `close_source_branch`, `source.branch.name`, `destination.branch.name` |
-| PR diff | `curl -sL … "$BB/pullrequests/<n>/diff"` — the endpoint redirects to the raw diff, so follow redirects (`-L`) |
-| Edit the PR body | `GET` the PR first, then `PUT $BB/pullrequests/<n>` with `{"title": …, "description": …, "reviewers": <echoed from the GET>}` — a PUT that omits `reviewers` silently drops the PR's reviewer list |
-| Merge policy | `destination.branch.merge_strategies` and `.default_merge_strategy` on the PR metadata read (also via `GET $BB/refs/branches/<name>`) — the target branch's enabled and default strategies, read-only (not settable via the API) |
-| Merge | `POST $BB/pullrequests/<n>/merge` with `{"merge_strategy": "<strategy>", "close_source_branch": <bool>, "message": "<override>"}` — strategies: `merge_commit` (default), `squash`, `fast_forward`, `squash_fast_forward`, `rebase_fast_forward`, `rebase_merge`; drafts cannot merge (server-enforced) |
-| Merge when CI passes | UI-only — per-PR arming of "merge when builds pass" has no API path; the enablement toggle is a readable branch-restriction kind (`allow_auto_merge_when_builds_pass`), and the merge call's `async` param is job polling, not merge-when-green. Surface auto-merge intent as unavailable from the CLI |
-| CI status | `GET $BB/pullrequests/<n>/statuses` (PR-level aggregate) or `GET $BB/commit/<sha>/statuses` — `state` ∈ `SUCCESSFUL` / `FAILED` / `INPROGRESS` / `STOPPED` |
+| Operation | `bkt` (primary) | curl fallback |
+|---|---|---|
+| PR for the current branch | no list filter by branch — use the passthrough: `bkt api "/repositories/{ws}/{repo}/pullrequests" -P 'q=source.branch.name="<branch>" AND state="OPEN"' --json` | `curl -sG … "$BB/pullrequests" --data-urlencode 'q=source.branch.name = "<branch>" AND state = "OPEN"'` |
+| PR metadata | `bkt pr view <n> --json` — verify the JSON field shape on first use for `participants[].approved` | `GET $BB/pullrequests/<n>` — `state` (`OPEN` / `MERGED` / `DECLINED` / `SUPERSEDED`), `title`, `description`, `draft`, `participants[].approved`, `task_count` (open tasks), `close_source_branch`, `source.branch.name`, `destination.branch.name` |
+| PR diff | `bkt pr diff <n>` (`--stat` for per-file counts) | `curl -sL … "$BB/pullrequests/<n>/diff"` — the endpoint redirects to the raw diff, so follow redirects (`-L`) |
+| Edit the PR body | `bkt pr edit <n> --description '<text>'` — confirm reviewers survive the first edit you propose (whether bkt guards the underlying PUT's reviewers drop is unverified) | `GET` the PR first, then `PUT $BB/pullrequests/<n>` with `{"title": …, "description": …, "reviewers": <echoed from the GET>}` — a PUT that omits `reviewers` silently drops the PR's reviewer list |
+| Merge policy | no dedicated command — `bkt api "/repositories/{ws}/{repo}/refs/branches/<name>" --jq '{merge_strategies, default_merge_strategy}'` | `destination.branch.merge_strategies` and `.default_merge_strategy` on the PR metadata read (also via `GET $BB/refs/branches/<name>`) — read-only, not settable via the API |
+| Merge | `bkt pr merge <n> --strategy <strategy> --message '<override>'` — **bkt closes the source branch by default; pass `--close-source=false` to keep it** (the raw API defaults the other way) | `POST $BB/pullrequests/<n>/merge` with `{"merge_strategy": "<strategy>", "close_source_branch": <bool>, "message": "<override>"}` — strategies: `merge_commit` (API default), `squash`, `fast_forward`, `squash_fast_forward`, `rebase_fast_forward`, `rebase_merge`; drafts cannot merge (server-enforced) |
+| Merge when CI passes | not on Cloud — `bkt pr auto-merge` is Data-Center-only; the scriptable near-equivalent is `bkt pr checks <n> --wait` then merge | UI-only — per-PR arming of "merge when builds pass" has no API path; the enablement toggle is a readable branch-restriction kind (`allow_auto_merge_when_builds_pass`), and the merge call's `async` param is job polling, not merge-when-green |
+| CI status | `bkt pr checks <n>` (alias `builds`; `--wait` / `--timeout` for gating, exit code carries the verdict) | `GET $BB/pullrequests/<n>/statuses` (PR-level aggregate) or `GET $BB/commit/<sha>/statuses` — `state` ∈ `SUCCESSFUL` / `FAILED` / `INPROGRESS` / `STOPPED` |
 
-The API also exposes comment-thread resolution (`POST`/`DELETE $BB/pullrequests/<n>/comments/<id>/resolve`) and first-class PR tasks (`$BB/pullrequests/<n>/tasks`, `RESOLVED`/`UNRESOLVED`), but no capability routes them — pr-conversation-resolve refuses on Bitbucket, and merge-readiness reads only `task_count` from the metadata fetch.
+Thread resolution and PR tasks are richer still (`bkt pr comments <n> --details`, threaded replies via `--parent`, `bkt pr comments resolve`, `bkt pr task list/create/complete`; API: `$BB/pullrequests/<n>/comments/<id>/resolve`, `$BB/pullrequests/<n>/tasks`), but no capability routes them — pr-conversation-resolve still refuses on Bitbucket, and merge-readiness reads only `task_count` from the metadata fetch.
 
 ## What the skill does NOT promise
 
