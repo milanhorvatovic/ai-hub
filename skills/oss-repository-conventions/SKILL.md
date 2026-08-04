@@ -1,21 +1,18 @@
 ---
 name: oss-repository-conventions
 description: >
-  Stewards an open-source repo toward and along a top-notch standard. Operates
-  in three modes — scan (report the conventions and health files a repo
-  declares), audit (score it against OSS best practice and the maintainer's
-  house style, flagging gaps with severity), and scaffold (draft missing
-  files, one confirmation per file). Routes to capabilities covering
-  licensing, contributing, code of conduct, governance, community health,
-  security policy, repo infrastructure, dev setup, code style, testing and
-  quality, CI and automation, dependency and supply chain, release and
-  versioning, and documentation. Reports and proposes; authoring individual
-  commits, PRs, branches, and release notes is out of scope (the
-  change-narration domain). Triggers when the user asks to audit / set up /
-  harden / level up an OSS repo, "what is this repo missing", "make this repo
-  top-notch", "add a SECURITY policy / license / CONTRIBUTING", "score this
-  repo's health", first-touch onboarding, or invokes
-  /oss-repository-conventions.
+  Stewards an open-source repo toward and along a top-notch standard. Triggers
+  on audit / set up / harden / level up an OSS repo, "what is this repo
+  missing", "score its health", "add a SECURITY policy / license /
+  CONTRIBUTING", "set up auto-merge", "auto-approve bot PRs", "make CI
+  composable", first-touch onboarding; invoked on /oss-repository-conventions.
+  Covers licensing; security and governance; contribution, conduct, and
+  community health; repo infrastructure and dev setup; code style and testing;
+  CI automation, dependency supply chain, and PR autonomy; releases and
+  documentation. Modes: scan (what's declared), audit (gaps scored by
+  severity), scaffold (drafts missing files, one confirmation each). Reports
+  and proposes; not for commit/PR/branch/release-notes prose
+  (change-narration).
 allowed-tools: Bash Read Grep Glob Write Edit
 metadata:
   version: "1.0.0" # x-release-please-version
@@ -70,48 +67,48 @@ Shared references at the skill root hold the scan catalog, the audit rubric, the
 
 ## Capability routing
 
-Each row routes to a self-sufficient capability. The path column is the file to load.
+Each row routes to a self-sufficient capability; the path column is the file to load. Trigger cells carry the intent phrases a request matches on — including the calls that disambiguate near-neighbors — so routing needs no capability file opened.
 
 ### Legal, security & governance
 
-| Capability | Covers | Path |
+| Capability | Trigger | Path |
 | --- | --- | --- |
-| licensing | LICENSE selection & SPDX, dual/multi-licensing, per-file headers, REUSE compliance, NOTICE, license compatibility | capabilities/licensing/capability.md |
-| security-policy | SECURITY.md & private disclosure, advisories, signed commits/tags, provenance/SLSA, OpenSSF Scorecard signals, branch protection | capabilities/security-policy/capability.md |
-| code-of-conduct | CODE_OF_CONDUCT (Contributor Covenant), enforcement contact | capabilities/code-of-conduct/capability.md |
-| governance | CODEOWNERS review routing, MAINTAINERS/OWNERS/AUTHORS, GOVERNANCE decision model | capabilities/governance/capability.md |
+| licensing | Choosing or clarifying the license — "what license is this", "add a license", "are my deps license-compatible", SPDX headers / REUSE, NOTICE files | capabilities/licensing/capability.md |
+| security-policy | Securing the repo — "add a security policy", "how do people report vulns", "harden this repo", signed commits/tags, provenance/SLSA, Scorecard signals; branch-protection rules land here, not in repo-infrastructure | capabilities/security-policy/capability.md |
+| code-of-conduct | Conduct expectations — "add a code of conduct", "do we have a CoC", "who handles conduct reports" | capabilities/code-of-conduct/capability.md |
+| governance | Ownership and decisions — "who owns this code", "set up CODEOWNERS", "who are the maintainers", "how are decisions made" | capabilities/governance/capability.md |
 
 ### Contribution & community
 
-| Capability | Covers | Path |
+| Capability | Trigger | Path |
 | --- | --- | --- |
-| contributing | CONTRIBUTING, DCO/CLA & sign-off, dev onboarding, good-first-issue labels | capabilities/contributing/capability.md |
-| community-health | Issue/PR templates & forms, SUPPORT, FUNDING, discussions, triage labels | capabilities/community-health/capability.md |
+| contributing | The contribution on-ramp — "add a contributing guide", "how do people contribute", "do we require sign-off / a CLA", newcomer affordances like good-first-issue labels | capabilities/contributing/capability.md |
+| community-health | The interaction surfaces — "add issue templates", "set up a PR template", "where do users get support", "enable funding", "set up labels", Discussions | capabilities/community-health/capability.md |
 
 ### Engineering & infrastructure
 
-| Capability | Covers | Path |
+| Capability | Trigger | Path |
 | --- | --- | --- |
-| repo-infrastructure | Git hygiene files (.gitignore/.gitattributes/.editorconfig/.mailmap) and repo settings (default branch, topics, merge policy) | capabilities/repo-infrastructure/capability.md |
-| dev-setup | Toolchain pinning (mise/.tool-versions), dev/test deps, one-command bootstrap, .env.example, devcontainer | capabilities/dev-setup/capability.md |
-| code-style | Per-language formatters & linters, pre-commit/lefthook hooks, style enforced in CI | capabilities/code-style/capability.md |
-| testing-quality | Test framework & layout, tests run in CI, coverage measured/gated | capabilities/testing-quality/capability.md |
+| repo-infrastructure | Repo plumbing — "set up .gitignore / .gitattributes / .editorconfig", "fix repo settings", "configure the merge button", "add repo topics"; branch-protection rules → security-policy | capabilities/repo-infrastructure/capability.md |
+| dev-setup | A reproducible dev environment — "how do I set up the dev env", "pin the toolchain", "add a setup script", .env.example, devcontainer | capabilities/dev-setup/capability.md |
+| code-style | Style enforcement — "set up a linter / formatter", "enforce code style", "add pre-commit hooks", style running in CI | capabilities/code-style/capability.md |
+| testing-quality | Testing setup — "set up tests", "add coverage", "do tests run in CI", "gate on coverage" | capabilities/testing-quality/capability.md |
 
 ### Automation & supply chain
 
-| Capability | Covers | Path |
+| Capability | Trigger | Path |
 | --- | --- | --- |
-| automation-baseline | Entry point: bare-minimum composable automation across testing/scanning/deps/releases — scaffolds building blocks, defers depth to the pillars | capabilities/automation-baseline/capability.md |
-| ci-automation | Actions workflows, build/test on PRs, least-privilege tokens, SHA-pinned actions, OIDC, scheduled jobs | capabilities/ci-automation/capability.md |
-| dependency-supply-chain | Dependabot/Renovate, lockfiles, dependency pinning, vulnerability monitoring, SBOM | capabilities/dependency-supply-chain/capability.md |
-| pr-autonomy | The autonomy ladder (auto-approve → auto-merge → full autonomous flow) and the guardrails that scale with each rung | capabilities/pr-autonomy/capability.md |
+| automation-baseline | Standing automation up from nothing — "set up CI / automation for this repo", "the bare-minimum CI", "make automation composable"; the cross-pillar entry point that scaffolds building blocks and defers depth to the pillars below (hardening existing workflows → ci-automation) | capabilities/automation-baseline/capability.md |
+| ci-automation | Improving workflows that already exist — "harden my workflows", "pin my actions", "lock down CI permissions", OIDC, scheduled jobs; greenfield setup → automation-baseline, dependency bots → dependency-supply-chain | capabilities/ci-automation/capability.md |
+| dependency-supply-chain | Dependency hygiene — "set up Dependabot / Renovate", "are my deps up to date", "add an SBOM", lockfiles, vulnerability monitoring; the auto-merge policy those bots ride on → pr-autonomy | capabilities/dependency-supply-chain/capability.md |
+| pr-autonomy | How autonomously PRs reach merge — "set up auto-merge", "auto-approve bot PRs", "make this fully autonomous", "how autonomous is my repo"; owns the autonomy ladder and its guardrails, while per-domain instantiations (the autonomous Dependabot flow) live in their pillar | capabilities/pr-autonomy/capability.md |
 
 ### Release & documentation
 
-| Capability | Covers | Path |
+| Capability | Trigger | Path |
 | --- | --- | --- |
-| release-versioning | SemVer policy, Keep-a-Changelog, release automation, tag/release consistency, support/deprecation policy | capabilities/release-versioning/capability.md |
-| documentation | README structure & badges, docs site, ADRs, runnable examples, agent-instruction files | capabilities/documentation/capability.md |
+| release-versioning | The release process — "set up releases", "add a changelog", "automate releases", "what's our versioning policy"; the process only — any one release's notes are change-narration | capabilities/release-versioning/capability.md |
+| documentation | The docs surface — "improve the README", "set up docs", "add examples", "record an architecture decision", "set up agent instructions" | capabilities/documentation/capability.md |
 
 ### Alphabetic index (fallback)
 
