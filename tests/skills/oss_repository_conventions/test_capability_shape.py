@@ -96,13 +96,20 @@ def test_template_content_is_fenced(capabilities_dir: Path) -> None:
 def test_raw_reference_files_carry_example_marker(capabilities_dir: Path) -> None:
     """The only non-markdown reference files are copyable raw artifacts named
     `*.example.*` (e.g. a JSON payload passed to a CLI as-is) — the documented
-    exemption from the fenced-template convention."""
-    bad = [
+    exemption from the fenced-template convention. The marker and markdown are
+    mutually exclusive: a `*.example.md` would claim the exemption while being
+    the very thing the exemption exists to fence off."""
+    unmarked = [
         str(f.relative_to(capabilities_dir))
         for f in sorted(capabilities_dir.glob("*/references/*"))
         if f.is_file() and f.suffix != ".md" and ".example." not in f.name
     ]
-    assert not bad, f"raw reference files without the .example. marker: {bad}"
+    assert not unmarked, f"raw reference files without the .example. marker: {unmarked}"
+    markdown_marked = [
+        str(f.relative_to(capabilities_dir))
+        for f in sorted(capabilities_dir.glob("*/references/*.example.md"))
+    ]
+    assert not markdown_marked, f"markdown files claiming the raw-artifact marker: {markdown_marked}"
 
 
 def test_audit_check_bullets_are_well_formed(capabilities_dir: Path) -> None:
