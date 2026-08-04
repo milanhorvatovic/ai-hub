@@ -140,7 +140,7 @@ git push -u origin fix/upload-queue-retry
 gh pr create --draft  # creates the PR (#729 in this walkthrough) with no body
 ```
 
-## Step 8 — `pr-description` WRITE mode (GitHub-side)
+## Step 8 — `pr-description` WRITE mode (forge-side)
 
 The PR has no body, so the capability's mode detection picks WRITE. Trigger: "write a PR description".
 
@@ -173,7 +173,7 @@ Apply with:
 
 You apply.
 
-## Step 9 — `pr-link-issues` (GitHub-side)
+## Step 9 — `pr-link-issues` (forge-side)
 
 Trigger: "find issues this PR addresses".
 
@@ -194,7 +194,7 @@ Apply with: gh pr edit 729 --body-file <mktemp-path>
 
 You apply.
 
-## Step 10 — `pr-description` SYNC mode (GitHub-side)
+## Step 10 — `pr-description` SYNC mode (forge-side)
 
 A reviewer asks for changes. You add a follow-up commit that lowers the max attempts from 3 to 2 based on backend load testing. The body is substantive now, so mode detection picks SYNC. Trigger: "is the PR body still accurate?".
 
@@ -217,7 +217,7 @@ Proposed body diff:
 Apply with: gh pr edit 729 --body-file <mktemp-path>
 ```
 
-## Step 11 — `pr-checks-summary` (GitHub-side)
+## Step 11 — `pr-checks-summary` (forge-side)
 
 A CI check goes red. Trigger: "what failed in CI?".
 
@@ -237,7 +237,7 @@ Fix proposal: Update the `exhausts the budget` test to assert 2 calls instead of
 
 You fix, push.
 
-## Step 12 — `pr-conversation-resolve` (GitHub-side)
+## Step 12 — `pr-conversation-resolve` (forge-side)
 
 Three review threads exist. Trigger: "summarize unresolved threads".
 
@@ -269,7 +269,7 @@ Unresolved threads: 3
 The skill never posts; you choose which to send.
 ```
 
-## Step 13 — `merge-readiness` (GitHub-side)
+## Step 13 — `merge-readiness` (forge-side)
 
 Trigger: "is the PR ready to merge?".
 
@@ -293,7 +293,7 @@ risk and merge over it (your call) — PARTIALLY-READY means it's safe to merge 
 an explicit caveat.
 ```
 
-## Step 14 — `merge-execute` (GitHub-side)
+## Step 14 — `merge-execute` (forge-side)
 
 After @reviewer-3's thread is resolved, you re-run `merge-readiness` (now READY). Trigger: "what's the merge command?".
 
@@ -345,6 +345,6 @@ Each is documented in its own `capabilities/<name>/capability.md`.
 ## Takeaways
 
 - Capabilities chain naturally but never auto-trigger each other; the user invokes each.
-- The git-side / GitHub-side boundary is visible at every step (capabilities labeled `[git-side]` work without `gh`).
+- The git-side / forge-side boundary is visible at every step (capabilities labeled `[git-side]` work without a forge CLI; the forge-side steps show the GitHub `gh` worked example).
 - Every state-changing command (`commit`, `rebase`, `push`, `gh pr edit`, `gh pr merge`) is proposed and applied by the user, never run automatically.
 - Trailers are absent throughout — no `Co-authored-by`, no `Signed-off-by`, unless the user asked.
