@@ -1,6 +1,6 @@
 # Usage
 
-Concrete commands the skill ships. SKILL.md describes what each does conceptually; this file is the cheatsheet.
+Concrete commands the skill ships. SKILL.md describes what each does conceptually; this file owns the CLI I/O contract: the cheatsheet, discovery, and the stdout / exit-code semantics.
 
 ## Entry shims
 
@@ -19,6 +19,8 @@ scripts/md-audit-frontmatter.py [FILE...]                 # lint YAML frontmatte
 scripts/md-audit-frontmatter.py --yamllint-config .yamllint  # force a specific yamllint config (overrides auto-discovery)
 ```
 
+**Discovery:** `discovery.list_markdown_files` returns absolute paths to every `.md` / `.markdown` file under the repo root, via `git ls-files --cached --others --exclude-standard` (covers tracked and untracked-but-not-ignored files; respects `.gitignore`) or, when git is unavailable, an `os.walk` fallback — which does not read `.gitignore`; in that mode only the fixed skip list applies. Either path filters entries under `node_modules`, `.git`, `dist`, `build`, `.venv`, `venv`, `target` and drops paths whose working-tree file is missing or is a directory. Repo-root detection (`repo.repo_root`) uses `git rev-parse --show-toplevel`, falling back to the current working directory when git is absent. Per-tool ignore files (`.prettierignore`, `.markdownlintignore`) still apply within each tool's own pass.
+
 **Per-file targeting:** any audit/format/fix entry accepts positional file paths as the last arguments. When provided, they replace the discovered inventory for every pass of the run; when omitted, `discovery.list_markdown_files` supplies the shared inventory and each tool is invoked on that explicit list rather than its own default glob. Works without git — explicit files are passed through as given.
 
 **Composite audit:** `md-audit` (and `md-fix` after its cycle) runs every applicable pass — the formatter owner, the complementary markdownlint lint pass, and (when `yamllint` is on PATH) the frontmatter pass — each with its own `selected` event and its own family's config, aggregated into one exit code via maximum. An empty inventory short-circuits with a single `clean` event and exit 0.
@@ -31,7 +33,7 @@ scripts/md-audit-frontmatter.py --yamllint-config .yamllint  # force a specific 
 
 All emitted events go to stdout as NDJSON via `cli._emit`. The CLI does not write its own progress or error messages to stderr — invocation errors (unknown subcommand, missing required argument) surface via argparse's stderr usage messages, but routine progress is encoded inside the event stream itself (`selected`, `bundled-config`, `clean`, `missing`, `error` events) rather than as a separate stderr channel. Formatter subprocess output is captured and routed through the event stream too; no formatter bytes reach the terminal directly.
 
-Exit codes (uniform across all entry shims): `0` clean / `1` findings (or files changed) / `2` invocation error / `3` no usable tool.
+Exit codes (uniform across the entry shims): `0` clean / `1` findings (or files changed) / `2` invocation error / `3` no usable tool. Exception: `recommend-tools.py` exits `0` (top-priority tool present) or `1` (at least one priority tool missing) only.
 
 ## Python-module invocation
 

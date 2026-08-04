@@ -45,9 +45,9 @@ Fix engine: <cmd>
 ✓ Audit passed. No findings.
 ```
 
-## When the audit emits MISSING or ERROR
+## When the audit emits `missing` or `error`
 
-The agent surfaces the event detail verbatim and notes the exit code. Example for MISSING:
+The agent surfaces the event detail verbatim and notes the exit code. Example for `missing`:
 
 ```markdown
 # Docs steward report — <repo-name>
@@ -58,7 +58,7 @@ Install hint:
 > <install_options from recommend-tools.py if available>
 ```
 
-For ERROR (returncode ≥ 2 from the formatter):
+For `error` (returncode ≥ 2 from the formatter):
 
 ```markdown
 # Docs steward report — <repo-name>

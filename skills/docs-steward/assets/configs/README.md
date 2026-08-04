@@ -1,14 +1,14 @@
 # Bundled fallback configs
 
-These files are formatter configs the skill uses **only when the target repo declares none of its own for that tool family**. Repo config always wins — `docs_steward.baseline.detect_baselines` surfaces everything the repo declares and `docs_steward.selector.build_audit_plan` gives each family's pass its own config; only when a concern resolves to the `universal-subset` sentinel does `docs_steward.bundled_config.bundled_config_for` substitute a file from this directory for that pass.
+These files are tool configs the skill uses **only when the target repo declares none of its own for that tool family**. Repo config always wins — `docs_steward.baseline.detect_baselines` surfaces everything the repo declares and `docs_steward.selector.build_audit_plan` gives each family's pass its own config; only when a concern resolves to the `universal-subset` sentinel does `docs_steward.bundled_config.bundled_config_for` substitute a file from this directory for that pass.
 
 ## What is shipped
 
 | Tool | File | Reason |
 | --- | --- | --- |
-| `markdownlint` / `markdownlint-cli2` | [`markdownlint.json`](markdownlint.json) | Tool accepts `--config <path>` reliably; covers full rule set in one file. |
-| `prettier` | [`prettierrc.json`](prettierrc.json) | Tool accepts `--config <path>`; markdown overrides only, no global side effects. |
-| `yamllint` | [`yamllint.yaml`](yamllint.yaml) | Tool accepts `-c <path>`; used by `md-audit-frontmatter` for frontmatter + fenced YAML block linting. Disables line-length, relaxes document-start, allows `true`/`false` only for truthy, keeps key-duplicates as error. |
+| `markdownlint` / `markdownlint-cli2` | `markdownlint.json` | Tool accepts `--config <path>` reliably; covers full rule set in one file. |
+| `prettier` | `prettierrc.json` | Tool accepts `--config <path>`; markdown overrides only, no global side effects. |
+| `yamllint` | `yamllint.yaml` | Tool accepts `-c <path>`; used by `md-audit-frontmatter` for frontmatter + fenced YAML block linting. Disables line-length, relaxes document-start, allows `true`/`false` only for truthy, keeps key-duplicates as error. |
 
 ## What is intentionally **not** shipped
 
@@ -30,13 +30,20 @@ All defaults track one rule: never hard-wrap prose — line-width is the preview
 - `MD041: false` — allow files to not begin with a top-level heading (frontmatter, includes, ADR templates).
 - `MD060: false` — allow compact table style (`|col|---|` without surrounding pipe padding); the rule's "consistent" default expects `| col | --- |` which adds noise without information.
 - Prettier `proseWrap: never` — never re-wrap paragraphs.
+- Prettier `embeddedLanguageFormatting: "auto"` — keep prettier's default of formatting code inside fenced blocks. The skill does not impose `"off"` here; a repo whose markdown carries illustrative snippets it does not want reformatted (e.g. GitHub-Actions `${{ }}` examples) declares its own `.prettierrc` with `"off"` to override the fallback.
 
 ## How to override
 
-Two ways:
+These bundled files are machine-local: they ship with the skill and are never committed to the audited repo, so CI, pre-commit hooks, and teammates checking out the repo see none of them — an audit that passes locally under a bundled fallback enforces nothing anywhere else. Committing an explicit config (for the no-wrap house style, a `.prettierrc.json` with `proseWrap: never` markdown overrides) is what turns the preference into an enforceable convention; the bundled defaults are a safety net for repos that have not decided yet, not a substitute for deciding.
+
+Two ways to override:
 
 1. **Add a config to your repo.** `docs_steward.baseline.detect_baselines` will pick it up; the bundled fallback is skipped for that tool family's pass. For yamllint specifically, `md-audit-frontmatter.py` auto-discovers `.yamllint` / `.yamllint.yaml` / `.yamllint.yml` at the repo root (mirroring yamllint's own standalone lookup) — the bundled `yamllint.yaml` only kicks in when none of those is present.
-2. **Pass `--baseline FILE` to `../../scripts/md-audit.py` / `../../scripts/md-format.py` / `../../scripts/md-fix.py`.** Forces a specific config path onto the formatter owner (the complementary lint and frontmatter passes stay derived from what the repo declares). The bundled fallback fires only when the resolved baseline is the `universal-subset` sentinel: an arbitrary file path therefore opts out of the bundled defaults, but explicit `--baseline universal-subset` is the same code path as "no config detected" and still applies the bundled config. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag — supplying it overrides both auto-discovery and the bundled fallback.
+2. **Pass `--baseline FILE` to the `md-audit.py` / `md-format.py` / `md-fix.py` entry shims in the skill's scripts directory.** Forces a specific config path onto the formatter owner (the complementary lint and frontmatter passes stay derived from what the repo declares). The bundled fallback fires only when the resolved baseline is the `universal-subset` sentinel: an arbitrary file path therefore opts out of the bundled defaults, but explicit `--baseline universal-subset` is the same code path as "no config detected" and still applies the bundled config. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag — supplying it overrides both auto-discovery and the bundled fallback.
+
+   ```sh
+   scripts/md-audit.py --baseline .prettierrc.json   # from the skill root
+   ```
 
 ## Editing these files
 

@@ -1,20 +1,19 @@
 ---
 name: docs-steward
 description: >
-  Audits and reformats markdown documentation by orchestrating external
-  formatters (markdownlint-cli2 / markdownlint / prettier / mdformat /
-  dprint / remark) and a YAML linter (yamllint) for frontmatter + fenced
-  YAML blocks. Emits NDJSON findings on stdout; an invoking agent renders
-  the report and offers fixes. Operates without hardcoded paths — discovers
-  every `.md` / `.markdown` file (skipping `node_modules`, `.git`, `dist`,
-  `build`, `.venv`, vendored trees). Read-only by default; on approval,
-  runs the chosen formatter's --fix / --write mode. Ships bundled fallback
-  configs (markdownlint.json, prettierrc.json, yamllint.yaml) used only
-  when the repo declares none. Triggers when the user says "steward the
-  docs", "audit docs", "check docs", "review markdown", "audit
-  frontmatter", "lint frontmatter", or invokes `/docs-steward`. Does not
-  write new prose, does not enforce style rules beyond what the chosen
-  formatter applies, does not auto-install any tool.
+  Use when markdown docs need checking or fixing, not writing: the skill
+  audits and formats a repo's markdown by orchestrating the formatter its
+  config declares (markdownlint-cli2 / markdownlint / prettier / mdformat /
+  dprint / remark) plus a complementary lint pass, and runs a yamllint
+  audit over frontmatter and fenced YAML blocks; bundled fallbacks
+  fill what the repo leaves undeclared. Read-only until fixes are
+  approved; emits
+  NDJSON findings the invoking agent renders and offers to fix. Triggers
+  on "steward the docs", "audit docs", "check docs", "review markdown",
+  "format docs", "fix markdown", "audit frontmatter", "lint frontmatter",
+  "recommend doc tools", pre-release sweeps, or /docs-steward. Never
+  writes new prose, adds no rules beyond its bundled fallbacks, never
+  auto-installs tools.
 allowed-tools: Bash Read Grep Edit Write
 metadata:
   version: "1.1.0" # x-release-please-version
@@ -29,9 +28,9 @@ Run external markdown formatters and yamllint on existing repo docs; emit findin
 ## Is / is-not
 
 - **Is:** an orchestrator that runs markdown formatters + yamllint on existing repo docs and emits findings.
-- **Is not:** a doc generator, a code editor, a code reviewer, a native markdown parser. Whatever checks the chosen formatter performs are the checks that fire — the skill adds no rules of its own beyond bundled config tweaks (4.D).
+- **Is not:** a doc generator, a code editor, a code reviewer, a native markdown parser. Whatever checks the chosen formatter performs are the checks that fire — the skill adds no rules of its own beyond the bundled fallback configs (step 4).
 
-The skill respects whatever formatter / linter config the repo declares (`.markdownlint.*`, `.prettierrc*`, `.remarkrc*`, `.editorconfig`, `dprint.json`); when the repo is silent, it falls back to the skill's bundled configs (4.D).
+The skill respects whatever formatter / linter config the repo declares; an undeclared concern gets the bundled fallback where the skill ships one, tool defaults otherwise.
 
 ## Supported file types
 
@@ -43,159 +42,72 @@ No other file types are handled.
 ## Triggers
 
 - "Audit docs" / "check docs" / "review markdown"
-- "Format docs" / "format markdown" / "rewrite docs"
+- "Format docs" / "format markdown" / "fix markdown" / "reformat docs"
 - "Audit frontmatter" / "lint frontmatter" / "check yaml in docs"
 - "What tools do I need to install?" / "recommend doc tools"
 - Before tagging a release (run audit; resolve findings)
 - `/docs-steward`
 
-Do **not** trigger when:
-
-- The user wants new prose written → that is authoring, not maintenance.
-- The user wants the repo's conventions discovered or summarized → that is a convention-scanning concern.
-- The user wants a single skill validated against the Agent Skills specification → spec-conformance is a separate concern.
-- The user wants commit messages, PR descriptions, or branch names produced → that is a git/PR authoring concern.
+Do **not** trigger when: the user wants new prose written (authoring, not maintenance); the repo's conventions should be discovered or summarized (a convention-scanning concern); a skill directory needs validation against the Agent Skills specification (spec conformance); or commit messages / PR descriptions / branch names are wanted (a git authoring concern).
 
 ## Runtime requirements
 
-The scripts under `scripts/` require Python 3.10+ (stdlib only — no `pip install` for the skill itself; the markdown formatters it orchestrates have their own installers, surfaced via `recommend-tools.py`). Cross-platform — runs on macOS, Linux, and Windows wherever Python 3.10+ does. No third-party dependencies.
+`scripts/` requires Python 3.10+ (stdlib only, cross-platform — macOS, Linux, Windows). The orchestrated formatters install separately; the skill surfaces install hints via `recommend-tools.py` and never auto-installs.
+
+## Reference ownership
+
+Each fact lives in one file and this router links and summarizes instead of restating — with two deliberate, contract-tested exceptions stated in both places: the formatter fallback chain and the skip-directory list, which the doc-vs-code suite pins to the code wherever they appear. [`references/formatter-tools.md`](references/formatter-tools.md) owns tool facts: baseline detection and selection order (fed by `selector.py`), per-tool commands, output parsing, install hints. [`references/usage.md`](references/usage.md) owns CLI I/O: the invocation cheatsheet, flags, discovery, the stdout and exit-code contract. [`references/ndjson-schema.md`](references/ndjson-schema.md) owns event semantics. [`references/report-format.md`](references/report-format.md) owns the agent-rendered report shape. [`assets/configs/README.md`](assets/configs/README.md) owns bundled-config policy. [`references/architecture.md`](references/architecture.md) owns the `scripts/` layout and extension recipes.
 
 ## Workflow
 
 ### 1. Locate repo root
 
-```sh
-git rev-parse --show-toplevel
-```
+`git rev-parse --show-toplevel`; outside a git repo, fall back to the current working directory — discovery then walks the filesystem instead of asking git, so `.gitignore` is not respected (only the built-in skip list applies); a limitation worth noting in the report.
 
-If not in a git repo → fall back to the current working directory and note the limitation in the report (cannot infer renames, cannot use `git log`).
+### 2. Inventory markdown files
 
-### 2. Inventory all markdown files
-
-`discovery.list_markdown_files` returns absolute paths to every `.md` / `.markdown` file under the repo root, via `git ls-files --cached --others --exclude-standard` (covers both tracked and untracked-but-not-ignored files; respects `.gitignore`) or, when git is unavailable, an `os.walk` fallback. Either path filters out entries under `node_modules`, `.git`, `dist`, `build`, `.venv`, `venv`, `target` and drops paths whose working-tree file is missing or is a directory.
-
-This inventory is the single file list every pass of a run shares: the formatter pass, the complementary markdownlint pass, the frontmatter pass, and the mdformat-plugin pre-check all receive the same explicit file arguments (explicit positional files, when given, replace the discovered list for all of them). Tools are never invoked on their own default globs, so the scanned set cannot diverge between passes, the `selected` event's `files_scoped` count is always accurate, and an extension with zero matches (e.g. no `.markdown` files) cannot error a tool invocation. When the inventory is empty the run short-circuits with a single `clean` event (`"no markdown files discovered"`) and exit 0 — no tool runs. Per-tool ignore files (`.prettierignore`, `.markdownlintignore`) still apply within each tool's own pass.
+`discovery.list_markdown_files` builds one shared inventory of every `.md` / `.markdown` file under the repo root (tracked + untracked-but-not-ignored; skips `node_modules`, `.git`, `dist`, `build`, `.venv`, `venv`, `target`). Every pass of a run receives this same explicit file list — tools never run on their own default globs — and explicit positional files replace it for all passes. An empty inventory short-circuits with a single `clean` event and exit 0. Discovery mechanics: [`references/usage.md`](references/usage.md).
 
 ### 3. Determine the style baseline
 
-`baseline.detect_baselines` checks the repo root for the **presence** of every config file in the candidate list (no parsing, no field extraction — purely a file-exists check) and returns all matches. `selector.build_audit_plan` then partitions them **per tool family**: the first formatter-family config (prettier / remark / mdformat / dprint) governs the formatter pass, and the first markdownlint-family config governs the complementary lint pass — so a repo declaring both `.markdownlint.json` and `.prettierrc` gets both checks, each honoring its own file, and a config from one family never suppresses the check owned by another. A concern with no declared config resolves to the `universal-subset` sentinel and the bundled fallback (4.D).
-
-Each pass's governing config is recorded in that pass's `selected` NDJSON event `baseline` field; when it belongs to the pass's tool family it is resolved against the repo root and forwarded via the tool's `--config <path>` flag, so the `selected` event's `cmd` field shows the absolute resolved path while `baseline` keeps the user-visible relative name. Tools whose `CommandTemplate.config_flag` is `None` (mdformat / dprint / remark) discover their config from `cwd=root` directly; for those families the `--config` flag is omitted from `cmd`.
-
-Candidates probed in order:
-
-1. markdownlint family:
-   - **Rule configs** (consumed by both `markdownlint` and `markdownlint-cli2`): `.markdownlint.json`, `.markdownlint.jsonc`, `.markdownlint.yaml`, `.markdownlint.yml`
-   - **CLI2-only configs** (`.markdownlint-cli2.{jsonc,yaml}`): cli2-specific format the legacy `markdownlint` CLI cannot parse. The plan routes these to `markdownlint-cli2` exclusively; when cli2 isn't on PATH the lint pass runs the legacy binary under the **bundled** rules instead — the cli2 config is never forwarded to a binary that cannot parse it, and the pass never silently degrades to tool defaults (repo-config-or-bundled, always).
-2. prettier family: `.prettierrc`, `.prettierrc.{json,yaml,yml,js,cjs,mjs,toml}`, `prettier.config.{js,cjs,mjs}`
-3. remark family: `.remarkrc`, `.remarkrc.{json,yaml,yml,js,cjs,mjs}`
-4. mdformat: `.mdformat.toml`
-5. `dprint.json`
-6. `.editorconfig`
-7. Nothing found → `universal-subset` sentinel; bundled fallback configs apply (4.D).
-
-`dprint.json` ranks above `.editorconfig` so a repo declaring both is matched against the formatter-specific config (which routes to `Tool.DPRINT` in `selector._BASELINE_PREFERENCES`) rather than the cross-tool style hint. `.editorconfig` belongs to no tool family, so its presence never claims a concern — a repo declaring only `.editorconfig` resolves both concerns to `universal-subset` and gets the bundled defaults, exactly like a repo that declares nothing.
-
-Configs from **different** families are complementary, not competing — each governs its own pass. Two configs of the **same** kind (e.g. `.prettierrc` and `dprint.json`, both formatter-family) resolve by declaration order: the earlier candidate owns the concern and the later one is not read.
+`baseline.detect_baselines` checks the repo root for the presence (no parsing) of every candidate config — markdownlint family first, then prettier, remark, mdformat, dprint, `.editorconfig` — and `selector.build_audit_plan` partitions the matches per tool family: the first formatter-family config governs the formatter pass, the first markdownlint-family config governs the complementary lint pass, and a concern with no declared config resolves to the `universal-subset` sentinel — the bundled fallback when the selected tool ships one, tool defaults otherwise. A config from one family never suppresses the check owned by another; multiple configs competing for the same concern resolve by declaration order. `.editorconfig` belongs to no tool family and never claims a concern. Candidate filenames, precedence detail, and cli2-only config routing: [`references/formatter-tools.md`](references/formatter-tools.md).
 
 ### 4. Run the audit
 
-The skill is an **orchestrator**: it wraps external markdown formatters (markdownlint-cli2 / markdownlint / prettier / mdformat / dprint / remark) and a YAML linter (yamllint), parses their output, and emits findings in a uniform NDJSON envelope. The catalog of detected rules is whatever the chosen tool enforces; the skill adds no rules of its own beyond bundled config tweaks (4.D).
+The skill wraps six markdown formatters plus yamllint, parses their output, and emits a uniform NDJSON envelope ([`references/ndjson-schema.md`](references/ndjson-schema.md)). Five operations:
 
-#### A. Markdown audit (`md-audit.py`)
+- **`md-audit.py`** — the primary pipeline. Builds the composite plan from step 3 and runs every applicable pass over the shared inventory: the formatter owner in check mode, the complementary markdownlint lint pass, and — when `yamllint` is on PATH — the frontmatter pass. Each pass emits its own `selected` event; the exit code is the maximum across passes. With no formatter config, owner fallback favors prettier: `prettier` → `markdownlint-cli2` → `markdownlint` → `mdformat` → `dprint` → `remark`. When no formatter at all is usable, the run stops at a `missing` event with exit 3 — never auto-install.
+- **`md-format.py`** — the chosen formatter's write mode; `--dry-run` previews via the check invocation and `would-change` events.
+- **`md-fix.py`** — one-shot audit → format → re-audit, emitting a `delta` event with `{resolved, still_open, new}` counts, then the complementary passes so findings no formatter auto-fixes still surface (and drive the exit code).
+- **`md-audit-frontmatter.py`** — the standalone frontmatter pass: extracts YAML frontmatter + fenced YAML blocks and pipes each to yamllint under the repo's config when one is declared, the bundled fallback otherwise. Inside the composite audit this pass soft-skips when yamllint is absent; invoked by name, a missing yamllint is a hard `missing` / exit 3.
+- **`probe.py` / `recommend-tools.py`** — tool inventory and prioritized install recommendations (the install priority deliberately differs from the selection fallback; the user runs any install command themselves).
 
-The primary pipeline. Builds the composite audit plan from step 3, then runs every applicable pass over the shared inventory: the formatter owner in check mode, the complementary markdownlint pass (lint-only), and — when `yamllint` is on PATH — the YAML frontmatter pass (4.C's engine, folded in with the same repo-config discovery). Each pass emits its own `selected` event followed by its findings, so the report lists every executed pass and the config that governed it; the exit code is the aggregate maximum across passes, so a failure in any one fails the audit. Exit codes `0` clean / `1` findings (or files changed) / `2` invocation error / `3` no usable tool. Exit 3 short-circuits: when no markdown formatter is usable, the run stops at the `missing` event and the complementary passes do not run — content findings never mix into a missing-tool result (audit frontmatter without any formatter installed via the standalone `md-audit-frontmatter`).
+Flags (`--unwrap`, `--baseline`, `--quiet`, positional files) live in [`references/usage.md`](references/usage.md); per-tool commands, parsers, and install hints in [`references/formatter-tools.md`](references/formatter-tools.md).
 
-**Per-file targeting.** Positional file arguments scope the run to specific paths, bypassing the formatter's default glob. Useful for pre-commit hooks, CI changed-files-only runs, and agent invocations that target a single file. Works without git — the file list is passed verbatim. Example: `md-audit.py docs/intro.md README.md`.
+**Bundled fallback configs.** When a concern resolves to `universal-subset`, the runner injects the shipped config for that pass's tool (markdownlint, prettier, yamllint) and emits a `bundled-config` event; the repo's own config always wins when present, and `--baseline FILE` forces the formatter owner only — complementary passes stay derived from what the repo declares. Policy, settings rationale, and override paths: [`assets/configs/README.md`](assets/configs/README.md).
 
-**`--quiet`.** Suppresses formatter preamble lines (banners like `Linting: 3 file(s)` / `Summary: 0 error(s)`) — leaves only real `finding` / `changed` / `error` events on stdout. Useful for agent consumers that don't want to filter noise.
-
-See [`references/usage.md`](references/usage.md) for the full invocation cheatsheet (all entry shims + the Python-module form + test commands), [`references/architecture.md`](references/architecture.md) for the `scripts/` layout + port-adapter rationale + extension recipes, and [`references/ndjson-schema.md`](references/ndjson-schema.md) for the per-event detail-field schema.
-
-Per-tool command tables, output parsers, and install hints live in [`references/formatter-tools.md`](references/formatter-tools.md). The contract enforced across `scripts/{probe,recommend-tools,md-audit,md-format,md-audit-frontmatter}.py`:
-
-1. **Probe + selection order.** The formatter owner is the first detected formatter-family config's tool (`.prettierrc` → prettier, `.remarkrc` → remark, …); with no formatter config, the fallback favors **prettier** (`prettier` → `markdownlint-cli2` → `markdownlint` → `mdformat` → `dprint` → `remark`) so the repo gets consistent formatting including `proseWrap: never`. In **audit** mode a complementary **markdownlint lint pass** runs alongside any non-markdownlint owner (lint-only) so the semantic `MD###` rules (MD040, MD036, MD033, MD034, …) are still reported even though the formatter owns layout — using the repo's own markdownlint config when one is declared, the bundled config otherwise. `yamllint` is probed independently for the frontmatter pass — it never participates in markdown formatter selection.
-2. **Audit mode** runs the chosen tool's `--check` / `--frail` / equivalent invocation, captures stdout, parses findings into the skill's report stream — reusing the tool's rule code (`MD###` for markdownlint, rule name in parens for yamllint).
-3. **Format mode** is reached only via step 6 (Offer fixes) after explicit user approval. When the bundled config (or repo config) silences line-length, the `--prose-wrap=never` / `--wrap=no` flag is appended automatically.
-4. **Baseline-matched tool missing** — when the baseline matches a config family (e.g. `.markdownlint.json`) but none of that family's preferred tools (`markdownlint-cli2` / `markdownlint`) is on PATH, `selector.select_tool` walks `FALLBACK_ORDER` (`prettier` → `markdownlint-cli2` → `markdownlint` → `mdformat` → `dprint` → `remark`) and runs the first tool it finds. The chosen engine is recorded verbatim in the `selected` event so consumers can see when the actual formatter diverges from the baseline-declared family. Only when **none** of the fallback tools is on PATH does the skill emit a `MISSING` event with the install hint and exit 3; **never** auto-install.
-5. **Tool error** (non-zero exit ≥ 2) → the tool's output is emitted as `finding` / `changed` events, then an `ERROR` event with `{"exit": N}` is appended; exit 2.
-
-This delegation matches CI when CI invokes the same formatter with the same config. The bundled-config fallback diverges from a no-config CI — local applies the bundled overrides; CI applies formatter defaults.
-
-#### B. Format + one-shot fix (`md-format.py`, `md-fix.py`)
-
-`md-format.py` runs the chosen formatter in write mode (`--fix` / `--write` / equivalent). Emits one `changed` event per touched file. Same `--unwrap` / `--baseline` / `--quiet` / positional files semantics as `md-audit.py`.
-
-**`--dry-run`** (md-format only): shells out to the formatter's check invocation instead of write — emits `would-change` events showing what would be modified without actually writing. Exit code mirrors audit semantics (0 clean, 1 would-change). Lets the agent preview a format pass before approving the destructive run.
-
-`md-fix.py` is the one-shot loopback: audit → format → re-audit → emit a `delta` event with `{resolved, still_open, new}` counts, all three phases pinned to the formatter owner. When the pre-audit is already clean, format is skipped and the delta reports zeros. When the pre-audit hits an error (exit ≥ 2), the cycle bails early without running format. Useful for "fix what can be fixed automatically and tell me what's left" workflows. Same scoping / unwrap / quiet / baseline flags as the underlying audit + format. Like `md-audit`, it then runs the plan's complementary passes — the **markdownlint lint pass** and the **frontmatter pass** — so findings no formatter auto-fixes still surface (and drive the exit code); those findings stay out of the `delta`, which measures only what the format pass resolved — so `md-fix` and `md-audit` agree on the same repo instead of `md-fix` exiting 0 on a file that violates only lint or frontmatter rules.
-
-**mdformat plugin awareness.** When mdformat is the selected tool, the CLI dispatcher emits one `plugin-missing` event per target file containing GFM syntax (tables, task lists, strikethrough, bare autolinks) if `mdformat-gfm` is not installed — catches the silent-pass-through failure mode where mdformat would skip unrecognized syntax without warning. Fires once per CLI invocation before the formatter runs. No-op when a different tool is selected or when `mdformat-gfm` is on the system. Separately, `probe.py` emits `plugin-available` events for every installed `mdformat-*` plugin it detects (`mdformat-gfm`, `mdformat-tables`, `mdformat-frontmatter`, `mdformat-footnote`, `mdformat-toc`).
-
-#### C. YAML frontmatter audit (`md-audit-frontmatter.py`)
-
-The standalone entry point for the frontmatter pass — the same engine `md-audit` / `md-fix` fold into their aggregate whenever `yamllint` is on PATH (inside the composite audit the pass soft-skips when yamllint is absent; invoked by name here, a missing yamllint is a hard `missing` / exit 3). Walks the shared markdown inventory, extracts each `---...---` frontmatter block plus the body of any fenced code block tagged `yaml` or `yml` (backtick- or `~~~`-fenced) via the pure-Python `frontmatter.extract_blocks`, pipes each block to `yamllint -f parsable -s -` with config resolved in this order — explicit `--yamllint-config <path>`; otherwise auto-discovered `.yamllint` / `.yamllint.yaml` / `.yamllint.yml` at the repo root (mirrors yamllint's own standalone lookup so a repo-declared config drives the audit); otherwise the bundled `assets/configs/yamllint.yaml` fallback — and emits one `finding` event per yamllint message. Finding locator is `<file>:<anchor>` where anchor is `frontmatter` or `yaml fence: <first-line excerpt>` — no `file:line` per the no-line-numbers convention. Exit codes mirror the audit pipeline: `0` clean, `1` findings present, `2` yamllint invocation error, `3` yamllint not on PATH. Unreadable markdown files are reported per-file as `ERROR` events; the audit continues across other files.
-
-#### D. Style baseline + bundled fallback configs
-
-When the repo declares no formatter config (baseline resolves to `universal-subset`), `runner.py` calls `bundled_config_for` to pick up a shipped default for the chosen tool — currently markdownlint, prettier, and yamllint. The selection emits a `bundled-config` NDJSON event so the caller knows enforcement is coming from the skill, not the repo. The config path is passed via two separate argv elements (`--config <path>` / `-c <path>`) rather than the combined `--config=<path>` form, because markdownlint-cli2 silently rejects the combined form and treats it as a file glob.
-
-The repo's own config always wins when present. `--baseline FILE` forces the **formatter owner's** baseline only — the supplied path is recorded in that pass's `selected` event `baseline` field verbatim and (when it belongs to the owner's tool family) forwarded as `--config`; the complementary lint and frontmatter passes stay derived from what the repo declares, so forcing a formatter never downgrades them to bundled rules. The bundled fallback is keyed on the `universal-subset` sentinel only: when `--baseline FILE` resolves to any other value the bundled config is not applied to the owner; when `--baseline universal-subset` is passed explicitly (or no formatter-family config is detected), `runner.py` still applies the shipped fallback. Passing an arbitrary file path therefore opts the owner out of the bundled defaults, but passing `universal-subset` explicitly is the same code path as no formatter config detected at all. The shipped defaults align with the no-hard-wrap + compact-tables preference:
-
-- `assets/configs/markdownlint.json` — disables `MD013` (line-length), `MD033` (inline HTML), `MD041` (first-line H1), `MD060` (table column padding); allows duplicate headings under different parents. Used both when markdownlint is the selected formatter and by the complementary lint pass.
-- `assets/configs/prettierrc.json` — markdown overrides set `proseWrap: "never"`; `embeddedLanguageFormatting: "auto"` keeps prettier's default of formatting code inside fenced blocks. The skill does not impose `off` here — a repo whose markdown carries illustrative snippets it does _not_ want reformatted (e.g. GitHub-Actions `${{ }}` examples) declares its own `.prettierrc` with `embeddedLanguageFormatting: "off"` to override the fallback.
-- `assets/configs/yamllint.yaml` — disables `line-length`, `document-start`, `new-line-at-end-of-file` (the latter two are extraction artifacts of frontmatter pipe-to-stdin); flags `truthy` non-canonical values and `key-duplicates`.
-
-See [`assets/configs/README.md`](assets/configs/README.md) for the full rationale and the three tools (mdformat, dprint, remark) where bundled fallback is intentionally omitted (mdformat: no `--config <path>`; dprint: plugin-URL pinning rots; remark: requires preset install).
-
-#### E. Install recommendations (`recommend-tools.py`)
-
-When `probe.py` reports no usable formatter (exit 3), call `recommend-tools.py` for a prioritized install-recommendation list. The install priority is deliberately different from `selector.py`'s fallback order — `select` answers _"given multiple on PATH, which runs?"_ (favors strict linters), while `recommend-tools` answers _"given nothing, what should be installed first?"_ (favors `prettier` for the widest ecosystem fit + `--prose-wrap=never` support that matches the no-hard-wrap preference). Order: `prettier` → `mdformat` → `markdownlint-cli2` → `dprint` → `remark` → `yamllint`. The first five are markdown formatters; `yamllint` is the complementary YAML linter used by `md-audit-frontmatter`. The script emits `installed`, `recommend` (with `priority_rank` + `install_options` — a JSON array of platform / package-manager alternatives covering npm, pnpm, bun, yarn, mise, pipx, uv, brew, winget, apt, dnf, cargo, curl/iwr installers), and a single `verdict` event tied to the exit code. Exit `0` when the top-priority tool is already present, `1` when at least one priority tool is missing, `2` on invocation error. The skill never invokes the install commands — `install_hints()` returns them; the user picks the line for their platform.
-
-#### F. Out of scope
-
-The skill does not enforce: Oxford comma, sentence length, voice / tense, emoji policy, bullet density, paragraph length, capitalization of common nouns, locale-specific quotation marks, em-dash vs en-dash policy, line-width (per the bundled `MD013: false` and `proseWrap: never` configs). Anything not covered by the chosen formatter or by yamllint on frontmatter is out of scope — full stop.
+**Out of scope:** anything the chosen formatter (or yamllint on frontmatter) does not check — prose style, sentence length, emoji policy, capitalization, and the like. Under the bundled defaults that includes line width (`MD013` disabled; `proseWrap: "never"`); a repo config that enforces a width is honored like any other repo rule. The skill adds no rules of its own — full stop.
 
 ### 5. Report (agent-rendered)
 
-The skill emits raw NDJSON events on stdout. An invoking agent (e.g. Claude under `/docs-steward`) aggregates them and renders the user-facing report. The skill itself does not write a markdown report file — that's the agent's responsibility if the user wants one.
-
-See [`references/report-format.md`](references/report-format.md) for the template shape, per-finding rendering rule (the agent does not synthesize severity tiers or rule codes the formatter didn't emit), header-field source map, and the alternate forms for `clean` / `MISSING` / `ERROR` event streams.
+The skill emits raw NDJSON on stdout; the invoking agent aggregates the events and renders the user-facing report — template shape, per-finding rendering rule, and the `clean` / `missing` / `error` forms are in [`references/report-format.md`](references/report-format.md).
 
 ### 6. Offer fixes (agent-led)
 
-After the agent renders the report, it pauses for the user. The skill itself does not pause; it has already exited.
+After rendering, the agent pauses for the user; the skill has already exited. On approval the agent runs `md-format.py` (adding `--unwrap` / `--baseline FILE` as needed) — auto-fixable means whatever the chosen formatter's `--fix` / `--write` mode applies, and those formatter rewrites are the only edits: the agent never hand-authors fixes, and prose meaning, version numbers, and license text are never touched by hand. A formatter itself may reformat fenced-code layout (the bundled prettier config keeps `embeddedLanguageFormatting: "auto"`); a repo that wants code fences left alone declares `"off"` in its own config. The engine is visible in the `selected` event's `cmd` field and surfaces in the report header. After applying fixes, re-run `md-audit.py` and report the agent-computed delta (`Resolved: N. Still open: M. New: K.`) — or run `md-fix.py`, whose `delta` event carries the same counts from its own audit → format → re-audit cycle.
 
-- **Auto-fixable** (safe): whatever the chosen formatter's `--fix` / `--write` mode applies (markdownlint-cli2 `--fix`, prettier `--write`, mdformat in-place rewrite, dprint `fmt`, remark `--output`). When the bundled or repo style baseline silences line-length, the `--prose-wrap=never` / `--wrap=no` flag is appended automatically so the rewrite does not re-wrap prose. The agent invokes `scripts/md-format.py` (adding `--unwrap` / `--baseline FILE` as needed) on approval.
-- **Never auto-fix**: anything affecting prose meaning, version numbers, license text, code examples inside docs.
+## Exit codes
 
-**Fix engine** — the chosen engine is recorded in the `selected` NDJSON event's `cmd` field; the agent surfaces it as `Fix engine: <engine>` in the report header (5).
-
-After applying fixes, the agent re-runs `md-audit.py` and reports a delta: `Resolved: N. Still open: M. New: K.`.
-
-## Edge cases
-
-- **No `git` in PATH** — `discovery.list_markdown_files` falls back to `os.walk` skipping the standard excluded directories. Repo-root detection (`repo.repo_root`) falls back to `os.getcwd()`.
-- **No formatter on PATH** — `md-audit.py` / `md-format.py` emit a `MISSING` event with the install hint and exit 3. `md-audit-frontmatter.py` does the same for yamllint.
-- **Formatter on `PATH` errors out** (config syntax error, missing plugin, returncode ≥ 2) — runner emits the output as `finding`/`changed` events plus an `ERROR` event with the exit code, then returns exit 2. Stderr is captured into the event stream.
-- **Complementary configs** (e.g. both `.markdownlint.json` and `.prettierrc` present) — not a conflict: each family's config governs its own pass of the composite audit. Only two configs of the same kind compete, resolved by step 3's declaration order.
-- **Universal-subset baseline + tool with no bundled config** (mdformat / dprint / remark) — the tool runs with its own discovery defaults; the `selected` event's `config_source` is `tool-default` rather than `bundled`.
-- **Non-UTF-8 markdown files** — `OsFileSystem.read_text` raises during `md-audit-frontmatter`; the failure is captured as an `ERROR` event per-file and the audit continues across other files. The markdown-formatter path delegates encoding handling to the formatter.
-- **Windows shells** (Git Bash, WSL, PowerShell) — `SubprocessRunner` extends PATH with mise / asdf / pipx / brew / cargo / bun / pnpm / volta directories so tools installed via those managers resolve even when the harness shell hasn't activated them.
+Uniform across the entry shims: `0` clean · `1` findings or files changed · `2` invocation error · `3` no usable tool — except `recommend-tools.py`, which exits `0` (top-priority tool present) or `1` (at least one priority tool missing) only.
 
 ## Anti-patterns
 
-- Don't run on every prompt — only when triggered. The audit shells out to a formatter and is non-trivially slow on large repos.
-- Don't invent fixes. The skill only runs the chosen formatter's `--fix` / `--write`; the agent does not synthesize edits the formatter wouldn't apply.
-- Don't enforce style rules the repo has not declared, beyond what the chosen formatter applies via the bundled fallback config (4.D). The skill mirrors local conventions; it does not import opinions.
-- Don't impose a line _width_. `MD013` is disabled and the bundled prettier config sets `proseWrap: "never"`, so no column limit is enforced. Note that the default formatter (prettier) does **remove** existing hard wraps on format (one line per paragraph) — it never introduces them, and never enforces a width.
-- Don't auto-install any orchestrated tool — markdown formatters or `yamllint`. Detect what is on `PATH` via `probe.py`; surface install hints via `recommend-tools.py`; the user runs the install command themselves.
+- Don't run on every prompt — only when triggered. The audit shells out to formatters and is non-trivially slow on large repos.
+- Don't invent fixes — only the chosen formatter's `--fix` / `--write` mode applies edits; the agent does not synthesize its own.
+- Don't enforce style the repo has not declared, beyond the bundled fallback configs. The skill mirrors local conventions; it does not import opinions.
+- Don't impose a line width — the bundled defaults enforce no column limit (a repo's own config may). The default formatter (prettier under the bundled config) removes existing hard wraps on format; it never introduces them.
+- Don't auto-install any orchestrated tool — detect via `probe.py`, surface hints via `recommend-tools.py`, and let the user run the install.
 
 ## Boundary with related concerns
 
-The skill is intentionally narrow. Adjacent concerns are listed here as _capabilities the skill does not own_ — not as references to other installed skills. If the surrounding environment provides a dedicated tool for any of these, defer to it; otherwise note the gap in the report.
-
-- **Convention discovery** — answering "what does this repo declare about commits / PRs / code style?" is a separate concern. This skill consumes such conventions when it finds them but does not enumerate them on its own.
-- **Spec conformance for a single skill** — checking a skill directory against the Agent Skills specification (file-reference resolution, frontmatter compliance, progressive disclosure) is a separate concern. This skill audits markdown files only (plus YAML inside markdown via `md-audit-frontmatter`); it does not perform spec-level validation.
-- **Commit / PR / branch authoring** — producing those artifacts is a separate concern. This skill keeps the docs that _describe_ those rules honest, but does not generate the artifacts.
-- **Project-local commit / style rules** — when the repo declares them in a discoverable file, this skill reads them to interpret findings, but never enforces them on commits, source code, or files outside the documentation surface.
+Adjacent concerns the skill does not own — defer to a dedicated tool when the environment provides one; otherwise note the gap in the report: convention discovery (what a repo declares about commits / PRs / code style), spec conformance of a skill directory, commit / PR / branch authoring, and enforcing project-local rules on anything outside the documentation surface.
