@@ -63,7 +63,11 @@ def test_scaffold_templates_present_and_titled(capabilities_dir: Path) -> None:
         if not templates.is_file():
             bad.append(f"{cap.parent.name}: missing references/scaffold-templates.md")
             continue
-        first_line = templates.read_text(encoding="utf-8").splitlines()[0]
+        lines = templates.read_text(encoding="utf-8").splitlines()
+        if not lines:
+            bad.append(f"{cap.parent.name}: references/scaffold-templates.md is empty")
+            continue
+        first_line = lines[0]
         expected = f"# {cap.parent.name} — scaffold templates"
         if first_line != expected:
             bad.append(f"{cap.parent.name}: H1 {first_line!r} != {expected!r}")
