@@ -1,6 +1,6 @@
-# Git / gh quirks: fork PRs, force-pushes, stacked PRs, fetch degrade
+# Git / gh quirks: fork PRs, force-pushes, stacked PRs, fetch degrade, Windows shells
 
-Load this when a capability needs to branch on repo topology or recover from a non-trivial git/gh failure mode.
+Load this when a capability needs to branch on repo topology, recover from a non-trivial git/gh failure mode, or run its commands on a Windows shell.
 
 ## Repo-topology branching
 
@@ -128,3 +128,30 @@ git rev-parse HEAD
 ```
 
 Use these when working pre-PR or on local-only branches; reserve `gh` calls for PR-aware operations.
+
+## Shell portability (Windows)
+
+Every command in this skill is written for a POSIX shell. On Windows the zero-translation path is **Git Bash**, bundled with every standard Git for Windows install (winget `Git.Git`): heredocs, `mktemp`, and `$(cat …)` run as written. PowerShell works with the alternates below. cmd.exe is not supported — propose Git Bash or PowerShell instead.
+
+The apply commands are file-based by design (`git commit -F <path>`, `--body-file <path>`, `--notes-file <path>`), and those flags are shell-agnostic — only creating and filling the proposal file needs translation:
+
+| POSIX pattern | PowerShell equivalent |
+|---|---|
+| `mktemp` | `New-TemporaryFile` (PowerShell ≥ 5.0; returns a FileInfo — use `.FullName`) |
+| writing the proposal file | `[System.IO.File]::WriteAllText($path, $text)` — BOM-less UTF-8 on every PowerShell version. `Set-Content -Encoding utf8` also works but adds a BOM on Windows PowerShell 5.1, and bare `>` is never safe there — 5.1 redirection writes UTF-16LE, which file-consuming flags choke on |
+| heredoc (`<<'EOF'`) | single-quoted here-string (`@'` … `'@`) — the closing mark must start its own line; the double-quoted form interpolates |
+| `$(cat <path>)` | `(Get-Content <path> -Raw)` — `-Raw` returns one string; without it `Get-Content` (and its `cat` alias) returns an array of lines |
+| `--pretty=format:'%h %s'` and similar mid-token quoting | quote the whole argument instead: `'--pretty=format:%h %s'` — robust across PowerShell versions and argument-mode metacharacters |
+| `curl` (the Bitbucket lane) | call `curl.exe` explicitly — Windows PowerShell 5.1 aliases `curl` to `Invoke-WebRequest`; PowerShell 7 resolves the real binary, but the `.exe` form is unambiguous everywhere |
+
+### Windows install channels
+
+All three forge CLIs ship Windows builds. winget carries `gh` officially; the glab and tea winget/scoop/choco packages are community-maintained:
+
+| CLI | winget id | scoop | choco |
+|---|---|---|---|
+| `gh` | `GitHub.cli` | `gh` | `gh` |
+| `glab` | `GLab.GLab` | `glab` | `glab` |
+| `tea` | `Gitea.tea` | `tea` | `tea` — the `gitea` package is the server, not the CLI |
+
+Official binaries as the fallback: gh's releases (MSI/exe), gitlab-org/cli releases, and dl.gitea.com/tea for `tea`.
