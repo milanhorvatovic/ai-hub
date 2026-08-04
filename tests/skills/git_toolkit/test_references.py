@@ -302,8 +302,9 @@ def test_forge_adapter_mapping_is_the_single_home(
         if pattern.search(line)
     ]
     assert not offenders, (
-        "capability bodies name an alternative forge CLI — the mapping's "
-        "single home is forge-adapters.md:\n" + "\n".join(offenders)
+        "capability bodies name an alternative forge lane (CLI or Bitbucket "
+        "API host) — the mapping's single home is forge-adapters.md:\n"
+        + "\n".join(offenders)
     )
 
 

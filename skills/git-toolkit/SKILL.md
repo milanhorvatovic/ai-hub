@@ -7,11 +7,12 @@ description: >
   GitHub lifecycle: branch naming and worktree setup, commit authoring,
   history cleanup, PR descriptions and issue linking, CI failure triage,
   review-thread resolution, merge readiness and execution, release notes.
-  Enforces conventional-commits, imperative mood, ≤72-char subjects, and
-  trailer placement. Also fires on asks to write, validate, review, fix,
-  sync, or clean up that text, and when commits feel inconsistent. Works on
-  GitLab, Codeberg/Forgejo, and Bitbucket too. Never auto-publishes or
-  auto-adds trailers. Read-only inspection (status, log, diff) stays out.
+  Enforces conventional-commits (when in use), imperative mood, ≤72-char
+  subjects, and trailer placement. Also fires on asks to write, validate,
+  review, fix, sync, or clean up that text, and when commits feel
+  inconsistent. Works on GitLab, Codeberg/Forgejo, and Bitbucket too. Never
+  auto-publishes or auto-adds trailers. Read-only inspection (status, log,
+  diff) stays out.
 allowed-tools: Bash Read Write Grep
 metadata:
   version: "1.1.0" # x-release-please-version
@@ -112,7 +113,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 | pr-checks-summary | full | partial — pipeline status, no log interpretation | refuses | refuses |
 | pr-conversation-resolve | full | full | partial — listing and replies map; resolving stays in the forge UI | refuses |
 | merge-readiness | full | full | partial — fewer gates readable | partial — metadata gates + status aggregate |
-| merge-execute | full | full | full — no auto-merge flag | minimal — merge via the curl lane |
+| merge-execute | full | full | full — no auto-merge flag | minimal — merge + strategy read via the curl lane |
 
 Tier semantics: T1 is first-class — every operation, `gh` worked examples. T2 and T3 route each operation through the adapter mapping in `references/forge-adapters.md`; `partial` cells name what is lost. T4 is a minimal `curl` lane (scoped API token — Bitbucket has no official CLI): the cells above route through the adapter's Bitbucket table, and every other operation refuses with the documented reason, naming the git-side fallback when one exists (`release-notes` is unaffected: git-side, it drafts on any forge, and only its publish step is forge-conditional). Refusing cleanly beats emitting GitHub-shaped output that cannot work on the detected forge.
 

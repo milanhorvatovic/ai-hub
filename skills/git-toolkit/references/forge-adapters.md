@@ -126,7 +126,7 @@ tea is the Gitea CLI; Forgejo (which powers Codeberg) stays wire-compatible with
 
 The curl baseline routes the highest-value operations only; capabilities whose operations are not in this table refuse on a Bitbucket remote, name that reason, and offer the git-side equivalent where one exists. release-notes is unaffected — it drafts on any forge and surfaces the paste-in note for publishing (Bitbucket has no native Releases; tags and Downloads only).
 
-Every call below is `curl -s --user "$ATLASSIAN_EMAIL:$API_TOKEN"` against `https://api.bitbucket.org/2.0/repositories/<workspace>/<repo>` (shortened to `$BB`):
+Every call below is `curl -s --user "$ATLASSIAN_EMAIL:$API_TOKEN"` against `https://api.bitbucket.org/2.0/repositories/<workspace>/<repo>` (shortened to `$BB`); `<workspace>/<repo>` comes from the detected remote URL (`bitbucket.org/<workspace>/<repo>.git`). List responses are paginated (default 10, max 100) — follow the `next` link in the body, or raise `pagelen`:
 
 | Operation | Call |
 |---|---|
@@ -134,7 +134,9 @@ Every call below is `curl -s --user "$ATLASSIAN_EMAIL:$API_TOKEN"` against `http
 | PR metadata | `GET $BB/pullrequests/<n>` — `state` (`OPEN` / `MERGED` / `DECLINED` / `SUPERSEDED`), `title`, `description`, `draft`, `participants[].approved`, `task_count` (open tasks), `close_source_branch`, `source.branch.name`, `destination.branch.name` |
 | PR diff | `curl -sL … "$BB/pullrequests/<n>/diff"` — the endpoint redirects to the raw diff, so follow redirects (`-L`) |
 | Edit the PR body | `GET` the PR first, then `PUT $BB/pullrequests/<n>` with `{"title": …, "description": …, "reviewers": <echoed from the GET>}` — a PUT that omits `reviewers` silently drops the PR's reviewer list |
+| Merge policy | `destination.branch.merge_strategies` and `.default_merge_strategy` on the PR metadata read (also via `GET $BB/refs/branches/<name>`) — the target branch's enabled and default strategies, read-only (not settable via the API) |
 | Merge | `POST $BB/pullrequests/<n>/merge` with `{"merge_strategy": "<strategy>", "close_source_branch": <bool>, "message": "<override>"}` — strategies: `merge_commit` (default), `squash`, `fast_forward`, `squash_fast_forward`, `rebase_fast_forward`, `rebase_merge`; drafts cannot merge (server-enforced) |
+| Merge when CI passes | UI-only — per-PR arming of "merge when builds pass" has no API path; the enablement toggle is a readable branch-restriction kind (`allow_auto_merge_when_builds_pass`), and the merge call's `async` param is job polling, not merge-when-green. Surface auto-merge intent as unavailable from the CLI |
 | CI status | `GET $BB/pullrequests/<n>/statuses` (PR-level aggregate) or `GET $BB/commit/<sha>/statuses` — `state` ∈ `SUCCESSFUL` / `FAILED` / `INPROGRESS` / `STOPPED` |
 
 The API also exposes comment-thread resolution (`POST`/`DELETE $BB/pullrequests/<n>/comments/<id>/resolve`) and first-class PR tasks (`$BB/pullrequests/<n>/tasks`, `RESOLVED`/`UNRESOLVED`), but no capability routes them — pr-conversation-resolve refuses on Bitbucket, and merge-readiness reads only `task_count` from the metadata fetch.
