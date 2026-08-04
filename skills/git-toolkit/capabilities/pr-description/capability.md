@@ -28,7 +28,7 @@ Authors a PR body from scratch (WRITE) or decides whether an existing body still
 | Body is empty, `WIP`, a one-liner, or an unfilled template (per `../../references/pr-template-detection.md` >60% overlap rule) | **WRITE** |
 | Body has substantive content that needs validation against the branch | **SYNC** |
 
-The body's state decides, not the phrasing of the ask: a substantive existing body always takes the SYNC path — even on "rewrite my description", since SYNC's MAJOR-REWRITE produces a full replacement while preserving still-true context. Only empty / WIP / unfilled-template bodies take the WRITE path. A SYNC run that finds the body empty / WIP / unfilled classifies it `HANDOFF-TO-WRITE` and continues in WRITE mode within the same invocation — the verdict label marks the mode switch for consumers (e.g. the merge-readiness description gate).
+The body's state decides, not the phrasing of the ask: a substantive existing body always takes the SYNC path — even on "rewrite my description", since SYNC's MAJOR-REWRITE produces a full replacement while preserving still-true context. Only empty / WIP / one-liner / unfilled-template bodies take the WRITE path. A SYNC run that finds the body in any of those states classifies it `HANDOFF-TO-WRITE` and continues in WRITE mode within the same invocation — the verdict label marks the mode switch for consumers (e.g. the merge-readiness description gate).
 
 ## Input guards (both modes)
 

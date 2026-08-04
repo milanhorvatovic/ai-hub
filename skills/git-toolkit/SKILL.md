@@ -80,7 +80,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 
 | Capability | Trigger | Path |
 |---|---|---|
-| pr-description | [GitHub-side] Opening a PR or keeping its body honest — WRITE mode authors the description from scratch when the body is empty / `WIP` / an unfilled template; SYNC mode fires when the branch changed after the body was written, or when asked whether the description still matches — classifying divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE` and proposing a fix | capabilities/pr-description/capability.md |
+| pr-description | [GitHub-side] Opening a PR or keeping its body honest — WRITE mode authors the description from scratch when the body is empty / `WIP` / a one-liner / an unfilled template; SYNC mode fires when the branch changed after the body was written, or when asked whether the description still matches — classifying divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE` and proposing a fix | capabilities/pr-description/capability.md |
 | pr-link-issues | [GitHub-side] PR addresses issues its body doesn't reference — auto-detect them (from branch, commits, body), verify the diff resolves them, propose `Closes` / `Refs` keywords to add | capabilities/pr-link-issues/capability.md |
 
 ### Working through review
@@ -104,7 +104,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 - `[git-side, optional gh enrichment]` — git-side at core; uses `gh` when available for richer context (e.g. PR base resolution, review-state checks) but degrades gracefully without it.
 - `[GitHub-side]` — requires `gh` auth and GitHub-specific concepts (PR metadata, merge policy, Releases).
 
-Within `pr-description`, the body's state picks the mode: a substantive existing body always takes the SYNC path (which may itself escalate to `MAJOR-REWRITE` and produce a full replacement). Only empty / WIP / unfilled-template bodies take the WRITE path.
+Within `pr-description`, the body's state picks the mode: a substantive existing body always takes the SYNC path (which may itself escalate to `MAJOR-REWRITE` and produce a full replacement). Only empty / WIP / one-liner / unfilled-template bodies take the WRITE path.
 
 ## Shared references
 
@@ -160,7 +160,7 @@ A typical end-to-end lifecycle for a change. Each step is independent and option
 | Writing commits during work | `commit-message` (WRITE mode) | git |
 | Quick mid-work fixes | `commit-fixup` for amending an earlier commit; `commit-message` (AMEND mode) for fixing the last commit's wording | git |
 | Before requesting review (clean history) | `rebase-cleanup` → `commit-message` (REVIEW mode) | git |
-| Before requesting review (PR body) | `pr-description` — SYNC mode; switches to WRITE mode when the body is empty / WIP | GitHub |
+| Before requesting review (PR body) | `pr-description` — SYNC mode; switches to WRITE mode when the body is empty / WIP / one-liner / unfilled-template | GitHub |
 | Before requesting review (issue refs) | `pr-link-issues` to add `Closes` / `Refs` keywords | GitHub |
 | After applying body changes | Re-run `pr-description` (SYNC mode) to confirm `IN-SYNC` | GitHub |
 | Mid-review (CI red) | `pr-checks-summary` to interpret failures and propose fixes | GitHub |
