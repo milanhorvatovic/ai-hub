@@ -10,10 +10,12 @@ checkable from the corpus files alone, so a malformed corpus fails the plain
 pytest run instead of surfacing only in the eval workflow.
 
 The shape rules mirror the FAIL-level corpus rules of the foundry evaluator
-(`evaluate_descriptions.py`), with two deliberately stricter house rules: the
+(`evaluate_descriptions.py`), plus deliberately stricter house rules: the
 per-side floor is the foundry's *recommended* count (8, not the minimum 4) so
-the eval never warns, and prompts must be unique across the whole corpus set —
-the foundry only warns when a positive is shared between competing targets.
+the eval never warns, prompts must be unique across the whole corpus set (the
+foundry only warns when a positive is shared between competing targets),
+leading-bigram diversity fails here where the foundry only warns, and the
+backfilled `description_sha256` is required rather than tolerated-absent.
 """
 
 from __future__ import annotations
@@ -27,8 +29,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_ROOT = REPO_ROOT / "skills"
 CORPUS_ROOT = REPO_ROOT / "tests" / "skill-corpus"
 
-# Mirrors the foundry's configuration.yaml `skill.description.evaluation`
-# block; the pinned checkout in the description-eval workflow is authoritative.
+# Mirrors the `skill.description.evaluation` block of the foundry's
+# scripts/lib/configuration.yaml; the pinned checkout in the description-eval
+# workflow is authoritative.
 MIN_PROMPTS_PER_SIDE = 8
 MAX_PROMPT_CHARS = 2000
 MIN_LEADING_BIGRAM_RATIO = 0.6
@@ -55,7 +58,7 @@ def _corpus(name: str) -> dict:
 
 
 def _prompts(data: dict, side: str) -> list[str]:
-    value = data[side]
+    value = data.get(side)
     assert isinstance(value, list) and all(isinstance(p, str) for p in value), (
         f"'{side}' must be a list of strings"
     )
