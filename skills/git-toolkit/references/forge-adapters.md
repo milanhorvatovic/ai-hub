@@ -1,6 +1,6 @@
 # Forge adapters
 
-The single home of the forge mapping for forge-side capabilities. Capability bodies express each operation once, with the GitHub (`gh`) command as the worked example; the tables here map those operations onto GitLab (`glab`) and Codeberg/Forgejo (`tea`), plus a minimal Bitbucket Cloud lane (`bkt` with a CLI-free curl fallback), so the lane switch in `pr-input-guards.md` can route a capability end-to-end on a non-GitHub remote. The mapping lives only here — a structural test in the shipping repo rejects `glab`/`tea`/Bitbucket-API literals in capability bodies — so a CLI rename or flag change is a one-file fix.
+The single home of the forge mapping for forge-side capabilities. Capability bodies express each operation once, with the GitHub (`gh`) command as the worked example; the tables here map those operations onto GitLab (`glab`) and Codeberg/Forgejo (`tea`), plus a minimal Bitbucket Cloud lane (`bkt` with a CLI-free curl fallback), so the lane switch in `pr-input-guards.md` can route a capability end-to-end on a non-GitHub remote. The mapping lives only here — a structural test in the shipping repo rejects `glab`/`tea`/`bkt`/Bitbucket-API literals in capability bodies — so a CLI rename or flag change is a one-file fix.
 
 Per-capability promises (what routes fully, what degrades to a labeled partial, what refuses) live in the router's tier table and each capability's guard section; this file supplies the commands those promises route to.
 
