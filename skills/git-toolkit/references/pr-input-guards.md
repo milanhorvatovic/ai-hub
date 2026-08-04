@@ -4,7 +4,7 @@ The standard input-guard block every forge-side capability runs before any work.
 
 ## 1. Forge detection and command lane
 
-Run `git remote get-url origin` and classify per `forge-adapters.md`. The result selects the command lane for every forge operation — in the steps below and in the capability body. Capability bodies show the GitHub (`gh`) form as the worked example; `forge-adapters.md` owns each operation's equivalent on the other lanes:
+Run `git remote get-url origin` and classify per `forge-adapters.md`. The result selects the command lane for every forge operation — in the steps below and in the capability body. Capability bodies — and the `gh` commands in the steps below — are the GitHub-lane worked example; `forge-adapters.md` owns each operation's equivalent on the other lanes:
 
 - **GitHub** → run the `gh` commands as written.
 - **GitLab / Forgejo (Codeberg)** → translate each operation per the adapter table; the capability's guard section states what routes fully, what degrades to a labeled partial, and what refuses.

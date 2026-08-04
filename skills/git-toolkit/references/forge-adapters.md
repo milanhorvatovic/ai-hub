@@ -52,15 +52,15 @@ A missing or unauthenticated lane CLI stops the capability (per the guard sequen
 |---|---|---|---|
 | PR for the current branch | `gh pr list --head <branch> --state all` | `glab mr list --source-branch <branch> -F json` | `tea pr list -f index,head,state` and match the head branch |
 | PR metadata | `gh pr view <n> --json <fields>` | `glab mr view <n> -F json` | `tea pr <n>` (detail view — there is no `view` subcommand); field selections via `tea pr list -f <fields>` |
-| Field-level reads | `gh api repos/{o}/{r}/pulls/<n>` | `glab api projects/:id/merge_requests/<n> \| jq` — `draft`, `has_conflicts`, `blocking_discussions_resolved`, `head_pipeline`, `detailed_merge_status` (`merge_status` is deprecated) | `tea pr list` fields include `mergeable`, `base`, `head`, `ci`; no `draft` field — check the `WIP:` title prefix |
+| Field-level reads | `gh api repos/{o}/{r}/pulls/<n>` | `glab api projects/:id/merge_requests/<n>` piped to `jq` — `draft`, `has_conflicts`, `blocking_discussions_resolved`, `head_pipeline`, `detailed_merge_status` (`merge_status` is deprecated) | `tea pr list` fields include `mergeable`, `base`, `head`, `ci`; no `draft` field — check the `WIP:` title prefix |
 | PR diff | `gh pr diff <n> --patch` | `glab mr diff <n>` | `patch` / `diff` fields of `tea pr list -f`, or `tea pr checkout <n>` + local `git diff` |
-| Commits on the PR | `gh pr view <n> --json commits` | `glab api projects/:id/merge_requests/<n>/commits \| jq` | `tea pr checkout <n>` + local `git log` |
+| Commits on the PR | `gh pr view <n> --json commits` | `glab api projects/:id/merge_requests/<n>/commits` piped to `jq` | `tea pr checkout <n>` + local `git log` |
 | Issue detail | `gh issue view <N> --json <fields>` | `glab issue view <N> -F json` | `tea issues <N>` (same list/detail pattern) |
-| Merge policy | `gh api repos/{o}/{r} --jq '{squash: .allow_squash_merge, …}'` | `glab api projects/:id \| jq '{merge_method, squash_option, squash_commit_template}'` — semantics below | the style is chosen at merge time; squash-message shaping is an on-disk template read (below) |
-| Branch protection *(optional)* | `gh api repos/{o}/{r}/branches/<base>/protection` (needs permissions) | `glab api projects/:id/protected_branches \| jq` (readable with code-read access) | API read requires a repo-admin token — without one, report the gate as not readable |
-| PR comments for context *(optional)* | `gh pr view <n> --comments` | `glab api projects/:id/merge_requests/<n>/notes \| jq` | skip |
-| Author's merged-PR count *(optional)* | `gh pr list --author <login> --state merged` | `glab api "projects/:id/merge_requests?state=merged&author_username=<login>" \| jq length` | skip |
-| Issue↔PR cross-references *(optional)* | `gh api repos/{o}/{r}/issues/<N>/timeline` | `glab api projects/:id/issues/<N>/related_merge_requests \| jq` | skip |
+| Merge policy | `gh api repos/{o}/{r} --jq '{squash: .allow_squash_merge, …}'` | `glab api projects/:id` piped to `jq '{merge_method, squash_option, squash_commit_template}'` — semantics below | the style is chosen at merge time; squash-message shaping is an on-disk template read (below) |
+| Branch protection *(optional)* | `gh api repos/{o}/{r}/branches/<base>/protection` (needs permissions) | `glab api projects/:id/protected_branches` piped to `jq` (readable with code-read access) | API read requires a repo-admin token — without one, report the gate as not readable |
+| PR comments for context *(optional)* | `gh pr view <n> --comments` | `glab api projects/:id/merge_requests/<n>/notes` piped to `jq` | skip |
+| Author's merged-PR count *(optional)* | `gh pr list --author <login> --state merged` | `glab api "projects/:id/merge_requests?state=merged&author_username=<login>"` piped to `jq length` | skip |
+| Issue↔PR cross-references *(optional)* | `gh api repos/{o}/{r}/issues/<N>/timeline` | `glab api projects/:id/issues/<N>/related_merge_requests` piped to `jq` | skip |
 
 ### Edit and apply
 
@@ -73,11 +73,11 @@ A missing or unauthenticated lane CLI stops the capability (per the guard sequen
 
 | Operation | GitHub (worked example) | GitLab (`glab`) | Codeberg / Forgejo (`tea`) |
 |---|---|---|---|
-| List threads + resolution state | GraphQL `reviewThreads` query (see `git-gh-quirks.md`) | `glab api projects/:id/merge_requests/<n>/discussions --paginate \| jq` — notes carry `resolvable` / `resolved` | `tea pr review-comments <n>` — the `resolver` field marks resolved comments (empty = unresolved) |
+| List threads + resolution state | GraphQL `reviewThreads` query (see `git-gh-quirks.md`) | `glab api projects/:id/merge_requests/<n>/discussions --paginate` piped to `jq` — notes carry `resolvable` / `resolved` | `tea pr review-comments <n>` — the `resolver` field marks resolved comments (empty = unresolved) |
 | Reply to a thread | GraphQL `addPullRequestReviewThreadReply` | `glab api -X POST projects/:id/merge_requests/<n>/discussions/<discussion-id>/notes -f body='<text>'` (thread-scoped; a bare `glab mr note create` posts a new top-level comment instead) | `tea pr reply <n> <comment-id> '<text>'` |
 | Resolve a thread | GraphQL `resolveReviewThread` | `glab mr note resolve <n> <discussion-id>` | not exposed on Forgejo — resolving stays in the UI (Gitea ≥ 1.26 adds `tea pr resolve`) |
 | Approve / request changes | `gh pr review --approve` / `--request-changes` | `glab mr approve <n>` / `glab mr note create <n> -m '<text>'` | `tea pr approve <n>` / `tea pr reject <n>` |
-| Aggregate approval state | `reviewDecision` from `gh pr view` | `glab api projects/:id/merge_requests/<n>/approvals \| jq '{approved, approvals_left}'` | unmapped — report the gate as not readable |
+| Aggregate approval state | `reviewDecision` from `gh pr view` | `glab api projects/:id/merge_requests/<n>/approvals` piped to `jq '{approved, approvals_left}'` | unmapped — report the gate as not readable |
 
 ### Merge
 
