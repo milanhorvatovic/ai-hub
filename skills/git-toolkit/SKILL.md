@@ -10,9 +10,9 @@ description: >
   Enforces conventional-commits (when in use), imperative mood, ≤72-char
   subjects, and trailer placement. Also fires on asks to write, validate,
   review, fix, sync, or clean up that text, and when commits feel
-  inconsistent. Works on GitLab, Codeberg/Forgejo, and Bitbucket too. Never
-  auto-publishes or auto-adds trailers. Read-only inspection (status, log,
-  diff) stays out.
+  inconsistent. Works on GitLab, Codeberg/Forgejo, and Bitbucket Cloud.
+  Never auto-publishes or auto-adds trailers. Read-only inspection (status,
+  log, diff) stays out.
 allowed-tools: Bash Read Write Grep
 metadata:
   version: "1.1.0" # x-release-please-version

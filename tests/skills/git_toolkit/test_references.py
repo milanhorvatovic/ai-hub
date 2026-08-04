@@ -288,9 +288,10 @@ def test_forge_adapter_mapping_is_the_single_home(
     alternative CLI or the Bitbucket API host inline would fork the
     mapping."""
     adapters = (references_dir / "forge-adapters.md").read_text(encoding="utf-8")
-    for lane in ("glab", "tea", "api.bitbucket.org"):
-        assert re.search(rf"\b{re.escape(lane)}\b", adapters), (
-            f"forge-adapters.md no longer documents the `{lane}` lane"
+    for marker in ("glab", "tea", "api.bitbucket.org"):
+        assert re.search(rf"\b{re.escape(marker)}\b", adapters), (
+            f"forge-adapters.md no longer mentions {marker!r} — every lane's "
+            "mapping lives in this file"
         )
     pattern = re.compile(r"\b(glab|tea)\b|api\.bitbucket\.org")
     offenders = [
