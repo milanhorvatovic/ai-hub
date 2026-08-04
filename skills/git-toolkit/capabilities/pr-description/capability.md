@@ -19,7 +19,7 @@ description: >
 
 # pr-description capability
 
-Authors a PR body from scratch (WRITE) or decides whether an existing body still reflects the branch and proposes a fix (SYNC). One capability, two modes: the body's current state picks the mode, and both modes share the same gather → inventory → merge-policy → output pipeline.
+Authors a PR body from scratch (WRITE) or decides whether an existing body still reflects the branch and proposes a fix (SYNC). One capability, two modes: the body's current state picks the mode, and both modes share the same gather → merge-policy → inventory → output pipeline.
 
 ## Mode detection
 
@@ -53,7 +53,7 @@ headRepositoryOwner,baseRepository,author
 
 **1b. Branch on repo topology.** Per `../../references/git-gh-quirks.md`:
 
-- **Cross-repo / fork PR** → use remote-authoritative reads (`gh pr diff <num> --patch` + paginated files API, `gh pr view <num> --json commits`). Local git can't see the head.
+- **Cross-repo / fork PR** → use remote-authoritative reads: `gh pr diff <num> --patch`, `gh api repos/{owner}/{repo}/pulls/<num>/files --paginate`, `gh pr view <num> --json commits`. Local git can't see the head.
 - **Same-repo PR** → parallel: `git fetch origin <baseRefName>` (graceful degrade), `git log --no-merges origin/<baseRefName>..HEAD --pretty=format:'%h %s'`, `git diff --stat origin/<baseRefName>...HEAD`.
 
 **1c. Reconcile local vs remote head.** Compare local `HEAD` to `headRefOid`. On divergence → discard same-repo local results and switch to the cross-repo path. Details in `../../references/git-gh-quirks.md`.
