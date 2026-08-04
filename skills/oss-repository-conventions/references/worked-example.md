@@ -32,7 +32,7 @@ Overall health: 61%   (GitHub community profile: 50%)
 - `README.md` — states what/install/usage up top. Source: `README.md`.
 - CI runs tests on PRs. Source: `.github/workflows/ci.yml`.
 
-Domain scores: licensing 0% · security 40% · ci 70% · deps 0% · docs 90% · …
+Domain scores: licensing 0% · security 40% · ci 42% · deps 0% · docs 90% · …
 
 ## Benchmarks
 OpenSSF Best Practices Badge: would not yet pass (no license, no security policy).
@@ -44,7 +44,30 @@ The NDJSON stream (for tooling) carries the same findings, one object per line, 
 ```text
 {"domain":"licensing","check":"license-present","severity":"must","status":"fail","file":null,"message":"No LICENSE at repo root","scaffold":"capabilities/licensing"}
 {"domain":"ci-automation","check":"actions-pinned","severity":"should","status":"warn","file":".github/workflows/ci.yml","message":"checkout pinned to a moving tag","scorecard":"Pinned-Dependencies","scaffold":"capabilities/ci-automation"}
+{"domain":"ci-automation","check":"ci-on-pr","severity":"must","status":"pass","file":".github/workflows/ci.yml","message":"pytest runs on pull_request","scorecard":"CI-Tests"}
 ```
+
+Note the `ci-on-pr` line: the capability declares it `**should** (→ **must** for code repos)`, this is a code repo, so the NDJSON carries the **resolved** severity `must` — the arrow notation never leaves the capability body (`oss-health-rubric.md`, Conditional severity).
+
+### The score, computed
+
+One domain worked by hand — ci-automation — so the arithmetic is reproducible. Per `oss-health-rubric.md`: weight by the resolved severity (must 3 · should 2 · could 1), only `pass` earns a check's weight, `skip` is excluded from both sides.
+
+| Check | Resolved severity | Weight | Status | Earns |
+| --- | --- | --- | --- | --- |
+| `ci-on-pr` | must (escalated: code repo) | 3 | pass | 3 |
+| `fork-pr-safe` | should (base: no secrets in PR jobs) | 2 | pass | 2 |
+| `least-privilege-token` | should | 2 | fail | 0 |
+| `actions-pinned` | should | 2 | warn | 0 |
+| `concurrency-and-timeouts` | could | 1 | fail | 0 |
+| `scheduled-maintenance` | could | 1 | fail | 0 |
+| `runner-hardening` | could | 1 | fail | 0 |
+
+```text
+score = (3 + 2) / (3 + 2 + 2 + 2 + 1 + 1 + 1) = 5 / 12 = 42%
+```
+
+Three of the domain's checks don't apply to this repo and are skipped, excluded from both sides: `oidc-for-deploy` (no deploy jobs), `built-artifact-verified` (no committed generated artifact), `metered-automation-bounded` (no metered automation). And `actions-pinned`'s `warn` — the moving tag — earns nothing: `warn` counts as unsatisfied in the score, even though the report offers a fix rather than a scaffold.
 
 ## Step 3 — scaffold the top `must` (one file, one confirmation)
 
@@ -63,3 +86,4 @@ On `y`, the file is written. Re-running the audit now scores licensing 100% and 
 - **scan → audit → scaffold** are distinct: audit never writes; scaffold writes one confirmed file.
 - The **router** aggregates per-domain audits into one roll-up with a benchmark view; it never double-scores a check (each is owned by one capability).
 - **Severity** comes from the rubric, not the repo; **sources** are cited on every line; gaps are offered as next actions, not just listed.
+- **The score is reproducible:** only `pass` earns weight, `warn` earns zero, `skip` is excluded, and conditional severities resolve before weighting — any auditor following the rubric lands on the same 42% for ci-automation.

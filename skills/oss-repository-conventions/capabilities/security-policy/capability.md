@@ -35,8 +35,9 @@ Files (catalog: `../../references/convention-files.md`, Security section), citin
 
 1. Disclosure policy: `SECURITY.md`, `.github/SECURITY.md`, `docs/SECURITY.md`; and `SECURITY-INSIGHTS.yml` (OpenSSF Security Insights — machine-readable security metadata).
 2. Dependency/secret tooling: `.github/dependabot.yml` / `.github/dependabot.yaml`, `.gitleaks.toml`, `.trufflehog`, `.semgrep.yml` (deep coverage lives in the dependency-supply-chain and ci-automation capabilities; here, note presence).
-3. Signing intent: `.gitattributes` / git config hints; sample `git log --show-signature -5` for signed commits; `git tag -v` for signed tags.
-4. Provenance: workflow steps using `actions/attest-build-provenance`, SLSA generators, or `cosign`.
+3. Code scanning: a CodeQL workflow (`.github/workflows/codeql*`) or `github/codeql-action` usage; otherwise equivalent SAST steps in CI (Semgrep, SonarCloud).
+4. Signing intent: `.gitattributes` / git config hints; sample `git log --show-signature -5` for signed commits; `git tag -v` for signed tags.
+5. Provenance: workflow steps using `actions/attest-build-provenance`, SLSA generators, or `cosign`.
 
 Settings (require `gh`):
 
@@ -54,6 +55,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 - `default-branch-protected` — **should** · scorecard: Branch-Protection. Fail when the default branch allows direct pushes/force-push or requires no review/checks — via classic protection **or** a ruleset (recognize either). Grade depth per `../../references/branch-protection.md` (required checks, reviews + code-owner, conversation resolution, linear history, signed commits, no force-push). Unprotected main lets unreviewed or rewritten history land.
 - `tag-protection` — **could** (→ **should** when the repo publishes releases). Pass when release tags (`v*`) are protected from deletion/overwrite by a tag ruleset, so a published release can't be silently re-pointed. See `../../references/branch-protection.md`.
 - `secret-scanning` — **should**. Pass when secret scanning / push protection is on, or a gitleaks-style check runs in CI. Catches credentials before they merge.
+- `code-scanning` — **should** (when the repo ships code) · scorecard: SAST. Fail when no static-analysis workflow runs in CI — CodeQL (`github/codeql-action`) or an equivalent SAST (Semgrep, SonarCloud); skip when CodeQL doesn't support the language and no equivalent fits (don't fabricate a scanner — see the automation-baseline capability's language notes). Static analysis catches vulnerability patterns review misses. This is the code-scanning pillar of the automation baseline, scored here; automation-baseline scaffolds the CodeQL workflow and its roll-up cites this check.
 - `signed-tags` — **could** (→ **should** when the repo publishes releases) · scorecard: Signed-Releases. Pass when release tags are signed (`git tag -v`). Lets consumers verify provenance. See `../../references/commit-signing.md`.
 - `signed-commits` — **could** (→ **should** when the branch requires signatures). Pass when commits are signed and show Verified (GPG / SSH / gitsign) and — where signatures are required — automations sign too (API/App commits are auto-verified). An unsigned bot commit is a gap on a signature-required branch. See `../../references/commit-signing.md`.
 - `build-provenance` — **could** (→ **should** for published packages). Grade by **SLSA build level**: L0 none → L1 provenance exists (e.g. `actions/attest-build-provenance` / a SLSA generator) → L2 provenance signed by a hosted build service → L3 hardened, non-falsifiable build. Pass the `could` bar at L1+; aim L2+ for distributed artifacts. Tamper-evidence for the artifact supply chain. Report the level, not just present/absent. (No dedicated OpenSSF Scorecard check maps to build provenance — `signed-tags` carries the Signed-Releases signal; grade this one by SLSA level instead.)
