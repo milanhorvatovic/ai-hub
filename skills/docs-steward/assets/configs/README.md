@@ -41,6 +41,10 @@ Two ways to override:
 1. **Add a config to your repo.** `docs_steward.baseline.detect_baselines` will pick it up; the bundled fallback is skipped for that tool family's pass. For yamllint specifically, `md-audit-frontmatter.py` auto-discovers `.yamllint` / `.yamllint.yaml` / `.yamllint.yml` at the repo root (mirroring yamllint's own standalone lookup) — the bundled `yamllint.yaml` only kicks in when none of those is present.
 2. **Pass `--baseline FILE` to the `md-audit.py` / `md-format.py` / `md-fix.py` entry shims in the skill's scripts directory.** Forces a specific config path onto the formatter owner (the complementary lint and frontmatter passes stay derived from what the repo declares). The bundled fallback fires only when the resolved baseline is the `universal-subset` sentinel: an arbitrary file path therefore opts out of the bundled defaults, but explicit `--baseline universal-subset` is the same code path as "no config detected" and still applies the bundled config. The `md-audit-frontmatter.py` shim takes the parallel `--yamllint-config FILE` flag — supplying it overrides both auto-discovery and the bundled fallback.
 
+   ```sh
+   scripts/md-audit.py --baseline .prettierrc.json   # from the skill root
+   ```
+
 ## Editing these files
 
 These configs ship with the skill, not per-repo. Edits affect every fresh repo the skill audits. Before editing, confirm the change should apply globally and preserves the no-hard-wrap default (no line-width enforcement, `proseWrap: never`); per-repo overrides belong in the repo, not here.
