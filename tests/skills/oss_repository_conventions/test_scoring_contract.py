@@ -163,8 +163,10 @@ def test_worked_score_computation_adds_up(
         if _WEIGHT.get(severity) != weight:
             problems.append(f"{check_id}: weight {weight} != {severity}'s weight")
         if earns != (weight if status == "pass" else 0):
-            problems.append(f"{check_id}: {status} must earn "
-                            f"{weight if status == 'pass' else 0}, shows {earns}")
+            problems.append(
+                f"{check_id}: {status} must earn "
+                f"{weight if status == 'pass' else 0}, shows {earns}"
+            )
     assert any(status == "warn" for _, _, _, status, _ in rows), (
         "the computation must include a warn row — it proves warn earns zero"
     )
