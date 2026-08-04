@@ -191,9 +191,9 @@ Per `../../references/format-pr.md`:
 4. **Apply command** — `gh pr edit <num> --body-file <path>` with the **resolved PR number explicitly**, never a branch name. Never run `gh pr edit` automatically.
 
 ```
-Proposed PR description for #<num>:   (WRITE / HANDOFF-TO-WRITE)
+Proposed PR description for #<num>:   (WRITE)
 — or —
-Verdict: <label> for #<num>           (SYNC)
+Verdict: <label> for #<num>           (SYNC; a HANDOFF-TO-WRITE verdict is followed by the WRITE-mode draft)
 
 <report and/or full proposed body>
 
