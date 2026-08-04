@@ -1,6 +1,6 @@
 # Forge adapters
 
-The single home of the forge mapping for forge-side capabilities. Capability bodies express each operation once, with the GitHub (`gh`) command as the worked example; the tables here map those operations onto GitLab (`glab`) and Codeberg/Forgejo (`tea`) so the lane switch in `pr-input-guards.md` can route a capability end-to-end on a non-GitHub remote. The mapping lives only here — a structural test in the shipping repo rejects `glab`/`tea` literals in capability bodies — so a CLI rename or flag change is a one-file fix.
+The single home of the forge mapping for forge-side capabilities. Capability bodies express each operation once, with the GitHub (`gh`) command as the worked example; the tables here map those operations onto GitLab (`glab`) and Codeberg/Forgejo (`tea`), plus a minimal `curl` lane for Bitbucket Cloud, so the lane switch in `pr-input-guards.md` can route a capability end-to-end on a non-GitHub remote. The mapping lives only here — a structural test in the shipping repo rejects `glab`/`tea`/Bitbucket-API literals in capability bodies — so a CLI rename or flag change is a one-file fix.
 
 Per-capability promises (what routes fully, what degrades to a labeled partial, what refuses) live in the router's tier table and each capability's guard section; this file supplies the commands those promises route to.
 
@@ -19,7 +19,7 @@ Pattern match on the host:
 | `github.com`, `*.github.com`, `ghe.*` | GitHub | `gh` |
 | `gitlab.com`, self-hosted GitLab (any host with `/api/v4/`) | GitLab | `glab` |
 | `codeberg.org`, any Forgejo instance | Codeberg / Forgejo | `tea` (the Gitea CLI; Forgejo is wire-compatible — divergences flagged below) |
-| `bitbucket.org` | Bitbucket Cloud | not wired — see the Bitbucket stance below |
+| `bitbucket.org` | Bitbucket Cloud | `curl` + scoped API token — minimal lane, see its section below |
 
 For ambiguous self-hosted instances, fall back to a `curl -s <url>/api/v4/version` probe (GitLab) or `<url>/api/v1/version` (Gitea/Forgejo). If no probe matches, the capability surfaces "forge unknown; forge-side operations unavailable" and offers the git-side equivalent where one exists.
 
@@ -28,8 +28,9 @@ For ambiguous self-hosted instances, fall back to a `curl -s <url>/api/v4/versio
 - **`gh`** — first-class; capability bodies are written in it.
 - **`glab`** (GitLab CLI) — authenticate with `glab auth login`. `glab mr view` / `glab issue view` / `glab ci status` take `-F json` and a built-in `--jq`; `glab api` substitutes `:id`, `:branch`, `:username`, `:fullpath` from the current repo and supports `--paginate` but has **no** built-in `--jq` — pipe to `jq` and name that dependency in the proposal.
 - **`tea`** (Gitea CLI) — authenticate with `tea login add --url <instance> --token <token>`. Works against Forgejo/Codeberg; list commands double as detail views (`tea pr <n>`, `tea issues <n>`) and machine-readable output comes from `--fields` selections rather than JSON.
+- **`curl`** (Bitbucket Cloud) — there is no official CLI: Atlassian's `acli` ships no Bitbucket command group (third-party projects named "acli"/"atlassian-cli" advertise one — different tools, don't conflate), so the guaranteed baseline is the REST API. Authenticate with HTTP Basic auth: the Atlassian account **email** as username and a **scoped API token** (created at id.atlassian.com) as password — app passwords no longer work. Scopes: `read:pullrequest:bitbucket` for PR reads, `write:pullrequest:bitbucket` for edit/merge, `read:repository:bitbucket` for commit statuses. Pipe responses to `jq`.
 
-A missing or unauthenticated lane CLI stops the capability (per the guard sequence) — name the CLI and its auth command, and never emit another lane's commands as a substitute.
+A missing or unauthenticated lane CLI stops the capability (per the guard sequence) — name the CLI and its auth command (for Bitbucket: the token scopes above), and never emit another lane's commands as a substitute.
 
 ## Concept vocabulary
 
@@ -111,6 +112,7 @@ The GitHub `sm == "PR_BODY"` rule (the PR body becomes the squash commit message
 
 - **GitLab** — the default squash commit message is `%{title}` alone, so the MR description is normally NOT the squash message. The analog fires only when the project's `squash_commit_template` contains `%{description}` — then shape the body exactly as for `PR_BODY` on GitHub.
 - **Gitea / Forgejo** — the default squash message is `<PR title> (#<index>)` plus `Reviewed-on:` / `Reviewed-by:` trailers; the description enters it only when the repo ships `.gitea/default_merge_message/SQUASH_TEMPLATE.md` using `${PullRequestDescription}` — an on-disk read, no API needed. The merge command's title/message flags override the default in every case.
+- **Bitbucket Cloud** — the strategy is a per-merge choice (six values, see the lane table). The default squash message is `Merged in <source branch> (pull request #<n>)` + the PR title + the consolidated commit-message list — the PR description is not reliably part of it, so never shape a body on the assumption it becomes the squash message; the merge call's `message` field is the explicit override. Bitbucket itself appends `Approved-by:` trailer lines to merge messages — forge-generated, not something a capability authors.
 
 ## Issue-closing keywords
 
@@ -120,9 +122,22 @@ GitLab supports the same closing keywords as GitHub (`Close`/`Fix`/`Resolve` fam
 
 tea is the Gitea CLI; Forgejo (which powers Codeberg) stays wire-compatible with the Gitea API generation it forked from, not with current Gitea. The visible consequence here: the review-thread resolve endpoints exist only on Gitea ≥ 1.26, so on Forgejo `tea pr resolve` fails and resolution stays in the UI. Treat other `tea` errors on Forgejo the same way — degrade and say what didn't map, don't retry with guessed flags.
 
-## Bitbucket Cloud stance
+## Bitbucket Cloud lane (minimal)
 
-Not wired. The concepts exist (PRs, per-merge strategy, pipelines) and Bitbucket Cloud exposes them over its HTTP API, but no routed lane ships: forge-side capabilities refuse on a Bitbucket remote, name this reason, and offer the git-side equivalent where one exists. release-notes is unaffected — it drafts on any forge and surfaces the paste-in note for publishing.
+The curl baseline routes the highest-value operations only; capabilities whose operations are not in this table refuse on a Bitbucket remote, name that reason, and offer the git-side equivalent where one exists. release-notes is unaffected — it drafts on any forge and surfaces the paste-in note for publishing (Bitbucket has no native Releases; tags and Downloads only).
+
+Every call below is `curl -s --user "$ATLASSIAN_EMAIL:$API_TOKEN"` against `https://api.bitbucket.org/2.0/repositories/<workspace>/<repo>` (shortened to `$BB`):
+
+| Operation | Call |
+|---|---|
+| PR for the current branch | `curl -sG … "$BB/pullrequests" --data-urlencode 'q=source.branch.name = "<branch>" AND state = "OPEN"'` |
+| PR metadata | `GET $BB/pullrequests/<n>` — `state` (`OPEN` / `MERGED` / `DECLINED` / `SUPERSEDED`), `title`, `description`, `draft`, `participants[].approved`, `task_count` (open tasks), `close_source_branch`, `source.branch.name`, `destination.branch.name` |
+| PR diff | `curl -sL … "$BB/pullrequests/<n>/diff"` — the endpoint redirects to the raw diff, so follow redirects (`-L`) |
+| Edit the PR body | `GET` the PR first, then `PUT $BB/pullrequests/<n>` with `{"title": …, "description": …, "reviewers": <echoed from the GET>}` — a PUT that omits `reviewers` silently drops the PR's reviewer list |
+| Merge | `POST $BB/pullrequests/<n>/merge` with `{"merge_strategy": "<strategy>", "close_source_branch": <bool>, "message": "<override>"}` — strategies: `merge_commit` (default), `squash`, `fast_forward`, `squash_fast_forward`, `rebase_fast_forward`, `rebase_merge`; drafts cannot merge (server-enforced) |
+| CI status | `GET $BB/pullrequests/<n>/statuses` (PR-level aggregate) or `GET $BB/commit/<sha>/statuses` — `state` ∈ `SUCCESSFUL` / `FAILED` / `INPROGRESS` / `STOPPED` |
+
+The API also exposes comment-thread resolution (`POST`/`DELETE $BB/pullrequests/<n>/comments/<id>/resolve`) and first-class PR tasks (`$BB/pullrequests/<n>/tasks`, `RESOLVED`/`UNRESOLVED`), but no capability routes them — pr-conversation-resolve refuses on Bitbucket, and merge-readiness reads only `task_count` from the metadata fetch.
 
 ## What the skill does NOT promise
 
