@@ -14,17 +14,7 @@ Each principle is tagged with a severity:
 
 When several violations exist at once: fix the **musts** first, recommend the **shoulds**, apply the **coulds** silently unless they would conflict with file-local style.
 
-## Conflict resolution (tier wins over tier)
-
-Severity governs *triage* (which violation to fix first). The **mantra tier hierarchy** governs *design conflicts* (which principle outranks which when they fight).
-
-- **Tier 1 — Goals** (readability, KISS, testability, scalability, observability) outrank everything.
-- **Tier 2 — Design** (SRP, modular-by-composition, strong typing, fail-fast, immutability, illegal-states-unrepresentable, locality-of-behavior, pure/impure, explicit-over-implicit) serve Tier 1 and outrank Tier 3.
-- **Tier 3 — Pruning** (DRY, YAGNI-as-check) are checks applied last; they prune overgrowth, not block reasonable shape.
-
-Inside a tier, siblings are case-by-case — they answer different questions and rarely conflict head-on. When two principles in the same tier appear to fight, look for the trap (e.g. modular-by-composition's "delegate behavior, not the held object" resolves the apparent tension between composition and encapsulation).
-
-This rule is duplicated in `mantras.md` because it is load-bearing: an agent that loads `principles.md` without the mantras still needs to know how design conflicts resolve.
+This file is severity's one normative home. Severity answers *triage* — which violation to fix first. It does not answer *design conflicts* — which rule outranks which when two of them fight; that is the mantra tier hierarchy, stated once in `mantras.md`. The always-loaded router carries a one-line summary of both, so a reader who has only this file still knows a tier rule exists and where it lives.
 
 ## 1. Match scope to the request — *should*
 

@@ -90,9 +90,4 @@ These are review-time *signals*, not findings — they shape the next PR more th
 
 ## Anti-patterns specific to review
 
-- **Stacking nitpicks** — five trivial nits drown one real issue. Pick the top one or two `nitpick:` per file; drop the rest.
-- **Inventing findings** — if you can't anchor a concern to a principle or external standard, it's taste, not a rule.
-- **Lecturing** — cite the principle, suggest the fix, move on. Don't explain *why* the principle exists unless the author asks.
-- **Refusing to approve over a single `could`** — `coulds` are preferences; authors may decline.
-- **Reviewing the whole codebase** when the diff is the unit. Out-of-diff findings belong in a follow-up, not as merge gates.
-- **Re-reviewing the same PR with fresh nits each round** — say everything you have to say in the first pass.
+Stated once, in `../capability.md` — the entry point every review already loads, so repeating them here would only give the two lists room to drift apart. This file covers the external-standards side of review; the behavioral failure modes live there.

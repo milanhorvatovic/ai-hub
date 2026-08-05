@@ -66,13 +66,9 @@ When stored state and derived state both exist for the same value, you have a ca
 
 ## Severity (must / should / could)
 
-Per-principle violation tags:
+The per-principle violation tag: how hard a rule pushes, and so which violation gets fixed first. What each of the three tags means, and the order they impose when several violations land at once, is stated in `principles.md` — this entry names the term rather than restating the rule, so the glossary can never contradict the owner.
 
-- **must** — non-negotiable. Treat a violation as a bug; fix before shipping.
-- **should** — strong default. Deviation needs a stated reason.
-- **could** — preference. Deviation is fine when surrounding code differs; apply silently when you can.
-
-Severity governs *triage*. Tier (Goals / Design / Pruning, in `mantras.md`) governs *design conflicts*. They answer different questions.
+Severity is not **tier** (Goals / Design / Pruning, in `mantras.md`). Severity governs *triage*; tier governs *design conflicts*. They answer different questions and neither overrides the other.
 
 ## Write-mode vs review-mode
 
