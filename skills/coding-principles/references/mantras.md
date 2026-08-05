@@ -4,7 +4,9 @@ Universal shorthand that governs every decision the skill makes. The numbered pr
 
 ## Tier hierarchy and conflict resolution
 
-Three tiers. **Tier wins over tier** when mantras conflict — a Tier 1 *goal* outranks a Tier 2 *design rule*, which outranks a Tier 3 *pruning rule*. Inside a tier, siblings are case-by-case; they answer different questions and rarely conflict head-on.
+This file is the one normative home for the tier rule; it governs *design conflicts* — which rule outranks which when two of them fight. Triage order, a different question, is severity's, stated in `principles.md`.
+
+Three tiers. **Tier wins over tier** when mantras conflict — a Tier 1 *goal* outranks a Tier 2 *design rule*, which outranks a Tier 3 *pruning rule*. Inside a tier, siblings are case-by-case; they answer different questions and rarely conflict head-on. When two same-tier rules appear to fight, look for the trap rather than picking a winner — modular-by-composition's "delegate behavior, not the held object" dissolves the apparent tension between composition and encapsulation, for instance.
 
 - **Tier 1 — Goals**: *what* we are trying to achieve (quality attributes of the system).
 - **Tier 2 — Design**: *how* we achieve the goals (techniques and shapes).

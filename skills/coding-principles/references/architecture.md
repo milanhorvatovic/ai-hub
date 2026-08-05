@@ -68,14 +68,9 @@ Don't cargo-cult the full ceremony. The *load-bearing* idea is "dependencies poi
 
 ## Language-specific mechanics
 
-This file is the *concept* layer — the patterns above (dependency direction, hexagonal, package-by-feature) are language-agnostic. The *mechanics* of expressing them — the unit of modularity, how visibility/boundaries are enforced, how ports/adapters and dependency injection are written, where tests live — differ per language and live in each capability:
+This file is the *concept* layer — the patterns above (dependency direction, hexagonal, package-by-feature) are language-agnostic. The *mechanics* of expressing them — the unit of modularity, how visibility/boundaries are enforced, how ports/adapters and dependency injection are written, where tests live — differ per language and live in each capability.
 
-- Bash → `../capabilities/bash/references/project-structure.md`
-- Python → `../capabilities/python/references/project-structure.md`
-- TypeScript → `../capabilities/typescript/references/project-structure.md`
-- Rust → `../capabilities/rust/references/project-structure.md`
-
-Load the matching capability's project-structure reference (linked above) for the concrete how; this file for the why.
+Load the matching language capability's project-structure reference for the concrete how; this file for the why.
 
 ## Principle alignment
 

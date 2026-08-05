@@ -5,7 +5,7 @@ Incubator hub for AI-agnostic artifacts of every shape — skills, docs, MCP ser
 ## Repository layout
 
 - `skills/<name>/` — one skill per directory: `SKILL.md` (the always-loaded router), optional `capabilities/<name>/capability.md`, and shared `references/`.
-- `tests/skills/` — stdlib-only pytest suite: `test_structure_all.py` validates every skill's structure generically (frontmatter, spec limits, annotated semver, capability routing, link resolution); `tests/skills/<snake_name>/` (the skill name snake_cased) holds the content contracts unique to one skill.
+- `tests/skills/` — stdlib-only pytest suite: `test_structure_all.py` validates every skill's structure generically (frontmatter, spec limits, annotated semver, capability routing, link resolution, pointer direction); `tests/skills/<snake_name>/` (the skill name snake_cased) holds the content contracts unique to one skill.
 
 ## Skills
 

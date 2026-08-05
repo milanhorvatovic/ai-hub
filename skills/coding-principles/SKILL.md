@@ -51,6 +51,10 @@ This SKILL.md is the always-loaded **router** — the mantra/principle summaries
 
 - **Language capabilities** (see Capabilities below) — load `capabilities/<lang>/capability.md` for the task's language. Each language directory holds `capability.md` plus a `references/` subdir of on-demand supporting files, pulled in as the work calls for them: `anti-patterns.md` (review/smell scans), `examples.md` (before/after code), `best-practices.md` (external standards), `performance.md` (hot paths), `concurrency.md` (async/shared state), `project-structure.md` (layout/DI), `dependencies.md` (pinning/lockfiles/audit). The `capability.md` entry point links them.
 
+**Reference direction.** Pointers run one way: this router and the capability entry points may point into `capabilities/`; the shared `references/` files above point only sideways to each other or up to here. A shared reference that needs to name a capability names it in prose — "the matching language capability's project-structure reference" — never by path, because a path makes the reference unloadable without hauling a capability along, and a reference and a capability pointing at each other is a cycle with no entry point. Two shared references naming each other is a different thing and is expected — they sit at the same level, and either loads without the other.
+
+**One home per rule.** Each operating rule is stated normatively in exactly one file — severity and the citation grammar in `references/principles.md`, mantra tiers in `references/mantras.md` — and everywhere else, including the summaries below, carries a pointer rather than a second definition that can drift. This is why those two files name each other: each points at the rule the other owns.
+
 ## When to apply
 
 Applies whenever the agent will write, implement, fix, refactor, or clean up code (any Edit/Write/NotebookEdit on source), review a diff/PR for quality, or author a planning-phase document (plan, ADR, work spec) that mentions comments, docstrings, or annotations — there the comments capability supplies the rubric the plan should reflect. Skip it for exploration-only tasks ("how does X work?"), docs-only / config-only / pure-data changes (except the planning documents just named), ops/infra actions (deploy, restart, rollback), and security review (a separate concern). The skip governs triggering, not reach: once a task has triggered the skill, the comments capability's rubric covers every file that task touches — configs, workflows, and markdown included. When delegating code authoring to a sub-agent, either instruct it in the spawn prompt to load `capabilities/comments/capability.md` before authoring, or review its diff against that capability before committing.
@@ -59,7 +63,7 @@ Applies whenever the agent will write, implement, fix, refactor, or clean up cod
 
 Full prose: `references/mantras.md`.
 
-**Conflict resolution:** three tiers, tier wins over tier. Tier 1 *goals* outrank Tier 2 *design rules*, which outrank Tier 3 *pruning rules*. Inside a tier, siblings are case-by-case — they answer different questions and rarely conflict head-on.
+**Conflict resolution:** tier wins over tier — Tier 1 *goals* outrank Tier 2 *design rules*, which outrank Tier 3 *pruning rules*; inside a tier, siblings are case-by-case. `references/mantras.md` owns the rule, including the same-tier tie-break.
 
 ### Tier 1 — Goals (what we're trying to achieve)
 
@@ -90,7 +94,7 @@ Full prose: `references/mantras.md`.
 
 Full prose: `references/principles.md`.
 
-Each principle carries a severity tag — **must** (non-negotiable; treat violation as a bug), **should** (strong default; deviation needs a stated reason), **could** (preference; deviation is fine when surrounding code differs). Severity guides triage: when many things are wrong simultaneously, fix the **musts** first, recommend the **shoulds**, and silently apply the **coulds** unless they conflict with existing style.
+Each principle carries a severity tag — **must**, **should**, or **could**. What each tag means is defined once in `references/principles.md`; the summary that makes this list usable is that severity is triage order, so when many things are wrong at once, fix the **musts** first, recommend the **shoulds**, and apply the **coulds** silently unless they would conflict with existing style.
 
 1. **Match scope to the request** — *should* — do exactly what was asked; capture unrelated observations as follow-ups.
 2. **Root cause over bandaid** — *must* — find the underlying cause; bug fixes need a reproducing test that fails first.

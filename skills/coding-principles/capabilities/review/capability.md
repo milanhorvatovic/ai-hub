@@ -98,7 +98,8 @@ If there are zero **must** findings and the author asked "is this ready?", say y
 - **Reviewing the whole codebase instead of the diff.** The diff is the unit. Findings about code that did not change in this PR are out of scope unless the diff introduces a *new* caller of the problem code.
 - **Treating diffs from junior authors more harshly.** Severity comes from the principle, not the author. (And reviewers do not know who the author is when this skill runs.)
 - **Refusing to approve over a single could.** Coulds are preferences; an author may reasonably decline them.
+- **Re-reviewing the same PR with fresh nits each round.** Say everything you have to say in the first pass; a reviewer who drip-feeds findings costs the author a round trip per nit.
 
 ## Relationship to the write-mode checklist
 
-The write-mode "while editing" checklist in SKILL.md is the same set of concerns from the author's side. Review mode is its mirror: the author asks *"am I about to violate X?"*; the reviewer asks *"did the author violate X?"*. Same rules; opposite vantage.
+The write-mode "while editing" checklist in SKILL.md is the same set of concerns from the author's side, so a finding here almost always has a checklist line behind it — worth reaching for when a concern feels real but will not name itself. What the two modes are, and how they differ in vantage, is defined once in `../../references/glossary.md`.

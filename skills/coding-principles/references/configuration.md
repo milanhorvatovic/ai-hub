@@ -1,6 +1,6 @@
 # Configuration — industry conventions
 
-Language-agnostic practices for application configuration and feature flags. Load when the code under change reads config, env vars, secrets, or feature flags. Generalizes the 12-factor CLI discipline (in the bash capability) to all languages and to long-running services.
+Language-agnostic practices for application configuration and feature flags. Load when the code under change reads config, env vars, secrets, or feature flags. Generalizes the 12-factor CLI discipline (stated in full in the bash capability's best-practices reference) to all languages and to long-running services.
 
 The [Twelve-Factor App](https://12factor.net/config) is the canonical reference for config-as-environment.
 
@@ -71,4 +71,4 @@ The code-level discipline (the flag *platform* — LaunchDarkly, Unleash, etc. �
 - **Python**: `pydantic-settings` (typed, validated, env + file). Avoid scattered `os.environ`.
 - **TypeScript/Node**: parse `process.env` through a `zod` schema at startup into a typed config object; `convict` or `znv` for layered config.
 - **Rust**: `figment` or `config` crate layered with `serde`-deserialized typed structs; validate on load.
-- **Bash**: env vars with `${VAR:?error message}` to fail fast on missing required config (see the bash capability's 12-factor CLI section).
+- **Bash**: env vars with `${VAR:?error message}` to fail fast on missing required config (the bash capability's best-practices reference carries the 12-factor CLI discipline in full).

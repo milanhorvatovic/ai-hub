@@ -2,7 +2,17 @@
 
 Operational rules. Each principle is enforceable on its own; the mantras in `mantras.md` are the shorthand category labels they live under.
 
-Cross-references to mantras are by name. Cross-references between principles are by number (`see principle N`).
+## Citation grammar
+
+How the skill cites its own rules, stated here once and used everywhere — the smells catalog's anchors, a principle citing a sibling, a concern reference invoking a mantra.
+
+- **Principles by number** — `principle 7`, `see principle N`. Never by title; titles get reworded, numbers do not.
+- **Mantras by lowercase name** — `mantra strong typing`, `mantra readability first`, matching the heading text in `mantras.md` but lowercased regardless of how that heading is capitalized. Acronyms keep their case: `mantra SRP`, `mantra KISS`, `mantra DRY`, `mantra YAGNI`.
+- **Examples by language name** on a principle's `> **Code examples**` pointer line — `python, bash, rust`, never a path into the capability that holds them. The naming runs both ways: every language on a pointer line has a matching heading in that language's `examples.md`, and every such heading is named on the pointer line it belongs to, so neither can outlive the other.
+
+The reason for the lowercase rule, and the reason it is worth following outside this file: a citation is a **grep key**, not display text. `grep -rn "mantra strong typing"` returns every place that mantra is invoked only if every place spells it the same way, so the citation form is fixed even where the surrounding prose would capitalize it.
+
+Naming a *capability* is not a citation form and is not governed here — the router's reference-direction rule covers it.
 
 ## Severity tags
 
@@ -14,17 +24,7 @@ Each principle is tagged with a severity:
 
 When several violations exist at once: fix the **musts** first, recommend the **shoulds**, apply the **coulds** silently unless they would conflict with file-local style.
 
-## Conflict resolution (tier wins over tier)
-
-Severity governs *triage* (which violation to fix first). The **mantra tier hierarchy** governs *design conflicts* (which principle outranks which when they fight).
-
-- **Tier 1 — Goals** (readability, KISS, testability, scalability, observability) outrank everything.
-- **Tier 2 — Design** (SRP, modular-by-composition, strong typing, fail-fast, immutability, illegal-states-unrepresentable, locality-of-behavior, pure/impure, explicit-over-implicit) serve Tier 1 and outrank Tier 3.
-- **Tier 3 — Pruning** (DRY, YAGNI-as-check) are checks applied last; they prune overgrowth, not block reasonable shape.
-
-Inside a tier, siblings are case-by-case — they answer different questions and rarely conflict head-on. When two principles in the same tier appear to fight, look for the trap (e.g. modular-by-composition's "delegate behavior, not the held object" resolves the apparent tension between composition and encapsulation).
-
-This rule is duplicated in `mantras.md` because it is load-bearing: an agent that loads `principles.md` without the mantras still needs to know how design conflicts resolve.
+This file is severity's one normative home. Severity answers *triage* — which violation to fix first. It does not answer *design conflicts* — which rule outranks which when two of them fight; that is the mantra tier hierarchy, stated once in `mantras.md`. The always-loaded router carries a one-line summary of both, so a reader who has only this file still knows a tier rule exists and where it lives.
 
 ## 1. Match scope to the request — *should*
 

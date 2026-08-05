@@ -2,7 +2,8 @@
 
 Every skill must satisfy the same structural invariants — frontmatter shape,
 Agent-Skills spec limits, annotated semver, router/capability registration
-consistency, and internal-link resolution. Parametrizing over the discovered
+consistency, internal-link resolution, and the direction pointers may run
+(no capability into a sibling, no shared reference into a capability). Parametrizing over the discovered
 skill set means a newly added skill is validated from its first commit with no
 bespoke test directory, and deleting a per-skill test directory leaves the
 skill structurally covered. Per-skill *content* contracts (mantra counts,
@@ -340,6 +341,22 @@ def test_markdown_links_resolve(skill: Path) -> None:
 @pytest.mark.parametrize("skill", skill_params("backtick_paths"))
 def test_backtick_paths_resolve(skill: Path) -> None:
     _resolve_all(skill, _backtick_paths, "backtick path pointers")
+
+
+@pytest.mark.parametrize("skill", skill_params("reference_direction"))
+def test_shared_references_never_point_into_capabilities(skill: Path) -> None:
+    """A file under the skill-root references/ must not point into
+    capabilities/ — the router and capability entry points reach down, shared
+    references only sideways or up. An inversion makes the reference
+    unloadable without hauling a capability along, and a pair pointing at each
+    other is a cycle with no entry point. Prose names a capability instead."""
+    cap_root = (skill / "capabilities").resolve()
+    offenders: list[str] = []
+    for md_file in sorted(skill.glob("references/**/*.md")):
+        for token, lineno in _backtick_paths(md_file) + _markdown_links(md_file):
+            if (md_file.parent / token).resolve().is_relative_to(cap_root):
+                offenders.append(f"{md_file.relative_to(skill)}:{lineno} -> {token}")
+    assert not offenders, "references pointing into capabilities:\n" + "\n".join(offenders)
 
 
 @pytest.mark.parametrize("skill", skill_params("cross_capability"))

@@ -18,7 +18,7 @@ Definition: **refactoring changes structure, not behavior.** If behavior changes
 
 ## Two hats (Beck)
 
-You're either **refactoring** (changing structure, tests stay green, no behavior change) or **adding behavior** (new tests, new functionality). Never both in the same commit — it makes review impossible and bisection useless (principle 1: match scope; principle 7: the change should be legible).
+You're either **refactoring** (changing structure, tests stay green, no behavior change) or **adding behavior** (new tests, new functionality). Never both in the same commit — it makes review impossible and bisection useless (principle 1: match scope to the request; mantra readability first: a mixed commit hides the behavior change in the noise of the restructure).
 
 > "Make the change easy, then make the easy change." — first refactor so the new feature *fits*, commit that, then add the feature.
 
