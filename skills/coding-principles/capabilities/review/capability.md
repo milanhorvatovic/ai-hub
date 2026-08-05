@@ -47,8 +47,10 @@ Do not use this lens for:
 Apply the full skill — every mantra and every principle is a potential finding source. The most common review-mode catches:
 
 - **must** — secrets in logs (13), missing reproducing test for a bug fix (2), half-implementations (8), destructive ops without a guard (11), inputs not parsed at boundary when security-relevant (19), no verification ran (10).
-- **should** — defensive code for impossible states (5), abstraction with one implementation (4), mock-at-internals instead of boundaries (15), `Date.now()` / `Math.random()` in business logic (16), bag-of-optionals where a sum type would work (mantras: illegal-states-unrepresentable), mutable bindings that could be `const` (mantras: immutability), silent `try/except` (mantras: fail-fast-fail-loud).
-- **could** — comment restating the code (7), abbreviated names (17), commented-out blocks (20), missing structured log context (mantras: observability).
+- **should** — defensive code for impossible states (5), abstraction with one implementation (4), mock-at-internals instead of boundaries (15), `Date.now()` / `Math.random()` in business logic (16), comment carrying nothing the code cannot say (21), bag-of-optionals where a sum type would work (mantras: illegal-states-unrepresentable), mutable bindings that could be `const` (mantras: immutability), silent `try/except` (mantras: fail-fast-fail-loud).
+- **could** — comment that carries value but spends its words on the *what* (7), abbreviated names (17), commented-out blocks (20), missing structured log context (mantras: observability).
+
+Comment findings run through the comments capability, which carries the same rubric inverted as a finding source — the two severities above are its value gate and content gate read from the review side. Load it when a diff's comments are what you are judging.
 
 ## What to skip
 

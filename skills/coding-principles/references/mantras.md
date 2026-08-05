@@ -54,7 +54,7 @@ Diagnostic aid. When a mantra is being violated, these are the numbered principl
 
 | Mantra | Operationalized by principles |
 | ------ | ----------------------------- |
-| Readability first (T1) | 7 (comments), 9 (read before edit), 17 (naming) |
+| Readability first (T1) | 7 (comment content), 9 (read before edit), 17 (naming), 21 (comment value) |
 | KISS (T1) | 1 (scope), 4 (no speculative generality), 14 (no over-engineering) |
 | Testability (T1) | 2 (failing-first test), 15 (mock at boundaries), 16 (inject time/randomness) |
 | Scalability (T1) | 14 (modular/composable/scalable), 18 (single source of truth) |
