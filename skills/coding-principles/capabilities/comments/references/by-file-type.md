@@ -7,7 +7,7 @@ Per-format depth behind the quick rules in `../capability.md`. Every section app
 The rubric governs syntactic comments in every form the fleet of file types offers:
 
 - Python — triple-quoted docstrings (`"""…"""` / `'''…'''`); runs of `#` lines.
-- TypeScript / JavaScript / Rust / Go / C / C++ / Java / Kotlin / Swift / Scala / C# — `/* … */`; JSDoc / TSDoc / doc-comment `/** … */` and `///`.
+- TypeScript / JavaScript / Rust / Go / C / C++ / Java / Kotlin / Swift / Scala / C# — `//` line comments (runs count as one block; Go's doc comments are these, directly above a declaration) and `/* … */` blocks; doc-comment forms `/** … */` (JSDoc / TSDoc / Javadoc) and `///` (Rust, C#).
 - Ruby — `=begin … =end`; runs of `#`.
 - HTML / Markdown / Vue templates — `<!-- … -->`.
 - MDX — `{/* … */}`.

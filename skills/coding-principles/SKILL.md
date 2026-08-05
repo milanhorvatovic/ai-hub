@@ -191,7 +191,7 @@ The brake on this skill is: when in doubt, write less *about* the code and more 
 
 ## Capabilities
 
-Load on demand: language capabilities by the file's language, the comments capability when about to write any comment, the review capability for review tasks. Load only what the task touches — reading all four languages for a Python change wastes context.
+Load on demand: language capabilities by the file's language; the comments capability when the task touches comment-bearing files, plans work that mentions comments or docstrings, or is about to write any comment; the review capability for review tasks. Load only what the task touches — reading all four languages for a Python change wastes context.
 
 | Capability | Trigger | Path |
 | ---------- | ------- | ---- |
