@@ -295,7 +295,7 @@ The smells are grouped by category. Some smells appear in multiple categories �
 
 ### Banner / divider comments (`# ─── helpers ───`, `# ==========`)
 
-- **Anchor:** principle 21 (value); readability first (mantra)
+- **Anchor:** principle 21 (value) + mantra readability first
 - **Severity:** *should*
 - **Fix:** delete the banner. If a file needs section markers to stay navigable, it needs splitting, not signage (see principle 14).
 

@@ -250,6 +250,6 @@ One such purpose is enough — a comment does not need two reasons to live. A co
 
 The two comment principles compose as ordered gates. This principle is the **value gate** and runs first: does the comment carry something the code cannot? Principle 7 is the **content gate** and runs second: what it carries is the *why*, not a restatement of the *what*. A comment that serves its reader passes both. (The comments capability, arriving in a follow-up change, carries the full rubric with per-file-type rules.)
 
-Applies to comments in every file type that carries them — source code, configs, workflows, infrastructure, shell scripts, migrations, tests, and markdown HTML comments or frontmatter remarks. Commit messages, PR descriptions, branch names, and release notes are change narration, outside this skill's scope entirely.
+Within a task this skill covers, the principle applies to comments in every file type the task touches — source code, configs, workflows, infrastructure, shell scripts, migrations, tests, and markdown HTML comments or frontmatter remarks. The skill's trigger rules still decide when it loads at all (docs-only and config-only tasks stay out of scope). Commit messages, PR descriptions, branch names, and release notes are change narration, outside this skill's scope entirely.
 
 **See also:** principle 7 (content gate — why over what, applied after this value gate); principle 20 (commented-out code is a separate smell: dead code, not commentary).
