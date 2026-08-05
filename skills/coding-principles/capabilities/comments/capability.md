@@ -95,7 +95,7 @@ Defer to the project's declared convention first. Signals that a project demands
 | Python | `pyproject.toml` `[tool.pydocstyle]` / `[tool.interrogate]` / `[tool.ruff.lint.pydocstyle]` (D-rules); `setup.cfg [pydocstyle]`; `.pydocstyle`; `tox.ini [pydocstyle]`; darglint config |
 | TypeScript / JavaScript | `.eslintrc*` with `eslint-plugin-jsdoc` / `eslint-plugin-tsdoc`; `typedoc.json`; `tsconfig.json` `"declaration": true` |
 | Rust | `Cargo.toml [lints]` `missing_docs`; `#![deny(missing_docs)]` / `#![warn(missing_docs)]` in `lib.rs` |
-| Go | `golangci.yml` with revive's `exported` rule; staticcheck `ST1000`, `ST1020`–`ST1022` |
+| Go | `.golangci.yml` with revive's `exported` rule; staticcheck `ST1000`, `ST1020`–`ST1022` |
 | Ruby | `.rubocop.yml` `Style/Documentation` |
 | Java | `checkstyle.xml` `JavadocMethod`; `maven-javadoc-plugin` |
 | C# / .NET | `.editorconfig` `dotnet_diagnostic.SA1600`; `<GenerateDocumentationFile>true</GenerateDocumentationFile>` |

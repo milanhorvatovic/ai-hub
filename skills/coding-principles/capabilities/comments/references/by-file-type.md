@@ -11,7 +11,7 @@ The rubric governs syntactic comments in every form the fleet of file types offe
 - Ruby — `=begin … =end`; runs of `#`.
 - HTML / Markdown / Vue templates — `<!-- … -->`.
 - MDX — `{/* … */}`.
-- RST — `..` directive-less indent blocks.
+- RST — `..` directive-less indented blocks.
 - AsciiDoc — `//` line comments; `////` delimited blocks.
 - Shell / YAML / TOML / Dockerfile / Makefile — runs of `#`; consecutive `#` lines count as one block for the partial-failure rule.
 

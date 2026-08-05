@@ -1,6 +1,6 @@
 # Comments — anti-patterns
 
-Catalogued symptoms with their principle anchors. Complements the language-agnostic `../../../references/smells.md` (whose comment entries anchor review findings); this catalog goes deeper and format-specific. The positive rules these negate live in `../capability.md`.
+Catalogued symptoms with their principle anchors. Complements the language-agnostic `../../../references/smells.md` (whose comment entries anchor review findings); this catalog goes deeper, format by format. The positive rules these negate live in `../capability.md`.
 
 ## Narration
 
