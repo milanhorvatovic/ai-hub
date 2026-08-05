@@ -4,10 +4,12 @@ description: >
   Implementation discipline for any coding task — writing, modifying, fixing,
   refactoring, or reviewing code. Carries 16 universal mantras (tiers: goals,
   design, pruning) and 21 numbered principles with must/should/could severity,
-  with on-demand language capabilities (bash, python, typescript, rust) and a
-  review workflow. Triggers when the user asks to write, implement, add, fix,
-  refactor, clean up, or review code, or via /coding-principles. Skip for
-  docs-only, config-only, pure-data, or ops/infra tasks.
+  with on-demand language capabilities (bash, python, typescript, rust), a
+  cross-language comments capability, and a review workflow. Triggers when the
+  user asks to write, implement, add, fix, refactor, clean up, or review code,
+  on planning docs (plans, ADRs, work specs) that mention comments or
+  docstrings, or via /coding-principles. Skip for other docs-only,
+  config-only, pure-data, or ops/infra tasks.
 allowed-tools: Read Grep
 metadata:
   version: "1.0.0" # x-release-please-version
