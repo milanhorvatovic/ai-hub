@@ -40,7 +40,10 @@ def test_example_pointers_match_example_headings(
         if m := re.match(r"^## (\d+)\.", line):
             current = int(m.group(1))
             continue
-        if "**Code examples**" in line:
+        # Anchored, not a substring search: pointer lines are always the
+        # blockquote form, and prose that merely names the marker — the
+        # citation-grammar section documenting it — is not a pointer.
+        if line.startswith("> **Code examples**"):
             assert current is not None, f"pointer line before any principle: {line!r}"
             # \b is safe at both edges: capability dir names are constrained
             # to lowercase+hyphens, and hyphens are interior when present.

@@ -53,7 +53,7 @@ This SKILL.md is the always-loaded **router** — the mantra/principle summaries
 
 **Reference direction.** Pointers run one way: this router and the capability entry points may point into `capabilities/`; the shared `references/` files above point only sideways to each other or up to here. A shared reference that needs to name a capability names it in prose — "the matching language capability's project-structure reference" — never by path, because a path makes the reference unloadable without hauling a capability along, and a reference and a capability pointing at each other is a cycle with no entry point. Two shared references naming each other is a different thing and is expected — they sit at the same level, and either loads without the other.
 
-**One home per rule.** Each operating rule is stated normatively in exactly one file — severity in `references/principles.md`, mantra tiers in `references/mantras.md` — and everywhere else, including the summaries below, carries a pointer rather than a second definition that can drift. This is why those two files name each other: each points at the rule the other owns.
+**One home per rule.** Each operating rule is stated normatively in exactly one file — severity and the citation grammar in `references/principles.md`, mantra tiers in `references/mantras.md` — and everywhere else, including the summaries below, carries a pointer rather than a second definition that can drift. This is why those two files name each other: each points at the rule the other owns.
 
 ## When to apply
 

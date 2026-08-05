@@ -13,7 +13,7 @@ Diagnostic catalog. Given an observable symptom in code under review or in code 
 Each entry has four parts:
 
 - **Smell** — what you observe.
-- **Anchor** — the principle(s) and/or mantra(s) that explain why it is a smell. Principles are cited by number (`principle 15`), mantras by lowercase name (`mantra strong typing`; acronym mantras keep their case, `mantra SRP`) regardless of the heading's title case — anchors are grep keys for searching this catalog, not display titles.
+- **Anchor** — the principle(s) and/or mantra(s) that explain why it is a smell, written in the skill's citation grammar (`principles.md`), which fixes the form for principle numbers, mantra names, and their acronyms.
 - **Severity** — inherits from the anchor's severity (must / should / could). Principles carry severity tags; mantras do not — an entry anchored only to mantras defaults to *should* unless it states a different severity explicitly (the fail-fast entries state *must*). An entry with several anchors states each severity inline with its source named: per-anchor severities where the anchors judge different failures (see "Comment restates the code"), or a principle's tag alongside the mantra default (see "Mocking hell").
 - **Fix** — one-line direction; full details in the linked principle.
 

@@ -2,7 +2,17 @@
 
 Operational rules. Each principle is enforceable on its own; the mantras in `mantras.md` are the shorthand category labels they live under.
 
-Cross-references to mantras are by name. Cross-references between principles are by number (`see principle N`).
+## Citation grammar
+
+How the skill cites its own rules, stated here once and used everywhere — the smells catalog's anchors, a principle citing a sibling, a concern reference invoking a mantra.
+
+- **Principles by number** — `principle 7`, `see principle N`. Never by title; titles get reworded, numbers do not.
+- **Mantras by lowercase name** — `mantra strong typing`, `mantra readability first`, matching the heading text in `mantras.md` but lowercased regardless of how that heading is capitalized. Acronyms keep their case: `mantra SRP`, `mantra KISS`, `mantra DRY`, `mantra YAGNI`.
+- **Examples by language name** on a principle's `> **Code examples**` pointer line — `python, bash, rust`, never a path into the capability that holds them. The naming runs both ways: every language on a pointer line has a matching heading in that language's `examples.md`, and every such heading is named on the pointer line it belongs to, so neither can outlive the other.
+
+The reason for the lowercase rule, and the reason it is worth following outside this file: a citation is a **grep key**, not display text. `grep -rn "mantra strong typing"` returns every place that mantra is invoked only if every place spells it the same way, so the citation form is fixed even where the surrounding prose would capitalize it.
+
+Naming a *capability* is not a citation form and is not governed here — the router's reference-direction rule covers it.
 
 ## Severity tags
 
