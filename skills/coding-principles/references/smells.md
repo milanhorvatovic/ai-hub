@@ -13,7 +13,7 @@ Diagnostic catalog. Given an observable symptom in code under review or in code 
 Each entry has four parts:
 
 - **Smell** — what you observe.
-- **Anchor** — the principle(s) and/or mantra(s) that explain why it is a smell. Principles are cited by number (`principle 15`), mantras by lowercase name (`mantra strong typing`) regardless of the heading's title case — anchors are grep keys, not titles.
+- **Anchor** — the principle(s) and/or mantra(s) that explain why it is a smell. Principles are cited by number (`principle 15`), mantras by lowercase name (`mantra strong typing`; acronym mantras keep their case, `mantra SRP`) regardless of the heading's title case — anchors are grep keys, not titles.
 - **Severity** — inherits from the anchor's severity (must / should / could). Principles carry severity tags; mantras do not — an entry anchored only to mantras defaults to *should* unless it states a different severity explicitly (the fail-fast entries state *must*).
 - **Fix** — one-line direction; full details in the linked principle.
 
@@ -25,8 +25,8 @@ The smells are grouped by category. Some smells appear in multiple categories �
 
 ### Mocking hell — five+ mocks per test
 
-- **Anchor:** principle 15 (mock at boundaries) — but the deeper signal is SRP (mantra) or principle 14 (small functions). When the subject needs five mocks, the subject is doing five things.
-- **Severity:** *should* (P15) / *should* (SRP)
+- **Anchor:** principle 15 (mock at boundaries) — but the deeper signal is mantra SRP or principle 14 (small functions). When the subject needs five mocks, the subject is doing five things.
+- **Severity:** *should* (principle 15) / *should* (mantra SRP)
 - **Fix:** split the subject by responsibility before splitting the test. If the test cannot avoid five collaborators, it is an integration test pretending to be a unit test.
 
 ### Test passes on first try (was never red)
