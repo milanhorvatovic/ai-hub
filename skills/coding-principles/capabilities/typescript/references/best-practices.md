@@ -109,7 +109,7 @@ Node has `fetch` natively. Don't add `axios` to a new project unless you need in
 
 ## Documentation
 
-- **TSDoc** (`/** ... */` with `@param`, `@returns`, `@throws`, `@example`) is the standard for documenting exported API. Editors surface it on hover.
-- **Types are documentation** — a precise type replaces prose. Don't restate the type in the comment; document the *why* and the contract (parent skill principle 7).
+- **TSDoc** (`/** ... */` with `@param`, `@returns`, `@throws`, `@example`) is the standard for documenting exported API. Editors surface it on hover. Whether a given export needs one is the comments capability's docstring policy — a `typedoc.json` or an `eslint-plugin-tsdoc` rule settles it; absent both, the value bar does.
+- **Types are documentation** — a precise type replaces prose, so a doc comment that restates the signature costs maintenance and adds nothing.
 - **`typedoc`** generates an API site from TSDoc comments. Generate from source; don't hand-maintain.
 - **README per package** in a monorepo — what the package is, how to install, a minimal example. Keep it to getting-started; deep reference lives in generated docs.

@@ -83,7 +83,7 @@ Well-named identifiers already explain *what* — a comment that repeats them ad
 
 Do not write comments that reference the current PR, ticket, or caller ("added for the X flow", "used by Y", "fix for #123") — those rot. Put that in the commit message.
 
-Never write multi-paragraph docstrings or block comments unless the project's existing style demands it (check the repo's declared conventions and sibling files).
+Length is not the test: a long docstring carrying three real invariants earns its place, and a one-liner restating the signature does not. Where a project declares a docstring convention, follow it — the comments capability carries that policy, and the value bar in principle 21 decides when none is declared.
 
 **See also:** principle 21 (value gate — whether the comment carries meaning the code cannot, applied before this content gate).
 

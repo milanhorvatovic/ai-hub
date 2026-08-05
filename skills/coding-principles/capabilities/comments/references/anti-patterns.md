@@ -13,7 +13,7 @@ Catalogued symptoms with their principle anchors. Complements the language-agnos
 ## Docstrings
 
 - **Trivial docstring restating the signature** (`get_user(id) — gets a user by id`) — principles 21 + 7. Delete, or shrink to the load-bearing part: a precondition, an invariant, a surprise.
-- **Docstring novel on an internal helper** — multi-paragraph prose where no convention demands it — principle 7. Cut to contract; the value bar, not word count, decides.
+- **Docstring novel on an internal helper** — multi-paragraph prose where no convention demands it — principles 21 (value) + 7 (content). Cut to contract; the value bar, not word count, decides.
 - **Docstring drift** — parameters renamed, docstring not — principle 9 (read before you edit). A wrong docstring is worse than none; inside your hunk, fix or delete it.
 
 ## Configs and workflows

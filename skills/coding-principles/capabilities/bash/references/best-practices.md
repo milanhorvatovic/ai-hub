@@ -96,5 +96,5 @@ Past ~200 lines / multiple subcommands / structured I/O (JSON, YAML, anything th
 ## Documentation
 
 - **Usage / `--help`** — every script that takes arguments prints usage on `-h`/`--help` and on a usage error (exit 64). Keep the usage string adjacent to the argument parsing so they don't drift.
-- **Header comment block** — a short block at the top: what the script does, required env vars, exit codes, an example invocation. Not a changelog (git holds that).
-- **Function comments** — only where the *why* is non-obvious (parent skill principle 7). Bash has no docstring convention; a one-line comment above a non-trivial function is the norm.
+- **Header comment block** — a short block at the top: what the script does, required env vars, exit codes, an example invocation. Not a changelog (git holds that). This is a bash convention rather than an exception to the comment-value bar: a script's interface has nowhere else to live, so the block carries what the code cannot.
+- **Function comments** — bash has no docstring convention, so a one-line comment above a non-trivial function is the norm where one is warranted. Whether it is warranted is the comments capability's rubric to decide.
