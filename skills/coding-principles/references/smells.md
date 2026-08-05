@@ -26,7 +26,7 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### Mocking hell — five+ mocks per test
 
 - **Anchor:** principle 15 (mock at boundaries) — but the deeper signal is mantra SRP or principle 14 (small functions). When the subject needs five mocks, the subject is doing five things.
-- **Severity:** *should* (principle 15) / *should* (mantra SRP)
+- **Severity:** *should* (principle 15's tag; mantra SRP takes the mantra-anchor default)
 - **Fix:** split the subject by responsibility before splitting the test. If the test cannot avoid five collaborators, it is an integration test pretending to be a unit test.
 
 ### Test passes on first try (was never red)
