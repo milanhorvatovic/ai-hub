@@ -4,10 +4,12 @@ description: >
   Implementation discipline for any coding task — writing, modifying, fixing,
   refactoring, or reviewing code. Carries 16 universal mantras (tiers: goals,
   design, pruning) and 21 numbered principles with must/should/could severity,
-  with on-demand language capabilities (bash, python, typescript, rust) and a
-  review workflow. Triggers when the user asks to write, implement, add, fix,
-  refactor, clean up, or review code, or via /coding-principles. Skip for
-  docs-only, config-only, pure-data, or ops/infra tasks.
+  with on-demand language capabilities (bash, python, typescript, rust), a
+  cross-language comments capability, and a review workflow. Triggers when the
+  user asks to write, implement, add, fix, refactor, clean up, or review code,
+  on planning docs (plans, ADRs, work specs) that mention comments or
+  docstrings, or via /coding-principles. Skip for other docs-only,
+  config-only, pure-data, or ops/infra tasks.
 allowed-tools: Read Grep
 metadata:
   version: "1.0.0" # x-release-please-version
@@ -51,7 +53,7 @@ This SKILL.md is the always-loaded **router** — the mantra/principle summaries
 
 ## When to apply
 
-Applies whenever the agent will write, implement, fix, refactor, or clean up code (any Edit/Write/NotebookEdit on source), or review a diff/PR for quality. Skip it for exploration-only tasks ("how does X work?"), docs-only / config-only / pure-data changes, ops/infra actions (deploy, restart, rollback), and security review (a separate concern).
+Applies whenever the agent will write, implement, fix, refactor, or clean up code (any Edit/Write/NotebookEdit on source), review a diff/PR for quality, or author a planning-phase document (plan, ADR, work spec) that mentions comments, docstrings, or annotations — there the comments capability supplies the rubric the plan should reflect. Skip it for exploration-only tasks ("how does X work?"), docs-only / config-only / pure-data changes (except the planning documents just named), ops/infra actions (deploy, restart, rollback), and security review (a separate concern). The skip governs triggering, not reach: once a task has triggered the skill, the comments capability's rubric covers every file that task touches — configs, workflows, and markdown included. When delegating code authoring to a sub-agent, either instruct it in the spawn prompt to load `capabilities/comments/capability.md` before authoring, or review its diff against that capability before committing.
 
 ## Mantras (one-line summaries)
 
@@ -148,12 +150,14 @@ Apply mentally; do not output the checklist.
 - [ ] Are my names abbreviated or suffixed with `_old` / `_v2` / `_temp`? → stop, rename.
 - [ ] Am I silently swallowing an error (`except: pass`, `catch (_) {}`, ignored Result)? → stop, fail loud or handle explicitly.
 - [ ] Will a failure in this code be debuggable from logs alone? If no → add structured context to the error or log at the edge.
+- [ ] Am I about to write any comment at all? → load `capabilities/comments/capability.md` and apply the rubric before writing.
 - [ ] Am I writing a comment that restates the code? → stop, delete it.
 - [ ] Am I adding a fallback / shim "just in case"? → stop, ask first.
 
 **Before reporting done:**
 
 - [ ] Did I verify the change actually does what it claims (run, test, exercise)?
+- [ ] Did a sub-agent author any of this code? → review its diff against `capabilities/comments/capability.md` before reporting.
 - [ ] Did I leave anything half-done that I should flag?
 - [ ] Are unrelated observations captured as follow-ups rather than silent edits?
 - [ ] Is the summary one or two sentences — what changed and what's next?
@@ -187,7 +191,7 @@ The brake on this skill is: when in doubt, write less *about* the code and more 
 
 ## Capabilities
 
-Load on demand: language capabilities by the file's language, the review capability for review tasks. Load only what the task touches — reading all four languages for a Python change wastes context.
+Load on demand: language capabilities by the file's language; the comments capability when the task touches comment-bearing files, plans work that mentions comments or docstrings, or is about to write any comment; the review capability for review tasks. Load only what the task touches — reading all four languages for a Python change wastes context.
 
 | Capability | Trigger | Path |
 | ---------- | ------- | ---- |
@@ -195,6 +199,7 @@ Load on demand: language capabilities by the file's language, the review capabil
 | python | `*.py`, `pyproject.toml` | capabilities/python/capability.md |
 | typescript | `*.ts`, `*.tsx`, `*.mts`, `tsconfig.json` | capabilities/typescript/capability.md |
 | rust | `*.rs`, `Cargo.toml` | capabilities/rust/capability.md |
+| comments | about to write any comment in a task this skill covers; comment-bearing files the task touches (source, config, workflow, infra, script, migration, test, notebook, markdown); plan docs that mention comments or docstrings | capabilities/comments/capability.md |
 | review | reviewing an existing diff / PR / change | capabilities/review/capability.md |
 
 For languages without a capability (Go, Ruby, Java, C/C++, Swift, …), use the core principles plus the repo's declared conventions; propose a new capability if the language recurs. Capabilities extend the core, never override it — a conflict is a bug, so flag it. Write-mode (avoid violations as you author) is the default and lives in this router; review-mode loads from the review capability.
@@ -211,7 +216,7 @@ This skill covers implementation discipline only. Adjacent concerns are delibera
 - **Repo-local conventions** — what the specific repo already declares (style, naming, and structure in `CLAUDE.md` / `AGENTS.md` / `CONTRIBUTING.md`, lint configs, and sibling files). This skill tells you how to think; the repo's conventions tell you what this repo expects. When they conflict, repo-local conventions win for style decisions; principles win for design decisions.
 - **Change narration** — how the change is described in commits, PRs, and branches. This skill is silent on narration.
 - **Security review** — threat-model evaluation. This skill evaluates implementation hygiene, not threat models.
-- **Docs formatting** — documentation formatting and lint, not code.
+- **Docs formatting** — documentation formatting and lint, not code. Comment *content* inside files a triggered coding task touches is in scope through the comments capability; only formatting and lint stay out.
 
 ## Edge cases
 

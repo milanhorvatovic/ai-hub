@@ -248,7 +248,7 @@ A good comment is some of the highest-value text in a file — it carries what t
 
 One such purpose is enough — a comment does not need two reasons to live. A comment carrying none of them — restating the code, narrating the edit, marking a section — is noise: it rots under refactor and erodes trust in the comments that matter. Revise it into one that carries meaning, or remove it.
 
-The two comment principles compose as ordered gates. This principle is the **value gate** and runs first: does the comment carry something the code cannot? Principle 7 is the **content gate** and runs second: what it carries is the *why*, not a restatement of the *what*. A comment that serves its reader passes both. (The comments capability, arriving in a follow-up change, carries the full rubric with per-file-type rules.)
+The two comment principles compose as ordered gates. This principle is the **value gate** and runs first: does the comment carry something the code cannot? Principle 7 is the **content gate** and runs second: what it carries is the *why*, not a restatement of the *what*. A comment that serves its reader passes both. (The comments capability carries the full rubric with per-file-type rules.)
 
 Within a task this skill covers, the principle applies to comments in every file type the task touches — source code, configs, workflows, infrastructure, shell scripts, migrations, tests, and markdown HTML comments or frontmatter remarks. The skill's trigger rules still decide when it loads at all — a docs-only or config-only task never loads it. Commit messages, PR descriptions, branch names, and release notes are change narration, outside this skill's scope entirely.
 
