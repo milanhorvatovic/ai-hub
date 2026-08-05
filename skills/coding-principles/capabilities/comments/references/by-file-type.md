@@ -144,7 +144,7 @@ Test names carry intent (`test_returns_empty_when_input_is_none`); comments rest
 - Fixture explanation only when the fixture composes multiple sources or simulates a rare state.
 - Docstrings on tests: project convention first; otherwise only when they add what the name cannot.
 
-This section governs comments in tests only; testing strategy lives in the parent skill's `testing.md` reference.
+This section governs comments in tests only; testing strategy lives in the parent skill's testing reference (`../../../references/testing.md`).
 
 ## Markdown — and MDX, RST, AsciiDoc
 

@@ -1,11 +1,12 @@
 ---
 name: coding-principles-comments
 description: >
-  Cross-language comments capability of the coding-principles skill. Loaded
-  when a coding task touches any comment-bearing file — source, config,
-  workflow, infra, shell, migration, test, or markdown — when a plan document
-  mentions comments, docstrings, or annotations, or just-in-time when about
-  to write any comment. Carries the comment-value rubric behind principle 21
+  Cross-language comments capability of the coding-principles skill, loaded
+  within tasks the parent router already covers (it never widens the skill's
+  own trigger rules): when the task touches any comment-bearing file —
+  source, config, workflow, infra, shell, migration, test, or markdown —
+  when a plan document mentions comments, docstrings, or annotations, or
+  just-in-time when about to write any comment. Carries the comment-value rubric behind principle 21
   (clear, direct, meaningful), the value → content decision gates composed
   with principle 7, docstring policy with per-toolchain convention detection,
   the AI-narration marker policy with its override clause, and per-file-type
@@ -21,7 +22,7 @@ Single source of truth for *when, what, and how* to comment, across every file t
 
 ## When to use this capability
 
-Three trigger tiers:
+Three trigger tiers — all scoped to tasks the parent router has already triggered; this capability never overrides the skill's docs-only / config-only skip:
 
 1. **Default load** — the task writes or edits a comment-bearing file (list below).
 2. **Planning extension** — the task authors a plan document, ADR, or work spec that mentions comments, docstrings, or annotations; the rubric shapes what the plan promises before any code exists.
@@ -93,7 +94,7 @@ Defer to the project's declared convention first. Signals that a project demands
 | Language | Signals |
 | --- | --- |
 | Python | `pyproject.toml` `[tool.pydocstyle]` / `[tool.interrogate]` / `[tool.ruff.lint.pydocstyle]` (D-rules); `setup.cfg [pydocstyle]`; `.pydocstyle`; `tox.ini [pydocstyle]`; darglint config |
-| TypeScript / JavaScript | `.eslintrc*` with `eslint-plugin-jsdoc` / `eslint-plugin-tsdoc`; `typedoc.json`; `tsconfig.json` `"declaration": true` |
+| TypeScript / JavaScript | `.eslintrc*` with `eslint-plugin-jsdoc` / `eslint-plugin-tsdoc`; `typedoc.json`; `tsconfig.json` `"declaration": true` (weak — exported-API docs likely welcome, not required) |
 | Rust | `Cargo.toml [lints]` `missing_docs`; `#![deny(missing_docs)]` / `#![warn(missing_docs)]` in `lib.rs` |
 | Go | `.golangci.yml` with revive's `exported` rule; staticcheck `ST1000`, `ST1020`–`ST1022` |
 | Ruby | `.rubocop.yml` `Style/Documentation` |
@@ -101,7 +102,7 @@ Defer to the project's declared convention first. Signals that a project demands
 | C# / .NET | `.editorconfig` `dotnet_diagnostic.SA1600`; `<GenerateDocumentationFile>true</GenerateDocumentationFile>` |
 | Cross-language | `docs/` with sphinx `conf.py` / `mkdocs.yml` / typedoc config; `.readthedocs.yaml`; explicit expectations in `CONTRIBUTING.md` / agent-instruction files |
 
-Any signal present → the project demands docstrings; follow its convention and style. No signal → the value bar decides case by case: write a docstring where it carries contract, invariants, or surprises the signature cannot; never restate the signature; trivial private helpers under ~5 lines usually need none.
+An enforcing signal — a lint rule (pydocstyle / jsdoc rules / `missing_docs` / `Style/Documentation` / `SA1600`) — means the project demands docstrings: follow its convention and style. A tooling-presence signal (typedoc, sphinx / mkdocs, `declaration: true`) indicates the public surface is expected to be documented, not a mandate: favor docstrings on exported API and judge the rest by the value bar. No signal → the value bar decides case by case: write a docstring where it carries contract, invariants, or surprises the signature cannot; never restate the signature; trivial private helpers under ~5 lines usually need none.
 
 ## AI-narration markers
 

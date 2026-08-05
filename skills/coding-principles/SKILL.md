@@ -51,7 +51,7 @@ This SKILL.md is the always-loaded **router** — the mantra/principle summaries
 
 ## When to apply
 
-Applies whenever the agent will write, implement, fix, refactor, or clean up code (any Edit/Write/NotebookEdit on source), or review a diff/PR for quality. Skip it for exploration-only tasks ("how does X work?"), docs-only / config-only / pure-data changes, ops/infra actions (deploy, restart, rollback), and security review (a separate concern). That skip governs triggering, not reach: once a coding task has triggered the skill, the comments capability's rubric covers every file the task touches — configs, workflows, and markdown included. The skill also loads on planning-phase tasks (plan documents, ADRs, work specs) when the plan mentions comments, docstrings, or annotations — the comments capability supplies the rubric the plan should reflect. When delegating code authoring to a sub-agent, either instruct it in the spawn prompt to load `capabilities/comments/capability.md` before authoring, or review its diff against that capability before committing.
+Applies whenever the agent will write, implement, fix, refactor, or clean up code (any Edit/Write/NotebookEdit on source), review a diff/PR for quality, or author a planning-phase document (plan, ADR, work spec) that mentions comments, docstrings, or annotations — there the comments capability supplies the rubric the plan should reflect. Skip it for exploration-only tasks ("how does X work?"), docs-only / config-only / pure-data changes (except the planning documents just named), ops/infra actions (deploy, restart, rollback), and security review (a separate concern). The skip governs triggering, not reach: once a task has triggered the skill, the comments capability's rubric covers every file that task touches — configs, workflows, and markdown included. When delegating code authoring to a sub-agent, either instruct it in the spawn prompt to load `capabilities/comments/capability.md` before authoring, or review its diff against that capability before committing.
 
 ## Mantras (one-line summaries)
 
@@ -197,7 +197,7 @@ Load on demand: language capabilities by the file's language, the comments capab
 | python | `*.py`, `pyproject.toml` | capabilities/python/capability.md |
 | typescript | `*.ts`, `*.tsx`, `*.mts`, `tsconfig.json` | capabilities/typescript/capability.md |
 | rust | `*.rs`, `Cargo.toml` | capabilities/rust/capability.md |
-| comments | about to write any comment; authoring comment-bearing files (source, config, workflow, infra, script, markdown); plan docs that mention comments or docstrings | capabilities/comments/capability.md |
+| comments | about to write any comment in a task this skill covers; comment-bearing files the task touches (source, config, workflow, infra, script, markdown); plan docs that mention comments or docstrings | capabilities/comments/capability.md |
 | review | reviewing an existing diff / PR / change | capabilities/review/capability.md |
 
 For languages without a capability (Go, Ruby, Java, C/C++, Swift, …), use the core principles plus the repo's declared conventions; propose a new capability if the language recurs. Capabilities extend the core, never override it — a conflict is a bug, so flag it. Write-mode (avoid violations as you author) is the default and lives in this router; review-mode loads from the review capability.
