@@ -89,7 +89,7 @@ The stdlib is the right default. Reach for third-party libraries when:
 
 ## Documentation
 
-- **Docstring style** — pick one (Google, NumPy, or Sphinx/reStructuredText) and apply it consistently; match the repo. Google style is the most readable for most projects.
-- **PEP 257** governs docstring conventions: one-line summary, blank line, then detail. Module/class/public-function docstrings where the *why* or contract is non-obvious — not on every trivial helper (parent skill principle 7).
+- **Whether a docstring is warranted at all** is the comments capability's call — it owns the cross-language policy, including the pydocstyle / interrogate / ruff D-rule signals that say this project demands them. What follows is Python's *how*, once that policy says yes.
+- **Docstring style** — the shape is PEP 257's (External standards, above); the choice among Google, NumPy, and Sphinx/reStructuredText is the repo's, applied consistently. Google style is the most readable for most projects.
 - **Type hints are documentation** — a precise signature replaces a paragraph of prose. Prefer expressive types over describing types in the docstring.
 - **Site generators**: `mkdocs` + `mkdocstrings` (Markdown, modern) or `Sphinx` + `autodoc` (reStructuredText, the classic). Generate from docstrings; don't hand-maintain a parallel doc tree.
