@@ -198,7 +198,7 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 ### A `utils.ts` / `helpers.py` module containing 1-2 functions
 
 - **Anchor:** anti-pattern list in SKILL.md; mantra locality of behavior
-- **Severity:** *could*
+- **Severity:** *could* â€” deliberately below the mantra-anchor default, because the anchor is the router's anti-pattern list rather than a severity-tagged principle, and module granularity is a judgment call
 - **Fix:** inline into the one caller until a second caller appears. Generic "utils" buckets accumulate noise.
 
 ### 200-line function with one decision tree
