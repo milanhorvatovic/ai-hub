@@ -4,7 +4,7 @@ Diagnostic catalog. Given an observable symptom in code under review or in code 
 
 ## When to consult
 
-- **Review mode** — after spotting something off in a diff, find the principle anchor here before writing the finding. A smell without a principle anchor is taste, not a rule (see `../capabilities/review/capability.md`).
+- **Review mode** — after spotting something off in a diff, find the principle anchor here before writing the finding. A smell without a principle anchor is taste, not a rule (the review capability states the same rule from the reviewer's side).
 - **Write mode (self-check)** — when you've just written something that feels off but can't name why, grep this file for the symptom.
 - **Debugging a design discussion** — when two contributors disagree on whether something is acceptable, the principle anchor is the common reference.
 

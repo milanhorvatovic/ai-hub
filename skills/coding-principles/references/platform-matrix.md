@@ -14,7 +14,7 @@ The rule: **don't assume the developer's OS is the deployment OS.** Code written
 | **Filesystem case** | case-sensitive (ext4) | case-**insensitive** (APFS default, but preserving) | case-insensitive (NTFS default) | Don't rely on case to distinguish files; `Foo.txt` and `foo.txt` may collide |
 | **Max path length** | ~4096 | ~1024 | 260 (legacy; opt-in long paths) | Keep paths short; don't assume deep nesting works on Windows |
 | **Symlinks** | yes | yes | yes (needs privilege/dev mode) | Don't assume symlink creation succeeds on Windows |
-| **Default shell** | `bash` / `dash` (`sh`) | `zsh` (interactive), `bash` 3.2 at `/bin/bash` | `cmd` / PowerShell; no POSIX shell by default | Don't shell out to `bash` and assume it exists; see bash capability |
+| **Default shell** | `bash` / `dash` (`sh`) | `zsh` (interactive), `bash` 3.2 at `/bin/bash` | `cmd` / PowerShell; no POSIX shell by default | Don't shell out to `bash` and assume it exists; the bash capability covers the portable form |
 | **Home dir env** | `$HOME` | `$HOME` | `%USERPROFILE%` (`$HOME` in some shells) | Use the language's home-dir API, not `$HOME` directly |
 | **Temp dir** | `/tmp`, `$TMPDIR` | `$TMPDIR` (per-user, long path) | `%TEMP%` | Use the language's tempfile API; never hardcode `/tmp` |
 | **Signals** | full POSIX (`SIGTERM`, `SIGKILL`, `SIGHUP`, ...) | full POSIX | limited; `SIGTERM`/`SIGKILL` emulated, no `SIGHUP`/`SIGUSR*` | Don't rely on POSIX-only signals for cross-platform services |
@@ -54,10 +54,10 @@ Strategies:
 
 How each capability normalizes these concerns (load the language capability for detail):
 
-- **Bash** (`../capabilities/bash/capability.md`) — most exposed to OS differences. GNU vs BSD coreutils, `#!/usr/bin/env bash` (not `/bin/bash` — macOS bash is 3.2), `mktemp` syntax differs. When portability gets hard, the bash capability's "when to leave bash" rule points at Python.
-- **Python** (`../capabilities/python/capability.md`) — `pathlib.Path` normalizes separators; `os.sep` / `os.pathsep` / `os.linesep` for raw access; `sys.platform` / `platform.system()` for branching; `tempfile` for temp dirs; `subprocess` with list-form argv (not `shell=True`) avoids shell-availability issues.
-- **TypeScript/Node** (`../capabilities/typescript/capability.md`) — `node:path` (`path.sep`, `path.join`, `path.delimiter`); `os.EOL` for line endings; `process.platform` (`'linux'` / `'darwin'` / `'win32'`) for branching; `os.tmpdir()`; `os.homedir()`.
-- **Rust** (`../capabilities/rust/capability.md`) — `std::path::{Path, PathBuf}` (separator-agnostic, use `.join()` not string concat); `std::env::consts::OS` and `cfg!(target_os = "...")` / `#[cfg(...)]` for conditional compilation; `std::env::temp_dir()`; `MAIN_SEPARATOR`.
+- **Bash** — most exposed to OS differences. GNU vs BSD coreutils, `#!/usr/bin/env bash` (not `/bin/bash` — macOS bash is 3.2), `mktemp` syntax differs. When portability gets hard, the "when to leave bash" rule in the bash capability's best-practices reference points at Python.
+- **Python** — `pathlib.Path` normalizes separators; `os.sep` / `os.pathsep` / `os.linesep` for raw access; `sys.platform` / `platform.system()` for branching; `tempfile` for temp dirs; `subprocess` with list-form argv (not `shell=True`) avoids shell-availability issues.
+- **TypeScript/Node** — `node:path` (`path.sep`, `path.join`, `path.delimiter`); `os.EOL` for line endings; `process.platform` (`'linux'` / `'darwin'` / `'win32'`) for branching; `os.tmpdir()`; `os.homedir()`.
+- **Rust** — `std::path::{Path, PathBuf}` (separator-agnostic, use `.join()` not string concat); `std::env::consts::OS` and `cfg!(target_os = "...")` / `#[cfg(...)]` for conditional compilation; `std::env::temp_dir()`; `MAIN_SEPARATOR`.
 
 ## Principle alignment
 
