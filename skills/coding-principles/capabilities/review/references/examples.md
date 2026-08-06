@@ -13,7 +13,7 @@ That sentence is part of the input. A change that presents itself as a bug fix i
 ```diff
 --- a/billing/refunds.py
 +++ b/billing/refunds.py
-@@ -12,6 +12,18 @@ from billing.audit import RefundAudit
+@@ -12,3 +12,14 @@ from billing.audit import RefundAudit
 -def refund(order_id: OrderId, amount_cents: int) -> Refund:
 -    order = orders.fetch(order_id)            # raises OrderNotFound
 -    return gateway.refund(order.payment_id, amount_cents)
@@ -47,8 +47,8 @@ Two blockers: a card number reaches the logs, and the bug this fixes has no test
 
 ## Should fix (2)
 
-- [billing/refunds.py:14] **principle 5** — `amount_cents` is annotated `int`, so the `is None` branch is unreachable from any caller that typechecks; the guard reads as if callers were untrusted and hides the fact that this function is internal. Delete it. If a `None` genuinely arrives from an HTTP handler upstream, the check belongs in that handler's request parsing, not here.
-- [billing/refunds.py:25] **principle 16** — `datetime.now(tz=UTC)` is called inside `refund`, so any test asserting on the audit row's timestamp has to patch the clock. Take the timestamp as a parameter and let the caller pass it:
+- [billing/refunds.py:13] **principle 5** — `amount_cents` is annotated `int`, so the `is None` branch is unreachable from any caller that typechecks; the guard reads as if callers were untrusted and hides the fact that this function is internal. Delete it. If a `None` genuinely arrives from an HTTP handler upstream, the check belongs in that handler's request parsing, not here.
+- [billing/refunds.py:24] **principle 16** — `datetime.now(tz=UTC)` is called inside `refund`, so any test asserting on the audit row's timestamp has to patch the clock. Take the timestamp as a parameter and let the caller pass it:
 
   ```python
   def refund(order_id: OrderId, amount_cents: int, reason: str, now: datetime) -> Refund:
@@ -56,7 +56,7 @@ Two blockers: a card number reaches the logs, and the bug this fixes has no test
 
 ## Could fix (1, optional)
 
-- [billing/refunds.py:23] **principle 21** — `# call the gateway, then write the audit row` names what the next two lines already say. Delete it, or replace it with the reason the audit write is not inside a transaction with the gateway call, if there is one.
+- [billing/refunds.py:22] **principle 21** — `# call the gateway, then write the audit row` names what the next two lines already say. Delete it, or replace it with the reason the audit write is not inside a transaction with the gateway call, if there is one.
 
 ## Observations
 

@@ -140,19 +140,21 @@ type RequestState =
   | { status: "success"; data: User }
   | { status: "error"; error: Error };
 
-function render(state: RequestState) {
+function describe(state: RequestState): string {
   switch (state.status) {
+    case "idle":
+      return "waiting to start";
+    case "loading":
+      return "loading…";
     case "success":
-      return <Profile user={state.data} />;
+      return `loaded ${state.data.name}`;      // data is present here; no `?.`
     case "error":
-      return <Retry message={state.error.message} />;
-    default:
-      return <Spinner />;
+      return `failed: ${state.error.message}`;
   }
 }
 ```
 
-With `strict` on, dropping a case from the switch is a type error rather than a silent fallthrough — the compiler is now enforcing the state machine the interface only described.
+Note the missing `default`: with `strict` on, that is what makes the switch exhaustive, so adding a fifth state turns every unhandled `switch` into a compile error instead of a silent `undefined`. A `default` branch would throw that away. The compiler is now enforcing the state machine the interface could only describe.
 
 ## Principle 19 — Boundaries serialize output
 
