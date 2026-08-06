@@ -51,7 +51,7 @@ Two blockers: a card number reaches the logs, and the bug this fixes has no test
 - [billing/refunds.py:24] **principle 16** — `datetime.now(tz=UTC)` is called inside `refund`, so any test asserting on the audit row's timestamp has to patch the clock. Take the timestamp as a parameter and let the caller pass it:
 
   ```python
-  def refund(order_id: OrderId, amount_cents: int, reason: str, now: datetime) -> Refund:
+  def refund(order_id: OrderId, amount_cents: int, reason: str, now: datetime) -> Refund: ...
   ```
 
 ## Could fix (1, optional)
