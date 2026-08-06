@@ -7,8 +7,8 @@ description: >
   (unknown over any, discriminated unions, readonly), boundary validation
   with zod/valibot, error and async conventions, module/export idioms,
   React/JSX guidance, anti-patterns (enum, namespace, @ts-ignore), and
-  before/after code examples anchored to numbered principles 16, 18, and
-  19 of the parent skill.
+  before/after code examples anchored to numbered principles 2, 5, 16, 18,
+  19, and 21 of the parent skill.
 allowed-tools: Read Grep
 ---
 
@@ -72,7 +72,7 @@ Language-specific anti-patterns live in `references/anti-patterns.md`. Load it f
 
 ## Examples by principle
 
-Concrete before/after code for high-leverage principles (16, 18, 19) lives in `references/examples.md`. Load it when matching patterns at write-time or validating suggested fixes at review-time.
+Concrete before/after code for high-leverage principles (2, 5, 16, 18, 19, 21) lives in `references/examples.md`. Load it when matching patterns at write-time or validating suggested fixes at review-time.
 
 ## Performance
 

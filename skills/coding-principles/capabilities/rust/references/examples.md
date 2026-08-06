@@ -205,3 +205,20 @@ pub fn handle_order(req: OrderRequest) -> Result<Receipt, Error> {
     process(req.user_id, &req.items)   // fully typed past this line
 }
 ```
+
+## Principle 21 — Comments earn their place
+
+```rust
+// the comment narrates the call and leaves the dangerous part unexplained
+// convert the buffer to a string
+let name = unsafe { std::str::from_utf8_unchecked(&buf) };
+```
+
+```rust
+// SAFETY: `buf` was filled by `encode_ascii`, which emits only code points
+// below 0x80, so its contents are valid UTF-8 by construction. If that
+// function ever gains a non-ASCII path, this must become `from_utf8`.
+let name = unsafe { std::str::from_utf8_unchecked(&buf) };
+```
+
+`unsafe` is where this principle stops being a preference: the compiler has stepped aside, so the invariant it would have checked has nowhere to live except the comment, and a reviewer has nothing else to audit. The same reasoning explains why a `// SAFETY:` block is the one comment shape a Rust reviewer will ask for by name — and why a doc comment on a public item is held to the same bar rather than a lower one, since `#![warn(missing_docs)]` will demand one whether or not you have something to say.

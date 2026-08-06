@@ -40,7 +40,7 @@ When something breaks, find the underlying cause before patching the symptom. A 
 
 Exception: when the user explicitly asks for a temporary mitigation with a follow-up plan, mark the workaround clearly (`TODO: temporary — remove after <condition>`) and surface it in the summary.
 
-> **Code examples** (in the matching capability's `examples.md`) — bash, rust.
+> **Code examples** (in the matching capability's `examples.md`) — python, typescript, bash, rust.
 
 ## 3. Edit existing files; do not create new ones speculatively — *should*
 
@@ -69,7 +69,7 @@ Internal functions trust their callers. Frameworks honor their contracts. Do not
 
 Defensive code for impossible states is noise that hides real bugs.
 
-> **Code examples** (in the matching capability's `examples.md`) — python, bash, rust.
+> **Code examples** (in the matching capability's `examples.md`) — python, typescript, bash, rust.
 
 ## 6. No backwards-compatibility shims unless asked — *should*
 
@@ -178,7 +178,7 @@ Why: deterministic units are testable without freezing patches, reproducible acr
 
 The thin shell at the edge — `main()`, the request handler entry point, the CLI bootstrap — is where the real clock, real RNG, real env, real I/O get wired in. Everything else gets them passed in.
 
-> **Code examples** (in the matching capability's `examples.md`) — typescript, rust.
+> **Code examples** (in the matching capability's `examples.md`) — python, typescript, bash, rust.
 
 ## 17. Naming discipline — *could* (*should* when names are actively misleading)
 
@@ -253,5 +253,7 @@ One such purpose is enough — a comment does not need two reasons to live. A co
 The two comment principles compose as ordered gates. This principle is the **value gate** and runs first: does the comment carry something the code cannot? Principle 7 is the **content gate** and runs second: what it carries is the *why*, not a restatement of the *what*. A comment that serves its reader passes both. (The comments capability carries the full rubric with per-file-type rules.)
 
 Within a task this skill covers, the principle applies to comments in every file type the task touches — source code, configs, workflows, infrastructure, shell scripts, migrations, tests, and markdown HTML comments or frontmatter remarks. The skill's trigger rules still decide when it loads at all — a docs-only or config-only task never loads it. Commit messages, PR descriptions, branch names, and release notes are change narration, outside this skill's scope entirely.
+
+> **Code examples** (in the matching capability's `examples.md`) — python, typescript, bash, rust. Each shows the shape the bar takes in that language rather than restating the bar: the Python docstring, the TypeScript retry constraint, the Rust `SAFETY:` block, the bash lint-disable justification.
 
 **See also:** principle 7 (content gate — why over what, applied after this value gate); principle 20 (commented-out code is a separate smell: dead code, not commentary).
