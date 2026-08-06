@@ -105,13 +105,13 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 
 ### `try: ... except Exception: pass`
 
-- **Anchor:** mantra fail-fast-fail-loud + principle 13 (security hygiene; silenced errors hide breaches)
+- **Anchor:** mantra fail fast, fail loud + principle 13 (security hygiene; silenced errors hide breaches)
 - **Severity:** *must*
 - **Fix:** handle the specific exception meaningfully or let it propagate. Logging-and-swallowing is a future incident.
 
 ### `try: ... except: log.error(...)` then continue
 
-- **Anchor:** mantra fail-fast-fail-loud
+- **Anchor:** mantra fail fast, fail loud
 - **Severity:** *must*
 - **Fix:** either the error is recoverable (handle it explicitly) or it is not (propagate). Logging is not handling.
 
@@ -151,19 +151,19 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 
 ### `os.environ` / `process.env` / `std::env::var` deep in the call stack
 
-- **Anchor:** principle 16 + mantra explicit-over-implicit
+- **Anchor:** principle 16 + mantra explicit over implicit
 - **Severity:** *should*
 - **Fix:** read env once at startup; pass the resolved value down.
 
 ### Module-level mutable state / package-private globals
 
-- **Anchor:** mantra pure/impure separation + principle 14 (hidden state is debt)
+- **Anchor:** mantra pure / impure separation + principle 14 (hidden state is debt)
 - **Severity:** *should*
 - **Fix:** make the state a parameter or a member of an object owned by the entry point.
 
 ### DB call interleaved with a business decision in the same function
 
-- **Anchor:** mantra pure/impure separation (functional core, imperative shell)
+- **Anchor:** mantra pure / impure separation (functional core, imperative shell)
 - **Severity:** *should*
 - **Fix:** load all the data first (impure shell), pass it to a pure function that makes the decision, then act on the result (impure shell).
 
@@ -185,13 +185,13 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 
 ### `class Subclass extends BaseClass` for code reuse (not is-a)
 
-- **Anchor:** mantra modular-by-composition (technique: composition over inheritance)
+- **Anchor:** mantra modular by composition (technique: composition over inheritance)
 - **Severity:** *should*
 - **Fix:** hold the collaborator instead of extending it. Inheritance is for true is-a relationships the language idiomatically demands.
 
 ### Pass-through accessors: `obj.getInternalSocket()`, `obj.getRawClient()`
 
-- **Anchor:** mantra modular-by-composition (the trap: delegate behavior, not the held object)
+- **Anchor:** mantra modular by composition (the trap: delegate behavior, not the held object)
 - **Severity:** *should*
 - **Fix:** expose `obj.send(msg)`, not the internal collaborator. The held thing is an implementation detail.
 
@@ -227,7 +227,7 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 
 ### `index.ts` / barrel file re-exporting forty things
 
-- **Anchor:** mantra modular-by-composition (boundary: minimum public surface)
+- **Anchor:** mantra modular by composition (boundary: minimum public surface)
 - **Severity:** *should*
 - **Fix:** re-export only what callers outside the package need; the rest stays internal.
 
