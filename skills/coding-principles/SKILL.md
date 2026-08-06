@@ -108,7 +108,7 @@ Each principle carries a severity tag — **must**, **should**, or **could**. Wh
 10. **Verify the change works** — *must* — run tests/exercise UI/CLI; typecheck-passing is not "done."
 11. **Reversibility shapes caution** — *must* — destructive actions need confirmation even after prior approval.
 12. **Honor the user's stated preferences** — *must* — apply session/memory/CLAUDE.md prefs consistently.
-13. **Security hygiene is a baseline** — *must* — no secrets in source/logs/errors; authorize at every state-touching handler.
+13. **Security hygiene is a baseline, not a feature** — *must* — no secrets in source/logs/errors; authorize at every state-touching handler.
 14. **Prefer modular, composable, scalable designs — without over-engineering** — *should* — shape is free; infrastructure is not.
 15. **Tests describe behavior, not implementation** — *should* — behavior-style names; mock at boundaries; avoid mocking-hell.
 16. **Inject time, randomness, and external state** — *should* — never call `Date.now()` / `random()` / `os.environ` from business logic.
