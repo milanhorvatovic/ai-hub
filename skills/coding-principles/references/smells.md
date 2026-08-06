@@ -14,7 +14,7 @@ Each entry has four parts:
 
 - **Smell** — what you observe.
 - **Anchor** — the principle(s) and/or mantra(s) that explain why it is a smell, written in the skill's citation grammar (`principles.md`), which fixes the form for principle numbers, mantra names, and their acronyms.
-- **Severity** — inherits from the anchor's severity (must / should / could). Principles carry severity tags; mantras do not — an entry anchored only to mantras defaults to *should* unless it states a different severity explicitly (the fail-fast entries state *must*). An entry with several anchors states each severity inline with its source named: per-anchor severities where the anchors judge different failures (see "Comment restates the code"), or a principle's tag alongside the mantra default (see "Mocking hell").
+- **Severity** — inherits from the anchor's severity (must / should / could). Principles carry severity tags; mantras do not — an entry anchored only to mantras defaults to *should* unless it states a different severity explicitly (the fail-fast entries state *must*). An entry with several anchors states its severity bare when the anchors agree on it, and names the source inline when they do not: per-anchor severities where the anchors judge different failures (see "Comment restates the code"), or a principle's tag alongside the mantra default (see "Mocking hell"). The naming is what resolves a disagreement, so it is required exactly where one exists — an entry whose anchors all land on the same severity has nothing to disambiguate, and saying so twice would be noise.
 - **Fix** — one-line direction; full details in the linked principle.
 
 The smells are grouped by category. Some smells appear in multiple categories — the entry lives where its primary symptom is observed.
@@ -96,7 +96,7 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### Boolean explosion: parallel `is_x`, `has_y`, `should_z` flags that are really one enum
 
 - **Anchor:** mantra make illegal states unrepresentable + principle 17 (naming)
-- **Severity:** *should*
+- **Severity:** *should* (the mantra-anchor default; principle 17's naming tag is *could*, and the modeling error is the larger of the two failures)
 - **Fix:** model the state as one enum / sum type. `status: 'idle' | 'running' | 'done'` beats `is_running + is_done + is_idle`.
 
 ---
@@ -105,20 +105,20 @@ The smells are grouped by category. Some smells appear in multiple categories �
 
 ### `try: ... except Exception: pass`
 
-- **Anchor:** mantra fail-fast-fail-loud + principle 13 (security hygiene; silenced errors hide breaches)
-- **Severity:** *must*
+- **Anchor:** mantra fail fast, fail loud + principle 13 (security hygiene; silenced errors hide breaches)
+- **Severity:** *must* (principle 13's tag, which outranks the *should* the mantra anchor would default to — a swallowed exception can hide a breach)
 - **Fix:** handle the specific exception meaningfully or let it propagate. Logging-and-swallowing is a future incident.
 
 ### `try: ... except: log.error(...)` then continue
 
-- **Anchor:** mantra fail-fast-fail-loud
+- **Anchor:** mantra fail fast, fail loud
 - **Severity:** *must*
 - **Fix:** either the error is recoverable (handle it explicitly) or it is not (propagate). Logging is not handling.
 
 ### `raise ValueError("invalid")` with no context
 
-- **Anchor:** mantra observability + principle 13
-- **Severity:** *should*
+- **Anchor:** mantra observability + principle 13 (security hygiene, for what the message must _not_ carry)
+- **Severity:** *should* (mantra observability's default; principle 13 raises it to *must* where the missing context is security-relevant — an authorization or validation failure)
 - **Fix:** include what was attempted, with what inputs, against what state: `raise ValueError(f"invalid email: {email!r} (user_id={user_id})")`.
 
 ### Manual None-propagation: `if x is None: return None` chains
@@ -151,19 +151,19 @@ The smells are grouped by category. Some smells appear in multiple categories �
 
 ### `os.environ` / `process.env` / `std::env::var` deep in the call stack
 
-- **Anchor:** principle 16 + mantra explicit-over-implicit
+- **Anchor:** principle 16 + mantra explicit over implicit
 - **Severity:** *should*
 - **Fix:** read env once at startup; pass the resolved value down.
 
 ### Module-level mutable state / package-private globals
 
-- **Anchor:** mantra pure/impure separation + principle 14 (hidden state is debt)
+- **Anchor:** mantra pure / impure separation + principle 14 (hidden state is debt)
 - **Severity:** *should*
 - **Fix:** make the state a parameter or a member of an object owned by the entry point.
 
 ### DB call interleaved with a business decision in the same function
 
-- **Anchor:** mantra pure/impure separation (functional core, imperative shell)
+- **Anchor:** mantra pure / impure separation (functional core, imperative shell)
 - **Severity:** *should*
 - **Fix:** load all the data first (impure shell), pass it to a pure function that makes the decision, then act on the result (impure shell).
 
@@ -185,13 +185,13 @@ The smells are grouped by category. Some smells appear in multiple categories �
 
 ### `class Subclass extends BaseClass` for code reuse (not is-a)
 
-- **Anchor:** mantra modular-by-composition (technique: composition over inheritance)
+- **Anchor:** mantra modular by composition (technique: composition over inheritance)
 - **Severity:** *should*
 - **Fix:** hold the collaborator instead of extending it. Inheritance is for true is-a relationships the language idiomatically demands.
 
 ### Pass-through accessors: `obj.getInternalSocket()`, `obj.getRawClient()`
 
-- **Anchor:** mantra modular-by-composition (the trap: delegate behavior, not the held object)
+- **Anchor:** mantra modular by composition (the trap: delegate behavior, not the held object)
 - **Severity:** *should*
 - **Fix:** expose `obj.send(msg)`, not the internal collaborator. The held thing is an implementation detail.
 
@@ -227,7 +227,7 @@ The smells are grouped by category. Some smells appear in multiple categories �
 
 ### `index.ts` / barrel file re-exporting forty things
 
-- **Anchor:** mantra modular-by-composition (boundary: minimum public surface)
+- **Anchor:** mantra modular by composition (boundary: minimum public surface)
 - **Severity:** *should*
 - **Fix:** re-export only what callers outside the package need; the rest stays internal.
 
@@ -302,7 +302,7 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### Trivial docstring restating the signature
 
 - **Anchor:** principle 21 (value); principle 7 (content)
-- **Severity:** *should*
+- **Severity:** *should* (principle 21's tag; the value gate runs first and a docstring restating the signature fails it outright, so principle 7's *could* never comes into play)
 - **Fix:** delete it, or shrink it to the load-bearing part (a precondition, an invariant, a surprise). A docstring that says `get_user(id) — gets a user by id` documents nothing.
 
 ### Line-by-line config annotation (every key gets a comment)
