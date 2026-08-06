@@ -51,6 +51,37 @@ def _canonical_mantras(references_dir: Path) -> list[str]:
     return names
 
 
+def _expected_mantra_citations(references_dir: Path) -> list[str]:
+    """The exact strings a mantra citation may use, longest first.
+
+    `principles.md` fixes the form as the heading text lowercased, with one
+    carve-out: acronyms keep their case, so `mantra SRP` is correct and
+    `mantra srp` is not. Deriving both cases from the tier table keeps this
+    check honest if a mantra is renamed or a new acronym is added — nothing
+    here hardcodes which names are acronyms.
+    """
+    forms = [
+        name if name.isupper() else name.lower()
+        for name in _canonical_mantras(references_dir)
+    ]
+    return sorted(forms, key=len, reverse=True)
+
+
+def _cited_mantra(tail: str, expected: list[str]) -> str | None:
+    """The expected citation form `tail` opens with, or None.
+
+    Longest-first so a shorter name can never shadow a longer one, and the
+    character after the match must not be alphanumeric so a citation cannot
+    pass by being a prefix of some longer word.
+    """
+    for form in expected:
+        if tail.startswith(form) and (
+            len(tail) == len(form) or not tail[len(form)].isalnum()
+        ):
+            return form
+    return None
+
+
 def _smell_entries(references_dir: Path) -> list[tuple[str, str, str]]:
     """Each catalog entry as (title, anchor line, severity line)."""
     text = (references_dir / "smells.md").read_text(encoding="utf-8")
@@ -72,19 +103,22 @@ def test_smell_anchors_name_rules_that_exist(references_dir: Path) -> None:
     names nothing is worse than no anchor: it reads as authority and carries
     none."""
     tags = _principle_tags(references_dir)
-    canonical = {name.lower() for name in _canonical_mantras(references_dir)}
+    expected = _expected_mantra_citations(references_dir)
     problems: list[str] = []
     for title, anchor, _ in _smell_entries(references_dir):
         for num in re.findall(r"principle (\d+)", anchor):
             if int(num) not in tags:
                 problems.append(f"{title!r}: anchors principle {num}, which does not exist")
-        for name in re.findall(r"mantra ([a-z][a-z/\- ,]*)", anchor):
-            cleaned = name.strip().rstrip("+(—- ").strip()
-            if cleaned and cleaned not in canonical:
+        # Every `mantra ` occurrence is checked, whatever case follows it —
+        # matching only lowercase would skip the acronym citations entirely
+        # and let a miscased one through as if it had been validated.
+        for marker in re.finditer(r"\bmantra ", anchor):
+            tail = anchor[marker.end() :]
+            if _cited_mantra(tail, expected) is None:
                 problems.append(
-                    f"{title!r}: anchors 'mantra {cleaned}', which is not a mantra"
-                    " name as mantras.md spells it (citation grammar: the heading"
-                    " text, lowercased)"
+                    f"{title!r}: anchors 'mantra {tail[:40].rstrip()}', which is not a"
+                    " mantra name in the form the citation grammar fixes (the"
+                    " mantras.md heading text lowercased; acronyms keep their case)"
                 )
     assert not problems, "unresolvable smell anchors:\n" + "\n".join(problems)
 
@@ -150,7 +184,12 @@ def test_router_titles_match_the_prose_headings(skill_md: Path, references_dir: 
     # The Mantras section opens with a **Conflict resolution:** label before the
     # tier lists; it is a heading for the paragraph, not a mantra, so the titles
     # come from the numbered entries under the tier headings.
-    section = router.split("## Mantras (one-line summaries)")[1].split("\n## ")[0]
+    mantras_header = "## Mantras (one-line summaries)"
+    assert mantras_header in router, (
+        f"section not found in SKILL.md: {mantras_header!r} — if the heading was"
+        " renamed, update this guard rather than letting the lookup fail obscurely"
+    )
+    section = router.split(mantras_header)[1].split("\n## ")[0]
     router_mantras = {
         normalize(m) for m in re.findall(r"^\d+\. \*\*(.+?)\*\*", section, flags=re.MULTILINE)
     }
