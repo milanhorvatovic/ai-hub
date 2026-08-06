@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 def test_example_pointers_match_example_headings(
-    references_dir: Path, capabilities_dir: Path
+    references_dir: Path, capabilities_dir: Path, language_capabilities: tuple[str, ...]
 ) -> None:
     """Two-way contract between principles.md "Code examples" pointer lines and
     the per-language `examples.md` headings.
@@ -23,15 +23,20 @@ def test_example_pointers_match_example_headings(
     `## Principle N` heading in every examples file must be named on principle
     N's pointer line — an example nobody points at is invisible drift (the
     python P8 case). Mantra-titled headings (`## Mantra — …`) are outside the
-    numbered mapping and exempt. The language set is discovered from the
-    capability tree (every capability shipping `references/examples.md`), so a
-    newly added language capability is validated without touching this test."""
-    languages = sorted(
-        d.name
-        for d in capabilities_dir.iterdir()
-        if (d / "references" / "examples.md").is_file()
-    )
-    assert languages, "no capability ships references/examples.md"
+    numbered mapping and exempt.
+
+    The language set comes from the declared list, not from which capabilities
+    happen to ship an `examples.md`: the review capability ships one too — a
+    worked review, not per-principle code — and discovering by filename would
+    silently enrol it, leaving the contract correct only for as long as no
+    pointer line contains the word "review"."""
+    languages = sorted(language_capabilities)
+    missing = [
+        lang
+        for lang in languages
+        if not (capabilities_dir / lang / "references" / "examples.md").is_file()
+    ]
+    assert not missing, f"declared language capabilities ship no examples.md: {missing}"
 
     principles = (references_dir / "principles.md").read_text(encoding="utf-8")
     pointed: dict[int, set[str]] = {}

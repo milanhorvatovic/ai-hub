@@ -10,7 +10,8 @@ description: >
   emit a structured report. Covers what to flag, what to skip
   (formatter-handled style nits, file-local-consistency conflicts,
   generated code), output format, and review-specific anti-patterns
-  (lecturing, stacking coulds, inventing findings).
+  (lecturing, stacking coulds, inventing findings), with a worked review
+  of one diff end to end.
 allowed-tools: Read Grep
 ---
 
@@ -82,6 +83,8 @@ Anything that is not a finding — context, questions for the author, follow-up 
 ```
 
 If there are zero **must** findings and the author asked "is this ready?", say yes and list the **should**s as recommendations the author can accept or push back on. Do not artificially inflate review depth — empty sections are a sign of correctness, not laziness.
+
+One diff carried through this whole workflow — the input, the emitted review in the shape above, and the reasoning behind which findings were left out — is in `references/examples.md`. Load it when the template alone leaves a judgment call open: how to anchor a finding about something the diff is missing, when a concern belongs in Observations instead of a severity bucket, how many `could`s survive.
 
 ## Phrasing
 
