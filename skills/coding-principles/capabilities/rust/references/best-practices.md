@@ -61,7 +61,7 @@ Pick *one* error strategy per crate; do not mix.
 
 ## Async
 
-- **Pick one runtime**: `tokio` (default for most domains) or `async-std` / `smol` (smaller, fewer features). Don't link two.
+- **Pick one runtime**: `tokio` (the default for most domains — the major web frameworks build on it) or `smol` (far fewer dependencies, faster to compile, much smaller ecosystem). Don't link two. **`async-std` is discontinued** — its maintainers ended it in 2025-03 and point users at `smol` — so finding it in a codebase is a migration to plan, not a runtime to choose.
 - **`Send + Sync` discipline**: a future passed to `tokio::spawn` must be `Send + 'static`. Holding a non-Send guard across an `await` produces hard-to-read errors — restructure.
 - **Cancellation safety**: `.await` points can drop the future at any time. State machines holding locks or mid-write data across `.await` are footguns. Make critical sections small and synchronous.
 - **`tokio::select!`** for racing futures; remember the not-selected branches are dropped.

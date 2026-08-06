@@ -7,7 +7,7 @@ Rust's type system makes data races a compile error: `Send` (safe to move across
 | Workload                          | Use                                              |
 | --------------------------------- | ------------------------------------------------ |
 | CPU-bound, data parallel          | `rayon` (`par_iter`)                              |
-| I/O-bound, async                  | `tokio` (or `async-std` / `smol`)                |
+| I/O-bound, async                  | `tokio` (or `smol` when the dependency tree matters) |
 | Message passing                   | channels (`std::sync::mpsc`, `crossbeam`, `tokio::sync::mpsc`) |
 | Shared read                       | `Arc<T>`                                          |
 | Shared mutable (genuinely needed) | `Arc<Mutex<T>>` / `Arc<RwLock<T>>`               |

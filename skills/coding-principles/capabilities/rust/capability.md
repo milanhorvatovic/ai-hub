@@ -56,7 +56,7 @@ Language-specific rules layered on top of the parent `coding-principles` skill. 
 
 ## Async
 
-- Pick a runtime (`tokio` is the default; `async-std` and `smol` exist). Don't link two runtimes.
+- Pick a runtime (`tokio` is the default; `smol` is the lean alternative — `async-std` is discontinued, so migrate off it rather than onto it). Don't link two runtimes.
 - Don't block in async code — no `std::thread::sleep`, no `std::fs` for big reads. Use the runtime's async equivalents or `spawn_blocking`.
 - `.await` cancellation is real: a future may be dropped mid-execution. State machines holding locks across await points are landmines.
 
