@@ -79,7 +79,9 @@ When in doubt about whether something is published or internal, ask once — do 
 
 ## 7. Comments explain *why*, not *what* — *could*
 
-Well-named identifiers already explain *what* — a comment that repeats them adds nothing. Write the comment when the *why* is non-obvious: a hidden constraint, a workaround for a specific bug, behavior that would surprise a reader, an invariant the type system cannot express.
+Well-named identifiers already explain *what* — a comment that repeats them adds nothing. What a comment carries instead is the *why*: the reasoning a reader cannot recover from the code in front of them.
+
+*Which* whys are worth carrying is principle 21's list, and it is stated there once rather than twice here. The two principles divide the question: 21 decides whether a comment has anything to say, this one decides what shape saying it takes. A comment can clear 21's bar and still fail here — the constraint is real, but the sentence spends its words narrating what the code already shows instead of naming the constraint.
 
 Do not write comments that reference the current PR, ticket, or caller ("added for the X flow", "used by Y", "fix for #123") — those rot. Put that in the commit message.
 

@@ -119,7 +119,7 @@ The smells are grouped by category. Some smells appear in multiple categories �
 
 - **Anchor:** mantra observability + principle 13 (security hygiene, for what the message must _not_ carry)
 - **Severity:** *should* (mantra observability's default; principle 13 raises it to *must* where the missing context is security-relevant — an authorization or validation failure)
-- **Fix:** include what was attempted, with what inputs, against what state: `raise ValueError(f"invalid email: {email!r} (user_id={user_id})")`.
+- **Fix:** name what was attempted, how it failed, and against what state: `raise ValueError(f"invalid email: no domain part (user_id={user_id})")`. Note what the context is made of — the *reason* it failed and a bounded id, not the value itself. That is the co-anchor doing its work: observability asks the message to say more, principle 13 decides what it may say, and echoing the rejected input back is where the two would collide, since the values that most often fail validation are emails, tokens, and account numbers. Describe the failure, name the field, log an error code — the raw input is the one part the reader can look up from the id if they are entitled to.
 
 ### Manual None-propagation: `if x is None: return None` chains
 
