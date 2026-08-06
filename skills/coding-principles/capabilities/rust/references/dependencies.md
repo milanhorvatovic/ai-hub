@@ -16,7 +16,7 @@ tokio = { version = "=1.40.0", features = ["full"] }
 ```
 
 - **Applications / binaries**: prefer exact `=` pins in `Cargo.toml`, *and* commit `Cargo.lock`. `Cargo.lock` already pins the full transitive tree for binaries — the `=` pins make the manifest itself explicit too.
-- **`Cargo.lock` commit rule**: commit it for **binaries** (reproducible builds); by Cargo convention do **not** commit it for **libraries** (let consumers resolve). This is the standard; the user's pin preference applies to the binary case.
+- **`Cargo.lock` commit rule**: commit it for **binaries** (reproducible builds); by Cargo convention do **not** commit it for **libraries** (let consumers resolve). This is the standard; this skill's pin-exact default applies to the binary case.
 
 **Exception (ecosystem constraint, not style): published libraries.** A library must **not** use `=` pins — exact pins in a library force the whole dependency graph to one version and make the crate nearly unusable alongside others. Libraries use caret (the default bare version) so the ecosystem can unify versions. So: `=` pins + committed lock for binaries; caret + no committed lock for published libraries. Surface this when the crate is a library.
 

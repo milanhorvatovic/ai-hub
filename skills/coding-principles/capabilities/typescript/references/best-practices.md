@@ -2,21 +2,24 @@
 
 Modern toolchain consensus, idiomatic patterns the community has converged on, security and operational conventions. Complements the principle-anchored content in `../capability.md`.
 
+> **Toolchain claims here were last checked 2026-08.** How to read a stamped file, and what the stamp does not cover, is stated once under "Currency" in `../../../SKILL.md`.
+
 ## External standards
 
 - **[TC39](https://tc39.es/)** — JavaScript language spec; TypeScript tracks it. Use proposals only when they reach Stage 4 unless the project already opts in to earlier stages.
 - **[`@tsconfig/strictest`](https://github.com/tsconfig/bases)** — known-good baseline for new projects. `@tsconfig/node24`, `@tsconfig/recommended` are domain-specific extensions.
 - **[Effect-TS docs](https://effect.website/)** — if the project uses Effect, its docs are the canonical reference; this capability doesn't reproduce them.
 
-## Toolchain consensus (as of 2026-07)
+## Toolchain consensus
 
-- **Runtime**: a current LTS line — Node 24 (active LTS) or 22 (maintenance LTS). Bun is acceptable for greenfield CLIs / scripts; Deno for security-sensitive contexts. Don't run on Node 20 or older without a stated reason — they're EOL (Node 20 since 2026-04).
+- **Runtime**: a current LTS line, whichever that is when you read this — at the stamp, Node 24 (active LTS) or 22 (maintenance, until 2027-04); Node 26 is Current and enters LTS 2026-10. Anything past its EOL date needs a stated reason (Node 20 went EOL 2026-04). Bun is acceptable for greenfield CLIs / scripts; Deno for security-sensitive contexts. One scheduling change worth knowing because it invalidates the old mental model: from Node 27 (2026-10) there is one major release a year and every line is LTS, so "even-numbered releases are the LTS ones" stops being a rule you can reason from.
 - **Package manager**: `pnpm` — fast, strict (no phantom dependencies), monorepo-native via workspaces. `npm` acceptable; `yarn` declining; `bun install` viable for Bun projects.
 - **TypeScript**: `typescript@latest` with `"strict": true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`. Use `tsc --noEmit` for type-checking; pair with a separate bundler for emit (esbuild, swc, rollup, vite, or tsup).
 - **Lint + format**: `biome` (Rust-based, fast, single tool) OR `eslint` + `prettier`. Don't run both. Most new projects pick `biome`.
 - **Test runner**: `vitest` for new projects (Vite-aligned, ESM-native, jest-compatible API); `jest` for legacy projects.
 - **HTTP mocking**: `msw` (Mock Service Worker) — intercepts at the network layer, works in Node tests and browser tests with the same handlers.
 - **Validation**: `zod` (most common), `valibot` (smaller bundle), `arktype` (parser-based). Pick one per project.
+- **Property testing**: `fast-check` — the ecosystem's equivalent of hypothesis/proptest, with first-class vitest and jest integration.
 
 ## ESM-first for new packages
 
@@ -63,9 +66,9 @@ type User = z.infer<typeof UserSchema>;   // source of truth: the schema
 
 Do not maintain a separate `interface User` alongside the schema. Inference from the schema *is* the type. Drift is impossible because the type is *derived*. (zod 4 moved the string-format validators to the top level — `z.uuid()`, `z.email()`; the chained `z.string().uuid()` spelling is the deprecated v3 idiom.)
 
-## Built-in fetch (Node 18+)
+## Built-in fetch
 
-Node has `fetch` natively. Don't add `axios` to a new project unless you need interceptors or progress events. For HTTP retries / timeouts / instrumentation, layer those onto `fetch` directly or use `ky` (a thin wrapper) — not axios's full surface.
+Every supported Node line ships `fetch` natively. Don't add `axios` to a new project unless you need interceptors or progress events. For HTTP retries / timeouts / instrumentation, layer those onto `fetch` directly or use `ky` (a thin wrapper) — not axios's full surface.
 
 ## Node-specific recommendations
 
@@ -96,7 +99,28 @@ Node has `fetch` natively. Don't add `axios` to a new project unless you need in
 - **`@testing-library/react`** (or framework equivalent) for UI tests — tests behavior, not internals.
 - **`msw`** for HTTP mocking — same handlers in Node tests and browser tests; mocks the network, not the client library.
 - **`playwright`** for E2E. `cypress` works; the community has largely shifted to playwright for speed + multi-browser.
-- **Coverage** via `c8` (built into vitest) or `nyc`. Don't chase 100%; chase coverage of the logic that matters.
+- **Coverage** via vitest's own provider (`@vitest/coverage-v8`, or `@vitest/coverage-istanbul` when you need istanbul's instrumentation); `c8` / `nyc` standalone for non-vitest runners. Don't chase 100%; chase coverage of the logic that matters.
+
+## Property-based testing
+
+Use `fast-check` for any function that takes structured input and has algebraic properties (parsing, normalization, encoding, math). It generates inputs you wouldn't think to write tests for and *shrinks* failures to a minimal counterexample.
+
+```typescript
+import { test } from "vitest";
+import fc from "fast-check";
+
+test("sorting is idempotent", () => {
+  fc.assert(
+    fc.property(fc.array(fc.integer()), (xs) => {
+      const once = [...xs].sort((a, b) => a - b);
+      const twice = [...once].sort((a, b) => a - b);
+      expect(twice).toEqual(once);
+    }),
+  );
+});
+```
+
+Runs are seeded and the seed is printed on failure, so a counterexample reproduces exactly; pin it with `fc.assert(..., { seed })` when adding the regression test.
 
 ## React-specific (when applicable)
 

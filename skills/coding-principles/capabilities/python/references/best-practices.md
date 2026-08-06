@@ -2,6 +2,8 @@
 
 External standards (PEPs), modern toolchain consensus, language features by version, security and operational conventions. Complements the principle-anchored content in `../capability.md`.
 
+> **Toolchain claims here were last checked 2026-08.** How to read a stamped file, and what the stamp does not cover, is stated once under "Currency" in `../../../SKILL.md`.
+
 ## External standards (PEPs)
 
 - **[PEP 8](https://peps.python.org/pep-0008/)** — style. Ruff and Black enforce most of it automatically; the bits that aren't auto-enforced (naming, import order grouping, line-length tolerance) live in the team's `pyproject.toml`.
@@ -19,9 +21,9 @@ External standards (PEPs), modern toolchain consensus, language features by vers
 - **3.13**: free-threaded build (experimental no-GIL), JIT (experimental), `dbm.sqlite3`.
 - **3.14**: free-threaded build officially supported (PEP 779), template strings (PEP 750), deferred annotation evaluation (PEP 649/749), `concurrent.interpreters` (PEP 734).
 
-Default new code to the minimum project Python; do not down-shim modern syntax to satisfy 3.8.
+The list runs to the newest stable release at the stamp date; a version past that is one this file has not seen. Default new code to the minimum project Python, and do not down-shim modern syntax to satisfy an interpreter that is already end-of-life — check the release's EOL date rather than assuming a version is still supported because a machine somewhere still runs it.
 
-## Toolchain consensus (as of 2026-07)
+## Toolchain consensus
 
 - **Package + env manager**: `uv` (Astral) — fastest, replaces `pip` / `pip-tools` / `virtualenv` / much of `poetry`. `poetry` and `hatch` remain valid; `pipenv` is declining.
 - **Lint + format**: `ruff` and `ruff format` — replaces `flake8`, `isort`, `pyupgrade`, `pydocstyle`, `eradicate`, mostly replaces `black`. Single tool; near-instant.

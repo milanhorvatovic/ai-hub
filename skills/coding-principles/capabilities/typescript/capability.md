@@ -16,7 +16,7 @@ allowed-tools: Read Grep
 
 Language-specific rules layered on top of the parent `coding-principles` skill. Apply when editing `*.ts` / `*.tsx` / `*.mts` files.
 
-> **Industry best practices** — modern toolchain consensus (pnpm, vitest, biome / eslint+prettier, msw, zod), ESM-first packaging, `@tsconfig/strictest` baseline, type-only imports, branded types pattern, schema-first APIs, Node 18+ built-in fetch, monorepo patterns, security (npm audit, prototype pollution, SSRF), and testing conventions live in `references/best-practices.md` in this directory. Load it alongside this file when the task warrants justifying choices against industry standards.
+> **Industry best practices** — modern toolchain consensus (pnpm, vitest, biome / eslint+prettier, msw, zod), ESM-first packaging, `@tsconfig/strictest` baseline, type-only imports, branded types pattern, schema-first APIs, built-in `fetch`, monorepo patterns, security (npm audit, prototype pollution, SSRF), and testing conventions including property-based testing with `fast-check` live in `references/best-practices.md` in this directory. Load it alongside this file when the task warrants justifying choices against industry standards.
 
 ## Floor
 

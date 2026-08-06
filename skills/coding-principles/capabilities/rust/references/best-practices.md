@@ -2,6 +2,8 @@
 
 External standards, modern toolchain consensus, idiomatic patterns, error/async/supply-chain conventions. Complements the principle-anchored content in `../capability.md`.
 
+> **Toolchain claims here were last checked 2026-08.** How to read a stamped file, and what the stamp does not cover, is stated once under "Currency" in `../../../SKILL.md`.
+
 ## External standards
 
 - **[Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)** — the canonical external standard for public APIs. Naming, predictability, flexibility, type safety, dependability, debuggability, future-proofing, necessities — each section has concrete checklists. Cite these when designing a public crate API.
@@ -10,13 +12,13 @@ External standards, modern toolchain consensus, idiomatic patterns, error/async/
 
 ## Edition
 
-- **2024** is current; **2021** still common. Don't mix editions within a crate. Workspace members can have different editions but it's friction — pick one for new projects.
+- Take the newest edition for new crates — **2024** at the stamp, with **2021** still common in existing ones. Editions land roughly every three years, so check `rustc --version` rather than assuming this line is still the latest. Don't mix editions within a crate. Workspace members can have different editions but it's friction — pick one for new projects.
 - **MSRV** (Minimum Supported Rust Version) declared in `Cargo.toml`:
   ```toml
   [package]
   rust-version = "1.75"
   ```
-  Enforce in CI with a matrix that runs against MSRV + `stable` + `nightly`. Bumping MSRV is a semver-relevant change for libraries.
+  The number is yours to choose, not to copy: set it to the oldest toolchain you actually test against, and raise it deliberately. Enforce in CI with a matrix that runs against MSRV + `stable` + `nightly`. Bumping MSRV is a semver-relevant change for libraries.
 
 ## Toolchain consensus
 

@@ -57,7 +57,7 @@ A flaky test is worse than no test — it trains the team to ignore red. Fix or 
 
 ## Specialized strategies
 
-- **Property-based testing** — generate inputs, assert invariants; the framework shrinks failures to minimal repros. For parsing, encoding, math, normalization. The per-language tool and its idioms live in the matching language capability's best-practices reference — `hypothesis` for python, `proptest` for rust. TypeScript's equivalent is `fast-check`; that capability does not cover it yet.
+- **Property-based testing** — generate inputs, assert invariants; the framework shrinks failures to minimal repros. For parsing, encoding, math, normalization. The per-language tool and its idioms live in the matching language capability's best-practices reference — `hypothesis` for python, `fast-check` for typescript, `proptest` for rust. Shell is the gap that stays a gap: no generator-and-shrinker library reached adoption there, so a script whose logic has properties worth generating against is a script whose logic belongs in a language that has one.
 - **Contract testing** — for service ecosystems, consumer-driven contracts (Pact) verify the provider honors what consumers depend on, without full e2e. Prevents "we changed the API and broke three teams."
 - **Snapshot / golden-file testing** — assert output matches a stored reference. Useful for serializers, generated code, complex structures. *Dangerous* when over-used: a snapshot nobody reads becomes "approve the diff" rubber-stamping. Keep snapshots small and reviewed.
 - **Mutation testing** — mutate the code, check tests catch it. Measures whether tests actually test (vs just execute) the code. Run periodically, not every CI (slow).

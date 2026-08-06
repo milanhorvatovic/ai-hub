@@ -20,7 +20,7 @@ Language-specific rules layered on top of the parent `coding-principles` skill. 
 
 ## Floor
 
-- Python 3.10+ unless the project pins lower (check `pyproject.toml` / `setup.cfg` / `python_requires`).
+- Target a Python still receiving security fixes — 3.10+ at the stamp in `references/best-practices.md`, and that floor rises as releases age out — unless the project pins lower (check `pyproject.toml` / `setup.cfg` / `python_requires`).
 - Type hints on public surface (module-level functions, class methods, dataclass fields). Internal helpers may skip them if obvious.
 - `ruff` for lint + format; `mypy` or `pyright` for types. Treat warnings as errors in CI.
 - Manage env with the project's tool (`uv`, `poetry`, `pip-tools`, `hatch`). Never `pip install` into a global interpreter.
