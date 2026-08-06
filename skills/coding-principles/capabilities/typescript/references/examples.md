@@ -48,8 +48,9 @@ function applyDiscount(cart: Cart, percent: number): Cart {
 // admits the value — where it can reject with a useful message
 const DiscountRequest = z.object({ percent: z.number().min(0).max(100) });
 
-app.post("/carts/:id/discount", (req, res) => {
+app.post("/carts/:id/discount", async (req, res) => {
   const { percent } = DiscountRequest.parse(req.body);
+  const cart = await carts.fetch(req.params.id);
   res.json(toPublicCart(applyDiscount(cart, percent)));
 });
 

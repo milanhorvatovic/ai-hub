@@ -97,13 +97,28 @@ def test_worked_review_cites_the_lines_it_names(capabilities_dir: Path) -> None:
     diff = next((body for _, lang, body in _fences_in(examples) if lang == "diff"), None)
     assert diff, "worked review no longer carries a diff block to check against"
 
-    header = re.search(r"^@@ -\d+,(\d+) \+(\d+),(\d+) @@", diff, re.M)
-    assert header, "diff block has no parseable hunk header"
-    removed, start, added = (int(header.group(i)) for i in (1, 2, 3))
+    # The mapping below numbers `+` lines consecutively from the hunk's new-file
+    # start, which is only the real new-file numbering when the hunk is the whole
+    # diff and carries no context lines. That is the shape this worked example is
+    # authored in, so the invariant is asserted rather than assumed — a full
+    # unified-diff walk would be machinery for one hand-written file, but silently
+    # mis-mapping when someone adds a context line would be worse than either.
+    headers = re.findall(r"^@@ -\d+,(\d+) \+(\d+),(\d+) @@", diff, re.M)
+    assert len(headers) == 1, (
+        f"worked diff carries {len(headers)} hunks; the citation mapping below numbers"
+        " one all-added hunk, so more than one needs a real unified-diff walk first"
+    )
+    removed, start, added = (int(group) for group in headers[0])
 
     body_lines = [ln for ln in diff.splitlines() if not ln.startswith(("@@", "---", "+++"))]
     minus = [ln for ln in body_lines if ln.startswith("-")]
     plus = [ln[1:] for ln in body_lines if ln.startswith("+")]
+    context = [ln for ln in body_lines if ln.strip() and not ln.startswith(("-", "+"))]
+    assert not context, (
+        f"worked diff carries {len(context)} context line(s); new-file numbering counts"
+        " those too, which the citation mapping below does not — keep the hunk all-added"
+        " or teach the mapping to walk context"
+    )
     assert (len(minus), len(plus)) == (removed, added), (
         f"hunk header claims {removed} removed / {added} added,"
         f" block shows {len(minus)} / {len(plus)}"
