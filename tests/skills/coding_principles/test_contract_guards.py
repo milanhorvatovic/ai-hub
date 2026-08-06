@@ -67,6 +67,22 @@ def _expected_mantra_citations(references_dir: Path) -> list[str]:
     return sorted(forms, key=len, reverse=True)
 
 
+def _router_section(router: str, header: str) -> str:
+    """The body of `header`'s section in SKILL.md, up to the next `## `.
+
+    Both title lists must be scoped before extraction: the router numbers its
+    mantra summaries and its principle titles in the same `N. **Title** —`
+    shape, so a pattern applied to the whole file collects 37 entries from two
+    lists and only lands on the right ones because the principles happen to
+    come second and overwrite. Scoping makes that independent of section order.
+    """
+    assert header in router, (
+        f"section not found in SKILL.md: {header!r} — if the heading was renamed,"
+        " update this guard rather than letting the lookup fail obscurely"
+    )
+    return router.split(header, 1)[1].split("\n## ", 1)[0]
+
+
 def _cited_mantra(tail: str, expected: list[str]) -> str | None:
     """The expected citation form `tail` opens with, or None.
 
@@ -164,9 +180,12 @@ def test_router_titles_match_the_prose_headings(skill_md: Path, references_dir: 
     router = skill_md.read_text(encoding="utf-8")
     prose = (references_dir / "principles.md").read_text(encoding="utf-8")
 
+    principles_section = _router_section(router, "## Numbered principles (titles)")
     router_principles = {
         int(m.group(1)): normalize(m.group(2))
-        for m in re.finditer(r"^(\d+)\. \*\*(.+?)\*\*\s+—", router, flags=re.MULTILINE)
+        for m in re.finditer(
+            r"^(\d+)\. \*\*(.+?)\*\*\s+—", principles_section, flags=re.MULTILINE
+        )
     }
     prose_principles = {
         int(m.group(1)): normalize(m.group(2))
@@ -184,12 +203,7 @@ def test_router_titles_match_the_prose_headings(skill_md: Path, references_dir: 
     # The Mantras section opens with a **Conflict resolution:** label before the
     # tier lists; it is a heading for the paragraph, not a mantra, so the titles
     # come from the numbered entries under the tier headings.
-    mantras_header = "## Mantras (one-line summaries)"
-    assert mantras_header in router, (
-        f"section not found in SKILL.md: {mantras_header!r} — if the heading was"
-        " renamed, update this guard rather than letting the lookup fail obscurely"
-    )
-    section = router.split(mantras_header)[1].split("\n## ")[0]
+    section = _router_section(router, "## Mantras (one-line summaries)")
     router_mantras = {
         normalize(m) for m in re.findall(r"^\d+\. \*\*(.+?)\*\*", section, flags=re.MULTILINE)
     }
