@@ -14,7 +14,7 @@ Each entry has four parts:
 
 - **Smell** — what you observe.
 - **Anchor** — the principle(s) and/or mantra(s) that explain why it is a smell, written in the skill's citation grammar (`principles.md`), which fixes the form for principle numbers, mantra names, and their acronyms.
-- **Severity** — inherits from the anchor's severity (must / should / could). Principles carry severity tags; mantras do not — an entry anchored only to mantras defaults to *should* unless it states a different severity explicitly (the fail-fast entries state *must*). An entry with several anchors states each severity inline with its source named: per-anchor severities where the anchors judge different failures (see "Comment restates the code"), or a principle's tag alongside the mantra default (see "Mocking hell").
+- **Severity** — inherits from the anchor's severity (must / should / could). Principles carry severity tags; mantras do not — an entry anchored only to mantras defaults to *should* unless it states a different severity explicitly (the fail-fast entries state *must*). An entry with several anchors states its severity bare when the anchors agree on it, and names the source inline when they do not: per-anchor severities where the anchors judge different failures (see "Comment restates the code"), or a principle's tag alongside the mantra default (see "Mocking hell"). The naming is what resolves a disagreement, so it is required exactly where one exists — an entry whose anchors all land on the same severity has nothing to disambiguate, and saying so twice would be noise.
 - **Fix** — one-line direction; full details in the linked principle.
 
 The smells are grouped by category. Some smells appear in multiple categories — the entry lives where its primary symptom is observed.
@@ -117,8 +117,8 @@ The smells are grouped by category. Some smells appear in multiple categories �
 
 ### `raise ValueError("invalid")` with no context
 
-- **Anchor:** mantra observability + principle 13
-- **Severity:** *should*
+- **Anchor:** mantra observability + principle 13 (security hygiene, for what the message must _not_ carry)
+- **Severity:** *should* (mantra observability's default; principle 13 raises it to *must* where the missing context is security-relevant — an authorization or validation failure)
 - **Fix:** include what was attempted, with what inputs, against what state: `raise ValueError(f"invalid email: {email!r} (user_id={user_id})")`.
 
 ### Manual None-propagation: `if x is None: return None` chains
