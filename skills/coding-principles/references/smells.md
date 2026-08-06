@@ -96,7 +96,7 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 ### Boolean explosion: parallel `is_x`, `has_y`, `should_z` flags that are really one enum
 
 - **Anchor:** mantra make illegal states unrepresentable + principle 17 (naming)
-- **Severity:** *should*
+- **Severity:** *should* (the mantra-anchor default; principle 17's naming tag is *could*, and the modelling error is the larger of the two failures)
 - **Fix:** model the state as one enum / sum type. `status: 'idle' | 'running' | 'done'` beats `is_running + is_done + is_idle`.
 
 ---
@@ -106,7 +106,7 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 ### `try: ... except Exception: pass`
 
 - **Anchor:** mantra fail fast, fail loud + principle 13 (security hygiene; silenced errors hide breaches)
-- **Severity:** *must*
+- **Severity:** *must* (principle 13's tag, which outranks the *should* the mantra anchor would default to â€” a swallowed exception can hide a breach)
 - **Fix:** handle the specific exception meaningfully or let it propagate. Logging-and-swallowing is a future incident.
 
 ### `try: ... except: log.error(...)` then continue
@@ -302,7 +302,7 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 ### Trivial docstring restating the signature
 
 - **Anchor:** principle 21 (value); principle 7 (content)
-- **Severity:** *should*
+- **Severity:** *should* (principle 21's tag; the value gate runs first and a docstring restating the signature fails it outright, so principle 7's *could* never comes into play)
 - **Fix:** delete it, or shrink it to the load-bearing part (a precondition, an invariant, a surprise). A docstring that says `get_user(id) â€” gets a user by id` documents nothing.
 
 ### Line-by-line config annotation (every key gets a comment)
