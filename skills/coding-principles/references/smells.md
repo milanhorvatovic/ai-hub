@@ -96,7 +96,7 @@ The smells are grouped by category. Some smells appear in multiple categories â€
 ### Boolean explosion: parallel `is_x`, `has_y`, `should_z` flags that are really one enum
 
 - **Anchor:** mantra make illegal states unrepresentable + principle 17 (naming)
-- **Severity:** *should* (the mantra-anchor default; principle 17's naming tag is *could*, and the modelling error is the larger of the two failures)
+- **Severity:** *should* (the mantra-anchor default; principle 17's naming tag is *could*, and the modeling error is the larger of the two failures)
 - **Fix:** model the state as one enum / sum type. `status: 'idle' | 'running' | 'done'` beats `is_running + is_done + is_idle`.
 
 ---
