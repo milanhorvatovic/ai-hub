@@ -46,6 +46,35 @@ process_file() {
 }
 ```
 
+## Principle 11 — Reversibility shapes caution
+
+```bash
+# unset or empty $WORKSPACE makes this `rm -rf /`, and nothing shows the
+# operator what is about to go before it is gone
+rm -rf "$WORKSPACE/"
+```
+
+```bash
+# the destructive path is the one you have to ask for; the default reports
+purge_workspace() {
+  local workspace="$1" confirmed="${2:-0}"
+  [[ -n "$workspace" && "$workspace" != "/" ]] || {
+    printf 'refusing to purge %q\n' "$workspace" >&2
+    return 64                                   # EX_USAGE
+  }
+  [[ -d "$workspace" ]] || return 0
+
+  if [[ "$confirmed" != 1 ]]; then
+    printf 'would remove %s paths under %s\n' \
+      "$(find "$workspace" -mindepth 1 | wc -l)" "$workspace" >&2
+    return 0
+  fi
+  rm -rf -- "$workspace"
+}
+```
+
+`rm -rf` cannot be undone, so caution is spent up front: the path is checked before it is interpolated, `--` stops a leading dash being read as a flag, and deleting takes an explicit second argument that a caller has to mean. A script that is safe only when its environment is set correctly is not safe.
+
 ## Principle 13 — Security hygiene (no secrets in process listing or logs)
 
 ```bash

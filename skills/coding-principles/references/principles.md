@@ -118,6 +118,8 @@ Typechecks and lint passing are necessary but not sufficient; they verify code s
 
 Local file edits are cheap to undo. Risky actions (`git push --force`, `rm -rf`, `DROP TABLE`, `git reset --hard`, deleting branches, sending external messages) are not. For irreversible operations, pause and confirm even if the user previously approved a similar action — prior approval is scoped, not blanket.
 
+> **Code examples** (in the matching capability's `examples.md`) — bash.
+
 ## 12. Honor the user's stated preferences — *must*
 
 If the user has expressed a preference in this session, in memory, or in `CLAUDE.md` / `AGENTS.md`, apply it consistently. Do not regress to defaults across turns. When a stored preference conflicts with the current task, surface the conflict and ask — do not silently override.

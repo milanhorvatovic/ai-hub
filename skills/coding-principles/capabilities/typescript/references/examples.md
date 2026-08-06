@@ -117,6 +117,43 @@ const cartItemCount = (cart: Cart) => cart.items.length;
 const cartIsEmpty = (cart: Cart) => cart.items.length === 0;
 ```
 
+## Mantra — Make illegal states unrepresentable (pairs with strong typing)
+
+```typescript
+// three booleans and two optionals: 32 encodable states, most of them nonsense
+// — loading and error at once, success with no data, data alongside an error
+interface RequestState {
+  isLoading: boolean;
+  isError: boolean;
+  isSuccess: boolean;
+  data?: User;
+  error?: Error;
+}
+```
+
+```typescript
+// a discriminated union: four states, and the payload exists exactly where it
+// means something — no optional chaining, no "this can't happen" branch
+type RequestState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: User }
+  | { status: "error"; error: Error };
+
+function render(state: RequestState) {
+  switch (state.status) {
+    case "success":
+      return <Profile user={state.data} />;
+    case "error":
+      return <Retry message={state.error.message} />;
+    default:
+      return <Spinner />;
+  }
+}
+```
+
+With `strict` on, dropping a case from the switch is a type error rather than a silent fallthrough — the compiler is now enforcing the state machine the interface only described.
+
 ## Principle 19 — Boundaries serialize output
 
 ```typescript
