@@ -4,6 +4,8 @@ Language-agnostic practices for application configuration and feature flags. Loa
 
 The [Twelve-Factor App](https://12factor.net/config) is the canonical reference for config-as-environment.
 
+> **The per-language library names below were last checked 2026-08.** The precedence and validation rules do not decay; the libraries do. How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
+
 ## Config sources and precedence
 
 Configuration comes from multiple sources; resolve them in a defined order, later overriding earlier:

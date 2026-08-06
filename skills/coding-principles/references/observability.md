@@ -56,6 +56,8 @@ Practices:
 
 ## Language SDKs
 
+> **The SDK and library names below were last checked 2026-08.** How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
+
 OTel has stable SDKs per language. Wire the SDK at the application edge (the imperative shell — principle 16), not deep in business logic:
 
 - **Python**: `opentelemetry-sdk` + auto-instrumentation (`opentelemetry-instrument`). Pairs with `structlog` for logs.
