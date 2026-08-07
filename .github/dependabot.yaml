@@ -52,6 +52,11 @@ updates:
       node:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+    # Dependabot ignores a label that is not defined in the repository rather
+    # than creating it, and `javascript` does not exist yet — so until someone
+    # creates it these PRs arrive with `dependencies` alone. Kept rather than
+    # dropped: the other two ecosystems each carry an ecosystem label, and one
+    # repo-settings step is cheaper than a permanently inconsistent convention.
     labels:
       - dependencies
       - javascript
