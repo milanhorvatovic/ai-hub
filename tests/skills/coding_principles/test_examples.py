@@ -93,9 +93,10 @@ def test_python_and_bash_samples_parse(skill_root: Path) -> None:
     """
     bash = _usable_bash()
     problems: list[str] = []
-    checked_bash = 0
+    checked_python = checked_bash = 0
     for rel, line, lang, body in _fences(skill_root):
         if lang == "python":
+            checked_python += 1
             try:
                 ast.parse(body)
             except SyntaxError as exc:
@@ -109,9 +110,11 @@ def test_python_and_bash_samples_parse(skill_root: Path) -> None:
                 detail = done.stderr.strip().splitlines()[-1] if done.stderr.strip() else "?"
                 problems.append(f"{rel}:{line} bash: {detail}")
     assert not problems, "malformed code samples:\n" + "\n".join(problems)
-    # Anti-vacuity: with a working interpreter the lane must have found work. A
-    # silent zero would mean the fence regex stopped matching bash blocks and the
-    # lane went dark while still reporting green.
+    # Anti-vacuity, per lane. A silent zero means the fence pattern stopped
+    # matching and the lane went dark while still reporting green — the failure
+    # a parser guard is least able to notice about itself. Python is
+    # unconditional; bash is asserted only where an interpreter exists to run.
+    assert checked_python, "no python fence was checked — the fence pattern has gone stale"
     assert not bash or checked_bash, "bash is usable but no bash fence was checked"
 
 
@@ -168,7 +171,9 @@ def test_worked_review_cites_the_lines_it_names(capabilities_dir: Path) -> None:
     numbered = {start + i: content for i, content in enumerate(plus)}
 
     problems: list[str] = []
+    cited = 0
     for m in _CITATION.finditer(text):
+        cited += 1
         if m.group("path") != diff_path:
             problems.append(
                 f"finding cites {m.group('path')!r}, but the diff shown is {diff_path!r}"
@@ -187,3 +192,7 @@ def test_worked_review_cites_the_lines_it_names(capabilities_dir: Path) -> None:
                 f" but that line reads {target.strip()!r}"
             )
     assert problems == [], "worked review anchors drifted:\n" + "\n".join(problems)
+    # Anti-vacuity, as in the sample lanes above: with no numbered finding to
+    # resolve, this whole check passes without verifying anything, and the file
+    # it guards is one whose findings were mis-anchored the first time it shipped.
+    assert cited, "worked review carries no `[file:line]` finding — nothing was verified"
