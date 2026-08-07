@@ -121,6 +121,29 @@ def test_language_capabilities_carry_the_documented_file_set(
     )
 
 
+def test_declared_language_capabilities_match_the_router(
+    skill_md: Path, language_capabilities: tuple[str, ...]
+) -> None:
+    """The declared language list is every routed capability bar the workflow ones.
+
+    Two contracts read that declaration — the seven-file set and the pointer /
+    example coupling — so a newly routed language left out of it would escape
+    both silently. Deriving the list from disk instead would make the file-set
+    contract vacuous, so the declaration stays and this test holds it to the
+    router, which is the surface a new language has to touch anyway.
+    """
+    routed = set(re.findall(r"capabilities/([a-z-]+)/capability\.md", skill_md.read_text("utf-8")))
+    assert routed, "router lists no capability paths — the routing table moved"
+    workflow = {"comments", "review"}
+    unknown = workflow - routed
+    assert not unknown, f"workflow capabilities no longer routed: {sorted(unknown)}"
+    assert routed - workflow == set(language_capabilities), (
+        f"router routes languages {sorted(routed - workflow)} but the fixture"
+        f" declares {sorted(language_capabilities)} — update the declaration,"
+        " or add the new capability to the workflow set if it is not a language"
+    )
+
+
 def test_capability_name_slugs_follow_pattern(capabilities_dir: Path) -> None:
     """Each capability.md frontmatter `name` is `coding-principles-<dir>`, the
     portable slug the router documents."""

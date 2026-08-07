@@ -2,6 +2,8 @@
 
 Performance idioms for Rust. Rust is already fast by default; these are the practices that keep it fast and the traps that quietly slow it down. Apply *after* correctness and clarity — measure before micro-optimizing.
 
+> **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## Measure before optimizing
 
 - `cargo flamegraph` for CPU profiles; `perf` on Linux; `samply` cross-platform.

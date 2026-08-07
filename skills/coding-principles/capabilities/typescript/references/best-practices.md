@@ -106,7 +106,7 @@ Every supported Node line ships `fetch` natively. Don't add `axios` to a new pro
 Use `fast-check` for any function that takes structured input and has algebraic properties (parsing, normalization, encoding, math). It generates inputs you wouldn't think to write tests for and *shrinks* failures to a minimal counterexample.
 
 ```typescript
-import { test } from "vitest";
+import { expect, test } from "vitest";
 import fc from "fast-check";
 
 test("sorting is idempotent", () => {
@@ -120,7 +120,7 @@ test("sorting is idempotent", () => {
 });
 ```
 
-Runs are seeded and the seed is printed on failure, so a counterexample reproduces exactly; pin it with `fc.assert(..., { seed })` when adding the regression test.
+Failures print both a `seed` and a `path`. The seed replays the run; the path replays the *shrunk* counterexample, so a regression test pins `fc.assert(..., { seed, path })` — seed alone re-runs the generation and can land on a different case than the one that was reported.
 
 ## React-specific (when applicable)
 

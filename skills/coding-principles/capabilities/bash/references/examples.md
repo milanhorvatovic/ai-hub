@@ -58,8 +58,8 @@ rm -rf "$WORKSPACE/"
 # the destructive path is the one you have to ask for; the default reports
 purge_workspace() {
   local workspace="$1" confirmed="${2:-0}"
-  [[ -n "$workspace" && "$workspace" != "/" && "$workspace" != -* ]] || {
-    printf 'refusing to purge %q\n' "$workspace" >&2
+  [[ "$workspace" = /* && "$workspace" != "/" ]] || {
+    printf 'refusing to purge %q: want an absolute path below /\n' "$workspace" >&2
     return 64                                   # EX_USAGE
   }
   [[ -d "$workspace" ]] || return 0
@@ -75,7 +75,9 @@ purge_workspace() {
 
 `rm -rf` cannot be undone, so caution is spent up front: the path is checked before it is interpolated, `--` stops a leading dash being read as a flag, and deleting takes an explicit second argument that a caller has to mean. A script that is safe only when its environment is set correctly is not safe.
 
-The leading-dash rejection is doing more work than it looks like, and it is why the guard sits above both branches rather than beside `rm`. The reporting branch has no `--` to reach for: `find "$workspace" -mindepth 1` with a workspace of `-delete` becomes `find -delete -mindepth 1`, which finds no path argument, defaults its starting point to `.`, and deletes the tree you are standing in — from the branch whose entire job was to _not_ delete anything. Reject the shape at the boundary and every command downstream inherits the guarantee; guard each command separately and you will eventually miss the one that had no flag terminator to offer.
+Requiring an absolute path is doing more work than it looks like, and it is why the guard sits above both branches rather than beside `rm`. The reporting branch has no `--` to reach for: `find "$workspace" -mindepth 1` with a workspace of `-delete` becomes `find -delete -mindepth 1`, which finds no path operand, defaults its starting point to `.`, and deletes the tree you are standing in — from the branch whose entire job was to _not_ delete anything. `!` and `(` open a `find` expression the same way.
+
+Which is the argument for the shape of this guard. Blocklisting `-*` fixes the case you thought of and leaves the two you did not; requiring a leading `/` admits only paths, so every hostile spelling fails the same test without anyone having to enumerate them. Constrain the input to the shape you want at the boundary and every command downstream inherits it — screen each command for the metacharacters it happens to treat specially and you will eventually meet the one that had no flag terminator to offer.
 
 ## Principle 13 — Security hygiene (no secrets in process listing or logs)
 
@@ -167,8 +169,8 @@ main "$@"
 ```bash
 set -euo pipefail
 
-# shellcheck disable=SC1091 — sourced from $script_dir, resolved at runtime, so
-# shellcheck cannot follow the path to check it. Keep lib/common.sh POSIX-clean.
+# Resolved from $script_dir at runtime, so shellcheck cannot follow it to check.
+# shellcheck disable=SC1091
 source "$script_dir/lib/common.sh"
 
 main "$@"

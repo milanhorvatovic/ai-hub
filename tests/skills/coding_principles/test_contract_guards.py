@@ -214,6 +214,52 @@ def test_router_titles_match_the_prose_headings(skill_md: Path, references_dir: 
     assert not problems, "router/prose title drift:\n" + "\n".join(problems)
 
 
+_STAMP = re.compile(r"were last checked (\d{4})-(\d{2})\.\*\*")
+
+
+def test_tool_recommending_references_carry_a_currency_stamp(
+    skill_root: Path, capabilities_dir: Path
+) -> None:
+    """Every reference recommending a named tool carries a well-formed stamp.
+
+    The router promises this; without a test the promise decays the moment
+    someone adds a reference, and a reader who trusts it reads an unstamped
+    recommendation as current. Capability entry points are exempt by the same
+    rule — they summarize their references, so a second date there would drift.
+
+    Detection is by tool vocabulary rather than a hand-kept file list, so a new
+    reference that starts recommending something is covered without anyone
+    remembering to enrol it here.
+    """
+    tools = re.compile(
+        r"`(uv|poetry|pnpm|ruff|mypy|pyright|pytest|vitest|jest|biome|eslint|prettier"
+        r"|hypothesis|fast-check|proptest|tokio|smol|rayon|shellcheck|shfmt|bats-core"
+        r"|structlog|pino|tracing|cargo-audit|cargo-deny|httpx|pydantic|zod|msw"
+        r"|playwright|piscina|p-limit|criterion|insta|mockall|knip|depcheck)`"
+    )
+    entry_points = {p.resolve() for p in capabilities_dir.glob("*/capability.md")}
+
+    missing: list[str] = []
+    malformed: list[str] = []
+    for md in sorted(skill_root.rglob("*.md")):
+        if md.resolve() in entry_points:
+            continue
+        text = md.read_text(encoding="utf-8")
+        if not tools.search(text):
+            continue
+        stamp = _STAMP.search(text)
+        rel = md.relative_to(skill_root).as_posix()
+        if not stamp:
+            missing.append(rel)
+        elif not (2020 <= int(stamp.group(1)) and 1 <= int(stamp.group(2)) <= 12):
+            malformed.append(f"{rel} -> {stamp.group(0)}")
+
+    assert not missing, "tool-recommending references with no currency stamp:\n" + "\n".join(
+        missing
+    )
+    assert not malformed, "unparseable currency stamps:\n" + "\n".join(malformed)
+
+
 def test_every_principle_is_reachable_from_the_reverse_map(references_dir: Path) -> None:
     """Each principle appears in a reverse-map row or in the stated exemption.
 

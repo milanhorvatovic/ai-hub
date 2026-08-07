@@ -2,6 +2,8 @@
 
 Language-specific dependency mechanics. The cross-language principles (semver, lockfile discipline, audit, minimal footprint) are thin; the mechanics differ per ecosystem. Load when adding, updating, or auditing Cargo dependencies.
 
+> **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## Pinning stance — pin explicit exact versions (default), mind the caret gotcha
 
 **The Cargo gotcha**: a bare version is an *implicit caret*. `serde = "1.0.197"` means `^1.0.197` (`>=1.0.197, <2.0.0`) — it is **not** a pin. To truly pin, use `=`:
