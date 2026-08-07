@@ -98,6 +98,8 @@ That is five rounds of validator against an input that has more spellings than y
 
 Build the path yourself, from a root you canonicalize rather than pattern-match. `/srv/ws/../..` is absolute and passes any leading-slash test while naming somewhere else entirely, so the root gets `cd`-and-`pwd -P` once on the way in, and `/` is refused as a base. After that the only hazard construction cannot remove is a symlink standing where the directory should be — one reliable check, because by then the path being tested has no odd spelling left in it.
 
+That last sentence holds only under a precondition worth stating rather than assuming: the checks and the `rm` are separate moments, so anything able to rename a component of the root in between can aim the deletion at a tree the verification never saw. Every guard here assumes the workspace is not concurrently mutable by an untrusted process. Where it is, no arrangement of shell tests closes that window — the deletion needs to be fd-relative and refuse to follow links, which means a language with `openat2` rather than a longer script, and this capability already has a name for that threshold.
+
 Reversibility is what makes the trade worth it. A validator that is wrong about a search argument returns bad results; a validator that is wrong here removes a filesystem. When the operation cannot be undone, narrow what it can be _asked_ to do until the dangerous inputs are unrepresentable — an argument you cannot express is one you never have to get right.
 
 ## Principle 13 — Security hygiene (no secrets in process listing or logs)
