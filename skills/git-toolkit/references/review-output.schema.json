@@ -28,6 +28,7 @@
         "marketing-language",
         "apology-language",
         "personal-jargon",
+        "hard-wrapped-paragraph",
         "unfilled-template",
         "stale-claim",
         "conversational-fluff",

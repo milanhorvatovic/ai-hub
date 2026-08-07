@@ -59,7 +59,7 @@ A worked example stream lives at `review-output.example.ndjson` — 14 findings 
 
 Every `rule` id in a stream resolves to a single registry with two halves:
 
-1. **Smell ids** — every `` ### `<id>` `` entry in `commit-smells.md` (24 rules). Detection patterns, fixes, and before/after examples live there.
+1. **Smell ids** — every `` ### `<id>` `` entry in `commit-smells.md` (25 rules). Detection patterns, fixes, and before/after examples live there.
 2. **Check and meta ids** — the table below: checks that grade a format property rather than detect a smell, plus the meta rows a report carries. They have no catalog entry; this table is their definition.
 
 | Id | Class | Meaning |

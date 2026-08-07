@@ -6,7 +6,7 @@ Findings emitted from this catalog should use the `rule` ids defined here verbat
 
 ## Rule selectivity (optional `rules:` filter)
 
-By default every rule the consuming capability implements runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case ids from the rule-id registry in `review-output.md`, catalog smells and check ids alike, e.g. `rules: imperative-mood,trailing-period,body-wrap` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in the registry") but do not halt the run. The consuming capability's output preamble must list the active subset so the reader knows what was _not_ checked: `Active rule subset: imperative-mood, trailing-period, body-wrap (3 of 37 registry rules)`.
+By default every rule the consuming capability implements runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case ids from the rule-id registry in `review-output.md`, catalog smells and check ids alike, e.g. `rules: imperative-mood,trailing-period,body-wrap` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in the registry") but do not halt the run. The consuming capability's output preamble must list the active subset so the reader knows what was _not_ checked: `Active rule subset: imperative-mood, trailing-period, body-wrap (3 of 38 registry rules)`.
 
 The NDJSON output shape from `review-output.md` is unchanged — findings still carry their `rule` id; the only change is which rules contribute. Useful in CI contexts where a repo has accepted some smells as out-of-scope but wants to enforce others on every run.
 
@@ -141,6 +141,28 @@ Subject uses a path prefix or a filename to scope the change.
 **Pattern**: hard to detect mechanically; the capability surfaces a `MAYBE` finding when the body contains TitleCase tokens not present in the diff or in recent commit history.
 
 **Fix**: spell out the term on first use, or skip mention. `git log` outlives the author's tenure.
+
+### `hard-wrapped-paragraph` — body wrapped at ~72 columns in a flowing-paragraph repo
+
+The mirror of the `body-wrap` check, which grades line length in repos that _do_ hard-wrap and is `N/A` everywhere else. Here the repo's convention is flowing paragraphs — one source line each, established by the same detection recipe `commit-message` runs as its WRITE-mode pre-flight — and the body is wrapped anyway. Both directions of the mistake are easy, which is why the registry needs both ids: `body-wrap` catches an author who overruns a limit the repo enforces, and this catches one who imposes a limit the repo does not. A capability that runs the wrap detection and never grades the result afterwards is asserting a rule it never checks.
+
+**Pattern**: within a blank-line-separated paragraph, a line after the first continues the previous one instead of starting its own paragraph. Exempt, because their line breaks carry meaning rather than column arithmetic: fenced blocks, tab or 4-space indented blocks, bullet lists together with their indented continuations, and the trailer block. A 1–3 space indent is not a block, so lightly indenting wrapped prose does not dodge the check.
+
+**Fix**: reflow each paragraph onto one source line and let the reader's tools wrap it — `commit-body-reflow` does that across a range without touching subjects or footers. Where the wrap was deliberate, it is the convention that moved: change the repo's declaration and its gate, not the commit.
+
+**Example**:
+
+```
+Bad:  Move the fix record to a run-scoped artifact
+      <blank>
+      The stage runs once after the final phase, so a phase-indexed
+      output has no defined target once the run has more than one
+      phase.
+
+Good: Move the fix record to a run-scoped artifact
+      <blank>
+      The stage runs once after the final phase, so a phase-indexed output has no defined target once the run has more than one phase.
+```
 
 ## PR-body smells
 
