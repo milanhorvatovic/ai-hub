@@ -218,7 +218,7 @@ Default: one source. Derive the rest. If you find yourself debugging a "the two 
 
 Data crossing a trust line is *transformed*, not waved through. Generalizes principle 5 from "validate" into "transform":
 
-- **Inbound** — HTTP request bodies, file reads, IPC messages, deserialized snapshots, env vars, CLI flags. Parse into a *typed* value at the entry point; reject malformed data with a useful error there; downstream code receives the typed value and trusts it. Tools: zod / valibot / pydantic / serde / parser combinators / hand-rolled with assertions.
+- **Inbound** — HTTP request bodies, file reads, IPC messages, deserialized snapshots, env vars, CLI flags. Parse into a *typed* value at the entry point; reject malformed data with a useful error there; downstream code receives the typed value and trusts it. Tools: the schema or deserialization library the matching language capability names, a parser combinator, or hand-rolled assertions — the concrete picks live in the language layer, where they carry a currency stamp and this file does not.
 - **Outbound** — HTTP responses, log records, audit events, persisted rows, IPC sends. Serialize *from* typed values through an explicit serializer that decides what is exposed. Never `JSON.stringify(internal_object)` and ship it — the next field you add to the internal object will silently leak.
 
 The rule of thumb: at the edge, a function's signature is `(bytes) -> Typed` on the way in and `Typed -> bytes` on the way out. Everything else operates on `Typed`. Combined with strong typing + illegal-states-unrepresentable, this is most of how a codebase stays honest.

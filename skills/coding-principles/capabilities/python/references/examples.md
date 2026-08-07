@@ -179,8 +179,8 @@ def issue_token(user_id: str) -> Token:
     return Token(
         value=secrets.token_urlsafe(32),
         user_id=user_id,
-        issued_at=datetime.now(tz=UTC),
-        expires_at=datetime.now(tz=UTC) + timedelta(seconds=int(os.environ["TOKEN_TTL"])),
+        issued_at=datetime.now(tz=timezone.utc),
+        expires_at=datetime.now(tz=timezone.utc) + timedelta(seconds=int(os.environ["TOKEN_TTL"])),
     )
 ```
 
@@ -204,13 +204,13 @@ def issue_token(
 
 # main.py — the shell reads the environment once and wires the real ones in
 policy = TokenPolicy(ttl=timedelta(seconds=int(os.environ["TOKEN_TTL"])))
-token = issue_token(user_id, datetime.now(tz=UTC), lambda: secrets.token_urlsafe(32), policy)
+token = issue_token(user_id, datetime.now(tz=timezone.utc), lambda: secrets.token_urlsafe(32), policy)
 
 # the test needs no freezegun, no monkeypatch, no environment
 token = issue_token(
-    "u1", datetime(2026, 1, 1, tzinfo=UTC), lambda: "fixed", TokenPolicy(ttl=timedelta(hours=1))
+    "u1", datetime(2026, 1, 1, tzinfo=timezone.utc), lambda: "fixed", TokenPolicy(ttl=timedelta(hours=1))
 )
-assert token.expires_at == datetime(2026, 1, 1, 1, tzinfo=UTC)
+assert token.expires_at == datetime(2026, 1, 1, 1, tzinfo=timezone.utc)
 ```
 
 ## Principle 17 — Naming discipline
