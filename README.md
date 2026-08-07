@@ -50,6 +50,7 @@ Then unzip the bundle into your agent's skills directory.
 ```sh
 python -m venv venv
 ./venv/bin/pip install -r requirements-test.txt
+npm ci
 ./venv/bin/pytest -q
 ```
 

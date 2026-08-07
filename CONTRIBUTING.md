@@ -12,7 +12,13 @@ Thanks for your interest! ai-hub is an incubator for AI-agnostic artifacts — s
    ./venv/bin/pip install -r requirements-test.txt
    ```
 
-3. Run the test suite to confirm a clean baseline:
+3. Install the pinned markdown toolchain — needed to format locally and by the opt-in pre-commit hook; CI installs its own copy from the same lockfile:
+
+   ```sh
+   npm ci
+   ```
+
+4. Run the test suite to confirm a clean baseline:
 
    ```sh
    ./venv/bin/pytest -q
