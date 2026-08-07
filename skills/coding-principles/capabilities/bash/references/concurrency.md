@@ -2,6 +2,8 @@
 
 Bash concurrency is coarse-grained: background jobs and parallel process spawning. There are no threads; "concurrency" means running multiple processes.
 
+> **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## Background jobs
 
 ```bash

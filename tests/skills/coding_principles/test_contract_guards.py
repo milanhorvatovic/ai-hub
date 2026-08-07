@@ -217,47 +217,92 @@ def test_router_titles_match_the_prose_headings(skill_md: Path, references_dir: 
 _STAMP = re.compile(r"were last checked (\d{4})-(\d{2})\.\*\*")
 
 
-def test_tool_recommending_references_carry_a_currency_stamp(
-    skill_root: Path, capabilities_dir: Path
+# Per-language reference filenames that carry tool and runtime recommendations,
+# and the two that carry none — anti-patterns is language semantics, examples is
+# code. Filename-driven so a newly added language inherits the whole contract
+# without anyone enrolling it.
+_CLAIM_BEARING = frozenset(
+    {"best-practices.md", "concurrency.md", "dependencies.md", "performance.md",
+     "project-structure.md"}
+)
+_CLAIM_FREE = frozenset({"anti-patterns.md", "examples.md"})
+
+# Shared references classified one by one, because no filename convention
+# separates them. Every file directly under references/ must appear in exactly
+# one bucket — a new one in neither fails this test rather than slipping past.
+_SHARED_STAMPED = frozenset(
+    {"configuration.md", "data-handling.md", "observability.md", "platform-matrix.md",
+     "resilience.md", "testing.md"}
+)
+_SHARED_CLAIM_FREE = frozenset(
+    {"api-design.md", "architecture.md", "glossary.md", "mantras.md", "persistence.md",
+     "principles.md", "refactoring.md", "smells.md"}
+)
+
+# The workflow capabilities ship references about writing — comment content,
+# review phrasing — and name no toolchain. They reuse the `best-practices.md`
+# filename without inheriting its language-capability meaning, so they are
+# classified here rather than by the convention above.
+_WORKFLOW_CLAIM_FREE = frozenset(
+    {"anti-patterns.md", "best-practices.md", "by-file-type.md", "examples.md"}
+)
+
+
+def test_currency_stamps_cover_every_claim_bearing_reference(
+    skill_root: Path,
+    capabilities_dir: Path,
+    references_dir: Path,
+    language_capabilities: tuple[str, ...],
 ) -> None:
-    """Every reference recommending a named tool carries a well-formed stamp.
+    """The stamped set is exactly the files that carry decaying claims.
 
-    The router promises this; without a test the promise decays the moment
-    someone adds a reference, and a reader who trusts it reads an unstamped
-    recommendation as current. Capability entry points are exempt by the same
-    rule — they summarize their references, so a second date there would drift.
+    This fails closed, which the first version of it did not: detecting "does
+    this recommend a tool?" by matching a vocabulary of backticked names misses
+    every tool nobody thought to list and every runtime-version claim, so the
+    test stayed green while the router promised full coverage. Classification is
+    structural instead — by filename inside a language capability, and per file
+    for the shared references, where an unclassified file is a failure.
 
-    Detection is by tool vocabulary rather than a hand-kept file list, so a new
-    reference that starts recommending something is covered without anyone
-    remembering to enrol it here.
+    Capability entry points carry no stamp by design: they summarize what their
+    references cover, so a second date there could only drift from the first.
     """
-    tools = re.compile(
-        r"`(uv|poetry|pnpm|ruff|mypy|pyright|pytest|vitest|jest|biome|eslint|prettier"
-        r"|hypothesis|fast-check|proptest|tokio|smol|rayon|shellcheck|shfmt|bats-core"
-        r"|structlog|pino|tracing|cargo-audit|cargo-deny|httpx|pydantic|zod|msw"
-        r"|playwright|piscina|p-limit|criterion|insta|mockall|knip|depcheck)`"
-    )
-    entry_points = {p.resolve() for p in capabilities_dir.glob("*/capability.md")}
+    problems: list[str] = []
 
-    missing: list[str] = []
-    malformed: list[str] = []
-    for md in sorted(skill_root.rglob("*.md")):
-        if md.resolve() in entry_points:
-            continue
-        text = md.read_text(encoding="utf-8")
-        if not tools.search(text):
-            continue
-        stamp = _STAMP.search(text)
+    def check(md: Path, expect_stamp: bool) -> None:
         rel = md.relative_to(skill_root).as_posix()
-        if not stamp:
-            missing.append(rel)
-        elif not (2020 <= int(stamp.group(1)) and 1 <= int(stamp.group(2)) <= 12):
-            malformed.append(f"{rel} -> {stamp.group(0)}")
+        stamp = _STAMP.search(md.read_text(encoding="utf-8"))
+        if expect_stamp and not stamp:
+            problems.append(f"{rel}: carries decaying claims but no currency stamp")
+        elif not expect_stamp and stamp:
+            problems.append(f"{rel}: stamped, but classified as carrying no decaying claims")
+        elif stamp and not (2020 <= int(stamp.group(1)) and 1 <= int(stamp.group(2)) <= 12):
+            problems.append(f"{rel}: unparseable stamp {stamp.group(0)!r}")
 
-    assert not missing, "tool-recommending references with no currency stamp:\n" + "\n".join(
-        missing
-    )
-    assert not malformed, "unparseable currency stamps:\n" + "\n".join(malformed)
+    for refs in sorted(capabilities_dir.glob("*/references")):
+        is_language = refs.parent.name in language_capabilities
+        for md in sorted(refs.glob("*.md")):
+            if is_language and md.name in _CLAIM_BEARING:
+                check(md, expect_stamp=True)
+            elif md.name in (_CLAIM_FREE if is_language else _WORKFLOW_CLAIM_FREE):
+                check(md, expect_stamp=False)
+            else:
+                problems.append(
+                    f"{md.relative_to(skill_root).as_posix()}: unclassified reference —"
+                    " decide whether it carries decaying claims and add it to a set"
+                )
+
+    for md in sorted(references_dir.glob("*.md")):
+        if md.name in _SHARED_STAMPED:
+            check(md, expect_stamp=True)
+        elif md.name in _SHARED_CLAIM_FREE:
+            check(md, expect_stamp=False)
+        else:
+            problems.append(
+                f"{md.relative_to(skill_root).as_posix()}: unclassified shared reference —"
+                " decide whether it carries decaying claims and add it to a set"
+            )
+
+    assert not problems, "currency-stamp coverage:\n" + "\n".join(problems)
 
 
 def test_every_principle_is_reachable_from_the_reverse_map(references_dir: Path) -> None:

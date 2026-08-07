@@ -2,6 +2,8 @@
 
 Language-agnostic operating-system differences that bite cross-platform code. Load when the code under change touches the filesystem, processes, shells, signals, paths, or anything that behaves differently across Linux / macOS / Windows. Applies across all language capabilities — each language's *handling* of these concerns is noted at the bottom.
 
+> **The platform facts and tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
+
 The rule: **don't assume the developer's OS is the deployment OS.** Code written on macOS often runs on Linux in production and is edited on Windows by a teammate.
 
 ## The matrix

@@ -2,6 +2,8 @@
 
 Language-specific *mechanics* for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the TypeScript *how*. Load when structuring or restructuring a TS project or monorepo.
 
+> **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## Unit of modularity
 
 - **Module** = a file (ESM). **Package** = a directory with its own `package.json` (in a monorepo workspace).
