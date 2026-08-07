@@ -2,6 +2,8 @@
 
 Rust's type system makes data races a compile error: `Send` (safe to move across threads) and `Sync` (safe to share by reference across threads) are enforced by the borrow checker. "Fearless concurrency" means the compiler rejects the bugs other languages ship.
 
+> **The crates named below were last checked 2026-08.** The concurrency model does not decay; the runtimes and libraries do — this file is where a discontinued runtime went unnoticed once. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## The decision matrix
 
 | Workload                          | Use                                              |

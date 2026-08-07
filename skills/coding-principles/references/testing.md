@@ -4,6 +4,8 @@ Language-agnostic testing *strategy*. The per-language *tactics* (pytest/vitest/
 
 Anchored to principle 2 (bug fixes need a failing-first test) and principle 15 (tests describe behavior, mock at boundaries) — this file is the strategy those rules operate within.
 
+> **The named tools below were last checked 2026-08.** The strategy does not decay; the libraries implementing it do. How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
+
 ## The test pyramid
 
 Most tests cheap and fast, few tests slow and broad:

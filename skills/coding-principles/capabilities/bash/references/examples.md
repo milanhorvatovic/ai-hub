@@ -58,7 +58,7 @@ rm -rf "$WORKSPACE/"
 # the destructive path is the one you have to ask for; the default reports
 purge_workspace() {
   local workspace="$1" confirmed="${2:-0}"
-  [[ -n "$workspace" && "$workspace" != "/" ]] || {
+  [[ -n "$workspace" && "$workspace" != "/" && "$workspace" != -* ]] || {
     printf 'refusing to purge %q\n' "$workspace" >&2
     return 64                                   # EX_USAGE
   }
@@ -74,6 +74,8 @@ purge_workspace() {
 ```
 
 `rm -rf` cannot be undone, so caution is spent up front: the path is checked before it is interpolated, `--` stops a leading dash being read as a flag, and deleting takes an explicit second argument that a caller has to mean. A script that is safe only when its environment is set correctly is not safe.
+
+The leading-dash rejection is doing more work than it looks like, and it is why the guard sits above both branches rather than beside `rm`. The reporting branch has no `--` to reach for: `find "$workspace" -mindepth 1` with a workspace of `-delete` becomes `find -delete -mindepth 1`, which finds no path argument, defaults its starting point to `.`, and deletes the tree you are standing in — from the branch whose entire job was to _not_ delete anything. Reject the shape at the boundary and every command downstream inherits the guarantee; guard each command separately and you will eventually miss the one that had no flag terminator to offer.
 
 ## Principle 13 — Security hygiene (no secrets in process listing or logs)
 

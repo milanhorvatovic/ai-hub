@@ -43,7 +43,7 @@ Two blockers: a card number reaches the logs, and the bug this fixes has no test
 ## Must fix (2)
 
 - [billing/refunds.py:19] **principle 13** — `order.card_number` is interpolated into the `log.info` call, so a full PAN lands in whatever the log ships to. Log the shape instead of the value: `card_last4=%s` with `order.card_last4`, or drop the field — `order_id` is already enough to find the payment.
-- [billing/refunds.py] **principle 2** — the description says this fixes double-writes to the audit log, but nothing in the diff fails without the change, so there is no evidence the double-write is actually gone. Add a test that writes two refunds for one order and asserts a single audit row, confirm it fails on `main`, then land it with this fix.
+- [billing/refunds.py] **principle 2** — the description says this fixes double-writes to the audit log, but nothing in the diff fails without the change, so there is no evidence the double-write is actually gone. Add a test that puts one refund through the path that was duplicating and asserts exactly one audit row, confirm it fails on `main`, then land it with this fix — two refunds legitimately write two rows, so asserting one across a pair would suppress real history instead of reproducing the defect.
 
 ## Should fix (2)
 

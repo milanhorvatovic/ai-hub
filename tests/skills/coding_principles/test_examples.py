@@ -97,6 +97,10 @@ def test_worked_review_cites_the_lines_it_names(capabilities_dir: Path) -> None:
     diff = next((body for _, lang, body in _fences_in(examples) if lang == "diff"), None)
     assert diff, "worked review no longer carries a diff block to check against"
 
+    new_file = re.search(r"^\+\+\+ b/(\S+)", diff, re.M)
+    assert new_file, "diff block has no +++ header, so citations have no path to resolve against"
+    diff_path = new_file.group(1)
+
     # The mapping below numbers `+` lines consecutively from the hunk's new-file
     # start, which is only the real new-file numbering when the hunk is the whole
     # diff and carries no context lines. That is the shape this worked example is
@@ -128,6 +132,11 @@ def test_worked_review_cites_the_lines_it_names(capabilities_dir: Path) -> None:
 
     problems: list[str] = []
     for m in _CITATION.finditer(text):
+        if m.group("path") != diff_path:
+            problems.append(
+                f"finding cites {m.group('path')!r}, but the diff shown is {diff_path!r}"
+            )
+            continue
         lineno = int(m.group("line"))
         target = numbered.get(lineno)
         if target is None:

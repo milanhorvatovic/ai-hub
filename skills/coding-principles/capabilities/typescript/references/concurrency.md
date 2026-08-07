@@ -2,6 +2,8 @@
 
 JS is single-threaded with an event loop. "Concurrency" is cooperative (async I/O on one thread); "parallelism" requires workers (separate threads/processes with no shared memory by default).
 
+> **The libraries named below were last checked 2026-08.** The event-loop model does not decay; the libraries do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## The model
 
 - **One thread, one event loop.** Async code interleaves at `await` points; it does not run in parallel. CPU-bound work blocks the loop and freezes everything (the server stops responding; the UI stops painting).
