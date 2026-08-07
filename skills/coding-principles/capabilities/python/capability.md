@@ -7,8 +7,8 @@ description: >
   idioms (type hints, f-strings, pathlib, dataclasses), error and logging
   discipline, async-only-for-I/O rules, anti-patterns (mutable default args,
   bare except, eval, global), test conventions, and before/after code
-  examples anchored to numbered principles 4, 5, 8, 13, 15, 17, and 19 of
-  the parent skill.
+  examples anchored to numbered principles 2, 4, 5, 8, 13, 15, 16, 17, 19,
+  and 21 of the parent skill.
 allowed-tools: Read Grep
 ---
 
@@ -20,7 +20,7 @@ Language-specific rules layered on top of the parent `coding-principles` skill. 
 
 ## Floor
 
-- Python 3.10+ unless the project pins lower (check `pyproject.toml` / `setup.cfg` / `python_requires`).
+- Target a Python still receiving security fixes — 3.10+ at the stamp in `references/best-practices.md`, and that floor rises as releases age out — unless the project pins lower (check `pyproject.toml` / `setup.cfg` / `python_requires`).
 - Type hints on public surface (module-level functions, class methods, dataclass fields). Internal helpers may skip them if obvious.
 - `ruff` for lint + format; `mypy` or `pyright` for types. Treat warnings as errors in CI.
 - Manage env with the project's tool (`uv`, `poetry`, `pip-tools`, `hatch`). Never `pip install` into a global interpreter.
@@ -73,7 +73,7 @@ Language-specific anti-patterns live in `references/anti-patterns.md`. Load it f
 
 ## Examples by principle
 
-Concrete before/after code for high-leverage principles (4, 5, 8, 13, 15, 17, 19) lives in `references/examples.md`. Load it when matching patterns at write-time or validating suggested fixes at review-time.
+Concrete before/after code for high-leverage principles (2, 4, 5, 8, 13, 15, 16, 17, 19, 21) lives in `references/examples.md`. Load it when matching patterns at write-time or validating suggested fixes at review-time.
 
 ## Performance
 

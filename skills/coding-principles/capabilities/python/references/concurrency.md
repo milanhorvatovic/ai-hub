@@ -2,6 +2,8 @@
 
 Python's concurrency story is shaped by the GIL. Picking the right model is the most consequential decision; getting it wrong means code that's concurrent on paper but serial in practice.
 
+> **The libraries and interpreter versions named below were last checked 2026-08.** The model does not decay; those do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## The decision matrix
 
 | Workload                              | Use                                            | Why                                                            |

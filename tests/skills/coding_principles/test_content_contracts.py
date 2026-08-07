@@ -17,23 +17,6 @@ from pathlib import Path
 EXPECTED_MANTRAS = 16
 EXPECTED_PRINCIPLES = 21
 
-# Each language capability is `capability.md` plus a `references/` subdir
-# holding the same seven supporting files (see the "File layout" section of
-# SKILL.md). `review` is a workflow capability, not a language one, so it is
-# exempt from this invariant.
-LANGUAGE_CAPABILITIES = ("bash", "python", "rust", "typescript")
-LANGUAGE_REFERENCE_FILES = frozenset(
-    {
-        "anti-patterns.md",
-        "examples.md",
-        "best-practices.md",
-        "concurrency.md",
-        "dependencies.md",
-        "performance.md",
-        "project-structure.md",
-    }
-)
-
 
 def _section(text: str, header_prefix: str) -> str:
     """Return the body of the first `## ` section whose header starts with
@@ -113,13 +96,15 @@ def test_principle_count_is_consistent(
 
 def test_language_capabilities_carry_the_documented_file_set(
     capabilities_dir: Path,
+    language_capabilities: tuple[str, ...],
+    language_reference_files: frozenset[str],
 ) -> None:
     """Each language capability must be `capability.md` plus a `references/`
     subdir holding exactly the seven supporting files. A missing file means a
     capability load silently degrades; an extra one means the layout drifted
     from what SKILL.md advertises."""
     mismatches: list[str] = []
-    for lang in LANGUAGE_CAPABILITIES:
+    for lang in language_capabilities:
         lang_dir = capabilities_dir / lang
         assert (lang_dir / "capability.md").is_file(), (
             f"{lang}: missing capability.md entry point"
@@ -127,12 +112,41 @@ def test_language_capabilities_carry_the_documented_file_set(
         refs = lang_dir / "references"
         assert refs.is_dir(), f"{lang}: missing references/ subdir"
         present = {p.name for p in refs.iterdir() if p.is_file()}
-        if present != set(LANGUAGE_REFERENCE_FILES):
-            missing = sorted(LANGUAGE_REFERENCE_FILES - present)
-            extra = sorted(present - LANGUAGE_REFERENCE_FILES)
+        if present != set(language_reference_files):
+            missing = sorted(language_reference_files - present)
+            extra = sorted(present - language_reference_files)
             mismatches.append(f"{lang}/references: missing={missing} extra={extra}")
     assert not mismatches, "language capability file-set drift:\n" + "\n".join(
         mismatches
+    )
+
+
+def test_declared_language_capabilities_match_the_router(
+    skill_md: Path, language_capabilities: tuple[str, ...]
+) -> None:
+    """The declared language list is every routed capability bar the workflow ones.
+
+    Two contracts read that declaration — the seven-file set and the pointer /
+    example coupling — so a newly routed language left out of it would escape
+    both silently. Deriving the list from disk instead would make the file-set
+    contract vacuous, so the declaration stays and this test holds it to the
+    router, which is the surface a new language has to touch anyway.
+    """
+    # Table rows only. Matching the whole file would count the prose mentions of
+    # `capabilities/comments/capability.md` in the checklist and anti-patterns, so
+    # deleting a routing row would leave this green — the opposite of the point.
+    rows = "\n".join(
+        ln for ln in skill_md.read_text(encoding="utf-8").splitlines() if ln.lstrip().startswith("|")
+    )
+    routed = set(re.findall(r"capabilities/([a-z-]+)/capability\.md", rows))
+    assert routed, "no capability rows in the router's tables — the routing table moved"
+    workflow = {"comments", "review"}
+    unknown = workflow - routed
+    assert not unknown, f"workflow capabilities no longer routed: {sorted(unknown)}"
+    assert routed - workflow == set(language_capabilities), (
+        f"router routes languages {sorted(routed - workflow)} but the fixture"
+        f" declares {sorted(language_capabilities)} — update the declaration,"
+        " or add the new capability to the workflow set if it is not a language"
     )
 
 

@@ -7,8 +7,9 @@ description: >
   (unknown over any, discriminated unions, readonly), boundary validation
   with zod/valibot, error and async conventions, module/export idioms,
   React/JSX guidance, anti-patterns (enum, namespace, @ts-ignore), and
-  before/after code examples anchored to numbered principles 16, 18, and
-  19 of the parent skill.
+  before/after code examples anchored to numbered principles 2, 5, 16, 18,
+  19, 21 and the "Make illegal states unrepresentable" mantra of the parent
+  skill.
 allowed-tools: Read Grep
 ---
 
@@ -16,7 +17,7 @@ allowed-tools: Read Grep
 
 Language-specific rules layered on top of the parent `coding-principles` skill. Apply when editing `*.ts` / `*.tsx` / `*.mts` files.
 
-> **Industry best practices** — modern toolchain consensus (pnpm, vitest, biome / eslint+prettier, msw, zod), ESM-first packaging, `@tsconfig/strictest` baseline, type-only imports, branded types pattern, schema-first APIs, Node 18+ built-in fetch, monorepo patterns, security (npm audit, prototype pollution, SSRF), and testing conventions live in `references/best-practices.md` in this directory. Load it alongside this file when the task warrants justifying choices against industry standards.
+> **Industry best practices** — modern toolchain consensus (pnpm, vitest, biome / eslint+prettier, msw, zod), ESM-first packaging, `@tsconfig/strictest` baseline, type-only imports, branded types pattern, schema-first APIs, built-in `fetch`, monorepo patterns, security (npm audit, prototype pollution, SSRF), and testing conventions including property-based testing with `fast-check` live in `references/best-practices.md` in this directory. Load it alongside this file when the task warrants justifying choices against industry standards.
 
 ## Floor
 
@@ -72,7 +73,7 @@ Language-specific anti-patterns live in `references/anti-patterns.md`. Load it f
 
 ## Examples by principle
 
-Concrete before/after code for high-leverage principles (16, 18, 19) lives in `references/examples.md`. Load it when matching patterns at write-time or validating suggested fixes at review-time.
+Concrete before/after code for high-leverage principles 2, 5, 16, 18, 19, 21 and the "Make illegal states unrepresentable" mantra lives in `references/examples.md`. Load it when matching patterns at write-time or validating suggested fixes at review-time.
 
 ## Performance
 

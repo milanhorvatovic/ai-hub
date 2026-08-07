@@ -2,6 +2,64 @@
 
 Concrete before/after code anchored to numbered principles from the parent skill. The principle prose lives in `../../../references/principles.md`; the language idioms and rules live in `../capability.md`. This file holds only the code.
 
+## Principle 2 — Root cause over bandaid (reproducing test first)
+
+```typescript
+// bandaid — `items` is "sometimes undefined", so guard and move on
+function totalCents(order: Order): number {
+  if (!order.items) return 0;
+  return order.items.reduce((sum, i) => sum + i.priceCents, 0);
+}
+```
+
+```typescript
+// the failing test comes first, and it names the real bug: the parser drops
+// `items` when the cart is empty, so the shape is wrong before anyone reads it
+test("parseOrder keeps an empty items array", () => {
+  expect(parseOrder({ id: "o1", items: [] }).items).toEqual([]);
+});
+
+// fix where the bad value is produced
+function parseOrder(raw: unknown): Order {
+  const parsed = OrderSchema.parse(raw);
+  return { id: parsed.id, items: parsed.items };
+}
+
+// and the guard comes out — `Order["items"]` is `CartItem[]`, so it was unreachable
+function totalCents(order: Order): number {
+  return order.items.reduce((sum, i) => sum + i.priceCents, 0);
+}
+```
+
+## Principle 5 — Trust internal code; validate only at boundaries
+
+```typescript
+// an internal helper written as if its callers were untrusted
+function applyDiscount(cart: Cart, percent: number): Cart {
+  if (!cart) throw new Error("cart is required");                    // type says Cart, not Cart | null
+  if (typeof percent !== "number") throw new Error("percent must be a number");  // already number
+  if (percent < 0 || percent > 100) throw new Error("percent out of range");
+  return { ...cart, totalCents: Math.round(cart.totalCents * (1 - percent / 100)) };
+}
+```
+
+```typescript
+// the range check was the only real one, so it moves to the boundary that
+// admits the value — where it can reject with a useful message
+const DiscountRequest = z.object({ percent: z.number().min(0).max(100) });
+
+app.post("/carts/:id/discount", async (req, res) => {
+  const { percent } = DiscountRequest.parse(req.body);
+  const cart = await carts.fetch(req.params.id);
+  res.json(toPublicCart(applyDiscount(cart, percent)));
+});
+
+// internal code trusts its types
+function applyDiscount(cart: Cart, percent: number): Cart {
+  return { ...cart, totalCents: Math.round(cart.totalCents * (1 - percent / 100)) };
+}
+```
+
 ## Principle 16 — Inject time, randomness, and external state
 
 ```typescript
@@ -60,6 +118,45 @@ const cartItemCount = (cart: Cart) => cart.items.length;
 const cartIsEmpty = (cart: Cart) => cart.items.length === 0;
 ```
 
+## Mantra — Make illegal states unrepresentable (pairs with strong typing)
+
+```typescript
+// three booleans and two optionals: 32 encodable states, most of them nonsense
+// — loading and error at once, success with no data, data alongside an error
+interface RequestState {
+  isLoading: boolean;
+  isError: boolean;
+  isSuccess: boolean;
+  data?: User;
+  error?: Error;
+}
+```
+
+```typescript
+// a discriminated union: four states, and the payload exists exactly where it
+// means something — no optional chaining, no "this can't happen" branch
+type RequestState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: User }
+  | { status: "error"; error: Error };
+
+function describe(state: RequestState): string {
+  switch (state.status) {
+    case "idle":
+      return "waiting to start";
+    case "loading":
+      return "loading…";
+    case "success":
+      return `loaded ${state.data.name}`;      // data is present here; no `?.`
+    case "error":
+      return `failed: ${state.error.message}`;
+  }
+}
+```
+
+Adding a fifth state makes this a compile error, but be precise about why, because the mechanism is easy to misattribute: TypeScript has no exhaustiveness check for `switch`. What catches it is the declared `: string` return with `strictNullChecks` on — an unhandled state falls out of the function returning `undefined`, which is not assignable. Drop the return annotation and the same switch goes quiet. The other way to get the guarantee is a `default` that calls an `assertNever(state: never)` helper, which fails to compile the moment `state` can still be something; a `default` is not the problem, a `default` that quietly handles the unknown case is. Either way the compiler is enforcing the state machine the bag of booleans could only describe.
+
 ## Principle 19 — Boundaries serialize output
 
 ```typescript
@@ -75,3 +172,32 @@ function toPublicUser(u: User): PublicUser {
 }
 res.json(toPublicUser(user));
 ```
+
+## Principle 21 — Comments earn their place
+
+```typescript
+// every comment here restates the line under it
+// create the payment client
+const client = new PaymentClient(config);
+
+// loop over the charges
+for (const charge of charges) {
+  // retry three times
+  await retry(() => client.capture(charge), 3);
+}
+```
+
+```typescript
+const client = new PaymentClient(config);
+
+for (const charge of charges) {
+  // Capture is only idempotent from API v3 up and this account is pinned to v2
+  // by contract, so there is no retry that is safe here: a connection failure
+  // can land after the charge commits, and we cannot tell that case from one
+  // that never reached the gateway. Ambiguous failures go to reconciliation.
+  // Do not add a retry to this loop without an idempotency key.
+  await captureOrQueueForReconciliation(client, charge);
+}
+```
+
+Three comments became one, and the survivor is the only one that was carrying anything: a constraint the reader cannot see from this file, and the reason the retry predicate is not the default. TSDoc on an exported symbol is judged by the same bar — see the documentation section of `best-practices.md` for when the project's own config settles it instead.

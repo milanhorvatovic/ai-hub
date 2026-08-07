@@ -2,6 +2,8 @@
 
 External standards, modern toolchain consensus, security and operational conventions that complement the principle-anchored content in `../capability.md`. Cite these references when the agent's choices need justification beyond the parent skill's principles.
 
+> **Toolchain claims here were last checked 2026-08.** How to read a stamped file, and what the stamp does not cover, is stated once under "Currency" in `../../../SKILL.md`. Shell ages more slowly than the other three — the tools below have been stable for years — so expect this stamp to move without the content under it moving much.
+
 ## External standards
 
 - **[Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html)** — the de facto external standard. Covers indentation (2-space), function naming, `[[ ]]` over `[ ]`, when to use `local`, etc. Where this capability and Google's guide agree, follow both; where they differ, the parent skill's principles win (and we flag the divergence here).
@@ -75,7 +77,7 @@ ShellCheck warnings have severity classes (`error`, `warning`, `info`, `style`).
 
 `# shellcheck disable=SCnnnn` requires a one-line justification immediately above. Bare disables are unreviewable.
 
-## Toolchain consensus (modern)
+## Toolchain consensus
 
 - **Linter**: `shellcheck` — non-negotiable. Run on every script.
 - **Formatter**: `shfmt -i 2 -ci -bn -sr` is a sane default. Some teams prefer `-i 4`; match the repo.

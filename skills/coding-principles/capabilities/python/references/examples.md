@@ -2,6 +2,34 @@
 
 Concrete before/after code anchored to numbered principles from the parent skill. The principle prose lives in `../../../references/principles.md`; the language idioms and rules live in `../capability.md`. This file holds only the code.
 
+## Principle 2 — Root cause over bandaid (reproducing test first)
+
+```python
+# bandaid — a KeyError showed up in production, so swallow it and default
+def user_timezone(profile: dict) -> str:
+    try:
+        return profile["settings"]["timezone"]
+    except KeyError:
+        return "UTC"
+```
+
+```python
+# the failing test comes first, and it names the real bug: rows written before
+# the settings migration load with `settings` absent
+def test_load_profile_fills_settings_for_pre_migration_rows():
+    profile = load_profile(row_without_settings)
+    assert profile["settings"]["timezone"] == "UTC"
+
+# fix where the bad shape is produced
+def load_profile(row: Row) -> dict:
+    return {"id": row.id, "settings": row.settings or DEFAULT_SETTINGS}
+
+# and the except comes out — every profile now has settings, so catching
+# KeyError here would only hide the next bug that breaks that invariant
+def user_timezone(profile: dict) -> str:
+    return profile["settings"]["timezone"]
+```
+
 ## Principle 4 — No *speculative* generality
 
 Adding a notification feature with one channel today (email).
@@ -143,6 +171,48 @@ def test_checkout_reserves_stock_when_items_available():
 
 The second test survives any internal refactor of `process_order` because it only knows about the public contract (input → output, side effects at the boundary).
 
+## Principle 16 — Inject time, randomness, and external state
+
+```python
+# reaches for the clock, the RNG, and the environment from business logic
+def issue_token(user_id: str) -> Token:
+    return Token(
+        value=secrets.token_urlsafe(32),
+        user_id=user_id,
+        issued_at=datetime.now(tz=timezone.utc),
+        expires_at=datetime.now(tz=timezone.utc) + timedelta(seconds=int(os.environ["TOKEN_TTL"])),
+    )
+```
+
+```python
+# all three arrive as arguments; note the two `datetime.now()` calls collapsed
+# into one, so the token's lifetime is exactly the ttl instead of the ttl plus
+# however long the two clock reads were apart
+@dataclass(frozen=True)
+class TokenPolicy:
+    ttl: timedelta
+
+def issue_token(
+    user_id: str, now: datetime, new_secret: Callable[[], str], policy: TokenPolicy
+) -> Token:
+    return Token(
+        value=new_secret(),
+        user_id=user_id,
+        issued_at=now,
+        expires_at=now + policy.ttl,
+    )
+
+# main.py — the shell reads the environment once and wires the real ones in
+policy = TokenPolicy(ttl=timedelta(seconds=int(os.environ["TOKEN_TTL"])))
+token = issue_token(user_id, datetime.now(tz=timezone.utc), lambda: secrets.token_urlsafe(32), policy)
+
+# the test needs no freezegun, no monkeypatch, no environment
+token = issue_token(
+    "u1", datetime(2026, 1, 1, tzinfo=timezone.utc), lambda: "fixed", TokenPolicy(ttl=timedelta(hours=1))
+)
+assert token.expires_at == datetime(2026, 1, 1, 1, tzinfo=timezone.utc)
+```
+
 ## Principle 17 — Naming discipline
 
 ```python
@@ -188,3 +258,46 @@ class OrderRequest(BaseModel):
 def create_order(req: OrderRequest):
     return process(req.user_id, req.items)  # fully typed past this line
 ```
+
+## Principle 21 — Comments earn their place
+
+```python
+# a docstring that restates the signature, and comments narrating each line
+def normalize_email(email: str) -> str:
+    """Normalize an email.
+
+    Args:
+        email: The email to normalize.
+
+    Returns:
+        The normalized email.
+    """
+    # lowercase and strip
+    email = email.strip().lower()
+    # split on the @
+    local, _, domain = email.partition("@")
+    # handle gmail
+    if domain == "gmail.com":
+        local = local.replace(".", "")
+    return f"{local}@{domain}"
+```
+
+```python
+def normalize_email(email: str) -> str:
+    """Fold an address into the form used to flag likely duplicate signups.
+
+    The transform is lossy and one-way: two addresses that reach different
+    inboxes can fold together, so this is a matching hint and nothing more.
+    Never use it as an account key, a login identity, or a reply-to — a
+    collision there merges two people's accounts.
+    """
+    email = email.strip().lower()
+    local, _, domain = email.partition("@")
+    if domain == "gmail.com":
+        # Gmail ignores dots in the local part, so `a.b@` and `ab@` reach one
+        # mailbox — folding them is what makes two spellings comparable.
+        local = local.replace(".", "")
+    return f"{local}@{domain}"
+```
+
+The rewritten docstring says something the signature cannot — that the return value is lossy, and what that rules out downstream — and the surviving comment explains a line whose behavior would otherwise read as a bug. Note that naming the constraint is what exposes the design question: once the docstring has to say "two inboxes can fold together", using the result as an account key stops looking reasonable, which is the kind of thing a comment earns its place by making visible. Which projects require docstrings at all is settled by their own config; `best-practices.md` covers the Python side of that, and the cross-language rubric lives in the comments capability.

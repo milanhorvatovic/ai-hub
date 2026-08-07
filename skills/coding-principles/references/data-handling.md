@@ -4,12 +4,14 @@ Language-agnostic correctness practices for the three classic "works in dev, cor
 
 These are the most common cross-language correctness bugs. None of them are exotic; all of them ship to production constantly.
 
+> **The per-language type and library names below were last checked 2026-08.** The footguns are permanent; what the ecosystem offers against them is not. How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
+
 ## Dates and times
 
 The rule: **store and compute in UTC; convert to local only at display.**
 
 - **Store UTC.** Persist timestamps as UTC (`timestamptz` in Postgres, epoch millis, or ISO 8601 with offset). Never store a local time without its zone — it's ambiguous twice a year (DST fall-back) and meaningless elsewhere.
-- **Timezone-aware types only.** Never use naive datetimes in business logic. Python: `datetime` with `tzinfo` (or `whenever`/`pendulum`); never `datetime.now()` (use `datetime.now(timezone.utc)`). JS: `Temporal` (or `date-fns-tz` / `Luxon`); the legacy `Date` is local-zone-flavored and error-prone. Rust: `chrono::DateTime<Utc>` / `time::OffsetDateTime`.
+- **Timezone-aware types only.** Never use naive datetimes in business logic. Python: `datetime` with `tzinfo` (or `whenever`/`pendulum`); never `datetime.now()` (use `datetime.now(timezone.utc)`). JS: `Temporal`, which reached Stage 4 in 2026-03 and is native on Node 26+ and current Chromium/Firefox — on the older LTS lines and on Safari it still needs the polyfill or a library (`date-fns-tz` / `Luxon`), so check the runtime floor before reaching for it. The legacy `Date` is local-zone-flavored and error-prone whichever you pick. Rust: `chrono::DateTime<Utc>` / `time::OffsetDateTime`.
 - **ISO 8601 / RFC 3339 on the wire.** `2026-05-19T14:30:00Z`. Unambiguous, sortable, parseable everywhere. Never serialize locale-formatted dates between systems.
 - **Wall clock vs monotonic clock.** For *timestamps* (when did this happen) use the wall clock. For *durations / timeouts / elapsed time* use a monotonic clock (`time.monotonic()`, `performance.now()`, `Instant::now()`) — the wall clock can jump backward (NTP sync, DST) and produce negative durations.
 - **DST and arithmetic.** "Add 1 day" ≠ "add 24 hours" across a DST boundary. Use a calendar-aware library for calendar arithmetic; use plain duration math only for elapsed time. Some days have 23 or 25 hours; some minutes have 61 seconds (leap seconds).
@@ -48,6 +50,6 @@ The rule: **UTF-8 everywhere; decode bytes to text at the boundary, encode text 
 ## Per-language pointers
 
 - **Python**: `datetime` (tz-aware) / `whenever` / `pendulum`; `decimal.Decimal`; explicit `encoding="utf-8"` on `open`; `unicodedata.normalize`.
-- **TypeScript/Node**: `Temporal` (or Luxon); integer cents or `decimal.js`; `Buffer`/`TextDecoder` with explicit encoding; `String.prototype.normalize()`; `Intl.Segmenter` for graphemes.
+- **TypeScript/Node**: `Temporal` on Node 26+, its polyfill or Luxon below that; integer cents or `decimal.js`; `Buffer`/`TextDecoder` with explicit encoding; `String.prototype.normalize()`; `Intl.Segmenter` for graphemes.
 - **Rust**: `chrono` / `time`; `rust_decimal`; `&str` is guaranteed UTF-8; `unicode-segmentation` for graphemes; `unicode-normalization`.
 - **Bash**: avoid date/number/encoding-sensitive logic — `date` differs GNU vs BSD (see `platform-matrix.md`), no decimal type (`bc`/`awk` for math), locale affects sorting/formatting. Past trivial cases, this is a "leave bash" signal.

@@ -2,6 +2,8 @@
 
 Performance idioms for Python. Apply *after* correctness and clarity (KISS + readability outrank micro-optimization — measure first). These matter on hot paths and large data, not on code that runs occasionally.
 
+> **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## Profile before optimizing
 
 - `cProfile` + `snakeviz` for where time goes; `py-spy` for sampling a running process without instrumentation; `memray` / `tracemalloc` for memory.

@@ -46,6 +46,62 @@ process_file() {
 }
 ```
 
+## Principle 11 — Reversibility shapes caution
+
+```bash
+# unset or empty $WORKSPACE makes this `rm -rf /`, and nothing shows the
+# operator what is about to go before it is gone
+rm -rf "$WORKSPACE/"
+```
+
+```bash
+# the destructive path is the one you have to ask for; the default reports
+purge_workspace() {
+  local name="$1" confirmed="${2:-0}" root="${WORKSPACE_ROOT:?WORKSPACE_ROOT is required}" dir
+  # the caller names a workspace and never supplies a path, so traversal, a
+  # leading dash and a trailing slash are unrepresentable rather than screened
+  [[ "$name" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]] || {
+    printf 'refusing to purge %q: names match [A-Za-z0-9_][A-Za-z0-9_-]*\n' "$name" >&2
+    return 64                                   # EX_USAGE
+  }
+  # canonicalize the one value arriving from outside: an absolute-looking
+  # /srv/ws/../.. builds a path that leaves the base it claims to name
+  root=$(cd -- "$root" 2>/dev/null && pwd -P) || {
+    printf 'WORKSPACE_ROOT %q is not a directory\n' "$WORKSPACE_ROOT" >&2
+    return 78                                   # EX_CONFIG
+  }
+  [[ "$root" != "/" ]] || {
+    printf 'WORKSPACE_ROOT must not be /\n' >&2
+    return 78
+  }
+
+  dir="$root/$name"                             # built, so it has no odd spelling
+  [[ ! -L "$dir" ]] || {
+    printf 'refusing to purge %q: %s is a symlink\n' "$name" "$dir" >&2
+    return 64
+  }
+  [[ -d "$dir" ]] || return 0                   # nothing to purge
+
+  if [[ "$confirmed" != 1 ]]; then
+    printf 'would remove %s paths under %s\n' "$(find "$dir" -mindepth 1 | wc -l)" "$dir" >&2
+    return 0
+  fi
+  rm -rf -- "$dir"
+}
+```
+
+`rm -rf` cannot be undone, so caution is spent up front: nothing is interpolated that was not built here, `--` stops a leading dash being read as a flag, and deleting takes an explicit second argument that a caller has to mean. A script that is safe only when its environment is set correctly is not safe — which is why the root is canonicalized rather than merely checked for a leading slash.
+
+The interesting part is what the rewrite refused to do, because the obvious fix does not converge. Accept a path and you owe it a validator, and every check you write teaches you the next spelling: `-delete` makes `find "$workspace" -mindepth 1` into `find -delete -mindepth 1`, which takes no path operand, defaults to `.`, and deletes the tree you are standing in — from the branch whose only job was to _not_ delete anything. Reject a leading dash and `!` and `(` open a `find` expression the same way. Demand a leading `/` and `//`, `/./` and `/var/tmp/../..` all satisfy it and all resolve to root. Resolve with `pwd -P` and a workspace whose last component is a symlink now resolves to its target, so the safe-looking version deletes what the link points at where plain `rm` would have unlinked it — destroying strictly more than the naive code it replaced. Guard that with `-L` and a trailing slash slips past, because `[[ -L link/ ]]` is false while `cd link/ && pwd -P` still lands on the target.
+
+That is five rounds of validator against an input that has more spellings than you have checks, and the lesson is not the fifth check. Take a name instead of a path. `[A-Za-z0-9_][A-Za-z0-9_-]*` cannot express a traversal, a leading dash, a trailing slash, or a second path component, so none of those need screening — they stopped being sayable. Note the first character class is separate: writing the dash into one class would have let `-delete` through as a name, harmless here because the built path still starts with the root, but a contract the code no longer kept.
+
+Build the path yourself, from a root you canonicalize rather than pattern-match. `/srv/ws/../..` is absolute and passes any leading-slash test while naming somewhere else entirely, so the root gets `cd`-and-`pwd -P` once on the way in, and `/` is refused as a base. After that the only hazard construction cannot remove is a symlink standing where the directory should be — one reliable check, because by then the path being tested has no odd spelling left in it.
+
+That last sentence holds only under a precondition worth stating rather than assuming: the checks and the `rm` are separate moments, so anything able to rename a component of the root in between can aim the deletion at a tree the verification never saw. Every guard here assumes the workspace is not concurrently mutable by an untrusted process. Where it is, no arrangement of shell tests closes that window — the deletion needs to be fd-relative and refuse to follow links, which means a language with `openat2` rather than a longer script, and this capability already has a name for that threshold.
+
+Reversibility is what makes the trade worth it. A validator that is wrong about a search argument returns bad results; a validator that is wrong here removes a filesystem. When the operation cannot be undone, narrow what it can be _asked_ to do until the dangerous inputs are unrepresentable — an argument you cannot express is one you never have to get right.
+
 ## Principle 13 — Security hygiene (no secrets in process listing or logs)
 
 ```bash
@@ -59,6 +115,37 @@ echo "deploying with token=$API_TOKEN" >> deploy.log
 # pass secrets via env or files, not argv; never log them
 mysql --defaults-extra-file=<(printf '[client]\npassword=%s\n' "$DB_PASSWORD") -e "..."
 echo "deploying" >> deploy.log                       # log shape, not values
+```
+
+## Principle 16 — Inject time, randomness, and external state
+
+```bash
+# reads the clock and the environment from inside the logic
+build_report() {
+  local out="/var/reports/report-$(date +%F).csv"
+  psql "service=$PG_SERVICE" -c "select ..." >"$out"
+}
+```
+
+```bash
+# date, destination, and connection arrive as arguments; main() reads the
+# environment once, at the edge, and fails loudly when it is not set
+build_report() {
+  local report_date="$1" out_dir="$2" pg_service="$3"
+  # a service name, not a URL: credentials stay in ~/.pg_service.conf and
+  # .pgpass, so nothing secret reaches argv or `ps aux` (principle 13)
+  psql "service=$pg_service" -c "select ..." >"$out_dir/report-$report_date.csv"
+}
+
+main() {
+  build_report \
+    "$(date +%F)" \
+    "${REPORT_DIR:?REPORT_DIR is required}" \
+    "${PG_SERVICE:?PG_SERVICE is required}"
+}
+
+# the test calls the function directly — fixed date, temp dir, no clock, no env
+build_report 2026-01-01 "$BATS_TEST_TMPDIR" reports_test
 ```
 
 ## Principle 19 — Boundaries parse input
@@ -87,3 +174,29 @@ shift $((OPTIND - 1))
 [[ $# -ge 1 ]] || usage
 # downstream code receives validated values
 ```
+
+## Principle 21 — Comments earn their place
+
+```bash
+# section markers that restate the structure, and a bare disable
+# ---- setup ----
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source "$script_dir/lib/common.sh"
+
+# ---- main ----
+main "$@"
+```
+
+```bash
+set -euo pipefail
+
+# Resolved from $script_dir at runtime, so shellcheck cannot follow it to check.
+# shellcheck disable=SC1091
+source "$script_dir/lib/common.sh"
+
+main "$@"
+```
+
+The markers were describing what the reader can already see; the disable was the one place a reader could not tell whether the linter had been silenced for a reason or for convenience. Note which disable earned its comment: one shellcheck genuinely cannot resolve. A disable that exists because the code took the wrong shape — `SC2086` on an unquoted list, say — is a design note in disguise, and the honest fix is the array this capability already asks for, not a justification for keeping the string. A script's header block is the standing exception in this language — an interface with nowhere else to live, covered in `best-practices.md` — not a licence for the rest of the file.

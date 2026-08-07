@@ -2,6 +2,8 @@
 
 Language-specific dependency mechanics. The cross-language principles (semver, lockfile discipline, audit, minimal footprint) are thin; the mechanics differ per ecosystem. Load when adding, updating, or auditing Python dependencies.
 
+> **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## Pinning stance — pin explicit exact versions (default)
 
 **Default: pin exact versions.** Reproducibility over auto-upgrade convenience — the installed version should be exactly the declared version, not whatever a range resolves to today.

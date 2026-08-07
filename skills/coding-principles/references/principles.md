@@ -40,7 +40,7 @@ When something breaks, find the underlying cause before patching the symptom. A 
 
 Exception: when the user explicitly asks for a temporary mitigation with a follow-up plan, mark the workaround clearly (`TODO: temporary — remove after <condition>`) and surface it in the summary.
 
-> **Code examples** (in the matching capability's `examples.md`) — bash, rust.
+> **Code examples** (in the matching capability's `examples.md`) — python, typescript, bash, rust.
 
 ## 3. Edit existing files; do not create new ones speculatively — *should*
 
@@ -69,7 +69,7 @@ Internal functions trust their callers. Frameworks honor their contracts. Do not
 
 Defensive code for impossible states is noise that hides real bugs.
 
-> **Code examples** (in the matching capability's `examples.md`) — python, bash, rust.
+> **Code examples** (in the matching capability's `examples.md`) — python, typescript, bash, rust.
 
 ## 6. No backwards-compatibility shims unless asked — *should*
 
@@ -79,7 +79,9 @@ When in doubt about whether something is published or internal, ask once — do 
 
 ## 7. Comments explain *why*, not *what* — *could*
 
-Well-named identifiers already explain *what* — a comment that repeats them adds nothing. Write the comment when the *why* is non-obvious: a hidden constraint, a workaround for a specific bug, behavior that would surprise a reader, an invariant the type system cannot express.
+Well-named identifiers already explain *what* — a comment that repeats them adds nothing. What a comment carries instead is the *why*: the reasoning a reader cannot recover from the code in front of them.
+
+*Which* whys are worth carrying is principle 21's list, and it is stated there once rather than twice here. The two principles divide the question: 21 decides whether a comment has anything to say, this one decides what shape saying it takes. A comment can clear 21's bar and still fail here — the constraint is real, but the sentence spends its words narrating what the code already shows instead of naming the constraint.
 
 Do not write comments that reference the current PR, ticket, or caller ("added for the X flow", "used by Y", "fix for #123") — those rot. Put that in the commit message.
 
@@ -115,6 +117,8 @@ Typechecks and lint passing are necessary but not sufficient; they verify code s
 ## 11. Reversibility shapes caution — *must*
 
 Local file edits are cheap to undo. Risky actions (`git push --force`, `rm -rf`, `DROP TABLE`, `git reset --hard`, deleting branches, sending external messages) are not. For irreversible operations, pause and confirm even if the user previously approved a similar action — prior approval is scoped, not blanket.
+
+> **Code examples** (in the matching capability's `examples.md`) — bash.
 
 ## 12. Honor the user's stated preferences — *must*
 
@@ -176,7 +180,7 @@ Why: deterministic units are testable without freezing patches, reproducible acr
 
 The thin shell at the edge — `main()`, the request handler entry point, the CLI bootstrap — is where the real clock, real RNG, real env, real I/O get wired in. Everything else gets them passed in.
 
-> **Code examples** (in the matching capability's `examples.md`) — typescript, rust.
+> **Code examples** (in the matching capability's `examples.md`) — python, typescript, bash, rust.
 
 ## 17. Naming discipline — *could* (*should* when names are actively misleading)
 
@@ -214,7 +218,7 @@ Default: one source. Derive the rest. If you find yourself debugging a "the two 
 
 Data crossing a trust line is *transformed*, not waved through. Generalizes principle 5 from "validate" into "transform":
 
-- **Inbound** — HTTP request bodies, file reads, IPC messages, deserialized snapshots, env vars, CLI flags. Parse into a *typed* value at the entry point; reject malformed data with a useful error there; downstream code receives the typed value and trusts it. Tools: zod / valibot / pydantic / serde / parser combinators / hand-rolled with assertions.
+- **Inbound** — HTTP request bodies, file reads, IPC messages, deserialized snapshots, env vars, CLI flags. Parse into a *typed* value at the entry point; reject malformed data with a useful error there; downstream code receives the typed value and trusts it. Tools: the schema or deserialization library the matching language capability names, a parser combinator, or hand-rolled assertions — the concrete picks live in the language layer, where they carry a currency stamp and this file does not.
 - **Outbound** — HTTP responses, log records, audit events, persisted rows, IPC sends. Serialize *from* typed values through an explicit serializer that decides what is exposed. Never `JSON.stringify(internal_object)` and ship it — the next field you add to the internal object will silently leak.
 
 The rule of thumb: at the edge, a function's signature is `(bytes) -> Typed` on the way in and `Typed -> bytes` on the way out. Everything else operates on `Typed`. Combined with strong typing + illegal-states-unrepresentable, this is most of how a codebase stays honest.
@@ -251,5 +255,7 @@ One such purpose is enough — a comment does not need two reasons to live. A co
 The two comment principles compose as ordered gates. This principle is the **value gate** and runs first: does the comment carry something the code cannot? Principle 7 is the **content gate** and runs second: what it carries is the *why*, not a restatement of the *what*. A comment that serves its reader passes both. (The comments capability carries the full rubric with per-file-type rules.)
 
 Within a task this skill covers, the principle applies to comments in every file type the task touches — source code, configs, workflows, infrastructure, shell scripts, migrations, tests, and markdown HTML comments or frontmatter remarks. The skill's trigger rules still decide when it loads at all — a docs-only or config-only task never loads it. Commit messages, PR descriptions, branch names, and release notes are change narration, outside this skill's scope entirely.
+
+> **Code examples** (in the matching capability's `examples.md`) — python, typescript, bash, rust. Each shows the shape the bar takes in that language rather than restating the bar: the Python docstring, the TypeScript retry constraint, the Rust `SAFETY:` block, the bash lint-disable justification.
 
 **See also:** principle 7 (content gate — why over what, applied after this value gate); principle 20 (commented-out code is a separate smell: dead code, not commentary).

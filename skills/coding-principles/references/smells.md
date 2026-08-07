@@ -119,7 +119,7 @@ The smells are grouped by category. Some smells appear in multiple categories �
 
 - **Anchor:** mantra observability + principle 13 (security hygiene, for what the message must _not_ carry)
 - **Severity:** *should* (mantra observability's default; principle 13 raises it to *must* where the missing context is security-relevant — an authorization or validation failure)
-- **Fix:** include what was attempted, with what inputs, against what state: `raise ValueError(f"invalid email: {email!r} (user_id={user_id})")`.
+- **Fix:** name what was attempted, how it failed, and against what state: `raise ValueError(f"invalid email: no domain part (user_id={user_id})")`. The address is the one thing left out, and only because it is PII — principle 13 governs what a message may carry, and this entry defers to it rather than inventing a wider rule. A rejected value that is not sensitive is often the most useful context there is: `unsupported status: 'frobnicate'` beats naming the field and stopping. The co-anchor is doing its work at exactly that boundary — observability asks the message to say more, principle 13 says which values it may not say, and the ones that most often fail validation are emails, tokens, and account numbers, which is why this entry is the one where they meet.
 
 ### Manual None-propagation: `if x is None: return None` chains
 

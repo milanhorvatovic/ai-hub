@@ -4,6 +4,8 @@ Language-agnostic fault-tolerance patterns for code that calls across a network 
 
 Scope boundary: this is resilience *as code* — how a service survives its dependencies failing. Deployment-level resilience (multi-region, autoscaling, failover infrastructure) is ops/SRE, not here.
 
+> **The library names below were last checked 2026-08.** The patterns do not decay; the libraries implementing them do. How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
+
 The core assumption: **every remote call will eventually fail, hang, or slow down.** Code that assumes the network is reliable is broken; it just hasn't failed yet.
 
 ## Timeouts and deadlines

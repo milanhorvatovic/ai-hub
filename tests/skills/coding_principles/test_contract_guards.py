@@ -17,6 +17,7 @@ the table. A convention change edits the skill, and these follow.
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime
 from pathlib import Path
 
 _SEVERITY = r"\*(must|should|could)\*"
@@ -212,6 +213,114 @@ def test_router_titles_match_the_prose_headings(skill_md: Path, references_dir: 
     problems += [f"mantra in mantras.md but not router: {m!r}" for m in sorted(canonical - router_mantras)]
 
     assert not problems, "router/prose title drift:\n" + "\n".join(problems)
+
+
+_STAMP = re.compile(r"were last checked (\d{4})-(\d{2})\.\*\*")
+
+
+# Per-language reference filenames that carry tool and runtime recommendations,
+# and the two that carry none — anti-patterns is language semantics, examples is
+# code. Filename-driven so a newly added language inherits the whole contract
+# without anyone enrolling it.
+_CLAIM_BEARING = frozenset(
+    {"best-practices.md", "concurrency.md", "dependencies.md", "performance.md",
+     "project-structure.md"}
+)
+_CLAIM_FREE = frozenset({"anti-patterns.md", "examples.md"})
+
+# Shared references classified one by one, because no filename convention
+# separates them. Every file directly under references/ must appear in exactly
+# one bucket — a new one in neither fails this test rather than slipping past.
+_SHARED_STAMPED = frozenset(
+    {"api-design.md", "configuration.md", "data-handling.md", "observability.md",
+     "persistence.md", "platform-matrix.md", "resilience.md", "testing.md"}
+)
+_SHARED_CLAIM_FREE = frozenset(
+    {"architecture.md", "glossary.md", "mantras.md", "principles.md", "refactoring.md",
+     "smells.md"}
+)
+
+# The workflow capabilities are classified per (capability, file) rather than by
+# filename, because `best-practices.md` means different things in the two: the
+# comments one argues that detection tooling — not taste — decides whether a
+# docstring is required, so the tools it names are load-bearing, while the review
+# one is about phrasing and severity and names none. That is the line everywhere
+# here: owning a recommendation earns the stamp, mentioning one while making a
+# different argument does not.
+_WORKFLOW_REFERENCES = {
+    ("comments", "best-practices.md"): True,
+    ("comments", "anti-patterns.md"): False,
+    ("comments", "by-file-type.md"): False,
+    ("review", "best-practices.md"): False,
+    ("review", "examples.md"): False,
+}
+
+
+def test_currency_stamps_cover_every_claim_bearing_reference(
+    skill_root: Path,
+    capabilities_dir: Path,
+    references_dir: Path,
+    language_capabilities: tuple[str, ...],
+) -> None:
+    """The stamped set is exactly the files that carry decaying claims.
+
+    This fails closed, which the first version of it did not: detecting "does
+    this recommend a tool?" by matching a vocabulary of backticked names misses
+    every tool nobody thought to list and every runtime-version claim, so the
+    test stayed green while the router promised full coverage. Classification is
+    structural instead — by filename inside a language capability, and per file
+    for the shared references, where an unclassified file is a failure.
+
+    Capability entry points carry no stamp by design: they summarize what their
+    references cover, so a second date there could only drift from the first.
+    """
+    problems: list[str] = []
+
+    def check(md: Path, expect_stamp: bool) -> None:
+        rel = md.relative_to(skill_root).as_posix()
+        stamp = _STAMP.search(md.read_text(encoding="utf-8"))
+        if expect_stamp and not stamp:
+            problems.append(f"{rel}: carries decaying claims but no currency stamp")
+        elif not expect_stamp and stamp:
+            problems.append(f"{rel}: stamped, but classified as carrying no decaying claims")
+        elif stamp:
+            year, month = int(stamp.group(1)), int(stamp.group(2))
+            now = datetime.now(UTC)
+            if not (2020 <= year and 1 <= month <= 12):
+                problems.append(f"{rel}: unparseable stamp {stamp.group(0)!r}")
+            elif (year, month) > (now.year, now.month):
+                # "last checked" cannot be ahead of now; a typo like 2099-01 would
+                # otherwise inherit the same trust as a real verification date.
+                problems.append(f"{rel}: stamp {year}-{month:02d} is in the future")
+
+    for refs in sorted(capabilities_dir.glob("*/references")):
+        is_language = refs.parent.name in language_capabilities
+        for md in sorted(refs.glob("*.md")):
+            workflow = _WORKFLOW_REFERENCES.get((refs.parent.name, md.name))
+            if is_language and md.name in _CLAIM_BEARING:
+                check(md, expect_stamp=True)
+            elif is_language and md.name in _CLAIM_FREE:
+                check(md, expect_stamp=False)
+            elif not is_language and workflow is not None:
+                check(md, expect_stamp=workflow)
+            else:
+                problems.append(
+                    f"{md.relative_to(skill_root).as_posix()}: unclassified reference —"
+                    " decide whether it carries decaying claims and add it to a set"
+                )
+
+    for md in sorted(references_dir.glob("*.md")):
+        if md.name in _SHARED_STAMPED:
+            check(md, expect_stamp=True)
+        elif md.name in _SHARED_CLAIM_FREE:
+            check(md, expect_stamp=False)
+        else:
+            problems.append(
+                f"{md.relative_to(skill_root).as_posix()}: unclassified shared reference —"
+                " decide whether it carries decaying claims and add it to a set"
+            )
+
+    assert not problems, "currency-stamp coverage:\n" + "\n".join(problems)
 
 
 def test_every_principle_is_reachable_from_the_reverse_map(references_dir: Path) -> None:

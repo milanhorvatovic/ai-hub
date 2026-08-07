@@ -56,11 +56,13 @@ Practices:
 
 ## Language SDKs
 
-OTel has stable SDKs per language. Wire the SDK at the application edge (the imperative shell — principle 16), not deep in business logic:
+> **The SDK and library names below were last checked 2026-08.** How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
+
+OTel's SDKs are stable in most languages, with per-signal exceptions worth checking against its status matrix before you commit. Wire the SDK at the application edge (the imperative shell — principle 16), not deep in business logic:
 
 - **Python**: `opentelemetry-sdk` + auto-instrumentation (`opentelemetry-instrument`). Pairs with `structlog` for logs.
 - **TypeScript/Node**: `@opentelemetry/sdk-node` + auto-instrumentations. `pino` for structured logs.
-- **Rust**: `tracing` + `tracing-opentelemetry` + `opentelemetry` exporter. `tracing` spans become OTel spans.
+- **Rust**: `tracing` + `tracing-opentelemetry` + `opentelemetry` exporter. `tracing` spans become OTel spans. Maturity is the exception here and runs opposite to Go and Java: at the stamp the logs and metrics SDKs are stable while **traces is still beta**, which is the signal this pairing is for. Every crate is also pre-1.0, so breaking changes arrive in minor releases. Usable, and worth pinning and reading release notes for rather than treating as settled.
 - **Bash**: no OTel SDK; emit structured (JSON) log lines to stdout/stderr and let the log collector parse them. Include a correlation ID passed via env.
 
 Instrument at the boundary; keep the business core pure (principle: pure/impure separation). The clock, the tracer, and the logger are injected at the edge (principle 16).
