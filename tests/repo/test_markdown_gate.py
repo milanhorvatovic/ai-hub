@@ -92,6 +92,18 @@ def test_node_toolchain_is_dependabot_visible() -> None:
 
 
 @pytest.mark.parametrize(
+    "dev_config", ["package.json", "package-lock.json", ".nvmrc", ".prettierignore"]
+)
+def test_toolchain_files_are_export_ignored(dev_config: str) -> None:
+    """These are repo machinery. Every other root dev config is export-ignored,
+    so shipping these in a source archive would be the incoherent case: a
+    consumer receiving the pin but not the config it pins a formatter for."""
+    attributes = _read(_REPO_ROOT / ".gitattributes")
+
+    assert re.search(rf"^/{re.escape(dev_config)}\s+export-ignore$", attributes, re.MULTILINE)
+
+
+@pytest.mark.parametrize(
     ("declaration", "must_contain"),
     [
         ("AGENTS.md", "npm run format:check"),
