@@ -1,95 +1,23 @@
 """Fidelity checks on the code this skill shows its reader.
 
 The skill teaches by example, so a malformed example is a defect in the
-teaching, not a cosmetic one — and neither the fleet structure suite nor the
-pointer contract looks inside a fence. Two things are checkable without a
-toolchain: that the python and bash samples parse, and that the worked review's
-line citations point at the lines they claim to.
+teaching, not a cosmetic one. Parsing the samples is a fleet-wide concern and
+lives in `tests/skills/test_code_samples.py`; what stays here is the contract no
+other skill has — that the worked review's line citations point at the lines
+they claim to.
 """
 
 from __future__ import annotations
 
-import ast
 import re
-import shutil
-import subprocess
 from pathlib import Path
 
-from tests.support.fences import fences_in as _fences_in
-from tests.support.fences import fences_under
+from tests.support.fences import fences_in
 
 # `[path:line]` at the head of a finding, and the first backticked token in the
 # rest of that line — the thing the finding says is at that location.
 _CITATION = re.compile(r"^- \[(?P<path>[^\]:]+):(?P<line>\d+)\](?P<rest>.*)$", re.M)
 _FIRST_TOKEN = re.compile(r"`([^`]+)`")
-
-
-def _usable_bash() -> str | None:
-    """Path to a bash that can actually parse a script, or None.
-
-    `shutil.which` answers "is there something named bash on PATH", which is not
-    the same question: Windows runners resolve `bash` to the WSL launcher stub,
-    which exists, runs, and exits non-zero without parsing anything — reporting
-    every sample as malformed with an empty stderr. Probing a known-good script
-    is the only honest way to tell an interpreter from a name.
-    """
-    exe = shutil.which("bash")
-    if not exe:
-        return None
-    probe = subprocess.run(
-        [exe, "-n"], input="true\n", text=True, capture_output=True, check=False
-    )
-    return exe if probe.returncode == 0 else None
-
-
-def _fences(skill_root: Path) -> list[tuple[str, int, str, str]]:
-    """(relative path, 1-based fence line, language, dedented body) for every
-    fenced block in the skill tree."""
-    return fences_under(skill_root)
-
-
-def test_python_and_bash_samples_parse(skill_root: Path) -> None:
-    """Every `python` and `bash` fence is syntactically valid.
-
-    Parsing, not resolution: the samples are fragments that name types and
-    helpers defined nowhere (`DEFAULT_SETTINGS`, `OrderSchema`), which is the
-    right shape for an illustration and means a typecheck would be noise. The
-    `rust` and `typescript` fences go unchecked because neither toolchain is a
-    test dependency.
-
-    Deliberately scoped to this skill rather than the fleet: sibling skills
-    document CLI invocations with `<placeholder>` arguments, where the angle
-    brackets read as redirections and fail `bash -n` by design, not by defect.
-
-    The bash lane needs an interpreter that works, not merely one on PATH, so it
-    goes quiet where there is none — the python lane still runs everywhere, and
-    the platforms carrying the required checks have a real bash.
-    """
-    bash = _usable_bash()
-    problems: list[str] = []
-    checked_python = checked_bash = 0
-    for rel, line, lang, body in _fences(skill_root):
-        if lang == "python":
-            checked_python += 1
-            try:
-                ast.parse(body)
-            except SyntaxError as exc:
-                problems.append(f"{rel}:{line} python: {exc.msg} (sample line {exc.lineno})")
-        elif lang == "bash" and bash:
-            checked_bash += 1
-            done = subprocess.run(
-                [bash, "-n"], input=body, text=True, capture_output=True, check=False
-            )
-            if done.returncode:
-                detail = done.stderr.strip().splitlines()[-1] if done.stderr.strip() else "?"
-                problems.append(f"{rel}:{line} bash: {detail}")
-    assert not problems, "malformed code samples:\n" + "\n".join(problems)
-    # Anti-vacuity, per lane. A silent zero means the fence pattern stopped
-    # matching and the lane went dark while still reporting green — the failure
-    # a parser guard is least able to notice about itself. Python is
-    # unconditional; bash is asserted only where an interpreter exists to run.
-    assert checked_python, "no python fence was checked — the fence pattern has gone stale"
-    assert not bash or checked_bash, "bash is usable but no bash fence was checked"
 
 
 def test_worked_review_cites_the_lines_it_names(capabilities_dir: Path) -> None:
@@ -105,7 +33,7 @@ def test_worked_review_cites_the_lines_it_names(capabilities_dir: Path) -> None:
     examples = capabilities_dir / "review" / "references" / "examples.md"
     text = examples.read_text(encoding="utf-8")
 
-    diff = next((body for _, lang, body in _fences_in(examples) if lang == "diff"), None)
+    diff = next((f.body for f in fences_in(examples) if f.language == "diff"), None)
     assert diff, "worked review no longer carries a diff block to check against"
 
     new_file = re.search(r"^\+\+\+ b/(\S+)", diff, re.M)

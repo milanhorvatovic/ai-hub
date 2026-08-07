@@ -146,8 +146,25 @@ def test_gate_enforces_the_convention_the_docs_state(setting: str, value: str) -
 )
 def test_declarations_name_the_gate(declaration: str, must_contain: str) -> None:
     """A convention change touches declaration and gate together, or the
-    untouched surface keeps asserting the old rule."""
+    untouched surface keeps asserting the old rule.
+
+    The "not opt-in" half is scoped to the sentences that describe the gate. It
+    used to search the whole document, which made it a guard over every use of
+    the phrase rather than over the claim it cares about — and it fired on an
+    unrelated paragraph the first time one was added. A guard that owns more
+    text than its rule does will eventually be satisfied, or broken, by prose it
+    was never about.
+    """
     text = _read(_REPO_ROOT / declaration)
 
     assert must_contain in text
-    assert "is opt-in" not in text, f"{declaration} still calls the markdown check opt-in"
+    describing_the_gate = [
+        sentence
+        for sentence in re.split(r"(?<=[.!?])\s+", text)
+        if must_contain in sentence or "format:check" in sentence
+    ]
+    assert describing_the_gate, f"{declaration} names {must_contain} in no sentence"
+    stale = [sentence for sentence in describing_the_gate if "opt-in" in sentence]
+    assert not stale, (
+        f"{declaration} still calls the markdown check opt-in: {stale[0].strip()[:120]!r}"
+    )

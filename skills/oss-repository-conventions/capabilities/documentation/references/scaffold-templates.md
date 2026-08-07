@@ -13,13 +13,13 @@ Documentation skeletons for the `documentation` capability. Fill headings from t
 
 ## Install
 
-```sh
+```sh template
 <install command>
 ```
 
 ## Usage
 
-```sh
+```sh template
 <minimal runnable example>
 ```
 

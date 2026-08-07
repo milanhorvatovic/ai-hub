@@ -81,6 +81,20 @@ def test_ci_turns_a_skipped_lane_into_a_failure() -> None:
     )
 
 
+@pytest.mark.parametrize("declaration", ["AGENTS.md", "CONTRIBUTING.md"])
+def test_declarations_state_the_template_marker(declaration: str) -> None:
+    """An author who has not read the lane's source has to learn the exemption
+    somewhere other than a red build. The marker is the one part of this gate a
+    contributor has to type, so a surface that describes authoring samples and
+    omits it teaches the failure rather than the convention."""
+    text = _read(_REPO_ROOT / declaration)
+
+    assert "template" in text and "```bash template" in text, (
+        f"{declaration} does not show the ```bash template marker, so the only"
+        " way to discover it is to trip the parser"
+    )
+
+
 @pytest.mark.parametrize("path_filter", ["**/*.mjs", "requirements-test.txt", "package-lock.json"])
 def test_push_filter_covers_the_lane_inputs(path_filter: str) -> None:
     """Absent from `paths:`, a push touching only that input skips the job.

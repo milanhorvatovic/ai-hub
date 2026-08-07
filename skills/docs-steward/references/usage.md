@@ -37,7 +37,7 @@ Exit codes (uniform across the entry shims): `0` clean / `1` findings (or files 
 
 ## Python-module invocation
 
-```sh
+```sh template
 python3 -m docs_steward <subcommand>   # from inside the scripts/ directory
 ```
 

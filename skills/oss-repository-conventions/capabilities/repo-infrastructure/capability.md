@@ -67,7 +67,7 @@ Hygiene files — write after confirmation:
 
 Settings — **propose, never apply**:
 
-```bash
+```bash template
 gh repo edit {owner}/{repo} --default-branch main \
   --enable-squash-merge --enable-merge-commit=false \
   --delete-branch-on-merge --add-topic <topic>

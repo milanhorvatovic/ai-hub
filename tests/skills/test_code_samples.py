@@ -1,15 +1,22 @@
-"""Fleet-wide syntax check on the TypeScript the skills ship.
+"""Fleet-wide syntax checks on the code the skills ship.
 
-The per-skill lane in `tests/skills/coding_principles/test_examples.py` parses
-python and bash with the standard library alone. TypeScript needs a compiler, so
-it waited for the node toolchain the markdown gate introduced — and it is
-fleet-wide from the start because a TypeScript fence carries no `<placeholder>`
-problem: the shell lanes are the ones a placeholder argument breaks, and the
-convention that settles them is still open.
+A malformed example is a defect in the teaching, not a cosmetic one, and nothing
+else in the suite looks inside a fence — the structure checks read frontmatter
+and pointers, the per-skill contracts read headings and anchors. Three languages
+are checkable here: python and bash need only what the runner already has, and
+TypeScript needs the compiler the markdown gate's node toolchain now pins.
+
+Rust is deliberately absent. A fence check belongs in a language's minimum set
+when the language parses with a toolchain CI installs for another reason, and
+rust would mean rustup for eighteen fences plus a wrapping heuristic — the
+samples are fragments, and guessing the wrapper turns valid content into a red
+build. The split is a stated rule rather than an accident of which languages
+happen to be cheap.
 """
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import shutil
@@ -18,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.support.fences import fences_under
+from tests.support.fences import Fence, fences_under
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SKILLS = _REPO_ROOT / "skills"
@@ -27,6 +34,28 @@ _PARSER = _REPO_ROOT / "tests" / "support" / "parse_typescript.mjs"
 # `parse_typescript.mjs` exits with this when the pinned compiler is absent, so
 # a machine that has never run `npm ci` skips the lane instead of failing it.
 _NO_TOOLCHAIN = 3
+
+# The info strings a lane parses, in the spellings the content actually writes.
+_CHECKED_SPELLINGS = frozenset({"bash", "sh", "python", "typescript", "ts"})
+
+# The rest, and why each has no lane. Data formats are validated where they are
+# consumed rather than where they are illustrated; `rust` is the one language
+# deliberately without a lane, per the rule in this module's docstring.
+_UNCHECKED_SPELLINGS = frozenset(
+    {
+        "rust",  # a toolchain CI installs for nothing else, plus a wrapping guess
+        "yaml",  # workflow and config illustrations; the real files are linted in place
+        "json",
+        "jsonl",
+        "toml",
+        "ini",
+        "dotenv",
+        "gitattributes",
+        "diff",  # a worked review's subject, checked by the anchor test instead
+        "markdown",  # prose samples; Prettier owns the tracked files
+        "text",  # output transcripts and trees, not a language
+    }
+)
 
 # Sent with every batch, because "the parser found nothing" and "the parser is
 # no longer looking" produce the same green. The broken control proves it still
@@ -53,13 +82,120 @@ def _no_toolchain(reason: str) -> None:
     pytest.skip(reason)
 
 
-def _typescript_samples() -> list[tuple[str, int, str]]:
-    """(relative path, 1-based fence line, body) for every TypeScript fence."""
+def _samples(language: str) -> list[Fence]:
+    """Every runnable fence of one language across the whole fleet.
+
+    Template fences are excluded here rather than at each call site, so a lane
+    cannot forget the exemption and report a shape-to-fill-in as malformed.
+    """
     return [
-        (rel, line, body)
-        for rel, line, lang, body in fences_under(_SKILLS, relative_to=_REPO_ROOT)
-        if lang == "typescript"
+        fence
+        for fence in fences_under(_SKILLS, relative_to=_REPO_ROOT)
+        if fence.language == language and not fence.is_template
     ]
+
+
+def _usable_bash() -> str | None:
+    """Path to a bash that can actually parse a script, or None.
+
+    `shutil.which` answers "is there something named bash on PATH", which is not
+    the same question: Windows runners resolve `bash` to the WSL launcher stub,
+    which exists, runs, and exits non-zero without parsing anything — reporting
+    every sample as malformed with an empty stderr. Probing a known-good script
+    is the only honest way to tell an interpreter from a name.
+    """
+    exe = shutil.which("bash")
+    if not exe:
+        return None
+    probe = subprocess.run(
+        [exe, "-n"], input="true\n", text=True, capture_output=True, check=False
+    )
+    return exe if probe.returncode == 0 else None
+
+
+def test_python_samples_parse() -> None:
+    """Every `python` fence in the fleet is syntactically valid.
+
+    Parsing, not resolution: the samples are fragments naming types and helpers
+    defined nowhere (`DEFAULT_SETTINGS`, `OrderSchema`), which is the right shape
+    for an illustration and means a typecheck would be noise.
+    """
+    problems = []
+    samples = _samples("python")
+    for fence in samples:
+        try:
+            ast.parse(fence.body)
+        except SyntaxError as exc:
+            problems.append(f"{fence.path}:{fence.line}: {exc.msg} (sample line {exc.lineno})")
+
+    assert not problems, "malformed python samples:\n" + "\n".join(problems)
+    assert samples, "no python fence was checked — the fence pattern has gone stale"
+
+
+def test_bash_samples_parse() -> None:
+    """Every `bash` and `sh` fence in the fleet is syntactically valid.
+
+    `sh` fences are parsed by bash, which accepts everything `sh` does and more:
+    the check is weaker on those, never wrong about them. Fences marked
+    `template` carry `<placeholder>` tokens a shell reads as redirections and are
+    shapes to fill in rather than commands to run, so they are excluded by the
+    marker at the fence rather than by a heuristic over the body.
+    """
+    bash = _usable_bash()
+    if not bash:
+        pytest.skip("no usable bash on PATH")
+
+    problems = []
+    samples = _samples("bash")
+    for fence in samples:
+        done = subprocess.run(
+            [bash, "-n"], input=fence.body, text=True, capture_output=True, check=False
+        )
+        if done.returncode:
+            detail = done.stderr.strip().splitlines()[-1] if done.stderr.strip() else "?"
+            problems.append(f"{fence.path}:{fence.line}: {detail}")
+
+    assert not problems, "malformed shell samples:\n" + "\n".join(problems)
+    assert samples, "no shell fence was checked — the fence pattern has gone stale"
+
+
+def test_template_fences_are_exempt_because_they_are_templates() -> None:
+    """The marker earns its exemption on every fence that claims it.
+
+    A `template` marker is a contributor asserting "this is a shape, not a
+    command", and nothing stops it being pasted onto a fence to silence a real
+    defect. Each marked shell fence must therefore actually fail the parser: if
+    one starts passing, it is a runnable sample wearing an exemption it no longer
+    needs, and the marker should come off rather than accumulate.
+    """
+    bash = _usable_bash()
+    if not bash:
+        pytest.skip("no usable bash on PATH")
+
+    marked = [
+        fence
+        for fence in fences_under(_SKILLS, relative_to=_REPO_ROOT)
+        if fence.language == "bash" and fence.is_template
+    ]
+    needless = [
+        f"{fence.path}:{fence.line}"
+        for fence in marked
+        if subprocess.run(
+            [bash, "-n"], input=fence.body, text=True, capture_output=True, check=False
+        ).returncode
+        == 0
+    ]
+
+    assert not needless, (
+        "these fences are marked `template` but parse fine, so the marker is"
+        " hiding nothing and should come off:\n" + "\n".join(needless)
+    )
+    assert marked, "no shell fence carries the `template` marker — has the convention moved?"
+
+
+def _typescript_samples() -> list[Fence]:
+    """Every runnable TypeScript fence across the fleet."""
+    return _samples("typescript")
 
 
 def test_typescript_samples_parse() -> None:
@@ -79,7 +215,7 @@ def test_typescript_samples_parse() -> None:
         return
 
     samples = _typescript_samples()
-    payload = [{"id": f"{rel}:{line}", "source": body} for rel, line, body in samples]
+    payload = [{"id": f"{f.path}:{f.line}", "source": f.body} for f in samples]
     payload += [{"id": name, "source": source} for name, source in _CONTROLS.items()]
 
     done = subprocess.run(
@@ -138,10 +274,56 @@ def test_the_lane_reaches_every_skill_that_ships_typescript() -> None:
     info string literally. That single fence is the whole reason the alias map
     exists, and this is what stops it being dropped as an edge case.
     """
-    skills_with_samples = {rel.split("/")[1] for rel, _, _ in _typescript_samples()}
+    skills_with_samples = {fence.path.split("/")[1] for fence in _typescript_samples()}
 
     assert len(skills_with_samples) > 1, (
         "every TypeScript sample now resolves to one skill; if that is real the"
         " lane is per-skill, and if it is not, the alias map has lost a spelling"
         f" (found: {sorted(skills_with_samples)})"
+    )
+
+
+def test_every_fence_spelling_is_accounted_for() -> None:
+    """A new info string is a decision, and this is where it gets made.
+
+    The lanes are keyed to spellings, so the way coverage shrinks is that content
+    starts writing `shell` or `py` and no lane is listening — every count stays
+    healthy and the new samples are simply never parsed. Guessing at aliases
+    ahead of time does not fix that: an alias for a spelling nobody writes cannot
+    be tested. So the tree's spellings are declared instead, and an undeclared
+    one fails here until someone maps it to a lane or records why it has none.
+    """
+    present = {fence.raw_language for fence in fences_under(_SKILLS, relative_to=_REPO_ROOT)}
+    undeclared = present - _CHECKED_SPELLINGS - _UNCHECKED_SPELLINGS
+
+    assert not undeclared, (
+        f"fences use {sorted(undeclared)}, which no lane claims and nothing"
+        " declares unchecked. Map the spelling in LANGUAGE_ALIASES if a lane"
+        " should parse it, or add it to _UNCHECKED_SPELLINGS with the reason"
+    )
+    # The declared sets describe this tree, so a spelling that leaves the content
+    # should leave the list too — otherwise the lists drift into aspiration.
+    assert not (_CHECKED_SPELLINGS - present), (
+        f"{sorted(_CHECKED_SPELLINGS - present)} is declared checked but appears"
+        " in no fence; drop it rather than carry a claim about nothing"
+    )
+
+
+@pytest.mark.parametrize(("spelling", "language"), [("sh", "bash"), ("ts", "typescript")])
+def test_both_spellings_of_a_language_reach_its_lane(spelling: str, language: str) -> None:
+    """A lane keyed to one spelling shrinks in silence, which is the defect the
+    whole file is built against.
+
+    The fleet writes two languages two ways, and dropping either alias leaves
+    every other assertion here green: the lanes still find plenty of fences, the
+    anti-vacuity counts still pass, and the fences spelled the other way are
+    simply never parsed. Nothing else notices, so this does.
+    """
+    reached = [fence for fence in _samples(language) if fence.raw_language == spelling]
+
+    assert reached, (
+        f"no ```{spelling} fence reaches the {language} lane. Either the alias"
+        f" map lost `{spelling}` and those samples are now unchecked, or the"
+        f" content stopped using the spelling — in which case drop this case"
+        " rather than the alias"
     )
