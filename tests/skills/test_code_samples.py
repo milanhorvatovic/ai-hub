@@ -103,7 +103,7 @@ def _tracked_fences() -> list[Fence]:
 
 
 def _samples(language: str) -> list[Fence]:
-    """Every runnable fence of one language across the whole fleet.
+    """Every runnable fence of one language in the tracked tree.
 
     Template fences are excluded here rather than at each call site, so a lane
     cannot forget the exemption and report a shape-to-fill-in as malformed.
@@ -134,7 +134,7 @@ def _usable_bash() -> str | None:
 
 
 def test_python_samples_parse() -> None:
-    """Every `python` fence in the fleet is syntactically valid.
+    """Every `python` fence in the tracked tree is syntactically valid.
 
     Parsing, not resolution: the samples are fragments naming types and helpers
     defined nowhere (`DEFAULT_SETTINGS`, `OrderSchema`), which is the right shape
@@ -153,7 +153,7 @@ def test_python_samples_parse() -> None:
 
 
 def test_bash_samples_parse() -> None:
-    """Every `bash` and `sh` fence in the fleet is syntactically valid.
+    """Every `bash` and `sh` fence in the tracked tree is syntactically valid.
 
     `sh` fences are parsed by bash, which accepts everything `sh` does and more:
     the check is weaker on those, never wrong about them. Fences marked
@@ -192,11 +192,12 @@ def test_template_fences_are_exempt_because_they_are_templates() -> None:
     `typescript` fence is rejected outright rather than trusted, because
     verifying it means the node round-trip and an unverified exemption is the
     thing this test exists to refuse — extend the check before marking one.
-    """
-    bash = _usable_bash()
-    if not bash:
-        _no_toolchain("no usable bash on PATH")
 
+    That refusal runs before the bash probe on purpose. It needs no interpreter,
+    and gating it behind one would let a machine without bash accept exactly the
+    unverified exemption this test exists to reject — a check going dark for a
+    reason unrelated to what it checks.
+    """
     marked = [fence for fence in _tracked_fences() if fence.is_template]
     unverifiable = [
         f"{fence.path}:{fence.line} ({fence.language})"
@@ -208,6 +209,10 @@ def test_template_fences_are_exempt_because_they_are_templates() -> None:
         " claim for, so the exemption would be taken on trust — teach this test"
         " that language's parser first:\n" + "\n".join(unverifiable)
     )
+
+    bash = _usable_bash()
+    if not bash:
+        _no_toolchain("no usable bash on PATH")
 
     def still_fails(fence: Fence) -> bool:
         if fence.language == "python":
@@ -233,12 +238,12 @@ def test_template_fences_are_exempt_because_they_are_templates() -> None:
 
 
 def _typescript_samples() -> list[Fence]:
-    """Every runnable TypeScript fence across the fleet."""
+    """Every runnable TypeScript fence in the tracked tree."""
     return _samples("typescript")
 
 
 def test_typescript_samples_parse() -> None:
-    """Every `typescript` fence in the fleet is syntactically valid.
+    """Every `typescript` fence in the tracked tree is syntactically valid.
 
     Syntax only. The samples name types and helpers that exist nowhere, which is
     the right shape for an illustration and the reason a typecheck would report
