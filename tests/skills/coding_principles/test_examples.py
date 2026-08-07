@@ -32,19 +32,43 @@ _FIRST_TOKEN = re.compile(r"`([^`]+)`")
 
 
 def _fences_in(md: Path) -> list[tuple[int, str, str]]:
-    """(1-based fence line, language, dedented body) for one markdown file."""
-    text = md.read_text(encoding="utf-8")
+    """(1-based fence line, language, dedented body) for one markdown file.
+
+    Bodies are normalized to LF. `.gitattributes` sets `* text=auto`, so markdown
+    arrives CRLF on a Windows checkout, and a shell parser reads the stray `\\r`
+    as part of the last token on every line.
+    """
+    text = md.read_text(encoding="utf-8").replace("\r\n", "\n")
     return [
         (text[: m.start()].count("\n") + 1, m.group("lang"), textwrap.dedent(m.group("body")))
         for m in _FENCE.finditer(text)
     ]
 
 
+def _usable_bash() -> str | None:
+    """Path to a bash that can actually parse a script, or None.
+
+    `shutil.which` answers "is there something named bash on PATH", which is not
+    the same question: Windows runners resolve `bash` to the WSL launcher stub,
+    which exists, runs, and exits non-zero without parsing anything — reporting
+    every sample as malformed with an empty stderr. Probing a known-good script
+    is the only honest way to tell an interpreter from a name.
+    """
+    exe = shutil.which("bash")
+    if not exe:
+        return None
+    probe = subprocess.run(
+        [exe, "-n"], input="true\n", text=True, capture_output=True, check=False
+    )
+    return exe if probe.returncode == 0 else None
+
+
 def _fences(skill_root: Path) -> list[tuple[str, int, str, str]]:
     """(relative path, 1-based fence line, language, dedented body) for every
     fenced block in the skill tree."""
     return [
-        (str(md.relative_to(skill_root)), line, lang, body)
+        # POSIX-form path so a failure reads the same on every platform.
+        (md.relative_to(skill_root).as_posix(), line, lang, body)
         for md in sorted(skill_root.rglob("*.md"))
         for line, lang, body in _fences_in(md)
     ]
@@ -62,23 +86,33 @@ def test_python_and_bash_samples_parse(skill_root: Path) -> None:
     Deliberately scoped to this skill rather than the fleet: sibling skills
     document CLI invocations with `<placeholder>` arguments, where the angle
     brackets read as redirections and fail `bash -n` by design, not by defect.
+
+    The bash lane needs an interpreter that works, not merely one on PATH, so it
+    goes quiet where there is none — the python lane still runs everywhere, and
+    the platforms carrying the required checks have a real bash.
     """
-    have_bash = shutil.which("bash")
+    bash = _usable_bash()
     problems: list[str] = []
+    checked_bash = 0
     for rel, line, lang, body in _fences(skill_root):
         if lang == "python":
             try:
                 ast.parse(body)
             except SyntaxError as exc:
                 problems.append(f"{rel}:{line} python: {exc.msg} (sample line {exc.lineno})")
-        elif lang == "bash" and have_bash:
+        elif lang == "bash" and bash:
+            checked_bash += 1
             done = subprocess.run(
-                ["bash", "-n"], input=body, text=True, capture_output=True, check=False
+                [bash, "-n"], input=body, text=True, capture_output=True, check=False
             )
             if done.returncode:
                 detail = done.stderr.strip().splitlines()[-1] if done.stderr.strip() else "?"
                 problems.append(f"{rel}:{line} bash: {detail}")
     assert not problems, "malformed code samples:\n" + "\n".join(problems)
+    # Anti-vacuity: with a working interpreter the lane must have found work. A
+    # silent zero would mean the fence regex stopped matching bash blocks and the
+    # lane went dark while still reporting green.
+    assert not bash or checked_bash, "bash is usable but no bash fence was checked"
 
 
 def test_worked_review_cites_the_lines_it_names(capabilities_dir: Path) -> None:
