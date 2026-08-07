@@ -98,7 +98,7 @@ echo "deploying" >> deploy.log                       # log shape, not values
 # reads the clock and the environment from inside the logic
 build_report() {
   local out="/var/reports/report-$(date +%F).csv"
-  psql "$DATABASE_URL" -c "select ..." >"$out"
+  psql "service=$PG_SERVICE" -c "select ..." >"$out"
 }
 ```
 
@@ -106,19 +106,21 @@ build_report() {
 # date, destination, and connection arrive as arguments; main() reads the
 # environment once, at the edge, and fails loudly when it is not set
 build_report() {
-  local report_date="$1" out_dir="$2" database_url="$3"
-  psql "$database_url" -c "select ..." >"$out_dir/report-$report_date.csv"
+  local report_date="$1" out_dir="$2" pg_service="$3"
+  # a service name, not a URL: credentials stay in ~/.pg_service.conf and
+  # .pgpass, so nothing secret reaches argv or `ps aux` (principle 13)
+  psql "service=$pg_service" -c "select ..." >"$out_dir/report-$report_date.csv"
 }
 
 main() {
   build_report \
     "$(date +%F)" \
     "${REPORT_DIR:?REPORT_DIR is required}" \
-    "${DATABASE_URL:?DATABASE_URL is required}"
+    "${PG_SERVICE:?PG_SERVICE is required}"
 }
 
 # the test calls the function directly — fixed date, temp dir, no clock, no env
-build_report 2026-01-01 "$BATS_TEST_TMPDIR" "$TEST_DATABASE_URL"
+build_report 2026-01-01 "$BATS_TEST_TMPDIR" reports_test
 ```
 
 ## Principle 19 — Boundaries parse input
@@ -155,8 +157,8 @@ shift $((OPTIND - 1))
 # ---- setup ----
 set -euo pipefail
 
-# shellcheck disable=SC2086
-run_job $args
+# shellcheck disable=SC1091
+source "$script_dir/lib/common.sh"
 
 # ---- main ----
 main "$@"
@@ -165,11 +167,11 @@ main "$@"
 ```bash
 set -euo pipefail
 
-# shellcheck disable=SC2086 — $args is a pre-split flag list from build_args();
-# quoting it would hand run_job every flag as a single argument.
-run_job $args
+# shellcheck disable=SC1091 — sourced from $script_dir, resolved at runtime, so
+# shellcheck cannot follow the path to check it. Keep lib/common.sh POSIX-clean.
+source "$script_dir/lib/common.sh"
 
 main "$@"
 ```
 
-The markers were describing what the reader can already see; the disable was the one place a reader could not tell whether the unquoted expansion was deliberate. A script's header block is the standing exception in this language — an interface with nowhere else to live, covered in `best-practices.md` — not a licence for the rest of the file.
+The markers were describing what the reader can already see; the disable was the one place a reader could not tell whether the linter had been silenced for a reason or for convenience. Note which disable earned its comment: one shellcheck genuinely cannot resolve. A disable that exists because the code took the wrong shape — `SC2086` on an unquoted list, say — is a design note in disguise, and the honest fix is the array this capability already asks for, not a justification for keeping the string. A script's header block is the standing exception in this language — an interface with nowhere else to live, covered in `best-practices.md` — not a licence for the rest of the file.

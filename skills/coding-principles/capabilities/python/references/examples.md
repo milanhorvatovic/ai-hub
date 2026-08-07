@@ -283,19 +283,20 @@ def normalize_email(email: str) -> str:
 
 ```python
 def normalize_email(email: str) -> str:
-    """Fold an address into the key an account is looked up by.
+    """Fold an address into the form used to flag likely duplicate signups.
 
     The transform is lossy and one-way: two addresses that reach different
-    inboxes can normalize to the same key, so the result identifies an account
-    and must never be rendered back to a user or used as a reply-to.
+    inboxes can fold together, so this is a matching hint and nothing more.
+    Never use it as an account key, a login identity, or a reply-to — a
+    collision there merges two people's accounts.
     """
     email = email.strip().lower()
     local, _, domain = email.partition("@")
     if domain == "gmail.com":
-        # Gmail ignores dots in the local part, so `a.b@` and `ab@` are one
-        # mailbox — collapsing them is what makes this a key rather than a copy.
+        # Gmail ignores dots in the local part, so `a.b@` and `ab@` reach one
+        # mailbox — folding them is what makes two spellings comparable.
         local = local.replace(".", "")
     return f"{local}@{domain}"
 ```
 
-The rewritten docstring says something the signature cannot — that the return value is lossy and unsafe to display — and the surviving comment explains a line whose behavior would otherwise read as a bug. Which projects require docstrings at all is settled by their own config; `best-practices.md` covers the Python side of that, and the cross-language rubric lives in the comments capability.
+The rewritten docstring says something the signature cannot — that the return value is lossy, and what that rules out downstream — and the surviving comment explains a line whose behavior would otherwise read as a bug. Note that naming the constraint is what exposes the design question: once the docstring has to say "two inboxes can fold together", using the result as an account key stops looking reasonable, which is the kind of thing a comment earns its place by making visible. Which projects require docstrings at all is settled by their own config; `best-practices.md` covers the Python side of that, and the cross-language rubric lives in the comments capability.

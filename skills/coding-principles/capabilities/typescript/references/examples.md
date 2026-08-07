@@ -191,10 +191,12 @@ for (const charge of charges) {
 const client = new PaymentClient(config);
 
 for (const charge of charges) {
-  // Capture is only idempotent from API v3 up, and this account is pinned to
-  // v2 by contract — retrying after a timeout can double-charge, so the retry
-  // is narrowed to connection errors, where we know the request never landed.
-  await retry(() => client.capture(charge), 3, { retryOn: isConnectionError });
+  // Capture is only idempotent from API v3 up and this account is pinned to v2
+  // by contract, so there is no retry that is safe here: a connection failure
+  // can land after the charge commits, and we cannot tell that case from one
+  // that never reached the gateway. Ambiguous failures go to reconciliation.
+  // Do not add a retry to this loop without an idempotency key.
+  await captureOrQueueForReconciliation(client, charge);
 }
 ```
 
