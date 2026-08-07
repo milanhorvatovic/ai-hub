@@ -103,6 +103,20 @@ def test_toolchain_files_are_export_ignored(dev_config: str) -> None:
     assert re.search(rf"^/{re.escape(dev_config)}\s+export-ignore$", attributes, re.MULTILINE)
 
 
+@pytest.mark.parametrize(("setting", "value"), [("proseWrap", "never"), ("embeddedLanguageFormatting", "off")])
+def test_gate_enforces_the_convention_the_docs_state(setting: str, value: str) -> None:
+    """Four documents name these settings. Changing one here and nowhere else
+    leaves the gate enforcing a rule no declaration describes — green CI, four
+    false statements. Changing the convention means changing them together."""
+    config = json.loads(_read(_REPO_ROOT / ".prettierrc.json"))
+
+    assert config.get(setting) == value, (
+        f"{setting} is {config.get(setting)!r}, but the declarations say {value!r};"
+        " update AGENTS.md, README.md, CONTRIBUTING.md and docs/adding-a-skill.md"
+        " in the same change"
+    )
+
+
 @pytest.mark.parametrize(
     ("declaration", "must_contain"),
     [
