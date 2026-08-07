@@ -1,10 +1,16 @@
-"""Fleet-wide syntax checks on the code the skills ship.
+"""Syntax checks on every code sample in the repo's markdown.
 
 A malformed example is a defect in the teaching, not a cosmetic one, and nothing
 else in the suite looks inside a fence — the structure checks read frontmatter
 and pointers, the per-skill contracts read headings and anchors. Three languages
 are checkable here: python and bash need only what the runner already has, and
 TypeScript needs the compiler the markdown gate's node toolchain now pins.
+
+The scan is the whole working tree rather than `skills/`, because the argument
+for parsing a sample does not stop at the distribution boundary: a broken
+command in CONTRIBUTING is one a contributor runs. That costs nothing today —
+the repo's own docs were already clean when the scope widened — and it means a
+setup step cannot rot into something that no longer parses.
 
 Rust is deliberately absent. A fence check belongs in a language's minimum set
 when the language parses with a toolchain CI installs for another reason, and
@@ -28,7 +34,6 @@ import pytest
 from tests.support.fences import Fence, fences_under
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_SKILLS = _REPO_ROOT / "skills"
 _PARSER = _REPO_ROOT / "tests" / "support" / "parse_typescript.mjs"
 
 # `parse_typescript.mjs` exits with this when the pinned compiler is absent, so
@@ -90,7 +95,7 @@ def _samples(language: str) -> list[Fence]:
     """
     return [
         fence
-        for fence in fences_under(_SKILLS, relative_to=_REPO_ROOT)
+        for fence in fences_under(_REPO_ROOT)
         if fence.language == language and not fence.is_template
     ]
 
@@ -164,33 +169,52 @@ def test_template_fences_are_exempt_because_they_are_templates() -> None:
 
     A `template` marker is a contributor asserting "this is a shape, not a
     command", and nothing stops it being pasted onto a fence to silence a real
-    defect. Each marked shell fence must therefore actually fail the parser: if
-    one starts passing, it is a runnable sample wearing an exemption it no longer
+    defect. Each marked fence must therefore actually fail its parser: if one
+    starts passing, it is a runnable sample wearing an exemption it no longer
     needs, and the marker should come off rather than accumulate.
+
+    Verified for the two languages whose parser is cheap to call here. A marked
+    `typescript` fence is rejected outright rather than trusted, because
+    verifying it means the node round-trip and an unverified exemption is the
+    thing this test exists to refuse — extend the check before marking one.
     """
     bash = _usable_bash()
     if not bash:
         pytest.skip("no usable bash on PATH")
 
-    marked = [
-        fence
-        for fence in fences_under(_SKILLS, relative_to=_REPO_ROOT)
-        if fence.language == "bash" and fence.is_template
-    ]
-    needless = [
-        f"{fence.path}:{fence.line}"
+    marked = [fence for fence in fences_under(_REPO_ROOT) if fence.is_template]
+    unverifiable = [
+        f"{fence.path}:{fence.line} ({fence.language})"
         for fence in marked
-        if subprocess.run(
-            [bash, "-n"], input=fence.body, text=True, capture_output=True, check=False
-        ).returncode
-        == 0
+        if fence.language not in {"bash", "python"}
     ]
+    assert not unverifiable, (
+        "these fences claim `template` in a language nothing here can verify the"
+        " claim for, so the exemption would be taken on trust — teach this test"
+        " that language's parser first:\n" + "\n".join(unverifiable)
+    )
+
+    def still_fails(fence: Fence) -> bool:
+        if fence.language == "python":
+            try:
+                ast.parse(fence.body)
+            except SyntaxError:
+                return True
+            return False
+        return (
+            subprocess.run(
+                [bash, "-n"], input=fence.body, text=True, capture_output=True, check=False
+            ).returncode
+            != 0
+        )
+
+    needless = [f"{fence.path}:{fence.line}" for fence in marked if not still_fails(fence)]
 
     assert not needless, (
         "these fences are marked `template` but parse fine, so the marker is"
         " hiding nothing and should come off:\n" + "\n".join(needless)
     )
-    assert marked, "no shell fence carries the `template` marker — has the convention moved?"
+    assert marked, "no fence carries the `template` marker — has the convention moved?"
 
 
 def _typescript_samples() -> list[Fence]:
@@ -274,7 +298,11 @@ def test_the_lane_reaches_every_skill_that_ships_typescript() -> None:
     info string literally. That single fence is the whole reason the alias map
     exists, and this is what stops it being dropped as an edge case.
     """
-    skills_with_samples = {fence.path.split("/")[1] for fence in _typescript_samples()}
+    skills_with_samples = {
+        fence.path.split("/")[1]
+        for fence in _typescript_samples()
+        if fence.path.startswith("skills/")
+    }
 
     assert len(skills_with_samples) > 1, (
         "every TypeScript sample now resolves to one skill; if that is real the"
@@ -293,7 +321,7 @@ def test_every_fence_spelling_is_accounted_for() -> None:
     be tested. So the tree's spellings are declared instead, and an undeclared
     one fails here until someone maps it to a lane or records why it has none.
     """
-    present = {fence.raw_language for fence in fences_under(_SKILLS, relative_to=_REPO_ROOT)}
+    present = {fence.raw_language for fence in fences_under(_REPO_ROOT)}
     undeclared = present - _CHECKED_SPELLINGS - _UNCHECKED_SPELLINGS
 
     assert not undeclared, (

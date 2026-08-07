@@ -85,11 +85,19 @@ def fences_in(md: Path, path: str | None = None) -> list[Fence]:
     ]
 
 
+# Directories that hold markdown nobody here authored. Walking the working tree
+# rather than asking git keeps this stdlib-only and matches how the formatter
+# behaves — a document is checked before it is ever staged — but it also means
+# an installed dependency's README is one careless glob away from the lanes.
+EXCLUDED_DIRS = frozenset({".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache"})
+
+
 def fences_under(root: Path, relative_to: Path | None = None) -> list[Fence]:
     """Every fenced block in a tree, paths relative to `relative_to` (default `root`)."""
     base = relative_to or root
     return [
         fence
         for md in sorted(root.rglob("*.md"))
+        if not EXCLUDED_DIRS & set(md.parts)
         for fence in fences_in(md, path=md.relative_to(base).as_posix())
     ]
