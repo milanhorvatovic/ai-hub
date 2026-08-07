@@ -38,3 +38,20 @@ updates:
     labels:
       - dependencies
       - python
+
+  # package.json holds the Node tools CI and the pre-commit hooks run. Without
+  # this entry the pin is invisible to Dependabot and goes stale silently,
+  # which is the failure the pin exists to prevent.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      node:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels:
+      - dependencies
+      - javascript

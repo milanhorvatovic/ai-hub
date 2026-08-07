@@ -15,15 +15,30 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _update_type_groups(block: str) -> list[set[str]]:
+    return [
+        {token.strip().strip("\"'") for token in contents.split(",")}
+        for contents in re.findall(r"update-types:\s*\[([^\]]+)\]", block)
+    ]
+
+
 def test_dependabot_groups_exclude_major_updates() -> None:
     config = _read(_DEPENDABOT_CONFIG)
 
-    update_type_groups = [
-        {token.strip().strip("\"'") for token in contents.split(",")}
-        for contents in re.findall(r"update-types:\s*\[([^\]]+)\]", config)
-    ]
-    assert len(update_type_groups) == 2
-    assert all(group == {"minor", "patch"} for group in update_type_groups)
+    # Derived per ecosystem rather than counted, so adding one is not a passing
+    # change: an ecosystem with no grouped update-types would let majors ride
+    # into the auto-merge range, which is the rule this guards.
+    ecosystem_blocks = config.split("- package-ecosystem:")[1:]
+    assert ecosystem_blocks, "no package-ecosystem entries found"
+
+    for block in ecosystem_blocks:
+        name = block.split("\n", 1)[0].strip()
+        groups = _update_type_groups(block)
+        assert groups, f"{name}: no grouped update-types, so majors group with minors"
+        assert all(group == {"minor", "patch"} for group in groups), (
+            f"{name}: a group admits update types beyond minor/patch"
+        )
+
     assert "actions/attest-build-provenance" in config
     assert "googleapis/release-please-action" in config
     assert "dependency-name: dependabot/fetch-metadata" in config
