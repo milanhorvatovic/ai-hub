@@ -136,7 +136,7 @@ Every command in this skill is written for a POSIX shell. On Windows the zero-tr
 The apply commands are file-based by design (`git commit -F <path>`, `--body-file <path>`, `--notes-file <path>`), and those flags are shell-agnostic — only creating and filling the proposal file needs translation:
 
 | POSIX pattern | PowerShell equivalent |
-|---|---|
+| --- | --- |
 | `mktemp` | `New-TemporaryFile` (PowerShell ≥ 5.0; returns a FileInfo — use `.FullName`) |
 | writing the proposal file | `[System.IO.File]::WriteAllText($path, $text)` — BOM-less UTF-8 on every PowerShell version. `Set-Content -Encoding utf8` also works but adds a BOM on Windows PowerShell 5.1, and bare `>` is never safe there — 5.1 redirection writes UTF-16LE, which file-consuming flags choke on |
 | heredoc (`<<'EOF'`) | single-quoted here-string (`@'` … `'@`) — the closing mark must start its own line; the double-quoted form interpolates |
@@ -149,7 +149,7 @@ The apply commands are file-based by design (`git commit -F <path>`, `--body-fil
 All four forge CLIs ship Windows builds. winget carries `gh` officially; the glab, tea, and bkt packages are community-maintained:
 
 | CLI | winget id | scoop | choco |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `gh` | `GitHub.cli` | `gh` | `gh` |
 | `glab` | `GLab.GLab` | `glab` | `glab` |
 | `tea` | `Gitea.tea` | `tea` | `tea` — the `gitea` package is the server, not the CLI |

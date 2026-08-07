@@ -18,23 +18,23 @@ Detect via: `.commitlintrc*` config, `commitlint.config.*` with `@commitlint/con
 
 Format: `<type>(<scope>)<!>: <description>`
 
-| Type | When |
-|---|---|
-| `feat` | New user-facing feature |
-| `fix` | Bug fix |
-| `chore` | Maintenance, no user-visible change |
-| `docs` | Documentation only |
+| Type       | When                                |
+| ---------- | ----------------------------------- |
+| `feat`     | New user-facing feature             |
+| `fix`      | Bug fix                             |
+| `chore`    | Maintenance, no user-visible change |
+| `docs`     | Documentation only                  |
 | `refactor` | Code change with no behavior change |
-| `test` | Adding / updating tests |
-| `perf` | Performance improvement |
-| `build` | Build system / dependencies |
-| `ci` | CI configuration |
-| `style` | Whitespace, formatting, semicolons |
-| `revert` | Reverts a previous commit |
+| `test`     | Adding / updating tests             |
+| `perf`     | Performance improvement             |
+| `build`    | Build system / dependencies         |
+| `ci`       | CI configuration                    |
+| `style`    | Whitespace, formatting, semicolons  |
+| `revert`   | Reverts a previous commit           |
 
 - `(<scope>)` is optional — a noun like `api`, `parser`, `auth`. Use a scope present in past commits when possible (consistency > novelty).
 - `!` after type/scope indicates a breaking change. Also requires `BREAKING CHANGE:` footer in body.
-- Subject after `: ` follows the same rules as a plain subject (imperative, ≤72 chars total *including* the prefix).
+- Subject after `: ` follows the same rules as a plain subject (imperative, ≤72 chars total _including_ the prefix).
 
 ## What makes a good subject
 
@@ -47,7 +47,7 @@ Format: `<type>(<scope>)<!>: <description>`
 **Required (must be present):**
 
 | Element | Why |
-|---|---|
+| --- | --- |
 | **Specific verb** in imperative mood | The reader must know what the commit DOES — `Add`, `Remove`, `Refactor`, `Fix`, `Rename`, `Extract`. Not `Update`, `Change`, `Improve`, `Tweak`. |
 | **Specific noun** (the thing being changed) | `the retry queue`, `auth middleware`, `JSON parser` — not `the code`, `things`, `stuff` |
 | **Smallest accurate description** | If the change fits in 50 chars, don't pad to 72. Pad-to-length looks like effort but says less. |
@@ -55,7 +55,7 @@ Format: `<type>(<scope>)<!>: <description>`
 **Forbidden (must NOT be present):**
 
 | Element | Why |
-|---|---|
+| --- | --- |
 | Past tense verb (`Added`, `Fixed`, `Removed`) | Convention: "If applied, this commit will ___" — imperative |
 | Trailing period | Subject is a title, not a sentence |
 | Generic verbs alone (`Update X`, `Change Y`, `Fix bug`, `Tweak config`) | Without a specific noun and outcome, the subject says nothing |
@@ -74,7 +74,7 @@ PR titles follow the same rules as commit subjects: imperative, ≤72 chars, no 
 ## Anti-examples → fixed (subject only)
 
 | Bad | Good | What's wrong |
-|---|---|---|
+| --- | --- | --- |
 | `Update parser.py` | `feat(parser): add streaming JSON reader` | Generic verb + file path; doesn't say WHAT or WHY |
 | `Fix bug` | `fix(auth): handle expired token in refresh path` | No scope + no specific bug named |
 | `Address review comments` | `fix(api): handle null in response_dict` | Describes the cause (review) instead of the fix |

@@ -23,7 +23,7 @@ Single source of implementation discipline for coding tasks. Loaded as active co
 
 ## Design philosophy
 
-Built for *AI agents authoring code*, optimizing for first-pass correctness — right *and* simple *and* tested in one draft. The human "make it work, then right, then fast" sequence is deliberately rejected: it would license shipping the works-but-ugly version. Two operating rules follow: **severity** (must / should / could) governs triage, and **mantra tier** (Goals > Design > Pruning) governs conflicts. When in doubt, prefer the interpretation that yields simpler, more typed, more testable, more observable code in *this* draft over one that anticipates future flexibility.
+Built for _AI agents authoring code_, optimizing for first-pass correctness — right _and_ simple _and_ tested in one draft. The human "make it work, then right, then fast" sequence is deliberately rejected: it would license shipping the works-but-ugly version. Two operating rules follow: **severity** (must / should / could) governs triage, and **mantra tier** (Goals > Design > Pruning) governs conflicts. When in doubt, prefer the interpretation that yields simpler, more typed, more testable, more observable code in _this_ draft over one that anticipates future flexibility.
 
 ## What this skill is
 
@@ -37,7 +37,7 @@ This SKILL.md is the always-loaded **router** — the mantra/principle summaries
 - **Cross-language concern references** — load when the code touches the concern, regardless of language:
 
 | Reference | Load when the code… |
-| --------- | ------------------- |
+| --- | --- |
 | `references/api-design.md` | exposes or consumes a network API (REST/GraphQL/gRPC) |
 | `references/persistence.md` | reads or writes a datastore |
 | `references/observability.md` | runs in production and emits logs/metrics/traces |
@@ -69,20 +69,20 @@ Applies whenever the agent will write, implement, fix, refactor, or clean up cod
 
 Full prose: `references/mantras.md`.
 
-**Conflict resolution:** tier wins over tier — Tier 1 *goals* outrank Tier 2 *design rules*, which outrank Tier 3 *pruning rules*; inside a tier, siblings are case-by-case. `references/mantras.md` owns the rule, including the same-tier tie-break.
+**Conflict resolution:** tier wins over tier — Tier 1 _goals_ outrank Tier 2 _design rules_, which outrank Tier 3 _pruning rules_; inside a tier, siblings are case-by-case. `references/mantras.md` owns the rule, including the same-tier tie-break.
 
 ### Tier 1 — Goals (what we're trying to achieve)
 
 1. **Readability first** — code is read more than written; optimize for the next reader.
 2. **KISS** — boring code that obviously works beats elegant code that needs explanation.
 3. **Testability** — units verifiable in isolation; if tests need many mocks, the design is wrong.
-4. **Scalability** — system grows by *adding* pieces, not by *enlarging* existing ones.
+4. **Scalability** — system grows by _adding_ pieces, not by _enlarging_ existing ones.
 5. **Observability** — production failures debuggable from logs alone; errors carry context.
 
 ### Tier 2 — Design (how we achieve the goals)
 
 6. **SRP** — each function/module does one thing.
-7. **Modular by composition** — small pieces *(shape)*, composed not inherited *(technique)*, minimum public surface *(boundary)*; delegate behavior, never the held object.
+7. **Modular by composition** — small pieces _(shape)_, composed not inherited _(technique)_, minimum public surface _(boundary)_; delegate behavior, never the held object.
 8. **Strong typing** — concrete types over escape hatches (`any`, `unknown`-unchecked, `dynamic`).
 9. **Fail fast, fail loud** — validate at the boundary, never silently swallow.
 10. **Immutability by default** — `const` / `readonly` / `final`; mutability is a justified choice.
@@ -102,27 +102,27 @@ Full prose: `references/principles.md`.
 
 Each principle carries a severity tag — **must**, **should**, or **could**. What each tag means is defined once in `references/principles.md`; the summary that makes this list usable is that severity is triage order, so when many things are wrong at once, fix the **musts** first, recommend the **shoulds**, and apply the **coulds** silently unless they would conflict with existing style.
 
-1. **Match scope to the request** — *should* — do exactly what was asked; capture unrelated observations as follow-ups.
-2. **Root cause over bandaid** — *must* — find the underlying cause; bug fixes need a reproducing test that fails first.
-3. **Edit existing files; do not create new ones speculatively** — *should* — never create README/docs unless explicitly asked.
-4. **No *speculative* generality (but earn the shape)** — *should* — modular shape is free; infrastructure (plugin points, factories) is not.
-5. **Trust internal code; validate only at boundaries** — *should* — defensive code for impossible states hides real bugs.
-6. **No backwards-compatibility shims unless asked** — *should* — rename, delete; do not leave aliases/re-exports.
-7. **Comments explain *why*, not *what*** — *could* — the code says the what; a comment carries the why; avoid PR/ticket references.
-8. **No half-implementations** — *must* — ship all of A/B/C or none; partial impls silently misbehave at runtime.
-9. **Read before you edit** — *must* — match the file's local conventions even when they differ from your default.
-10. **Verify the change works** — *must* — run tests/exercise UI/CLI; typecheck-passing is not "done."
-11. **Reversibility shapes caution** — *must* — destructive actions need confirmation even after prior approval.
-12. **Honor the user's stated preferences** — *must* — apply session/memory/CLAUDE.md prefs consistently.
-13. **Security hygiene is a baseline, not a feature** — *must* — no secrets in source/logs/errors; authorize at every state-touching handler.
-14. **Prefer modular, composable, scalable designs — without over-engineering** — *should* — shape is free; infrastructure is not.
-15. **Tests describe behavior, not implementation** — *should* — behavior-style names; mock at boundaries; avoid mocking-hell.
-16. **Inject time, randomness, and external state** — *should* — never call `Date.now()` / `random()` / `os.environ` from business logic.
-17. **Naming discipline** — *could* — descriptive over short; no `_old` / `_v2` / `_temp` suffixes; booleans as predicates. (*should* when names are actively misleading.)
-18. **Single source of truth for state** — *should* — derive don't store; caches are deliberate exceptions with invalidation.
-19. **Boundaries parse input and serialize output** — *should* — `(bytes) -> Typed` at entry, `Typed -> bytes` at exit; explicit serializers. (*must* when the boundary is security-relevant — auth, PII, deserialization.)
-20. **No dead code, no commented-out code** — *could* — delete it; git remembers.
-21. **Comments earn their place: clear, direct, meaningful** — *should* — each comment carries what the code cannot (an invariant, a surprise, a stated deviation, an anchored workaround, a security assumption, profiled performance); revise or remove the rest; value gate before principle 7's content gate.
+1. **Match scope to the request** — _should_ — do exactly what was asked; capture unrelated observations as follow-ups.
+2. **Root cause over bandaid** — _must_ — find the underlying cause; bug fixes need a reproducing test that fails first.
+3. **Edit existing files; do not create new ones speculatively** — _should_ — never create README/docs unless explicitly asked.
+4. **No _speculative_ generality (but earn the shape)** — _should_ — modular shape is free; infrastructure (plugin points, factories) is not.
+5. **Trust internal code; validate only at boundaries** — _should_ — defensive code for impossible states hides real bugs.
+6. **No backwards-compatibility shims unless asked** — _should_ — rename, delete; do not leave aliases/re-exports.
+7. **Comments explain _why_, not _what_** — _could_ — the code says the what; a comment carries the why; avoid PR/ticket references.
+8. **No half-implementations** — _must_ — ship all of A/B/C or none; partial impls silently misbehave at runtime.
+9. **Read before you edit** — _must_ — match the file's local conventions even when they differ from your default.
+10. **Verify the change works** — _must_ — run tests/exercise UI/CLI; typecheck-passing is not "done."
+11. **Reversibility shapes caution** — _must_ — destructive actions need confirmation even after prior approval.
+12. **Honor the user's stated preferences** — _must_ — apply session/memory/CLAUDE.md prefs consistently.
+13. **Security hygiene is a baseline, not a feature** — _must_ — no secrets in source/logs/errors; authorize at every state-touching handler.
+14. **Prefer modular, composable, scalable designs — without over-engineering** — _should_ — shape is free; infrastructure is not.
+15. **Tests describe behavior, not implementation** — _should_ — behavior-style names; mock at boundaries; avoid mocking-hell.
+16. **Inject time, randomness, and external state** — _should_ — never call `Date.now()` / `random()` / `os.environ` from business logic.
+17. **Naming discipline** — _could_ — descriptive over short; no `_old` / `_v2` / `_temp` suffixes; booleans as predicates. (_should_ when names are actively misleading.)
+18. **Single source of truth for state** — _should_ — derive don't store; caches are deliberate exceptions with invalidation.
+19. **Boundaries parse input and serialize output** — _should_ — `(bytes) -> Typed` at entry, `Typed -> bytes` at exit; explicit serializers. (_must_ when the boundary is security-relevant — auth, PII, deserialization.)
+20. **No dead code, no commented-out code** — _could_ — delete it; git remembers.
+21. **Comments earn their place: clear, direct, meaningful** — _should_ — each comment carries what the code cannot (an invariant, a surprise, a stated deviation, an anchored workaround, a security assumption, profiled performance); revise or remove the rest; value gate before principle 7's content gate.
 
 ## Application checklist
 
@@ -130,7 +130,7 @@ Apply mentally; do not output the checklist.
 
 **Before editing:**
 
-- [ ] Do I understand the *why* of this task, not just the *what*?
+- [ ] Do I understand the _why_ of this task, not just the _what_?
 - [ ] Is the scope minimal — am I about to touch only what was asked? (KISS, SRP)
 - [ ] If this is a bug fix, do I have a test that fails for the right reason?
 - [ ] Have I read the target file and a sample of callers?
@@ -142,7 +142,7 @@ Apply mentally; do not output the checklist.
 - [ ] Am I duplicating an existing helper because finding it was harder than re-writing? → stop, find it.
 - [ ] Is the piece I'm adding small, pure where practical, and replaceable without surgery? If no → reshape before continuing.
 - [ ] Could I write a test for this without mocking more than one or two collaborators? If no → the shape is wrong; reshape before continuing.
-- [ ] When the next related feature lands, will it be an *added* piece or a *rewrite* of this one? If rewrite → reshape now.
+- [ ] When the next related feature lands, will it be an _added_ piece or a _rewrite_ of this one? If rewrite → reshape now.
 - [ ] Am I adding a plugin point / strategy interface / config layer for a single caller? → stop, inline it.
 - [ ] Am I reaching for an escape-hatch type (`any`, `unknown`-unchecked, `dynamic`, `Object`)? → stop, model the type.
 - [ ] Am I adding a guard for a state internal code cannot produce? → stop, delete it.
@@ -184,11 +184,11 @@ Apply mentally; do not output the checklist.
 
 ## Anti-patterns (in how you apply this skill)
 
-These are failure modes of *using* this skill, not of writing code. Overzealous application is its own anti-pattern: a rulebook that lectures, refuses, or noises up every interaction is a rulebook that gets ignored.
+These are failure modes of _using_ this skill, not of writing code. Overzealous application is its own anti-pattern: a rulebook that lectures, refuses, or noises up every interaction is a rulebook that gets ignored.
 
 - **Don't lecture the user about a principle they didn't violate.** If the user wrote good code, say nothing about it. Reciting "per principle 5, your validation is correctly at the boundary" is noise.
-- **Don't preface edits with "per principle X, …"** in the user-facing summary. The user does not need the principle citation; they need the change. Cite the principle only when the user asks *why* you made a choice, or when reviewing someone else's code (review mode).
-- **Don't add tests for trivial changes just to satisfy testability.** Testability is a property of the design, not a target metric. A one-line typo fix does not need a new test; principle 2's reproducing-test rule applies to bug *fixes*, not to every change.
+- **Don't preface edits with "per principle X, …"** in the user-facing summary. The user does not need the principle citation; they need the change. Cite the principle only when the user asks _why_ you made a choice, or when reviewing someone else's code (review mode).
+- **Don't add tests for trivial changes just to satisfy testability.** Testability is a property of the design, not a target metric. A one-line typo fix does not need a new test; principle 2's reproducing-test rule applies to bug _fixes_, not to every change.
 - **Don't refuse `any` / `unknown` / escape hatches when they are the right answer at a boundary.** Strong typing is a default, not an absolute. The line that parses arbitrary JSON has to start with `unknown`.
 - **Don't open follow-up PRs for cleanup that wasn't requested.** Match scope (principle 1). Note observations in the end-of-turn summary; let the user decide what to do.
 - **Don't apply this skill to docs-only, config-only, or pure-data changes.** Skip the load. The triggers explicitly exclude these.
@@ -197,14 +197,14 @@ These are failure modes of *using* this skill, not of writing code. Overzealous 
 - **Don't moralize about user choices.** "This is technical debt" / "this is bad practice" framing implies judgment. Describe the consequence ("this couples X to Y, so future changes to Y will require touching X"), not the verdict.
 - **Don't volunteer review-mode framing when the user asked you to write code.** Write the code; if it's good, ship it. Review-mode (`capabilities/review/capability.md`) is for explicit review tasks.
 
-The brake on this skill is: when in doubt, write less *about* the code and more *of* it.
+The brake on this skill is: when in doubt, write less _about_ the code and more _of_ it.
 
 ## Capabilities
 
 Load on demand: language capabilities by the file's language; the comments capability when the task touches comment-bearing files, plans work that mentions comments or docstrings, or is about to write any comment; the review capability for review tasks. Load only what the task touches — reading all four languages for a Python change wastes context.
 
 | Capability | Trigger | Path |
-| ---------- | ------- | ---- |
+| --- | --- | --- |
 | bash | `*.sh`, `*.bash`, bash shebang | capabilities/bash/capability.md |
 | python | `*.py`, `pyproject.toml` | capabilities/python/capability.md |
 | typescript | `*.ts`, `*.tsx`, `*.mts`, `tsconfig.json` | capabilities/typescript/capability.md |
@@ -216,17 +216,17 @@ For languages without a capability (Go, Ruby, Java, C/C++, Swift, …), use the 
 
 ## Output behavior
 
-This skill produces no output of its own. It loads as context and shapes downstream tool calls (Edit, Write) and end-of-turn summaries. If invoked explicitly with `/coding-principles` and no follow-up task, respond with: *"Loaded. What are we coding?"* — nothing more.
+This skill produces no output of its own. It loads as context and shapes downstream tool calls (Edit, Write) and end-of-turn summaries. If invoked explicitly with `/coding-principles` and no follow-up task, respond with: _"Loaded. What are we coding?"_ — nothing more.
 
 ## Scope boundaries
 
 This skill covers implementation discipline only. Adjacent concerns are deliberately out of scope and belong to separate passes or tools:
 
-- **Post-edit cleanup** — a separate refactor pass over already-written code (reuse opportunities, dead branches, redundant abstractions). This skill applies during *writing* (avoid violations via the router checklist) and during *review* (find violations via the review capability); cleanup runs *after* the edits are made, typically against the diff before commit, to catch what slipped through. Sequence on a typical task: write → clean up the diff → fix → commit. The two are different lenses — this one shapes the change; cleanup polishes what's already there.
+- **Post-edit cleanup** — a separate refactor pass over already-written code (reuse opportunities, dead branches, redundant abstractions). This skill applies during _writing_ (avoid violations via the router checklist) and during _review_ (find violations via the review capability); cleanup runs _after_ the edits are made, typically against the diff before commit, to catch what slipped through. Sequence on a typical task: write → clean up the diff → fix → commit. The two are different lenses — this one shapes the change; cleanup polishes what's already there.
 - **Repo-local conventions** — what the specific repo already declares (style, naming, and structure in `CLAUDE.md` / `AGENTS.md` / `CONTRIBUTING.md`, lint configs, and sibling files). This skill tells you how to think; the repo's conventions tell you what this repo expects. When they conflict, repo-local conventions win for style decisions; principles win for design decisions.
 - **Change narration** — how the change is described in commits, PRs, and branches. This skill is silent on narration.
 - **Security review** — threat-model evaluation. This skill evaluates implementation hygiene, not threat models.
-- **Docs formatting** — documentation formatting and lint, not code. Comment *content* inside files a triggered coding task touches is in scope through the comments capability; only formatting and lint stay out.
+- **Docs formatting** — documentation formatting and lint, not code. Comment _content_ inside files a triggered coding task touches is in scope through the comments capability; only formatting and lint stay out.
 
 ## Edge cases
 

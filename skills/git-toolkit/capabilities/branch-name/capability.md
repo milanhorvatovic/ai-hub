@@ -37,7 +37,7 @@ In priority order:
 ## 2. Map intent to type
 
 | Source | Maps to type |
-|---|---|
+| --- | --- |
 | User explicitly says "bug" / "fix" / "regression" | `fix/` |
 | User explicitly says "feature" / "add" / "new" | `feature/` |
 | User explicitly says "refactor" / "cleanup" | `refactor/` (or `chore/` per repo convention) |

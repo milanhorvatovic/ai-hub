@@ -41,7 +41,7 @@ statusCheckRollup,additions,deletions,changedFiles,isCrossRepository
 ### 2. Run gate checks
 
 | Gate | Check | Pass / Fail / Warn |
-|---|---|---|
+| --- | --- | --- |
 | **Not draft** | `isDraft == false` | Fail if draft; suggest `gh pr ready <num>` |
 | **State** | `state == OPEN` | Fail otherwise |
 | **CI checks** | All required checks in `statusCheckRollup` pass: `conclusion ∈ {SUCCESS, NEUTRAL}` (NEUTRAL = pass-with-caveats, consistent with `pr-checks-summary`). `SKIPPED` is OK; pending → Warn; failure → Fail. Treat a check as required when `isRequired` is true (GraphQL) or it appears in the base branch protection's required-checks list; optional-check failures → Warn, not Fail | List failing checks by name |

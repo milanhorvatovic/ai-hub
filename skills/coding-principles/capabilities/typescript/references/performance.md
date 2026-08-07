@@ -1,6 +1,6 @@
 # TypeScript / JavaScript — performance
 
-Performance idioms for TS/JS (Node and browser). Apply *after* correctness and clarity (KISS + readability outrank micro-optimization — measure first). These matter on hot paths, large data, and bundle-size-sensitive frontends.
+Performance idioms for TS/JS (Node and browser). Apply _after_ correctness and clarity (KISS + readability outrank micro-optimization — measure first). These matter on hot paths, large data, and bundle-size-sensitive frontends.
 
 > **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
 
@@ -45,7 +45,7 @@ const result = items.map(transform);
 - **Code-split** by route; lazy-load heavy components (`React.lazy`, dynamic `import()`).
 - **Tree-shaking** requires ESM and side-effect-free modules (`"sideEffects": false` in `package.json` when true).
 - Prefer small focused dependencies; a date library should not be 70KB. Check before adding.
-- **Avoid re-renders** (React): stable props, `useMemo`/`useCallback` *only when measured* (they have cost — see `../capability.md` React notes), `key` stability.
+- **Avoid re-renders** (React): stable props, `useMemo`/`useCallback` _only when measured_ (they have cost — see `../capability.md` React notes), `key` stability.
 
 ## V8 / engine notes
 

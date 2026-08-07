@@ -14,7 +14,7 @@ Each entry has four parts:
 
 - **Smell** — what you observe.
 - **Anchor** — the principle(s) and/or mantra(s) that explain why it is a smell, written in the skill's citation grammar (`principles.md`), which fixes the form for principle numbers, mantra names, and their acronyms.
-- **Severity** — inherits from the anchor's severity (must / should / could). Principles carry severity tags; mantras do not — an entry anchored only to mantras defaults to *should* unless it states a different severity explicitly (the fail-fast entries state *must*). An entry with several anchors states its severity bare when the anchors agree on it, and names the source inline when they do not: per-anchor severities where the anchors judge different failures (see "Comment restates the code"), or a principle's tag alongside the mantra default (see "Mocking hell"). The naming is what resolves a disagreement, so it is required exactly where one exists — an entry whose anchors all land on the same severity has nothing to disambiguate, and saying so twice would be noise.
+- **Severity** — inherits from the anchor's severity (must / should / could). Principles carry severity tags; mantras do not — an entry anchored only to mantras defaults to _should_ unless it states a different severity explicitly (the fail-fast entries state _must_). An entry with several anchors states its severity bare when the anchors agree on it, and names the source inline when they do not: per-anchor severities where the anchors judge different failures (see "Comment restates the code"), or a principle's tag alongside the mantra default (see "Mocking hell"). The naming is what resolves a disagreement, so it is required exactly where one exists — an entry whose anchors all land on the same severity has nothing to disambiguate, and saying so twice would be noise.
 - **Fix** — one-line direction; full details in the linked principle.
 
 The smells are grouped by category. Some smells appear in multiple categories — the entry lives where its primary symptom is observed.
@@ -26,37 +26,37 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### Mocking hell — five+ mocks per test
 
 - **Anchor:** principle 15 (mock at boundaries) — but the deeper signal is mantra SRP or principle 14 (small functions). When the subject needs five mocks, the subject is doing five things.
-- **Severity:** *should* (principle 15's tag; mantra SRP takes the mantra-anchor default)
+- **Severity:** _should_ (principle 15's tag; mantra SRP takes the mantra-anchor default)
 - **Fix:** split the subject by responsibility before splitting the test. If the test cannot avoid five collaborators, it is an integration test pretending to be a unit test.
 
 ### Test passes on first try (was never red)
 
 - **Anchor:** principle 2 (failing-first test for bug fixes)
-- **Severity:** *must*
+- **Severity:** _must_
 - **Fix:** for bug fixes, write the test against the spec first, watch it fail, then fix the code. For new features, deliberately break the implementation to confirm the test catches it.
 
 ### Test patches a `_private_helper`
 
 - **Anchor:** principle 15 (mock at boundaries, not internals)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** mock the real boundary (HTTP client, DB driver, clock, mailer) instead. Tests against internals break on every refactor.
 
 ### `time.sleep(0.1)` in a test
 
 - **Anchor:** principle 16 (inject time)
-- **Severity:** *should* (escalates to *must* in CI — sleeps cause flakes)
+- **Severity:** _should_ (escalates to _must_ in CI — sleeps cause flakes)
 - **Fix:** inject a fake clock; advance it explicitly in the test.
 
 ### Test names like `test_user_1`, `test_2`
 
 - **Anchor:** principle 15 (tests describe behavior)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** rename to `test_<subject>_<behavior>_<condition>`: `test_create_user_returns_400_when_email_invalid`.
 
 ### One test asserts a dozen unrelated things
 
 - **Anchor:** principle 15 (one behavior per test)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** split. A single failure should point at a single behavior.
 
 ---
@@ -66,37 +66,37 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### `any` / `Any` / `unknown` / `dynamic` in business code
 
 - **Anchor:** mantra strong typing
-- **Severity:** *should* (in business code) / acceptable at trust boundaries before parsing
+- **Severity:** _should_ (in business code) / acceptable at trust boundaries before parsing
 - **Fix:** at the boundary, parse into a typed value; never propagate the escape hatch inward.
 
 ### `dict[str, Any]` / `Record<string, unknown>` as a return type
 
 - **Anchor:** principle 19 (typed boundaries) + mantra strong typing
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** return a typed model (`pydantic.BaseModel`, `dataclass`, named TS type).
 
 ### `cast<T>(x)` without a preceding runtime check
 
 - **Anchor:** mantra strong typing
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** parse the value (schema validator) before casting; or restructure so the cast isn't needed.
 
 ### `isinstance(x, ...)` inside code receiving a typed parameter
 
 - **Anchor:** principle 5 (trust internal code)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** remove the runtime type check; rely on the static type. Validate at the boundary where the value entered.
 
 ### Bag-of-optionals modeling exclusive states (`{loading?, data?, error?}`)
 
 - **Anchor:** mantra make illegal states unrepresentable
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** sum type / discriminated union: `Idle | Loading | Success<T> | Error`.
 
 ### Boolean explosion: parallel `is_x`, `has_y`, `should_z` flags that are really one enum
 
 - **Anchor:** mantra make illegal states unrepresentable + principle 17 (naming)
-- **Severity:** *should* (the mantra-anchor default; principle 17's naming tag is *could*, and the modeling error is the larger of the two failures)
+- **Severity:** _should_ (the mantra-anchor default; principle 17's naming tag is _could_, and the modeling error is the larger of the two failures)
 - **Fix:** model the state as one enum / sum type. `status: 'idle' | 'running' | 'done'` beats `is_running + is_done + is_idle`.
 
 ---
@@ -106,31 +106,31 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### `try: ... except Exception: pass`
 
 - **Anchor:** mantra fail fast, fail loud + principle 13 (security hygiene; silenced errors hide breaches)
-- **Severity:** *must* (principle 13's tag, which outranks the *should* the mantra anchor would default to — a swallowed exception can hide a breach)
+- **Severity:** _must_ (principle 13's tag, which outranks the _should_ the mantra anchor would default to — a swallowed exception can hide a breach)
 - **Fix:** handle the specific exception meaningfully or let it propagate. Logging-and-swallowing is a future incident.
 
 ### `try: ... except: log.error(...)` then continue
 
 - **Anchor:** mantra fail fast, fail loud
-- **Severity:** *must*
+- **Severity:** _must_
 - **Fix:** either the error is recoverable (handle it explicitly) or it is not (propagate). Logging is not handling.
 
 ### `raise ValueError("invalid")` with no context
 
 - **Anchor:** mantra observability + principle 13 (security hygiene, for what the message must _not_ carry)
-- **Severity:** *should* (mantra observability's default; principle 13 raises it to *must* where the missing context is security-relevant — an authorization or validation failure)
+- **Severity:** _should_ (mantra observability's default; principle 13 raises it to _must_ where the missing context is security-relevant — an authorization or validation failure)
 - **Fix:** name what was attempted, how it failed, and against what state: `raise ValueError(f"invalid email: no domain part (user_id={user_id})")`. The address is the one thing left out, and only because it is PII — principle 13 governs what a message may carry, and this entry defers to it rather than inventing a wider rule. A rejected value that is not sensitive is often the most useful context there is: `unsupported status: 'frobnicate'` beats naming the field and stopping. The co-anchor is doing its work at exactly that boundary — observability asks the message to say more, principle 13 says which values it may not say, and the ones that most often fail validation are emails, tokens, and account numbers, which is why this entry is the one where they meet.
 
 ### Manual None-propagation: `if x is None: return None` chains
 
 - **Anchor:** mantra strong typing + mantra make illegal states unrepresentable
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** model the absence at the type level (`Optional[T]` + structured handling, `Result<T, E>`, monadic combinators); or eliminate the optional at the boundary.
 
 ### Error response body leaks stack traces / SQL / file paths
 
 - **Anchor:** principle 13 (security)
-- **Severity:** *must*
+- **Severity:** _must_
 - **Fix:** generic message + request ID to the client; full detail to internal logs only.
 
 ---
@@ -140,43 +140,43 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### `Date.now()` / `time.time()` / `Instant::now()` inside business logic
 
 - **Anchor:** principle 16 (inject time)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** take a `clock` parameter; wire the real clock at the entry point.
 
 ### `Math.random()` / `random.random()` / `Uuid::new_v4()` inside business logic
 
 - **Anchor:** principle 16 (inject randomness)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** take an `rng` / `id_source` parameter; wire the real source at the entry point.
 
 ### `os.environ` / `process.env` / `std::env::var` deep in the call stack
 
 - **Anchor:** principle 16 + mantra explicit over implicit
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** read env once at startup; pass the resolved value down.
 
 ### Module-level mutable state / package-private globals
 
 - **Anchor:** mantra pure / impure separation + principle 14 (hidden state is debt)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** make the state a parameter or a member of an object owned by the entry point.
 
 ### DB call interleaved with a business decision in the same function
 
 - **Anchor:** mantra pure / impure separation (functional core, imperative shell)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** load all the data first (impure shell), pass it to a pure function that makes the decision, then act on the result (impure shell).
 
 ### `JSON.stringify(internalObject)` over the wire
 
 - **Anchor:** principle 19 (serialize at boundary)
-- **Severity:** *should* (*must* when the boundary is security-relevant — auth, PII)
+- **Severity:** _should_ (_must_ when the boundary is security-relevant — auth, PII)
 - **Fix:** write an explicit serializer (`toPublicX`) that chooses which fields cross.
 
 ### Inbound HTTP handler accepts `dict` / `Value` / `any`
 
 - **Anchor:** principle 19 (parse at boundary)
-- **Severity:** *should* (*must* if security-relevant)
+- **Severity:** _should_ (_must_ if security-relevant)
 - **Fix:** parse into a typed request model at the entry; downstream code receives the typed value.
 
 ---
@@ -186,55 +186,55 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### `class Subclass extends BaseClass` for code reuse (not is-a)
 
 - **Anchor:** mantra modular by composition (technique: composition over inheritance)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** hold the collaborator instead of extending it. Inheritance is for true is-a relationships the language idiomatically demands.
 
 ### Pass-through accessors: `obj.getInternalSocket()`, `obj.getRawClient()`
 
 - **Anchor:** mantra modular by composition (the trap: delegate behavior, not the held object)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** expose `obj.send(msg)`, not the internal collaborator. The held thing is an implementation detail.
 
 ### A `utils.ts` / `helpers.py` module containing 1-2 functions
 
 - **Anchor:** anti-pattern list in SKILL.md; mantra locality of behavior
-- **Severity:** *could* — deliberately below the mantra-anchor default, because the anchor is the router's anti-pattern list rather than a severity-tagged principle, and module granularity is a judgment call
+- **Severity:** _could_ — deliberately below the mantra-anchor default, because the anchor is the router's anti-pattern list rather than a severity-tagged principle, and module granularity is a judgment call
 - **Fix:** inline into the one caller until a second caller appears. Generic "utils" buckets accumulate noise.
 
 ### 200-line function with one decision tree
 
 - **Anchor:** mantra SRP + principle 14 (small functions)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** extract by concept (parse / validate / decide / persist), not by line count. Match where natural seams are.
 
 ### Eight 8-line functions chained through callbacks where one 60-line function would do
 
 - **Anchor:** mantra locality of behavior (over-splitting is also a smell)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** merge back. Splitting that fragments a single concept makes the code harder to read.
 
 ### Interface / abstract class with one implementation
 
 - **Anchor:** principle 4 (no speculative generality)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** delete the interface; promote the impl. Extract the seam when the second impl exists.
 
 ### Configuration flag with no current caller toggling it
 
 - **Anchor:** principle 4 (no speculative generality)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** delete the flag; inline the default branch.
 
 ### `index.ts` / barrel file re-exporting forty things
 
 - **Anchor:** mantra modular by composition (boundary: minimum public surface)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** re-export only what callers outside the package need; the rest stays internal.
 
 ### Two values that must stay in sync (e.g. `items` and a cached `total`)
 
 - **Anchor:** principle 18 (single source of truth)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** derive one from the other on read. If caching is justified (measured), implement and test invalidation alongside.
 
 ---
@@ -244,37 +244,37 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### Decay suffixes: `_old`, `_new`, `_v2`, `_temp`, `Legacy`
 
 - **Anchor:** principle 17 (naming discipline)
-- **Severity:** *could* (*should* when names are actively misleading)
-- **Fix:** name the replacement for what it *does*; delete the original when the migration completes.
+- **Severity:** _could_ (_should_ when names are actively misleading)
+- **Fix:** name the replacement for what it _does_; delete the original when the migration completes.
 
 ### `tmp` / `temp` as a field, module, or public symbol
 
 - **Anchor:** principle 17
-- **Severity:** *could*
+- **Severity:** _could_
 - **Fix:** reserve `tmp`/`temp` for true throwaways scoped to a few lines.
 
 ### Single-letter names outside loop indices
 
 - **Anchor:** principle 17
-- **Severity:** *could*
+- **Severity:** _could_
 - **Fix:** descriptive names; canonical short names (`i`, `j`, `k` in loops; `id`, `url`, `db`, `http` as standalone) excepted.
 
 ### Boolean named as a noun: `admin`, `access`
 
 - **Anchor:** principle 17 (booleans are predicates)
-- **Severity:** *could*
+- **Severity:** _could_
 - **Fix:** `is_admin`, `has_access`, `should_retry`, `can_delete`.
 
 ### Cryptic abbreviations: `cnt`, `usr`, `mgr`, `svc`
 
 - **Anchor:** principle 17
-- **Severity:** *could*
+- **Severity:** _could_
 - **Fix:** write them out. The five characters saved at write-time cost ambiguity on every read.
 
 ### Function name needs a docstring to explain its basic purpose
 
 - **Anchor:** principle 17 (function names describe what they do)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** rename the function. `get_user`, `ensure_user`, `find_user` each carry their semantics.
 
 ---
@@ -284,67 +284,67 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### Comment restates the code: `i = i + 1  # increment i`
 
 - **Anchor:** principle 7 (content: why-vs-what); principle 21 (value: carries nothing the code doesn't)
-- **Severity:** *could* (content failure), *should* (value failure — promoted under principle 21)
+- **Severity:** _could_ (content failure), _should_ (value failure — promoted under principle 21)
 - **Fix:** delete the comment. The code already says it.
 
 ### Comment references a specific PR / ticket / caller (`// added for X flow`)
 
 - **Anchor:** principle 7
-- **Severity:** *could*
+- **Severity:** _could_
 - **Fix:** move the context to the commit message; delete the comment.
 
 ### Banner / divider comments (`# ─── helpers ───`, `# ==========`)
 
 - **Anchor:** principle 21 (value) + mantra readability first
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** delete the banner. If a file needs section markers to stay navigable, it needs splitting, not signage (see principle 14).
 
 ### Trivial docstring restating the signature
 
 - **Anchor:** principle 21 (value); principle 7 (content)
-- **Severity:** *should* (principle 21's tag; the value gate runs first and a docstring restating the signature fails it outright, so principle 7's *could* never comes into play)
+- **Severity:** _should_ (principle 21's tag; the value gate runs first and a docstring restating the signature fails it outright, so principle 7's _could_ never comes into play)
 - **Fix:** delete it, or shrink it to the load-bearing part (a precondition, an invariant, a surprise). A docstring that says `get_user(id) — gets a user by id` documents nothing.
 
 ### Line-by-line config annotation (every key gets a comment)
 
 - **Anchor:** principle 21 (value)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** comment only the surprising values — magic numbers, unit traps, deviations from defaults. Self-describing keys carry themselves.
 
 ### Workflow step narration duplicating the step or action name
 
 - **Anchor:** principle 21 (value)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** name the step well and delete the comment. Comment only non-obvious ordering constraints, workarounds, or pinned-version rationale.
 
 ### Residual AI-generation marker (`# Generated by AI`, `# TODO: human review`, `# placeholder — replace later`)
 
 - **Anchor:** principle 21 (value)
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** delete before committing. Authorship context belongs in the commit message, never in the tree. Legitimate machine-codegen banners (`@generated`, `DO NOT EDIT`) are a different thing and stay.
 
 ### Commented-out code block
 
 - **Anchor:** principle 20 (no commented-out code)
-- **Severity:** *could*
+- **Severity:** _could_
 - **Fix:** delete. Git history is searchable.
 
 ### Functions / classes / constants no caller reaches
 
 - **Anchor:** principle 20 (no dead code)
-- **Severity:** *could*
+- **Severity:** _could_
 - **Fix:** delete with their references. Compiler / linter usually flags them.
 
 ### Bare `TODO` / `FIXME` / `XXX` with no ticket, no date, no condition
 
 - **Anchor:** principle 20
-- **Severity:** *could*
+- **Severity:** _could_
 - **Fix:** delete or replace with a tracked item. Permanent uncertainty is debt.
 
 ### Unused imports
 
 - **Anchor:** principle 20
-- **Severity:** *could*
+- **Severity:** _could_
 - **Fix:** delete. Most linters auto-fix.
 
 ---
@@ -354,37 +354,37 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### API keys, tokens, passwords, signing secrets in source
 
 - **Anchor:** principle 13
-- **Severity:** *must*
+- **Severity:** _must_
 - **Fix:** stop. Use env / secret manager / the project's existing pattern. Flag the finding before committing.
 
 ### Logging tokens, passwords, request bodies, full headers
 
 - **Anchor:** principle 13
-- **Severity:** *must*
+- **Severity:** _must_
 - **Fix:** log identifiers and shapes (`user_id`, `request_id`, `payload_size`); never raw secrets.
 
 ### Concatenating user input into SQL / shell / template
 
 - **Anchor:** principle 13 (validate at trust boundaries)
-- **Severity:** *must*
+- **Severity:** _must_
 - **Fix:** parameterized queries / shell escaping / template auto-escaping. Never string-concat.
 
 ### Bearer token in a URL query string
 
 - **Anchor:** principle 13
-- **Severity:** *must*
+- **Severity:** _must_
 - **Fix:** Authorization header. URLs end up in access logs, proxies, browser history.
 
 ### Authentication checked but not authorization (any logged-in user can mutate any record)
 
 - **Anchor:** principle 13 (authorization is not authentication)
-- **Severity:** *must*
+- **Severity:** _must_
 - **Fix:** add `can_user_do_action_on_resource(user, action, resource)` at every mutation/sensitive-read handler.
 
 ### Hardcoded secrets in test fixtures
 
 - **Anchor:** principle 13
-- **Severity:** *must*
+- **Severity:** _must_
 - **Fix:** use clearly-fake values that pattern-match as fake (`fake-token-do-not-use`); never recycle real-looking secrets.
 
 ---
@@ -394,19 +394,19 @@ The smells are grouped by category. Some smells appear in multiple categories �
 ### `@cache` / `@memoize` / `useMemo` added without a measured cause
 
 - **Anchor:** mantras KISS + YAGNI
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** remove until profiling shows the call is hot. Memoization has overhead and wrong-dependency-array bugs.
 
 ### Microbenchmark-driven complexity in a non-hot path
 
 - **Anchor:** mantras KISS + readability-first
-- **Severity:** *should*
+- **Severity:** _should_
 - **Fix:** revert to the readable version. Optimize what's measured, not what's imagined.
 
 ### `Object.freeze` / deep-clone everywhere as "defensive immutability"
 
-- **Anchor:** mantra immutability by default — but *as a type-level discipline*, not a runtime tax
-- **Severity:** *should*
+- **Anchor:** mantra immutability by default — but _as a type-level discipline_, not a runtime tax
+- **Severity:** _should_
 - **Fix:** use `readonly` / `const` / `final` at the type level; freeze only at trust boundaries where mutation by callers is plausible.
 
 ---

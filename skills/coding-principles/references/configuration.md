@@ -48,16 +48,16 @@ db = Database(config.database_url)
 
 ## Environment parity
 
-- **Same config mechanism across environments** — dev, staging, prod differ only in *values*, not in *how* config is read. Don't have a special dev code path that reads a file while prod reads env; that's where "works in dev" bugs hide.
+- **Same config mechanism across environments** — dev, staging, prod differ only in _values_, not in _how_ config is read. Don't have a special dev code path that reads a file while prod reads env; that's where "works in dev" bugs hide.
 - **No environment names in business logic** — `if env == "prod"` branches scatter and rot. Drive behavior off specific config flags (`enable_x: bool`), not off a global environment name.
 
 ## Feature flags
 
-The code-level discipline (the flag *platform* — LaunchDarkly, Unleash, etc. — is ops; reading a flag is code):
+The code-level discipline (the flag _platform_ — LaunchDarkly, Unleash, etc. — is ops; reading a flag is code):
 
 - **A flag is a typed config value** read at the boundary, not a magic string checked deep in the stack.
 - **Flags are temporary by default.** A release flag (gating a rollout) should be removed once the feature is fully shipped. Track flag age; stale flags are debt (dead-code adjacent — principle 20).
-- **Distinguish flag kinds**: short-lived *release* flags (delete after rollout), long-lived *operational* flags (kill switches, kept deliberately), *permission* flags (entitlements, effectively config). Don't let release flags become permanent.
+- **Distinguish flag kinds**: short-lived _release_ flags (delete after rollout), long-lived _operational_ flags (kill switches, kept deliberately), _permission_ flags (entitlements, effectively config). Don't let release flags become permanent.
 - **Default safe.** If the flag service is unreachable, fall back to a safe default (usually "off" for a new feature) — don't fail the request because a flag couldn't be read (resilience: graceful degradation).
 - **Avoid flag combinatorics.** N independent boolean flags = 2^N code paths, most untested. Keep the number small; remove flags promptly.
 

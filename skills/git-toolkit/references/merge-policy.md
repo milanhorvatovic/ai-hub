@@ -19,7 +19,7 @@ Requires `repo` scope on the gh token. On private repos without scope, returns 4
 ## Interpretation
 
 | Setting | Implication for the proposal |
-|---|---|
+| --- | --- |
 | `sm == "PR_BODY"` | The PR body **is** the squash commit message on merge. Shape MAJOR rewrites and new PR descriptions as a commit message: imperative subject ≤72 chars (if `st == "PR_TITLE"`, the PR title becomes the commit subject and the body holds only the commit body), flat prose body, avoid markdown headings (`#` / `##`) because they end up literal in `git log`. |
 | `sm == "COMMIT_MESSAGES"` | Squash commit body is concatenated from the branch's commit messages — PR body is not used in the commit log. Body decoupled → use normal markdown structure. The individual commits' format matters here; run `commit-message` review on the branch. |
 | `sm == "PR_TITLE"` | Squash commit body is just the PR title (no body content). PR body decoupled from commit log → normal markdown is fine. |

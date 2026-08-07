@@ -61,7 +61,7 @@ These don't trigger auto-close (only the prose closing-keywords do). They're use
 `pr-description` (both modes) should classify every issue reference in a body:
 
 | Pattern | Class | Action |
-|---|---|---|
+| --- | --- | --- |
 | Closing keyword + `#N` | closing-keyword | Verify the diff actually resolves the linked work (`gh issue view N`). If not → flag as overreaching; suggest downgrade to context-ref. |
 | Context-ref (`Refs`, `See`, bare `#N`) | context-ref | Verify the diff still relates to issue N. If not → flag for removal. |
 

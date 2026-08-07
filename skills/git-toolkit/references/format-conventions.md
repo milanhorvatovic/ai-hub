@@ -31,7 +31,7 @@ When the sample of last ~20 commit subjects is available but most subjects are n
 Pick the slice you need rather than loading this index plus every rule:
 
 | Slice | What it covers |
-|---|---|
+| --- | --- |
 | `format-subject.md` | Commit subject + PR title rules: imperative mood, length cap, conventional-commits syntax, what makes a good subject, required/forbidden elements, anti-examples |
 | `format-body.md` | Commit body: flowing-paragraph default, hard-wrap opt-in, body required/optional/none decision tree, body contents required/forbidden, anti-examples |
 | `format-pr.md` | PR description: structure templates, sections to consider, interaction with merge mode, PR-specific anti-patterns |

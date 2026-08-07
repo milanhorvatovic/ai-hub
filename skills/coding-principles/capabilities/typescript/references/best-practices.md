@@ -64,7 +64,7 @@ const UserSchema = z.object({
 type User = z.infer<typeof UserSchema>;   // source of truth: the schema
 ```
 
-Do not maintain a separate `interface User` alongside the schema. Inference from the schema *is* the type. Drift is impossible because the type is *derived*. (zod 4 moved the string-format validators to the top level — `z.uuid()`, `z.email()`; the chained `z.string().uuid()` spelling is the deprecated v3 idiom.)
+Do not maintain a separate `interface User` alongside the schema. Inference from the schema _is_ the type. Drift is impossible because the type is _derived_. (zod 4 moved the string-format validators to the top level — `z.uuid()`, `z.email()`; the chained `z.string().uuid()` spelling is the deprecated v3 idiom.)
 
 ## Built-in fetch
 
@@ -103,7 +103,7 @@ Every supported Node line ships `fetch` natively. Don't add `axios` to a new pro
 
 ## Property-based testing
 
-Use `fast-check` for any function that takes structured input and has algebraic properties (parsing, normalization, encoding, math). It generates inputs you wouldn't think to write tests for and *shrinks* failures to a minimal counterexample.
+Use `fast-check` for any function that takes structured input and has algebraic properties (parsing, normalization, encoding, math). It generates inputs you wouldn't think to write tests for and _shrinks_ failures to a minimal counterexample.
 
 ```typescript
 import { expect, test } from "vitest";
@@ -120,7 +120,7 @@ test("sorting is idempotent", () => {
 });
 ```
 
-Failures print both a `seed` and a `path`. The seed replays the run; the path replays the *shrunk* counterexample, so a regression test pins `fc.assert(..., { seed, path })` — seed alone re-runs the generation and can land on a different case than the one that was reported.
+Failures print both a `seed` and a `path`. The seed replays the run; the path replays the _shrunk_ counterexample, so a regression test pins `fc.assert(..., { seed, path })` — seed alone re-runs the generation and can land on a different case than the one that was reported.
 
 ## React-specific (when applicable)
 

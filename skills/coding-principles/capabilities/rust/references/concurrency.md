@@ -6,13 +6,13 @@ Rust's type system makes data races a compile error: `Send` (safe to move across
 
 ## The decision matrix
 
-| Workload                          | Use                                              |
-| --------------------------------- | ------------------------------------------------ |
-| CPU-bound, data parallel          | `rayon` (`par_iter`)                              |
-| I/O-bound, async                  | `tokio` (or `smol` when the dependency tree matters) |
-| Message passing                   | channels (`std::sync::mpsc`, `crossbeam`, `tokio::sync::mpsc`) |
-| Shared read                       | `Arc<T>`                                          |
-| Shared mutable (genuinely needed) | `Arc<Mutex<T>>` / `Arc<RwLock<T>>`               |
+| Workload | Use |
+| --- | --- |
+| CPU-bound, data parallel | `rayon` (`par_iter`) |
+| I/O-bound, async | `tokio` (or `smol` when the dependency tree matters) |
+| Message passing | channels (`std::sync::mpsc`, `crossbeam`, `tokio::sync::mpsc`) |
+| Shared read | `Arc<T>` |
+| Shared mutable (genuinely needed) | `Arc<Mutex<T>>` / `Arc<RwLock<T>>` |
 
 ## Data parallelism — rayon
 
@@ -36,7 +36,7 @@ Near-zero code change from a sequential iterator; rayon handles the thread pool 
 ## Shared state
 
 - **`Arc<T>`** for shared read-only data across threads.
-- **`Arc<Mutex<T>>`** only when the data is genuinely shared *and* mutable across threads (parent skill: reach for it only after the borrow checker says no). `RwLock` for read-heavy access.
+- **`Arc<Mutex<T>>`** only when the data is genuinely shared _and_ mutable across threads (parent skill: reach for it only after the borrow checker says no). `RwLock` for read-heavy access.
 - **Channels over shared state** when you can — message passing avoids whole classes of lock bugs. `crossbeam` channels for sync, `tokio::sync::mpsc` for async.
 - **Hold locks briefly.** A lock held across an `.await` (async) or a long computation (sync) serializes everything waiting on it; in async it can deadlock if the awaited work needs the same lock.
 

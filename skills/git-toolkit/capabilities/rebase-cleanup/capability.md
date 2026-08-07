@@ -50,7 +50,7 @@ git show --no-patch --format='%h%n%s%n%n%b%n---' <sha>
 ### 2. Classify each commit
 
 | Pattern | Suggested action |
-|---|---|
+| --- | --- |
 | Subject contains `WIP`, `wip`, `[WIP]`, `TODO`, `XXX`, `temp` | `reword` (propose new subject per `../../references/format-subject.md`) |
 | Subject prefix `fixup!` / `squash!` | `fixup` / `squash` into the named target commit (git auto-handles when `--autosquash` is set) |
 | Subject is "Address review comments", "Apply review feedback", "PR fixes", or similar generic | `squash` into the most-related prior commit; reword the result to describe WHAT was fixed |

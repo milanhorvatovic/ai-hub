@@ -24,7 +24,7 @@ Authors a PR body from scratch (WRITE) or decides whether an existing body still
 ## Mode detection
 
 | Signal | Mode |
-|---|---|
+| --- | --- |
 | Body is empty, `WIP`, a one-liner, or an unfilled template (per `../../references/pr-template-detection.md` >60% overlap rule) | **WRITE** |
 | Body has substantive content that needs validation against the branch | **SYNC** |
 
@@ -88,7 +88,7 @@ Extract structural claims: Summary / Changes / Test plan / Screenshots / Migrati
 Build a two-way mapping. Mark each entry:
 
 | State | Meaning |
-|---|---|
+| --- | --- |
 | `covered` | Claim is supported by changes; change is mentioned by a claim |
 | `stale` | Claim describes work no longer in the diff (reverted, refactored away) |
 | `missing` | Change is meaningful and undocumented in the description |
@@ -137,7 +137,7 @@ Report in this order:
 ### Verdict decision table
 
 | Findings present | Escalator fires? | Verdict |
-|---|---|---|
+| --- | --- | --- |
 | `changedFiles == 0` | — | `EMPTY-DIFF` |
 | Body empty / WIP / one-liner / unfilled template | — | `HANDOFF-TO-WRITE` |
 | Only `covered` (trivial gaps OK) | No | `IN-SYNC` |
@@ -166,7 +166,7 @@ Preserve the template's section headings VERBATIM. Carry over instructional HTML
 Per section:
 
 | Section | Content source |
-|---|---|
+| --- | --- |
 | Summary | 1-3 sentences derived from commit subjects + dominant change buckets. State what the PR does and why (motivation). |
 | Changes | Per-bucket bullets: `<area>: <what changed>`. Pull verbs from commit subjects when accurate. |
 | Test plan | Look for: changed test files (indicates what the author tested); CI workflow runs; commit messages mentioning testing. **Never invent** test items the author didn't reference. If unknown, write `Verification pending — to be confirmed by author`. |

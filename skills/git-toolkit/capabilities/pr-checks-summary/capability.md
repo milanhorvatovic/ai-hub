@@ -64,6 +64,7 @@ gh api repos/{o}/{r}/check-runs/{check-id} --jq '.output.text, .output.summary'
 ```
 
 Parse the log to extract:
+
 - Failure type (test failure, lint error, build error, type error, deploy failure, security finding)
 - Error message lines (often the last few lines of output)
 - Affected files (when discoverable)
@@ -71,7 +72,7 @@ Parse the log to extract:
 ### 4. Classify and pattern-match
 
 | Pattern | Classification | Likely fix |
-|---|---|---|
+| --- | --- | --- |
 | `FAILED test_*` / `× <test name>` | Test failure | Reproduce locally with the framework's filter flag |
 | `error: <rule> (eslint, ruff, etc.)` | Lint | Run the formatter / linter locally; see config in `pyproject.toml` / `.eslintrc` |
 | `error[E0XXX]` (Rust), `error: cannot find` (Go) | Compile error | Build locally; check imports / type mismatches |
@@ -141,6 +142,7 @@ build-x64, build-arm, smoke-test, docs, link-check — green.
 ```
 
 Always surface:
+
 - Per-failure root cause (extracted error)
 - Likely fix (when recognizable; "uncategorized" when not)
 - Reproduce-locally command when applicable

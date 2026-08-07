@@ -15,7 +15,7 @@ git remote get-url origin
 Pattern match on the host:
 
 | Hostname pattern | Forge | Lane |
-|---|---|---|
+| --- | --- | --- |
 | `github.com`, `*.github.com`, `ghe.*` | GitHub | `gh` |
 | `gitlab.com`, self-hosted GitLab (any host with `/api/v4/`) | GitLab | `glab` |
 | `codeberg.org`, any Forgejo instance | Codeberg / Forgejo | `tea` (the Gitea CLI; Forgejo is wire-compatible — divergences flagged below) |
@@ -35,7 +35,7 @@ A missing or unauthenticated lane CLI stops the capability (per the guard sequen
 ## Concept vocabulary
 
 | GitHub | GitLab | Codeberg / Forgejo | Bitbucket Cloud |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Pull Request (PR) | Merge Request (MR) | Pull Request | Pull Request |
 | Draft PR | Draft MR (`Draft:` title prefix, `draft` field) | `WIP:` title prefix (API `draft` field) | Draft PR |
 | Review thread | Discussion | Review conversation | Comment thread |
@@ -45,12 +45,12 @@ A missing or unauthenticated lane CLI stops the capability (per the guard sequen
 
 ## Operation mapping
 
-`<n>` is the PR number / MR iid / PR index. Rows marked *(optional)* are enrichment reads — skip them with a note when the lane has no cheap equivalent.
+`<n>` is the PR number / MR iid / PR index. Rows marked _(optional)_ are enrichment reads — skip them with a note when the lane has no cheap equivalent.
 
 ### Resolve and read
 
 | Operation | GitHub (worked example) | GitLab (`glab`) | Codeberg / Forgejo (`tea`) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | PR for the current branch | `gh pr list --head <branch> --state all` | `glab mr list --source-branch <branch> -F json` | `tea pr list -f index,head,state` and match the head branch |
 | PR metadata | `gh pr view <n> --json <fields>` | `glab mr view <n> -F json` | `tea pr <n>` (detail view — there is no `view` subcommand); field selections via `tea pr list -f <fields>` |
 | Field-level reads | `gh api repos/{o}/{r}/pulls/<n>` | `glab api projects/:id/merge_requests/<n>` piped to `jq` — `draft`, `has_conflicts`, `blocking_discussions_resolved`, `head_pipeline`, `detailed_merge_status` (`merge_status` is deprecated) | `tea pr list` fields include `mergeable`, `base`, `head`, `ci`; no `draft` field — check the `WIP:` title prefix |
@@ -58,22 +58,22 @@ A missing or unauthenticated lane CLI stops the capability (per the guard sequen
 | Commits on the PR | `gh pr view <n> --json commits` | `glab api projects/:id/merge_requests/<n>/commits` piped to `jq` | `tea pr checkout <n>` + local `git log` |
 | Issue detail | `gh issue view <N> --json <fields>` | `glab issue view <N> -F json` | `tea issues <N>` (same list/detail pattern) |
 | Merge policy | `gh api repos/{o}/{r} --jq '{squash: .allow_squash_merge, …}'` | `glab api projects/:id` piped to `jq '{merge_method, squash_option, squash_commit_template}'` — semantics below | the style is chosen at merge time; squash-message shaping is an on-disk template read (below) |
-| Branch protection *(optional)* | `gh api repos/{o}/{r}/branches/<base>/protection` (needs permissions) | `glab api projects/:id/protected_branches` piped to `jq` (readable with code-read access) | API read requires a repo-admin token — without one, report the gate as not readable |
-| PR comments for context *(optional)* | `gh pr view <n> --comments` | `glab api projects/:id/merge_requests/<n>/notes` piped to `jq` | skip |
-| Author's merged-PR count *(optional)* | `gh pr list --author <login> --state merged` | `glab api "projects/:id/merge_requests?state=merged&author_username=<login>"` piped to `jq length` | skip |
-| Issue↔PR cross-references *(optional)* | `gh api repos/{o}/{r}/issues/<N>/timeline` | `glab api projects/:id/issues/<N>/related_merge_requests` piped to `jq` | skip |
+| Branch protection _(optional)_ | `gh api repos/{o}/{r}/branches/<base>/protection` (needs permissions) | `glab api projects/:id/protected_branches` piped to `jq` (readable with code-read access) | API read requires a repo-admin token — without one, report the gate as not readable |
+| PR comments for context _(optional)_ | `gh pr view <n> --comments` | `glab api projects/:id/merge_requests/<n>/notes` piped to `jq` | skip |
+| Author's merged-PR count _(optional)_ | `gh pr list --author <login> --state merged` | `glab api "projects/:id/merge_requests?state=merged&author_username=<login>"` piped to `jq length` | skip |
+| Issue↔PR cross-references _(optional)_ | `gh api repos/{o}/{r}/issues/<N>/timeline` | `glab api projects/:id/issues/<N>/related_merge_requests` piped to `jq` | skip |
 
 ### Edit and apply
 
 | Operation | GitHub (worked example) | GitLab (`glab`) | Codeberg / Forgejo (`tea`) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Edit the PR body | `gh pr edit <n> --body-file <path>` | `glab mr update <n> --description "$(cat <path>)"` — no file flag | `tea pr edit <n> --description "$(cat <path>)"` |
 | Mark ready | `gh pr ready <n>` | `glab mr update <n> --ready` | edit the `WIP:` title prefix away via `tea pr edit <n> --title` |
 
 ### Review threads
 
 | Operation | GitHub (worked example) | GitLab (`glab`) | Codeberg / Forgejo (`tea`) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | List threads + resolution state | GraphQL `reviewThreads` query (see `git-gh-quirks.md`) | `glab api projects/:id/merge_requests/<n>/discussions --paginate` piped to `jq` — notes carry `resolvable` / `resolved` | `tea pr review-comments <n>` — the `resolver` field marks resolved comments (empty = unresolved) |
 | Reply to a thread | GraphQL `addPullRequestReviewThreadReply` | `glab api -X POST projects/:id/merge_requests/<n>/discussions/<discussion-id>/notes -f body='<text>'` (thread-scoped; a bare `glab mr note create` posts a new top-level comment instead) | `tea pr reply <n> <comment-id> '<text>'` |
 | Resolve a thread | GraphQL `resolveReviewThread` | `glab mr note resolve <n> <discussion-id>` | not exposed on Forgejo — resolving stays in the UI (Gitea ≥ 1.26 adds `tea pr resolve`) |
@@ -83,7 +83,7 @@ A missing or unauthenticated lane CLI stops the capability (per the guard sequen
 ### Merge
 
 | Operation | GitHub (worked example) | GitLab (`glab`) | Codeberg / Forgejo (`tea`) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Merge | `gh pr merge <n> --squash --delete-branch` | `glab mr merge <n> --squash --remove-source-branch` | `tea pr merge <n> --style squash` (styles: `merge`, `rebase`, `squash`, `rebase-merge`) |
 | Merge when CI passes | `--auto` | `--auto-merge` — **defaults on**: pass `--auto-merge=false` to force an immediate merge while a pipeline runs | not exposed by tea — surface as unavailable |
 | Delete the source branch | `--delete-branch` | `--remove-source-branch` | no flag — propose `git push <remote> --delete <branch>` after the merge |
@@ -91,7 +91,7 @@ A missing or unauthenticated lane CLI stops the capability (per the guard sequen
 ### Checks / CI
 
 | Operation | GitHub (worked example) | GitLab (`glab`) | Codeberg / Forgejo (`tea`) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | CI status for the PR head | `gh pr view <n> --json statusCheckRollup` | `glab ci status -b <source-branch> -F json` (defaults to the current branch), or `head_pipeline` from the single-MR read | `ci` field of `tea pr list -f index,ci`; detail via API `GET /repos/{o}/{r}/commits/{ref}/status` |
 | Pipeline / job detail | `gh run view <run-id>` | `glab ci view` | none |
 | Failed-job logs | `gh run view <run-id> --log-failed` | `glab ci trace <job-id>` — raw log only; the failure-classification pass parses GitHub Actions log shape and stays GitHub-only, which is why the checks capability degrades to a labeled status-only partial on GitLab | none |
@@ -99,7 +99,7 @@ A missing or unauthenticated lane CLI stops the capability (per the guard sequen
 ### Releases
 
 | Operation | GitHub (worked example) | GitLab (`glab`) | Codeberg / Forgejo (`tea`) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Create a release with notes | `gh release create <tag> --notes-file <path>` | `glab release create <tag> --notes-file <path>` | `tea releases create --tag <tag> --title <title> --note-file <path>` |
 
 The release-notes capability emits only the detected forge's line; on Bitbucket it surfaces the paste-in note instead (no native Releases).
@@ -129,7 +129,7 @@ The lane routes the highest-value operations through `bkt` (see Command lanes), 
 Fallback calls are `curl -s --user "$ATLASSIAN_EMAIL:$API_TOKEN"` against `https://api.bitbucket.org/2.0/repositories/<workspace>/<repo>` (shortened to `$BB`); `<workspace>/<repo>` comes from the detected remote URL (`bitbucket.org/<workspace>/<repo>.git`). List responses are paginated (default 10, max 100) — follow the `next` link in the body, or raise `pagelen`. `bkt` resolves the repo from the remote and paginates itself:
 
 | Operation | `bkt` (primary) | curl fallback |
-|---|---|---|
+| --- | --- | --- |
 | PR for the current branch | no list filter by branch — use the passthrough: `bkt api "/repositories/<workspace>/<repo>/pullrequests" -P 'q=source.branch.name="<branch>" AND state="OPEN"' --json` | `curl -sG … "$BB/pullrequests" --data-urlencode 'q=source.branch.name = "<branch>" AND state = "OPEN"'` |
 | PR metadata | `bkt pr view <n> --json` — verify the JSON field shape on first use for `participants[].approved` | `GET $BB/pullrequests/<n>` — `state` (`OPEN` / `MERGED` / `DECLINED` / `SUPERSEDED`), `title`, `description`, `draft`, `participants[].approved`, `task_count` (open tasks), `close_source_branch`, `source.branch.name`, `destination.branch.name` |
 | PR diff | `bkt pr diff <n>` (`--stat` for per-file counts) | `curl -sL … "$BB/pullrequests/<n>/diff"` — the endpoint redirects to the raw diff, so follow redirects (`-L`) |

@@ -1,13 +1,13 @@
 # TypeScript — project structure & mechanics
 
-Language-specific *mechanics* for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the TypeScript *how*. Load when structuring or restructuring a TS project or monorepo.
+Language-specific _mechanics_ for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the _why_; this is the TypeScript _how_. Load when structuring or restructuring a TS project or monorepo.
 
 > **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
 
 ## Unit of modularity
 
 - **Module** = a file (ESM). **Package** = a directory with its own `package.json` (in a monorepo workspace).
-- Group by **feature/domain** (`orders/`, `billing/`), not by layer (`controllers/`, `services/`) — see the concept file. Layer *within* each feature.
+- Group by **feature/domain** (`orders/`, `billing/`), not by layer (`controllers/`, `services/`) — see the concept file. Layer _within_ each feature.
 - One concept per file; named exports (not default — see capability.md).
 
 ## Visibility / boundary enforcement
@@ -40,7 +40,7 @@ The domain imports the `UserRepository` interface, never the Postgres class.
 
 - **Constructor injection** is idiomatic — `constructor(private repo: UserRepository)`.
 - The composition root is the entry point (`main.ts`, the server bootstrap, the framework's app factory) — instantiate concrete adapters there (imperative shell — principle 16).
-- DI *containers* (`tsyringe`, `InversifyJS`, NestJS's built-in) are common in larger apps but optional; manual wiring is clearer for small/medium apps (explicit-over-implicit mantra). Reach for a container only when manual wiring genuinely hurts.
+- DI _containers_ (`tsyringe`, `InversifyJS`, NestJS's built-in) are common in larger apps but optional; manual wiring is clearer for small/medium apps (explicit-over-implicit mantra). Reach for a container only when manual wiring genuinely hurts.
 
 ## Layout
 

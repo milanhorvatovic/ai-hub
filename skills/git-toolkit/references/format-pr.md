@@ -54,6 +54,6 @@ When the repo squash-merges with `squash_merge_commit_message == "COMMIT_MESSAGE
 
 Most of the rules from `format-conventions.md` Tone section apply, with these PR-specific notes:
 
-- The Summary section is *present tense* describing the change ("Adds retry to the upload queue"), not past tense ("Added retry...").
-- The Test plan checklist is *imperative* ("Run unit tests", "Deploy to staging") not declarative.
+- The Summary section is _present tense_ describing the change ("Adds retry to the upload queue"), not past tense ("Added retry...").
+- The Test plan checklist is _imperative_ ("Run unit tests", "Deploy to staging") not declarative.
 - The Notes / Migration section can shift to past tense for what was tested and present for what reviewers should do.

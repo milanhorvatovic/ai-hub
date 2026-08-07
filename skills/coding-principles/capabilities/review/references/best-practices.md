@@ -10,16 +10,16 @@ External standards, comment conventions, reviewer discipline. Complements the pr
 
 Every review comment should carry a label that signals its weight:
 
-| Label         | Meaning                                                       | Example                                                       |
-| ------------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
-| `praise:`     | Acknowledge good work                                         | `praise: nice use of the typestate pattern here`              |
-| `nitpick:`    | Minor; non-blocking                                           | `nitpick: trailing whitespace`                                |
-| `suggestion:` | Recommended change                                            | `suggestion: extract this 30-line block into a function`      |
-| `question:`   | Asking, not telling                                           | `question: is this intentional, or should it raise?`          |
-| `issue:`      | A real problem that needs addressing                          | `issue: this leaks the API token to logs`                     |
-| `thought:`    | Reflective, non-actionable                                    | `thought: similar logic exists in module X; future cleanup`   |
-| `todo:`       | Author's TODO surfaced for the next pass                      | `todo: add a test for the empty-list case`                    |
-| `chore:`      | Process/admin (rebase, conflict, missing label)               | `chore: needs rebase on main`                                 |
+| Label | Meaning | Example |
+| --- | --- | --- |
+| `praise:` | Acknowledge good work | `praise: nice use of the typestate pattern here` |
+| `nitpick:` | Minor; non-blocking | `nitpick: trailing whitespace` |
+| `suggestion:` | Recommended change | `suggestion: extract this 30-line block into a function` |
+| `question:` | Asking, not telling | `question: is this intentional, or should it raise?` |
+| `issue:` | A real problem that needs addressing | `issue: this leaks the API token to logs` |
+| `thought:` | Reflective, non-actionable | `thought: similar logic exists in module X; future cleanup` |
+| `todo:` | Author's TODO surfaced for the next pass | `todo: add a test for the empty-list case` |
+| `chore:` | Process/admin (rebase, conflict, missing label) | `chore: needs rebase on main` |
 
 Decorators clarify weight further:
 
@@ -33,11 +33,11 @@ Example: ``issue (blocking): this query has no `WHERE user_id = ?` — any user 
 
 Conventional Comments labels overlay onto this skill's severity:
 
-| Severity (parent skill) | Default label                |
-| ----------------------- | ---------------------------- |
-| **must**                | `issue (blocking):`          |
+| Severity (parent skill) | Default label                            |
+| ----------------------- | ---------------------------------------- |
+| **must**                | `issue (blocking):`                      |
 | **should**              | `suggestion:` or `issue (non-blocking):` |
-| **could**               | `nitpick:` or `thought:`     |
+| **could**               | `nitpick:` or `thought:`                 |
 
 Always cite the principle number for `issue:` and `suggestion:` so the author can verify the anchor.
 
@@ -66,13 +66,13 @@ Praise costs nothing and is the single highest-ROI review behavior. Aim for one 
 
 When reviewing, flag the absence of these as `suggestion:` or `chore:`:
 
-- **PR title** explains *what* changes in one line.
-- **PR description** explains *why* it changes, *how* it was tested, and any deployment / migration concerns.
+- **PR title** explains _what_ changes in one line.
+- **PR description** explains _why_ it changes, _how_ it was tested, and any deployment / migration concerns.
 - **Commits** are small and have meaningful subjects (Conventional Commits or the repo's style).
 - **Tests** exist for new behavior; bug fixes have a failing-first test (principle 2).
 - **Diff is focused** — no unrelated reformatting, no opportunistic refactors (principle 1).
 
-These are review-time *signals*, not findings — they shape the next PR more than this one.
+These are review-time _signals_, not findings — they shape the next PR more than this one.
 
 ## What to skip during review
 
@@ -85,7 +85,7 @@ These are review-time *signals*, not findings — they shape the next PR more th
 
 - **Describe the consequence**, not the verdict. Say "this leaks the token to logs" / "this couples X to Y, so changes to Y require touching X." Not "this is bad practice."
 - **Suggest a concrete change** when the suggestion is non-trivial. A two-line code sketch beats two paragraphs of prose.
-- **Reference the principle** for traceable rules; reference *external standards* (Conventional Commits, PEPs, Rust API Guidelines) when the rule is industry-wide rather than team-local.
+- **Reference the principle** for traceable rules; reference _external standards_ (Conventional Commits, PEPs, Rust API Guidelines) when the rule is industry-wide rather than team-local.
 - **Ask, don't accuse.** `question: was this intentional?` opens a conversation; `you forgot to handle X` closes it.
 
 ## Anti-patterns specific to review

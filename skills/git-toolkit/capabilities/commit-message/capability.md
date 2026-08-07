@@ -23,7 +23,7 @@ Writes a new commit message, reviews existing ones for format compliance, or rew
 ## Mode detection
 
 | Signal | Mode |
-|---|---|
+| --- | --- |
 | `git diff --cached` shows staged changes AND no commit yet AND user says "write/draft a commit" | **WRITE** |
 | User points at a specific commit ("review HEAD", "check commit abc1234", "audit the last 5 commits") | **REVIEW** |
 | User says "review my commits" / "are my commits compliant?" / "fix commit history" / "audit the branch" | **REVIEW** (range = branch's unique commits) |
@@ -227,7 +227,7 @@ An optional `rules:` argument scopes the review to a subset of registry rules �
 ### 1. Resolve target commit(s)
 
 | User said | Range |
-|---|---|
+| --- | --- |
 | "review HEAD" / "last commit" / no arg | `HEAD` (single commit) |
 | "review the last N commits" | `HEAD~N..HEAD` |
 | "review my commits on this branch" | `<base>..HEAD` where `<base>` is the merge-base with `main`/`master`/`develop`/the PR base — detect via `git merge-base HEAD <base>` |
@@ -241,7 +241,7 @@ For PR-aware ranges, fetch `baseRefName` from `gh pr view` first if a PR exists 
 For each commit in the range, run `git show <sha> --no-patch --format='%H%n%s%n%n%b%n%n%(trailers:only,unfold)'`, then check:
 
 | Check | Rule id | Passes when | Severity on violation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Subject length | `subject-length` | ≤72 display columns | `error` if >72. The ≤50 ideal is advisory — report the max observed, don't flag 51–72 |
 | Imperative mood | `imperative-mood` | Subject starts with an imperative verb | `warn` (heuristic — past tense is the most common failure) |
 | Trailing period | `trailing-period` | No `.` at end of subject | `error` |
@@ -329,7 +329,7 @@ If the range overlaps with commits already pushed to a remote tracking branch, e
 
 ### 6. Personal-style memory hook
 
-When the user corrects a proposed message in a way that reveals a *personal* style preference distinct from the repo's defaults — for example, rewriting a hard-wrapped body to flowing paragraphs in a repo where the convention sample was too small to detect either way — note the correction and consider proposing a user-scoped memory record:
+When the user corrects a proposed message in a way that reveals a _personal_ style preference distinct from the repo's defaults — for example, rewriting a hard-wrapped body to flowing paragraphs in a repo where the convention sample was too small to detect either way — note the correction and consider proposing a user-scoped memory record:
 
 ```
 Style preference detected: <one-line summary, e.g. "user prefers flowing-paragraph commit bodies over hard-wrap at 72">

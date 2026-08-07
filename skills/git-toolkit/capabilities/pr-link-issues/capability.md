@@ -38,7 +38,7 @@ In parallel:
 For each unique issue number found:
 
 | Source signal | Initial classification |
-|---|---|
+| --- | --- |
 | `Closes #N` / `Fixes #N` / `Resolves #N` already in PR body | Already-declared closing-ref (skip — keep verbatim) |
 | `Refs #N` / `See #N` / `Part of #N` already in PR body | Already-declared context-ref (skip) |
 | `Closes #N` in commit body | Candidate closing-ref (verify with diff) |
@@ -133,6 +133,7 @@ applying. Never run gh pr edit automatically.)
 Secret scan per `../../references/secret-patterns.md` over the proposed body before it is displayed or written to the mktemp file. On match → redact + WARN. Never include detected secrets — on screen or on disk.
 
 Always:
+
 - Verify each proposal with `gh issue view` — don't propose closing an issue you haven't read
 - Show confidence level + reasoning
 - Surface DOWNGRADE / REMOVE proposals separately so they're not buried

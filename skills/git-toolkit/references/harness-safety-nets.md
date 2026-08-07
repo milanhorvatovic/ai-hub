@@ -7,7 +7,7 @@ Load this when a capability's proposed command is likely to be blocked by an age
 These operations are routinely flagged. The skill does not bypass classifier guards; instead it pre-frames the operation so the user has the context to authorize it explicitly.
 
 | Operation | Common reason flagged | Mitigation |
-|---|---|---|
+| --- | --- | --- |
 | `git push --force-with-lease` on a branch with reviewers | Destructive to remote state; may overwrite collaborator work. | Use the Force-Push Impact block (`force-push-impact.md`) to surface anchors and reviewers. Ask for explicit opt-in before showing the push command. |
 | `git push --force` (without `--with-lease`) | Strictly worse than `--force-with-lease`. | Never propose. Always use `--force-with-lease`. |
 | `git reset --hard` on a branch that has local commits past the target | Drops uncommitted or unpushed work irrecoverably (without reflog). | Confirm the discarded commits' SHAs are recoverable via reflog or backup tag; list what would be lost; ask for opt-in. |
@@ -46,7 +46,7 @@ The user (and any classifier reading the conversation) can now decide with full 
 The same operation may be blocked by one harness and pass on another, and the mitigation phrasing differs slightly per harness. A non-exhaustive catalog:
 
 | Harness | Classifier / safety surface | Trailer default | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Claude Code | "auto mode classifier"; per-command permission prompts; settings.json hooks | `Co-Authored-By: Claude <noreply@anthropic.com>` | Most aggressive on mass-rewrite, force-push, and fabricated-attribution. Surfacing intent/impact/recovery before the command typically unblocks. |
 | Cursor | YOLO-mode toggle + per-action confirmation | varies by model | Less surface area than Claude Code; force-push to non-main usually passes without prompt. |
 | Gemini CLI | sandbox modes + tool allowlist | `Co-Authored-By: Gemini` (configurable) | Sandbox blocks file writes outside cwd; mass-rewrite needs explicit cwd inclusion. |

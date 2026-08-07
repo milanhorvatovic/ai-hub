@@ -58,42 +58,42 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 ### Starting work
 
 | Capability | Trigger | Path |
-|---|---|---|
+| --- | --- | --- |
 | branch-name | [git-side] Starting new work that needs a branch — propose a name from staged changes or a user description, respecting repo prefix conventions (`fix/`, `feature/`, etc.) | capabilities/branch-name/capability.md |
 | worktree-setup | [git-side] Beginning parallel work alongside the current checkout — propose the `git worktree add` command, detecting the repo's worktree placement and naming conventions (sibling `<repo>-worktrees/` default) | capabilities/worktree-setup/capability.md |
 
 ### Authoring commits
 
 | Capability | Trigger | Path |
-|---|---|---|
+| --- | --- | --- |
 | commit-message | [git-side, optional forge enrichment] About to commit staged changes (asked for a message or not) — write the subject + body; review one existing commit / a range for format compliance and propose fixes; or reword HEAD's message without touching the diff (validates against format conventions; warns on pushed commits) | capabilities/commit-message/capability.md |
 | commit-fixup | [git-side] Staged changes belong to an earlier commit on the branch — detect which and propose `git commit --fixup <sha>` plus the follow-up rebase command | capabilities/commit-fixup/capability.md |
 
 ### Tidying history before review
 
 | Capability | Trigger | Path |
-|---|---|---|
+| --- | --- | --- |
 | rebase-cleanup | [git-side, optional forge enrichment] Branch history needs tidying before review or merge — analyze the commits and propose an interactive-rebase plan (squash / fixup / reword / drop / reorder) | capabilities/rebase-cleanup/capability.md |
 | commit-body-reflow | [git-side, optional forge enrichment] Switching many commit bodies at once between flowing-paragraph and hard-wrap styles, across a range or set of stacked branches — preserves subjects and trailers byte-for-byte | capabilities/commit-body-reflow/capability.md |
 
 ### Opening and shaping a PR
 
 | Capability | Trigger | Path |
-|---|---|---|
+| --- | --- | --- |
 | pr-description | [forge-side] Opening a PR or keeping its body honest — WRITE mode authors the description from scratch when the body is empty / `WIP` / a one-liner / an unfilled template; SYNC mode fires when the branch changed after the body was written, or when asked whether the description still matches — classifying divergence as `IN-SYNC` / `MINOR-UPDATE` / `MAJOR-REWRITE` and proposing a fix | capabilities/pr-description/capability.md |
 | pr-link-issues | [forge-side] PR addresses issues its body doesn't reference — auto-detect them (from branch, commits, body), verify the diff resolves them, propose `Closes` / `Refs` keywords to add | capabilities/pr-link-issues/capability.md |
 
 ### Working through review
 
 | Capability | Trigger | Path |
-|---|---|---|
+| --- | --- | --- |
 | pr-checks-summary | [forge-side] CI is red on the PR — inspect failed checks, fetch logs, classify failure types (test / lint / build / deploy / security), propose likely fixes and reproduce-locally commands | capabilities/pr-checks-summary/capability.md |
 | pr-conversation-resolve | [forge-side] Working through review feedback — list unresolved threads, match each against recent commits, propose responses (with optional resolve commands); never auto-post | capabilities/pr-conversation-resolve/capability.md |
 
 ### Merging and releasing
 
 | Capability | Trigger | Path |
-|---|---|---|
+| --- | --- | --- |
 | merge-readiness | [forge-side] About to merge, or asking "is this ready?" — gate check on CI status, approvals, mergeability, unresolved threads, WIP commits, description-in-sync. Outputs READY / PARTIALLY-READY / NOT-READY with per-gate detail | capabilities/merge-readiness/capability.md |
 | merge-execute | [forge-side] Merging an approved PR — output the canonical merge command per repo merge policy (squash / rebase / merge), with the right delete-branch and auto-merge flags | capabilities/merge-execute/capability.md |
 | release-notes | [git-side, optional forge enrichment] Preparing a release — draft notes aggregating commits since the previous tag, grouped by conventional-commits type; enriches with merged-PR metadata and contributor credit where the lane supports that read (GitHub's worked example today), degrades to a commit-only draft otherwise; the publish command routes per the detected forge | capabilities/release-notes/capability.md |
@@ -107,7 +107,7 @@ Grouped by lifecycle phase so the right capability surfaces by intent, not by al
 **Forge support tiers.** What each forge-side capability delivers per forge, so the promise is explicit instead of implied. Git-side capabilities are unaffected by forge — that is the point of the classification.
 
 | Capability | T1 GitHub | T2 GitLab | T3 Codeberg / Forgejo | T4 Bitbucket Cloud |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | pr-description | full | full | full | minimal — view, diff, body edit via the Bitbucket lane |
 | pr-link-issues | full | full | partial — no timeline cross-reference read | refuses |
 | pr-checks-summary | full | partial — pipeline status, no log interpretation | refuses | refuses |
@@ -126,7 +126,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 ### Universal (used by both sides)
 
 | File | Specifies |
-|---|---|
+| --- | --- |
 | `references/format-conventions.md` | Index file — Precedence (which source overrides which), Fresh-repo and Non-English fallbacks, Tone, and pointers to the slice files below |
 | `references/format-subject.md` | Commit-subject and PR-title rules: imperative mood, length cap, conventional-commits syntax, required/forbidden elements, anti-examples |
 | `references/format-body.md` | Commit-body rules: flowing-paragraph default, hard-wrap opt-in, body required/optional/none decision tree, body contents required/forbidden, anti-examples |
@@ -145,7 +145,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 ### Git-side only
 
 | File | Specifies |
-|---|---|
+| --- | --- |
 | `references/git-gh-quirks.md` (git portions) | Force-push reconciliation, two-dot vs three-dot diff, `git fetch` graceful degrade |
 | `references/force-push-impact.md` | The none / mild / high impact buckets, pushed-state detection recipes (incl. the stale tracking-refs caveat), the canonical Force-Push Impact output block, and the single `--force-with-lease` surfacing policy (impact-gated opt-in) — one home for every history-rewriting capability |
 | `references/mass-rewrite.md` | Tool choice (filter-repo vs filter-branch vs rebase --exec), per-branch sequencing for stacked branches, idempotency, post-flight verification, recovery from backup tags |
@@ -153,7 +153,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 ### Forge-side only
 
 | File | Specifies |
-|---|---|
+| --- | --- |
 | `references/pr-input-guards.md` | Canonical input-guard sequence for forge-side capabilities: forge detection and command-lane selection, PR resolution order, state guard, bot guard, auth failure handling, untrusted-content pointer — capabilities reference it and declare only their deviations |
 | `references/merge-policy.md` | Squash / rebase / merge-commit implications on PR body shape (`gh api repos`) |
 | `references/issue-references.md` | `Closes/Fixes/Resolves` vs `Refs/See/Related`; GitHub auto-close behavior; cross-repo refs |
@@ -168,7 +168,7 @@ Grouped by scope so capabilities can pull only what their side needs.
 A typical end-to-end lifecycle for a change. Each step is independent and optional; the user invokes only what's needed. The `Side` column makes the git/forge boundary visible — pure-git workflows skip the forge-side rows.
 
 | Phase | Capability | Side |
-|---|---|---|
+| --- | --- | --- |
 | Starting a new branch | `branch-name` → optionally `worktree-setup` for parallel work | git |
 | Writing commits during work | `commit-message` (WRITE mode) | git |
 | Quick mid-work fixes | `commit-fixup` for amending an earlier commit; `commit-message` (AMEND mode) for fixing the last commit's wording | git |

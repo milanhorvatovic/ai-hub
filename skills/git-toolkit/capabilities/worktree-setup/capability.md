@@ -72,11 +72,13 @@ After adding, switch to it:
 ```
 
 For existing branch (no `-b`):
+
 ```
   git worktree add /path/to/repo-worktrees/fix/expired-token-handling fix/expired-token-handling
 ```
 
 For remote-only branch (fetch + add):
+
 ```
   git fetch origin fix/expired-token-handling
   git worktree add /path/to/repo-worktrees/fix/expired-token-handling fix/expired-token-handling

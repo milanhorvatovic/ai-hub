@@ -110,7 +110,7 @@ Short, well-scoped commits often don't need a body at all — subject is enough.
 **Required (when body is present):**
 
 | Element | Why |
-|---|---|
+| --- | --- |
 | Blank line between subject and body | Many tools merge them otherwise |
 | Reason / motivation | "Why now" is what the diff cannot show |
 | Specific over generic | "Resolves race in retry queue" not "fix issue" |
@@ -118,7 +118,7 @@ Short, well-scoped commits often don't need a body at all — subject is enough.
 **Forbidden:**
 
 | Element | Why |
-|---|---|
+| --- | --- |
 | Restating the subject as the first body line | The reader just read it; this is duplication |
 | Listing files changed | `git show --stat` does this; the body is for intent |
 | Marketing language ("awesome", "excited", "amazing") | Subjective + unhelpful + dates fast |
@@ -142,7 +142,7 @@ Is the subject self-explanatory + mechanical?  → NO body needed
 ## Anti-examples → fixed (body only)
 
 | Bad | Good | What's wrong |
-|---|---|---|
+| --- | --- | --- |
 | Body: `Added a parser. This commit adds a parser.` | (drop the redundant body OR write the actual why) | Body restates subject |
 | Body: `Files changed: foo.py, bar.py, baz.py` | (drop — `git show --stat` does this) | Body duplicates diff metadata |
 | Body: `Signed-off-by: Claude` (auto-added) | (drop — only add trailers on user request) | Auto-added attribution trailer |

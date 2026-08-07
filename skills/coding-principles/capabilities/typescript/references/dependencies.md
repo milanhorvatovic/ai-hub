@@ -8,7 +8,7 @@ Language-specific dependency mechanics. The cross-language principles (semver, l
 
 **Default: pin exact versions.** npm's `^` (caret) and `~` (tilde) float the version — `"react": "^18.3.1"` installs any `18.x` at install time. Pin exact for reproducibility.
 
-- **Applications / services**: pin exact in `package.json` *and* commit the lockfile.
+- **Applications / services**: pin exact in `package.json` _and_ commit the lockfile.
   ```json
   // package.json — exact, no ^ or ~
   "dependencies": {
@@ -26,7 +26,7 @@ Language-specific dependency mechanics. The cross-language principles (semver, l
 
 - **`pnpm`** (preferred — strict, fast, monorepo-native). `npm` acceptable. Same pin-exact + commit-lockfile discipline.
 - **`pnpm audit` / `npm audit`** in CI against the pinned tree.
-- **`npm-check-updates` (`ncu`)** to *surface* available updates — but apply deliberately, with review and tests, not blindly.
+- **`npm-check-updates` (`ncu`)** to _surface_ available updates — but apply deliberately, with review and tests, not blindly.
 
 ## Version syntax (semver ranges)
 
