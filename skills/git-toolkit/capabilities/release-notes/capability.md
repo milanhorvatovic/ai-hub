@@ -49,7 +49,7 @@ Branch on what the sample shows:
 - Subjects don't match CC, PR metadata is available (not commit-only mode — see Guards), and merged PRs carry meaningful labels (`bug`, `enhancement`, `documentation`, …) → grouping = **labels**.
 - Neither — including commit-only mode, where no PR labels exist to group by → grouping = **flat**; a single "Changes" section.
 
-Detect the **CHANGELOG style**: if `CHANGELOG.md` exists, read its most recent entries and classify — `keep-a-changelog` or `custom`; report `none` when the file is absent. `none` means there is no existing format to match, so Step 4 falls back to a fresh Keep-a-Changelog-style section — the preamble still reports `none` because that is what was *detected*, not what was emitted. Step 4 matches a `keep-a-changelog` / `custom` detection as-is.
+Detect the **CHANGELOG style**: if `CHANGELOG.md` exists, read its most recent entries and classify — `keep-a-changelog` or `custom`; report `none` when the file is absent. `none` means there is no existing format to match, so Step 4 falls back to a fresh Keep-a-Changelog-style section — the preamble still reports `none` because that is what was _detected_, not what was emitted. Step 4 matches a `keep-a-changelog` / `custom` detection as-is.
 
 Never classify (Step 2) or compose (Step 4) before this step runs (see Anti-patterns); carry both verdicts into every proposal through the Detected-conventions line of the Step 6 preamble.
 
@@ -82,7 +82,7 @@ Apply the grouping mode Step 0 detected — don't re-decide it here.
 **conventional-commits** — parse each commit subject for `<type>(<scope>)<!>: <description>` (the `(<scope>)` is optional per `../../references/format-subject.md`; a scope-less `feat: …` still parses as `feat`) and group into:
 
 | Group heading | Conventional-commits types |
-|---|---|
+| --- | --- |
 | Breaking changes | Any commit with `!` marker or `BREAKING CHANGE:` footer (always first, regardless of type) |
 | Features | `feat` |
 | Bug fixes | `fix` |

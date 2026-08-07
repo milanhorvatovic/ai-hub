@@ -11,7 +11,7 @@ Without a shared schema, every capability invents its own table layout, every re
 The default human output is a markdown table with these columns:
 
 | Rule | Result | Details |
-|---|---|---|
+| --- | --- | --- |
 | <rule name> | PASS / MOSTLY-PASS / FAIL / N/A | <one-line specifics; commit SHA, line number, or quoted excerpt> |
 
 - **Rule** — the rule's short name, taken verbatim from the spec it references (`Imperative mood`, `≤72 char subjects`, `Trailers auto-added`).
@@ -63,7 +63,7 @@ Every `rule` id in a stream resolves to a single registry with two halves:
 2. **Check and meta ids** — the table below: checks that grade a format property rather than detect a smell, plus the meta rows a report carries. They have no catalog entry; this table is their definition.
 
 | Id | Class | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | `conventional-commits-prefix` | check | Subject carries the repo's conventional-commits prefix; `N/A` when the repo doesn't use them |
 | `body-wrap` | check | Body lines stay within the column limit — hard-wrap repos only; `N/A` under the flowing-paragraph default |
 | `blank-line-after-subject` | check | Exactly one blank line separates subject and body |
@@ -86,12 +86,12 @@ The JSON Schema's `rule` enum is the machine form of this registry — both halv
 
 Capabilities that grade checks internally with `error` / `warn` severities (e.g. commit-message REVIEW) translate them to results at emission time. The mapping is defined once, here:
 
-| Internal severity | Result |
-|---|---|
-| `error` — hard-rule violation | `FAIL` |
+| Internal severity                         | Result        |
+| ----------------------------------------- | ------------- |
+| `error` — hard-rule violation             | `FAIL`        |
 | `warn` — soft cap, heuristic, or advisory | `MOSTLY-PASS` |
-| check passed | `PASS` |
-| rule does not apply to the target | `N/A` |
+| check passed                              | `PASS`        |
+| rule does not apply to the target         | `N/A`         |
 
 Aggregation across a range: one table row per rule, not per commit. A rule's result is `FAIL` if any target trips its `error` condition, else `MOSTLY-PASS` if any target trips a `warn`, else `PASS` (`N/A` when the rule applies to no target). Per-target specifics — offending SHAs, excerpts — go in `Details`, and each `FAIL` / `MOSTLY-PASS` rule gets a finding block in the human report. The NDJSON stream is the granular complement: a passing rule emits its aggregate object, a failing rule one object per offending target (see the NDJSON schema above).
 

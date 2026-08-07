@@ -19,7 +19,7 @@ This skill's pin-explicit default manifests differently here — there's no vers
   jq_ver=$(jq --version | sed 's/jq-//')
   [[ "$(printf '%s\n1.6\n' "$jq_ver" | sort -V | head -1)" == "1.6" ]] || { echo "jq >= 1.6 required" >&2; exit 69; }
   ```
-- **Pin the environment, not the command** — when reproducibility genuinely matters, pin the *whole toolchain* with a container image (exact base image tag, not `latest`) or Nix. That's how bash "pins versions": fix the environment the script runs in.
+- **Pin the environment, not the command** — when reproducibility genuinely matters, pin the _whole toolchain_ with a container image (exact base image tag, not `latest`) or Nix. That's how bash "pins versions": fix the environment the script runs in.
 - **Vendoring** — for small sourced libraries, vendor a copy at a known version into `lib/` rather than fetching at runtime; a runtime `curl | bash` is both a supply-chain risk and a non-reproducible dependency.
 
 ## Sourced libraries
@@ -30,7 +30,7 @@ This skill's pin-explicit default manifests differently here — there's no vers
 ## Supply chain
 
 - **Never `curl ... | bash`** from an unpinned URL — you're executing whatever the server returns today. If you must fetch-and-run, pin to a commit hash and verify a checksum.
-- Tools installed via a package manager (apt/brew) should be pinned in the *container/image* layer for reproducible runs.
+- Tools installed via a package manager (apt/brew) should be pinned in the _container/image_ layer for reproducible runs.
 
 ## When this is a "leave bash" signal
 

@@ -6,8 +6,8 @@ External standards and published thinking behind the comment-value rubric. Compl
 
 ## External standards
 
-- **[John Ousterhout, *A Philosophy of Software Design*](https://web.stanford.edu/~ouster/cgi-bin/book.php)** — the strongest published case *for* comments: they should describe what is not obvious from the code, at a different level of abstraction than the code itself (higher: intent and invariants; or lower: units, boundary conditions, ownership). His comment categories — interface, data-structure member, implementation, cross-module — map directly onto the rubric's meaning categories.
-- **[Jeff Atwood, "Code Tells You How, Comments Tell You Why"](https://blog.codinghorror.com/code-tells-you-how-comments-tell-you-why/)** — the canonical statement of the content gate (principle 7): the code carries the *how*; a comment earns its keep carrying the *why*.
+- **[John Ousterhout, _A Philosophy of Software Design_](https://web.stanford.edu/~ouster/cgi-bin/book.php)** — the strongest published case _for_ comments: they should describe what is not obvious from the code, at a different level of abstraction than the code itself (higher: intent and invariants; or lower: units, boundary conditions, ownership). His comment categories — interface, data-structure member, implementation, cross-module — map directly onto the rubric's meaning categories.
+- **[Jeff Atwood, "Code Tells You How, Comments Tell You Why"](https://blog.codinghorror.com/code-tells-you-how-comments-tell-you-why/)** — the canonical statement of the content gate (principle 7): the code carries the _how_; a comment earns its keep carrying the _why_.
 - **[PEP 257](https://peps.python.org/pep-0257/)** and the **[Google Python Style Guide §3.8](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)** — docstring scope conventions: document the public surface's contract (args whose interaction is non-obvious, returns, raises), not restated signatures. The detection table in `../capability.md` decides when a project has opted into them.
 - **[rustdoc — how to write documentation](https://doc.rust-lang.org/rustdoc/how-to-write-documentation.html)** — doc comments as consumed API documentation: first line is a summary, examples are compiled and tested. When comments feed a doc pipeline, they are interface, not commentary — the schema-doc edge case generalized.
 - **Microsoft [XML documentation comments](https://learn.microsoft.com/dotnet/csharp/language-reference/xmldoc/)** — same contract stance for .NET: `<summary>` carries what the signature cannot, and tooling (`SA1600`, `GenerateDocumentationFile`) makes the convention detectable.
@@ -16,8 +16,8 @@ External standards and published thinking behind the comment-value rubric. Compl
 
 Three points of agreement across the sources above, restated as this capability applies them:
 
-1. **The code is the primary document.** Naming, structure, and types carry the *what*; a comment duplicating them is maintenance debt (Atwood; Kernighan's "don't comment bad code — rewrite it").
-2. **Good comments are not optional decoration.** Ousterhout's counterpoint disciplines the deletion reflex: invariants, units, ownership, and cross-module constraints *cannot* be expressed in code, and omitting them loses design information permanently. The rubric's revise-before-remove stance is his position operationalized.
+1. **The code is the primary document.** Naming, structure, and types carry the _what_; a comment duplicating them is maintenance debt (Atwood; Kernighan's "don't comment bad code — rewrite it").
+2. **Good comments are not optional decoration.** Ousterhout's counterpoint disciplines the deletion reflex: invariants, units, ownership, and cross-module constraints _cannot_ be expressed in code, and omitting them loses design information permanently. The rubric's revise-before-remove stance is his position operationalized.
 3. **Docstrings are a project-level contract, not a per-author taste.** Every ecosystem expresses "we document our public surface" through detectable tooling (pydocstyle, jsdoc lints, `missing_docs`, checkstyle) — so detection, not preference, decides.
 
 ## The agent-authoring addendum

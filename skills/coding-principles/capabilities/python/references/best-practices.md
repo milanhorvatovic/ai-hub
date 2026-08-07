@@ -48,7 +48,7 @@ The list runs to the newest stable release at the stamp date; a version past tha
 
 ## Property-based testing
 
-Use `hypothesis` for any function that takes structured input and has algebraic properties (parsing, normalization, encoding, math). It generates inputs you wouldn't think to write tests for and *shrinks* failures to minimal repros.
+Use `hypothesis` for any function that takes structured input and has algebraic properties (parsing, normalization, encoding, math). It generates inputs you wouldn't think to write tests for and _shrinks_ failures to minimal repros.
 
 ```python
 from hypothesis import given, strategies as st
@@ -91,7 +91,7 @@ The stdlib is the right default. Reach for third-party libraries when:
 
 ## Documentation
 
-- **Whether a docstring is warranted at all** is the comments capability's call — it owns the cross-language policy, including the pydocstyle / interrogate / ruff D-rule signals that say this project demands them. What follows is Python's *how*, once that policy says yes.
+- **Whether a docstring is warranted at all** is the comments capability's call — it owns the cross-language policy, including the pydocstyle / interrogate / ruff D-rule signals that say this project demands them. What follows is Python's _how_, once that policy says yes.
 - **Docstring style** — the shape is PEP 257's (External standards, above); the choice among Google, NumPy, and Sphinx/reStructuredText is the repo's, applied consistently. Google style is the most readable for most projects.
 - **Type hints are documentation** — a precise signature replaces a paragraph of prose. Prefer expressive types over describing types in the docstring.
 - **Site generators**: `mkdocs` + `mkdocstrings` (Markdown, modern) or `Sphinx` + `autodoc` (reStructuredText, the classic). Generate from docstrings; don't hand-maintain a parallel doc tree.

@@ -4,7 +4,7 @@ Language-agnostic conventions for designing service APIs (REST, GraphQL, gRPC). 
 
 > **The spec and resolver tools named below were last checked 2026-08.** The rules do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
 
-These are *industry* conventions, not this skill's invention — cite them when an API choice needs justification.
+These are _industry_ conventions, not this skill's invention — cite them when an API choice needs justification.
 
 ## REST / HTTP
 
@@ -12,21 +12,21 @@ These are *industry* conventions, not this skill's invention — cite them when 
 
 Use the status code that matches the semantics; don't return `200` with an `{error: ...}` body.
 
-| Code | When                                                              |
-| ---- | --------------------------------------------------------------- |
-| 200  | Success with a body                                             |
+| Code | When                                                             |
+| ---- | ---------------------------------------------------------------- |
+| 200  | Success with a body                                              |
 | 201  | Resource created (return `Location` header + the created entity) |
-| 202  | Accepted for async processing (not yet done)                   |
-| 204  | Success, no body (e.g. DELETE)                                  |
-| 400  | Malformed request (client should not retry unchanged)          |
-| 401  | Not authenticated                                              |
-| 403  | Authenticated but not authorized                               |
-| 404  | Resource not found (or hidden for authz reasons)               |
-| 409  | Conflict (version mismatch, duplicate)                         |
-| 422  | Well-formed but semantically invalid                           |
-| 429  | Rate limited (include `Retry-After`)                           |
-| 500  | Server bug (never leak detail to the client — see principle 13) |
-| 503  | Temporarily unavailable (include `Retry-After`)                |
+| 202  | Accepted for async processing (not yet done)                     |
+| 204  | Success, no body (e.g. DELETE)                                   |
+| 400  | Malformed request (client should not retry unchanged)            |
+| 401  | Not authenticated                                                |
+| 403  | Authenticated but not authorized                                 |
+| 404  | Resource not found (or hidden for authz reasons)                 |
+| 409  | Conflict (version mismatch, duplicate)                           |
+| 422  | Well-formed but semantically invalid                             |
+| 429  | Rate limited (include `Retry-After`)                             |
+| 500  | Server bug (never leak detail to the client — see principle 13)  |
+| 503  | Temporarily unavailable (include `Retry-After`)                  |
 
 ### Idempotency
 

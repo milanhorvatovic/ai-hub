@@ -7,7 +7,7 @@ Catalogued symptoms with their principle anchors. Complements the language-agnos
 - **Comment restates the adjacent line** (`i += 1  # increment i`) — principles 21 (value) + 7 (content). Delete; the code already says it.
 - **Narrated control flow** (`# loop over the users`, `# return the result`) — principle 21. Structure shows it; delete.
 - **Banner / divider comments** (`# ─── helpers ───`, `// ==== SECTION ====`) — principle 21 + mantra readability first. Delete; a file that needs signage needs splitting.
-- **Change narration in tree** (`// added for the X flow`, `# fix for #123`, `# per review feedback`) — principle 7. That story belongs in the commit message; the tree documents what *is*, not how it got there.
+- **Change narration in tree** (`// added for the X flow`, `# fix for #123`, `# per review feedback`) — principle 7. That story belongs in the commit message; the tree documents what _is_, not how it got there.
 - **Apology comments** (`# bit hacky, sorry`, `# not proud of this`) — principle 21 (direct). State the constraint and its anchor plainly, or fix the code instead of apologizing for it.
 
 ## Docstrings
@@ -26,7 +26,7 @@ Catalogued symptoms with their principle anchors. Complements the language-agnos
 
 - **Arrange/act/assert dividers** (`# arrange`, `# act`, `# assert`) — principle 21. Block structure already communicates the phases.
 - **Comment restating the test name** — principle 21. `test_rejects_expired_token` needs no `# tests that expired tokens are rejected`.
-- **Unexplained exotic mock** — inverse failure: a partial mock simulating a half-up service with *no* comment — principle 21 wants one here. The rubric cuts both ways.
+- **Unexplained exotic mock** — inverse failure: a partial mock simulating a half-up service with _no_ comment — principle 21 wants one here. The rubric cuts both ways.
 
 ## Markers and directives
 

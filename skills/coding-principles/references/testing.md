@@ -1,6 +1,6 @@
 # Testing strategy — industry conventions
 
-Language-agnostic testing *strategy*. The per-language *tactics* (pytest/vitest/cargo-test, hypothesis/proptest, mocking libs) live in each language capability's best-practices and capability-entry docs; this file is the strategy layer above them. Load when deciding what to test, at what level, with what doubles.
+Language-agnostic testing _strategy_. The per-language _tactics_ (pytest/vitest/cargo-test, hypothesis/proptest, mocking libs) live in each language capability's best-practices and capability-entry docs; this file is the strategy layer above them. Load when deciding what to test, at what level, with what doubles.
 
 Anchored to principle 2 (bug fixes need a failing-first test) and principle 15 (tests describe behavior, mock at boundaries) — this file is the strategy those rules operate within.
 
@@ -28,14 +28,14 @@ Inverted pyramids (mostly e2e) are slow and flaky; all-unit-no-integration misse
 Precise vocabulary — these are not interchangeable:
 
 | Double | What it does | Use when |
-| ------ | ------------ | -------- |
+| --- | --- | --- |
 | **Dummy** | Passed but never used (fills a parameter) | Satisfying a signature |
-| **Stub** | Returns canned answers | Controlling indirect *input* to the unit |
+| **Stub** | Returns canned answers | Controlling indirect _input_ to the unit |
 | **Spy** | A stub that records how it was called | Verifying a call happened, after the fact |
 | **Mock** | Pre-programmed with expectations; fails if not met | Verifying interactions (use sparingly) |
 | **Fake** | A working lightweight implementation (in-memory DB, fake clock) | Realistic behavior without the real dependency |
 
-**Prefer fakes and stubs over mocks.** Mocks couple the test to the call sequence; an in-memory **fake** lets you assert on observable outcomes (state after) instead of interaction details. Mock at *boundaries* (the HTTP client, the clock) — never internal collaborators (principle 15).
+**Prefer fakes and stubs over mocks.** Mocks couple the test to the call sequence; an in-memory **fake** lets you assert on observable outcomes (state after) instead of interaction details. Mock at _boundaries_ (the HTTP client, the clock) — never internal collaborators (principle 15).
 
 ## Test data
 
@@ -61,20 +61,20 @@ A flaky test is worse than no test — it trains the team to ignore red. Fix or 
 
 - **Property-based testing** — generate inputs, assert invariants; the framework shrinks failures to minimal repros. For parsing, encoding, math, normalization. The per-language tool and its idioms live in the matching language capability's best-practices reference — `hypothesis` for python, `fast-check` for typescript, `proptest` for rust. Shell is the gap that stays a gap: no generator-and-shrinker library reached adoption there, so a script whose logic has properties worth generating against is a script whose logic belongs in a language that has one.
 - **Contract testing** — for service ecosystems, consumer-driven contracts (Pact) verify the provider honors what consumers depend on, without full e2e. Prevents "we changed the API and broke three teams."
-- **Snapshot / golden-file testing** — assert output matches a stored reference. Useful for serializers, generated code, complex structures. *Dangerous* when over-used: a snapshot nobody reads becomes "approve the diff" rubber-stamping. Keep snapshots small and reviewed.
+- **Snapshot / golden-file testing** — assert output matches a stored reference. Useful for serializers, generated code, complex structures. _Dangerous_ when over-used: a snapshot nobody reads becomes "approve the diff" rubber-stamping. Keep snapshots small and reviewed.
 - **Mutation testing** — mutate the code, check tests catch it. Measures whether tests actually test (vs just execute) the code. Run periodically, not every CI (slow).
 - **Fuzzing** — feed random/malformed input to find crashes and panics. For parsers, decoders, anything taking untrusted bytes (cargo-fuzz, atheris, jazzer).
 
 ## Coverage
 
 - Coverage is a **signal, not a target.** High coverage of trivial code + zero coverage of the gnarly branch is worse than the number suggests.
-- 100% coverage proves every line *ran*, not that behavior is *correct* — mutation testing measures the latter.
-- Use coverage to find *untested* logic; don't game it with assertion-free tests.
+- 100% coverage proves every line _ran_, not that behavior is _correct_ — mutation testing measures the latter.
+- Use coverage to find _untested_ logic; don't game it with assertion-free tests.
 
 ## Principle alignment
 
 - **Principle 2** — bug fixes: failing-first test, fix without changing the test, confirm green.
 - **Principle 15** — behavior-named tests, mock at boundaries, one behavior per test, skip trivia.
 - **Principle 16** — inject time/randomness so tests are deterministic.
-- **Principle 10** — verification: tests are *part* of "verify it works," not a substitute for exercising the feature.
+- **Principle 10** — verification: tests are _part_ of "verify it works," not a substitute for exercising the feature.
 - **Pure/impure separation** mantra — a pure core needs no doubles; if a unit needs five mocks, the design (not the test) is the problem.

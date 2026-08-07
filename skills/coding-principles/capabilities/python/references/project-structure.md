@@ -1,13 +1,13 @@
 # Python — project structure & mechanics
 
-Language-specific *mechanics* for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the Python *how*. Load when structuring or restructuring a Python project.
+Language-specific _mechanics_ for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the _why_; this is the Python _how_. Load when structuring or restructuring a Python project.
 
 > **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
 
 ## Unit of modularity
 
 - **Module** = a `.py` file. **Package** = a directory with `__init__.py` (or a namespace package without one).
-- Group by **feature/domain** (`orders/`, `billing/`), not by layer (`services/`, `repositories/`) — see the concept file. Layer *within* each feature package.
+- Group by **feature/domain** (`orders/`, `billing/`), not by layer (`services/`, `repositories/`) — see the concept file. Layer _within_ each feature package.
 - One concept per module; split when a file exports several unrelated things.
 
 ## Visibility / boundary enforcement
@@ -40,7 +40,7 @@ The domain depends on `UserRepository` (the port), never on `PostgresUserReposit
 
 - **Constructor / function injection** is idiomatic — pass dependencies in. `def __init__(self, repo: UserRepository)` or `def handle(req, *, repo: UserRepository)`.
 - The composition root is the entry point (`main`, the FastAPI/Django app factory) — wire concrete adapters there (imperative shell — principle 16).
-- DI *frameworks* (`dependency-injector`, `wired`) exist but are usually unnecessary — explicit wiring at the edge is clearer (explicit-over-implicit mantra). Reach for a framework only when manual wiring genuinely hurts.
+- DI _frameworks_ (`dependency-injector`, `wired`) exist but are usually unnecessary — explicit wiring at the edge is clearer (explicit-over-implicit mantra). Reach for a framework only when manual wiring genuinely hurts.
 
 ## Layout (src layout)
 

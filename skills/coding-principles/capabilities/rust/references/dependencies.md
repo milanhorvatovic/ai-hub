@@ -6,7 +6,7 @@ Language-specific dependency mechanics. The cross-language principles (semver, l
 
 ## Pinning stance — pin explicit exact versions (default), mind the caret gotcha
 
-**The Cargo gotcha**: a bare version is an *implicit caret*. `serde = "1.0.197"` means `^1.0.197` (`>=1.0.197, <2.0.0`) — it is **not** a pin. To truly pin, use `=`:
+**The Cargo gotcha**: a bare version is an _implicit caret_. `serde = "1.0.197"` means `^1.0.197` (`>=1.0.197, <2.0.0`) — it is **not** a pin. To truly pin, use `=`:
 
 ```toml
 # Cargo.toml — bare version is NOT a pin (implicit caret)
@@ -17,7 +17,7 @@ serde = "=1.0.197"
 tokio = { version = "=1.40.0", features = ["full"] }
 ```
 
-- **Applications / binaries**: prefer exact `=` pins in `Cargo.toml`, *and* commit `Cargo.lock`. `Cargo.lock` already pins the full transitive tree for binaries — the `=` pins make the manifest itself explicit too.
+- **Applications / binaries**: prefer exact `=` pins in `Cargo.toml`, _and_ commit `Cargo.lock`. `Cargo.lock` already pins the full transitive tree for binaries — the `=` pins make the manifest itself explicit too.
 - **`Cargo.lock` commit rule**: commit it, for libraries too. The old split — lock for binaries, no lock for libraries — was Cargo's guidance until 2023-08, when the team replaced it with "do what suits the project, and start from committing it"; `cargo new` stopped gitignoring the lockfile for libraries at the same time. The reason the old rule felt safe does not survive scrutiny: a library's lockfile is not published to crates.io and never constrains a consumer's resolution, so committing it costs downstream nothing and buys contributors and CI a tree that changes when someone changes it rather than overnight. Pair it with a scheduled job that builds against latest, which is the check the old convention was standing in for.
 
 **Exception (ecosystem constraint, not style): published libraries.** A library must **not** use `=` pins, and the mechanism is narrower than "it breaks everything": Cargo unifies requirements inside a semver-compatible range, so if any other crate in a consumer's graph needs a different patch or minor of the same dependency, no version satisfies both exact requirements and resolution fails outright. Semver-_incompatible_ versions do coexist — `1.x` alongside `2.x`, and `0.1.x` alongside `0.2.x` under the pre-1.0 rule — so an exact pin is invisible until someone disagrees with it inside one range, and then it is a build that will not resolve rather than a warning anyone can defer. Libraries use caret (the default bare version) so the ecosystem can unify. So: `=` pins for binaries, caret for published libraries, and a committed lockfile either way — the manifest is what reaches consumers, and that is where the constraint has to be loose. Surface this when the crate is a library.

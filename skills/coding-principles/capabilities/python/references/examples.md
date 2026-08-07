@@ -30,7 +30,7 @@ def user_timezone(profile: dict) -> str:
     return profile["settings"]["timezone"]
 ```
 
-## Principle 4 — No *speculative* generality
+## Principle 4 — No _speculative_ generality
 
 Adding a notification feature with one channel today (email).
 
@@ -54,7 +54,7 @@ def send_email(user: User, msg: str) -> None:
     smtp.send(user.email, msg)
 ```
 
-When SMS arrives later, *that* is when you extract the seam — and you do it knowing what both implementations actually look like.
+When SMS arrives later, _that_ is when you extract the seam — and you do it knowing what both implementations actually look like.
 
 ## Principle 5 — Trust internal code; validate only at boundaries
 
@@ -78,7 +78,7 @@ def calculate_total(items: list[Item]) -> Decimal:
     return sum((item.price for item in items), Decimal(0))
 ```
 
-Validation belongs at the *entry* of the module/service — the handler that received the request, the parser that read the file.
+Validation belongs at the _entry_ of the module/service — the handler that received the request, the parser that read the file.
 
 ## Principle 8 — No half-implementations
 

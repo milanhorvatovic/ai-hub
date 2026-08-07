@@ -2,7 +2,7 @@
 
 Language-agnostic telemetry practices. Operationalizes the parent skill's **observability mantra** in industry-standard terms. Applies whenever the code under change runs in production and someone will need to debug it without a debugger attached.
 
-Scope boundary: this file covers observability *as code* — what to instrument and how. It does *not* cover observability *as infrastructure* (dashboard setup, alerting rules, SLO definitions, on-call) — that belongs in an ops/SRE skill, not here.
+Scope boundary: this file covers observability _as code_ — what to instrument and how. It does _not_ cover observability _as infrastructure_ (dashboard setup, alerting rules, SLO definitions, on-call) — that belongs in an ops/SRE skill, not here.
 
 ## The three signals (OpenTelemetry model)
 
@@ -10,7 +10,7 @@ Scope boundary: this file covers observability *as code* — what to instrument 
 
 - **Traces** — the path of a request across functions and services. A trace is a tree of **spans**; each span has a name, start/end time, attributes, and a parent. This is how you answer "why was this request slow?".
 - **Metrics** — aggregated numbers over time (counters, gauges, histograms). This is how you answer "what's the p99 latency?" / "what's the error rate?".
-- **Logs** — discrete timestamped events with structured fields. This is how you answer "what exactly happened to *this* request?".
+- **Logs** — discrete timestamped events with structured fields. This is how you answer "what exactly happened to _this_ request?".
 
 The power is correlation: a log line carries the `trace_id`, so from a metric spike you find the trace, and from the trace you find the logs.
 

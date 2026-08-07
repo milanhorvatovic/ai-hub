@@ -85,7 +85,7 @@ Concurrency model, decision matrix, and correctness traps live in `references/co
 
 ## Project structure
 
-Language-specific structure mechanics (modularity unit, visibility/boundary enforcement, ports & adapters, dependency injection, layout) live in `references/project-structure.md`. It is the *how* for this language; `../../references/architecture.md` is the cross-language *why*. Load when structuring or restructuring a project.
+Language-specific structure mechanics (modularity unit, visibility/boundary enforcement, ports & adapters, dependency injection, layout) live in `references/project-structure.md`. It is the _how_ for this language; `../../references/architecture.md` is the cross-language _why_. Load when structuring or restructuring a project.
 
 ## Dependencies
 

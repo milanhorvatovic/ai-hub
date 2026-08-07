@@ -15,7 +15,7 @@ wait "$pid_a" "$pid_b"      # block until both finish
 ```
 
 - `&` backgrounds; `$!` captures the PID; `wait` joins.
-- `wait` with no args waits for all children; `wait -n` (bash 4.3+) returns when *any* one finishes.
+- `wait` with no args waits for all children; `wait -n` (bash 4.3+) returns when _any_ one finishes.
 - Capture exit codes: `wait "$pid"; rc=$?` — a backgrounded job's failure is invisible without an explicit `wait`.
 
 ## Bounded parallelism

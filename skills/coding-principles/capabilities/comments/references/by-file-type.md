@@ -140,7 +140,7 @@ Test names carry intent (`test_returns_empty_when_input_is_none`); comments rest
 
 - No comment restating what the test does.
 - No arrange/act/assert dividers (`# arrange`, `# act`, `# assert`) — block structure already communicates the phases.
-- Mock-setup explanation only when the *shape* of the mock is non-obvious (a partial mock pretending a remote service is half-up).
+- Mock-setup explanation only when the _shape_ of the mock is non-obvious (a partial mock pretending a remote service is half-up).
 - Fixture explanation only when the fixture composes multiple sources or simulates a rare state.
 - Docstrings on tests: project convention first; otherwise only when they add what the name cannot.
 
@@ -150,7 +150,7 @@ This section governs comments in tests only; testing strategy lives in the paren
 
 Two flavors of fenced code, two rule sets:
 
-- **Documentary snippets** — code shown to teach (tutorials, READMEs, concept docs). Didactic comments are allowed and often *are* the point: the comment carries the why the surrounding prose is building. Still banned: AI-narration markers, comments restating the adjacent line, bare TODOs, and references to "this PR"/"this change".
+- **Documentary snippets** — code shown to teach (tutorials, READMEs, concept docs). Didactic comments are allowed and often _are_ the point: the comment carries the why the surrounding prose is building. Still banned: AI-narration markers, comments restating the adjacent line, bare TODOs, and references to "this PR"/"this change".
 - **Copy-paste executable snippets** — commands, config samples, install steps. Treat the snippet as a standalone file of its language; the full rubric applies, because readers paste these into real files.
 
 Beyond fences:

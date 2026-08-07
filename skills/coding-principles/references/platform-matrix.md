@@ -1,6 +1,6 @@
 # Platform / OS matrix
 
-Language-agnostic operating-system differences that bite cross-platform code. Load when the code under change touches the filesystem, processes, shells, signals, paths, or anything that behaves differently across Linux / macOS / Windows. Applies across all language capabilities — each language's *handling* of these concerns is noted at the bottom.
+Language-agnostic operating-system differences that bite cross-platform code. Load when the code under change touches the filesystem, processes, shells, signals, paths, or anything that behaves differently across Linux / macOS / Windows. Applies across all language capabilities — each language's _handling_ of these concerns is noted at the bottom.
 
 > **The platform facts and tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
 
@@ -9,7 +9,7 @@ The rule: **don't assume the developer's OS is the deployment OS.** Code written
 ## The matrix
 
 | Concern | Linux | macOS | Windows | Cross-platform rule |
-| ------- | ----- | ----- | ------- | ------------------- |
+| --- | --- | --- | --- | --- |
 | **Path separator** | `/` | `/` | `\` (and `/` mostly works) | Never hardcode `/` or `\` — use the language's path API |
 | **Path list separator** (PATH) | `:` | `:` | `;` | Use the language's constant (`os.pathsep`, `path.delimiter`) |
 | **Line endings** | LF (`\n`) | LF (`\n`) | CRLF (`\r\n`) | Open text mode aware; normalize on read; `.gitattributes` for the repo |
@@ -31,7 +31,7 @@ The rule: **don't assume the developer's OS is the deployment OS.** Code written
 macOS ships **BSD** versions of `sed`, `awk`, `date`, `find`, `xargs`, `readlink`, `stat`, `cp`; Linux ships **GNU** versions. Common divergences:
 
 | Command | GNU (Linux) | BSD (macOS) |
-| ------- | ----------- | ----------- |
+| --- | --- | --- |
 | `sed -i` | `sed -i 's/a/b/' f` | `sed -i '' 's/a/b/' f` (needs the empty backup arg) |
 | `date` | `date -d '1 day ago'` | `date -v-1d` |
 | `readlink -f` | works | not available (use `realpath`, or `grealpath`) |
@@ -41,6 +41,7 @@ macOS ships **BSD** versions of `sed`, `awk`, `date`, `find`, `xargs`, `readlink
 | `cp --reflink` | works | not available |
 
 Strategies:
+
 - **Write POSIX-only** when portability matters — avoid the divergent flags entirely.
 - **Detect and branch**: `if sed --version >/dev/null 2>&1; then GNU; else BSD; fi`.
 - **Require GNU coreutils** explicitly (install via `brew install coreutils`, use `gsed`/`gdate`/`grealpath`), and document it.

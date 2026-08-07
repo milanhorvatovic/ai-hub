@@ -18,17 +18,17 @@ Do not write "portable bash" that tip-toes around bashisms. Either commit to bas
 
 Pick exit codes that callers can match on. The traditional `0` (success) / `1` (general error) is fine for small scripts; for anything that participates in a pipeline or is invoked by automation, follow `sysexits.h`:
 
-| Code | Name              | Meaning                              |
-| ---- | ----------------- | ------------------------------------ |
-| 0    | EX_OK             | Success                              |
-| 64   | EX_USAGE          | Command-line usage error             |
-| 65   | EX_DATAERR        | Data format error                    |
-| 66   | EX_NOINPUT        | Cannot open input                    |
-| 69   | EX_UNAVAILABLE    | Service unavailable                  |
-| 70   | EX_SOFTWARE       | Internal software error              |
-| 75   | EX_TEMPFAIL       | Temporary failure (retry-safe)       |
-| 77   | EX_NOPERM         | Permission denied                    |
-| 78   | EX_CONFIG         | Config error                         |
+| Code | Name           | Meaning                        |
+| ---- | -------------- | ------------------------------ |
+| 0    | EX_OK          | Success                        |
+| 64   | EX_USAGE       | Command-line usage error       |
+| 65   | EX_DATAERR     | Data format error              |
+| 66   | EX_NOINPUT     | Cannot open input              |
+| 69   | EX_UNAVAILABLE | Service unavailable            |
+| 70   | EX_SOFTWARE    | Internal software error        |
+| 75   | EX_TEMPFAIL    | Temporary failure (retry-safe) |
+| 77   | EX_NOPERM      | Permission denied              |
+| 78   | EX_CONFIG      | Config error                   |
 
 Document non-zero codes the script uses in `--help` so callers know what to branch on.
 
@@ -39,7 +39,7 @@ For scripts that compose with other tools:
 - **stdout = data** (parseable; pipe-target).
 - **stderr = narration** (progress, warnings, info messages).
 - **env = configuration** (read at startup; do not hardcode paths or URLs).
-- **argv = behavior** (flags and positional args that change *what* the script does).
+- **argv = behavior** (flags and positional args that change _what_ the script does).
 
 Don't write progress messages to stdout if anything downstream might pipe the output. Don't expect interactive prompts unless the script is explicitly interactive — pipelines run with no TTY.
 

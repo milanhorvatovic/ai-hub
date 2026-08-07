@@ -8,7 +8,7 @@ Language-specific dependency mechanics. The cross-language principles (semver, l
 
 **Default: pin exact versions.** Reproducibility over auto-upgrade convenience — the installed version should be exactly the declared version, not whatever a range resolves to today.
 
-- **Applications / services**: pin exact in the manifest *and* commit the lockfile.
+- **Applications / services**: pin exact in the manifest _and_ commit the lockfile.
   ```toml
   # pyproject.toml — exact pins
   dependencies = [

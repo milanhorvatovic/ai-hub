@@ -40,7 +40,7 @@ git log --follow --pretty=format:'%h %s' -10 -- <file>
 Aggregate scores across all staged files:
 
 | Signal | Weight |
-|---|---|
+| --- | --- |
 | Commit touched the same file → +5 per file |
 | Commit touched the same hunk lines (use `git log -L`) → +10 |
 | Commit is in the current branch's range (`<base>..HEAD`) → +3 (favors current-branch targets over historical) |

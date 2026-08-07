@@ -20,7 +20,13 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-_SEVERITY = r"\*(must|should|could)\*"
+# Either emphasis marker: which character spells italics is Prettier's call, not
+# the skill's, and the guard asserts the tag rather than the formatter's choice.
+# The pair still has to match and stand alone, so a doubled `**must**` and a stray
+# `*must_` — which renders as no emphasis at all — stay rejected. The backreference
+# is named because this pattern is interpolated at two different group offsets, so
+# a numbered one would point at the wrong group in one of them.
+_SEVERITY = r"(?<![*_])(?P<marker>[*_])(?P<severity>must|should|could)(?P=marker)(?![*_])"
 # The reverse map's stated exemption for principles no mantra operationalizes.
 _EXEMPTION_MARKER = "**Outside the map, deliberately:"
 
@@ -36,7 +42,7 @@ def _principle_tags(references_dir: Path) -> dict[int, str]:
     text = (references_dir / "principles.md").read_text(encoding="utf-8")
     tags: dict[int, str] = {}
     for m in re.finditer(rf"^## (\d+)\. .+?—\s+{_SEVERITY}", text, flags=re.MULTILINE):
-        tags[int(m.group(1))] = m.group(2)
+        tags[int(m.group(1))] = m.group("severity")
     assert tags, "no severity-tagged principle headings found in principles.md"
     return tags
 
@@ -160,7 +166,7 @@ def test_smell_severities_name_their_source_when_anchors_disagree(
             continue
         names_source = re.search(r"principle|mantra|tag|default", severity)
         if not names_source:
-            stated = re.findall(_SEVERITY, severity)
+            stated = [m.group("severity") for m in re.finditer(_SEVERITY, severity)]
             problems.append(
                 f"{title!r}: anchors imply {sorted(implied)} but the entry states"
                 f" {stated or ['no severity']} with no source named"

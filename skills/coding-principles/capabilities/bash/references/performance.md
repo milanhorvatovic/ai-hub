@@ -1,6 +1,6 @@
 # Bash — performance
 
-Performance idioms for Bash. Apply *after* correctness and clarity (the parent skill's KISS + readability goals outrank micro-optimization); these matter most in scripts that loop over large inputs or run on a hot path.
+Performance idioms for Bash. Apply _after_ correctness and clarity (the parent skill's KISS + readability goals outrank micro-optimization); these matter most in scripts that loop over large inputs or run on a hot path.
 
 > **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
 

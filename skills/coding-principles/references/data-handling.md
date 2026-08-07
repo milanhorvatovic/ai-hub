@@ -13,7 +13,7 @@ The rule: **store and compute in UTC; convert to local only at display.**
 - **Store UTC.** Persist timestamps as UTC (`timestamptz` in Postgres, epoch millis, or ISO 8601 with offset). Never store a local time without its zone — it's ambiguous twice a year (DST fall-back) and meaningless elsewhere.
 - **Timezone-aware types only.** Never use naive datetimes in business logic. Python: `datetime` with `tzinfo` (or `whenever`/`pendulum`); never `datetime.now()` (use `datetime.now(timezone.utc)`). JS: `Temporal`, which reached Stage 4 in 2026-03 and is native on Node 26+ and current Chromium/Firefox — on the older LTS lines and on Safari it still needs the polyfill or a library (`date-fns-tz` / `Luxon`), so check the runtime floor before reaching for it. The legacy `Date` is local-zone-flavored and error-prone whichever you pick. Rust: `chrono::DateTime<Utc>` / `time::OffsetDateTime`.
 - **ISO 8601 / RFC 3339 on the wire.** `2026-05-19T14:30:00Z`. Unambiguous, sortable, parseable everywhere. Never serialize locale-formatted dates between systems.
-- **Wall clock vs monotonic clock.** For *timestamps* (when did this happen) use the wall clock. For *durations / timeouts / elapsed time* use a monotonic clock (`time.monotonic()`, `performance.now()`, `Instant::now()`) — the wall clock can jump backward (NTP sync, DST) and produce negative durations.
+- **Wall clock vs monotonic clock.** For _timestamps_ (when did this happen) use the wall clock. For _durations / timeouts / elapsed time_ use a monotonic clock (`time.monotonic()`, `performance.now()`, `Instant::now()`) — the wall clock can jump backward (NTP sync, DST) and produce negative durations.
 - **DST and arithmetic.** "Add 1 day" ≠ "add 24 hours" across a DST boundary. Use a calendar-aware library for calendar arithmetic; use plain duration math only for elapsed time. Some days have 23 or 25 hours; some minutes have 61 seconds (leap seconds).
 - **Date-only vs datetime.** A birthday is a date, not an instant — don't attach a time/zone to it and shift it across midnight. Use a date type, not a datetime-at-midnight.
 - **Inject the clock** (principle 16) — `now` is an input, not a global call. Makes time-dependent logic testable.
@@ -42,7 +42,7 @@ The rule: **UTF-8 everywhere; decode bytes to text at the boundary, encode text 
 
 ## Principle alignment
 
-- All three categories are **boundary** problems (principle 19): parse the wire format / decode bytes / validate the number *at the edge* into a correct typed value (`DateTime<Utc>`, `Money`, `str`), then trust it inward (principle 5).
+- All three categories are **boundary** problems (principle 19): parse the wire format / decode bytes / validate the number _at the edge_ into a correct typed value (`DateTime<Utc>`, `Money`, `str`), then trust it inward (principle 5).
 - **Make illegal states unrepresentable** (mantra): a naive datetime, a bare float for money, or a `bytes` where text is meant are all "illegal states" a good type makes impossible. Model `Money`, require `tzinfo`, keep `bytes`/`str` distinct.
 - **Inject the clock** (principle 16) for testable time logic.
 - **Strong typing** (mantra): use the date/decimal/text types the language provides instead of raw `int`/`float`/`str` — the type carries the invariant.

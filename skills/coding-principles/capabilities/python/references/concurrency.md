@@ -6,14 +6,14 @@ Python's concurrency story is shaped by the GIL. Picking the right model is the 
 
 ## The decision matrix
 
-| Workload                              | Use                                            | Why                                                            |
-| ------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------- |
-| I/O-bound, many connections           | `asyncio`                                      | One thread, cooperative; scales to thousands of sockets       |
-| I/O-bound, blocking libraries         | `threading` / `ThreadPoolExecutor`            | GIL releases during I/O; threads overlap the waits            |
-| CPU-bound                             | `multiprocessing` / `ProcessPoolExecutor`     | Separate processes sidestep the GIL; true parallelism         |
-| CPU-bound, numeric                    | `numpy` / native extension                     | The hot kernel runs outside the GIL in C                      |
+| Workload | Use | Why |
+| --- | --- | --- |
+| I/O-bound, many connections | `asyncio` | One thread, cooperative; scales to thousands of sockets |
+| I/O-bound, blocking libraries | `threading` / `ThreadPoolExecutor` | GIL releases during I/O; threads overlap the waits |
+| CPU-bound | `multiprocessing` / `ProcessPoolExecutor` | Separate processes sidestep the GIL; true parallelism |
+| CPU-bound, numeric | `numpy` / native extension | The hot kernel runs outside the GIL in C |
 
-The trap: **threads do not speed up CPU-bound Python** — the GIL serializes bytecode execution. Threads help only when the work *waits* (network, disk, subprocess).
+The trap: **threads do not speed up CPU-bound Python** — the GIL serializes bytecode execution. Threads help only when the work _waits_ (network, disk, subprocess).
 
 ## asyncio (I/O concurrency)
 
@@ -27,7 +27,7 @@ The trap: **threads do not speed up CPU-bound Python** — the GIL serializes by
 
 - `concurrent.futures.ThreadPoolExecutor` for "run these blocking I/O calls concurrently."
 - Shared mutable state needs a `threading.Lock` / `queue.Queue`. Prefer message-passing (`queue.Queue`) over shared-state-plus-locks.
-- The GIL makes *some* operations atomic, but don't rely on it — `+=` on a shared int is not atomic.
+- The GIL makes _some_ operations atomic, but don't rely on it — `+=` on a shared int is not atomic.
 
 ## multiprocessing (CPU parallelism)
 

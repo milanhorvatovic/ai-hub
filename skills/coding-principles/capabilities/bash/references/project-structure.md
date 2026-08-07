@@ -1,6 +1,6 @@
 # Bash — project structure & mechanics
 
-Language-specific notes for the architecture concepts in `../../../references/architecture.md`. Short, because bash has almost no architecture above functions and sourced files — and the moment a script *needs* architecture, that is the signal to leave bash.
+Language-specific notes for the architecture concepts in `../../../references/architecture.md`. Short, because bash has almost no architecture above functions and sourced files — and the moment a script _needs_ architecture, that is the signal to leave bash.
 
 > **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
 
@@ -35,6 +35,6 @@ tool/
 
 ## When to leave bash
 
-The architecture concepts (layering, ports/adapters, dependency direction) effectively don't apply to bash — there's no mechanism to express them. If a script has grown to the point where you *want* those — multiple modules, swappable backends, real boundaries — that is precisely the "leave bash" threshold (best-practices.md): rewrite in Python or Go, where `../../../references/architecture.md` actually has mechanics to apply.
+The architecture concepts (layering, ports/adapters, dependency direction) effectively don't apply to bash — there's no mechanism to express them. If a script has grown to the point where you _want_ those — multiple modules, swappable backends, real boundaries — that is precisely the "leave bash" threshold (best-practices.md): rewrite in Python or Go, where `../../../references/architecture.md` actually has mechanics to apply.
 
 Rule of thumb: past ~200 lines, multiple subcommands, or any need for structured boundaries, stop adding bash structure and switch languages.

@@ -17,7 +17,7 @@ allowed-tools: Read Grep
 
 # Review capability
 
-How to apply the parent `coding-principles` skill to a diff or PR — *finding* violations, not *avoiding* them. Load this capability when the task is to review existing code rather than write new code.
+How to apply the parent `coding-principles` skill to a diff or PR — _finding_ violations, not _avoiding_ them. Load this capability when the task is to review existing code rather than write new code.
 
 > **Industry best practices** — Conventional Comments format with labeled prefixes (`praise:` / `nitpick:` / `suggestion:` / `question:` / `issue:` / `thought:` / `todo:` / `chore:`) and `(blocking)` / `(non-blocking)` decorators, approve-vs-request-changes decision rule, severity → label map, reviewer load discipline (~400 LOC limit per session), constructive phrasing, and review-specific anti-patterns live in `references/best-practices.md` in this directory. Load it alongside this file when phrasing review findings or judging merge gates.
 
@@ -30,7 +30,7 @@ How to apply the parent `coding-principles` skill to a diff or PR — *finding* 
 Do not use this lens for:
 
 - Writing new code (use the rest of the skill in its default write-mode).
-- Asking the question of the diff yourself proactively when the user only asked for a code change. Reviewing your own diff inline is part of the write-mode checklist; this file is for reviewing *someone else's* diff on request.
+- Asking the question of the diff yourself proactively when the user only asked for a code change. Reviewing your own diff inline is part of the write-mode checklist; this file is for reviewing _someone else's_ diff on request.
 
 ## Workflow
 
@@ -49,7 +49,7 @@ Apply the full skill — every mantra and every principle is a potential finding
 
 - **must** — secrets in logs (13), missing reproducing test for a bug fix (2), half-implementations (8), destructive ops without a guard (11), inputs not parsed at boundary when security-relevant (19), no verification ran (10).
 - **should** — defensive code for impossible states (5), abstraction with one implementation (4), mock-at-internals instead of boundaries (15), `Date.now()` / `Math.random()` in business logic (16), comment carrying nothing the code cannot say (21), bag-of-optionals where a sum type would work (mantras: illegal-states-unrepresentable), mutable bindings that could be `const` (mantras: immutability), silent `try/except` (mantras: fail-fast-fail-loud).
-- **could** — comment that carries value but spends its words on the *what* (7), abbreviated names (17), commented-out blocks (20), missing structured log context (mantras: observability).
+- **could** — comment that carries value but spends its words on the _what_ (7), abbreviated names (17), commented-out blocks (20), missing structured log context (mantras: observability).
 
 Comment findings run through the comments capability, which carries the same rubric inverted as a finding source — the two severities above are its value gate and content gate read from the review side. Load it when a diff's comments are what you are judging.
 
@@ -95,10 +95,10 @@ One diff carried through this whole workflow — the input, the emitted review i
 
 ## Anti-patterns specific to review mode
 
-- **Lecturing.** Cite the principle, give the fix, move on. Do not explain *why* the principle exists unless the author asks.
+- **Lecturing.** Cite the principle, give the fix, move on. Do not explain _why_ the principle exists unless the author asks.
 - **Stacking coulds.** Five trivial nits drown out one real blocker. Pick the top one or two coulds per file; drop the rest.
 - **Inventing findings.** If you cannot find a principle that anchors the concern, the concern is taste. Either find the anchor or do not mention it.
-- **Reviewing the whole codebase instead of the diff.** The diff is the unit. Findings about code that did not change in this PR are out of scope unless the diff introduces a *new* caller of the problem code.
+- **Reviewing the whole codebase instead of the diff.** The diff is the unit. Findings about code that did not change in this PR are out of scope unless the diff introduces a _new_ caller of the problem code.
 - **Treating diffs from junior authors more harshly.** Severity comes from the principle, not the author. (And reviewers do not know who the author is when this skill runs.)
 - **Refusing to approve over a single could.** Coulds are preferences; an author may reasonably decline them.
 - **Re-reviewing the same PR with fresh nits each round.** Say everything you have to say in the first pass; a reviewer who drip-feeds findings costs the author a round trip per nit.

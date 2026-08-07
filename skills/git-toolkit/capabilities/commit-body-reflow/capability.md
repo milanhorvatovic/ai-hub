@@ -21,7 +21,7 @@ This capability uses only `git` operations (`filter-branch`, `filter-repo`, `reb
 ## Mode detection
 
 | User said | Mode |
-|---|---|
+| --- | --- |
 | "flow these commit bodies" / "convert to flowing paragraphs" / "remove the hard-wrap" | **FLOW** |
 | "hard-wrap at 72" / "wrap these bodies at 80" / "switch to hard-wrap" | **WRAP** (need: column limit) |
 | "fix the wrap style across this branch" | Ask: which direction (flow or wrap), and what column if wrap. |

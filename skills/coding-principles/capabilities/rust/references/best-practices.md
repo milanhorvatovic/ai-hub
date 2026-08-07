@@ -33,14 +33,14 @@ External standards, modern toolchain consensus, idiomatic patterns, error/async/
 
 ## Error handling decision tree
 
-Pick *one* error strategy per crate; do not mix.
+Pick _one_ error strategy per crate; do not mix.
 
-| Crate type      | Strategy                                        | Why                                                                |
-| --------------- | ----------------------------------------------- | ------------------------------------------------------------------ |
-| Library         | `thiserror` + named error enum                  | Callers can match on variants; types document the failure modes    |
-| Application/bin | `anyhow::Result<T>` + `?` everywhere            | Ergonomic propagation; opaque is fine because the user is the end  |
-| Heavy context   | `snafu` or hand-rolled                          | When errors need rich location/context that thiserror doesn't fit  |
-| FFI / `no_std`  | Hand-rolled enum with `#[non_exhaustive]`       | No allocator dependency                                            |
+| Crate type | Strategy | Why |
+| --- | --- | --- |
+| Library | `thiserror` + named error enum | Callers can match on variants; types document the failure modes |
+| Application/bin | `anyhow::Result<T>` + `?` everywhere | Ergonomic propagation; opaque is fine because the user is the end |
+| Heavy context | `snafu` or hand-rolled | When errors need rich location/context that thiserror doesn't fit |
+| FFI / `no_std` | Hand-rolled enum with `#[non_exhaustive]` | No allocator dependency |
 
 **Never** `Box<dyn Error>` in library APIs — callers lose matchability. **Never** `anyhow` in a library — it leaks `anyhow::Error` into your public surface.
 

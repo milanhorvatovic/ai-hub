@@ -4,19 +4,19 @@ Terms used consistently across the parent skill, references, and capabilities. D
 
 ## Boundary / Trust line
 
-The point where data or control crosses from *untrusted* / *external* into *trusted* / *internal*. Examples: HTTP request entry, file read, IPC message, deserialization, environment variable read, CLI argv. The matching outbound boundary is where typed internal values become bytes again — HTTP response, log record, persisted row, IPC send.
+The point where data or control crosses from _untrusted_ / _external_ into _trusted_ / _internal_. Examples: HTTP request entry, file read, IPC message, deserialization, environment variable read, CLI argv. The matching outbound boundary is where typed internal values become bytes again — HTTP response, log record, persisted row, IPC send.
 
 The skill's stance: **validate inbound, serialize outbound, trust everything in between** (see principles 5 and 19).
 
 ## Shape
 
-The structural form of code — how it is split into functions, modules, and types; how data flows; where side effects live. Independent of file count or line count. A 200-line monolith with one decision tree has *worse shape* than the same logic split into a parser, a validator, and a writer (each pure) even if the latter occupies more lines.
+The structural form of code — how it is split into functions, modules, and types; how data flows; where side effects live. Independent of file count or line count. A 200-line monolith with one decision tree has _worse shape_ than the same logic split into a parser, a validator, and a writer (each pure) even if the latter occupies more lines.
 
 The skill distinguishes shape (the design) from **infrastructure** (the wiring).
 
 ## Infrastructure (in the YAGNI sense)
 
-The plumbing that holds an abstraction together — interfaces with one implementation, plugin systems, strategy classes, factories, DI containers, configuration layers, abstract base classes used for code reuse. Infrastructure is what *makes* an abstraction polymorphic or pluggable; shape is what makes code *small and composable*.
+The plumbing that holds an abstraction together — interfaces with one implementation, plugin systems, strategy classes, factories, DI containers, configuration layers, abstract base classes used for code reuse. Infrastructure is what _makes_ an abstraction polymorphic or pluggable; shape is what makes code _small and composable_.
 
 YAGNI prunes infrastructure, not shape (see principle 4 and mantra "modular by composition").
 
@@ -24,7 +24,7 @@ YAGNI prunes infrastructure, not shape (see principle 4 and mantra "modular by c
 
 A function whose output depends only on its inputs and which produces no observable side effects: no I/O, no mutation of arguments or globals, no calls to `Date.now()` / `random()` / file or network access, no logging at the function's level. Calling it twice with the same arguments returns the same result.
 
-Pure functions are the *functional core* in the functional-core-imperative-shell pattern (mantra: pure/impure separation).
+Pure functions are the _functional core_ in the functional-core-imperative-shell pattern (mantra: pure/impure separation).
 
 ## Functional core, imperative shell
 
@@ -42,8 +42,8 @@ An object or struct type that uses many optional fields to encode mutually-exclu
 
 ## Earned shape vs speculative generality
 
-- **Earned shape**: design choices that benefit the *current* feature — small pure functions, narrow interfaces, separated I/O, orthogonal modules. Free to apply at write-time.
-- **Speculative generality**: design choices that benefit *imagined future* features — interfaces with one implementation, plugin points for nonexistent plugins, configuration flags with no current caller, abstract base classes anticipating subclasses. Costs surface area and indirection; defer until a second concrete caller exists.
+- **Earned shape**: design choices that benefit the _current_ feature — small pure functions, narrow interfaces, separated I/O, orthogonal modules. Free to apply at write-time.
+- **Speculative generality**: design choices that benefit _imagined future_ features — interfaces with one implementation, plugin points for nonexistent plugins, configuration flags with no current caller, abstract base classes anticipating subclasses. Costs surface area and indirection; defer until a second concrete caller exists.
 
 See principle 4 for the line between them.
 
@@ -51,16 +51,16 @@ See principle 4 for the line between them.
 
 A function or feature that ships some of its declared behavior and stubs the rest — A and B work, C raises `NotImplementedError`, returns null, or quietly does nothing. Looks done; type-checks; passes lint; silently misbehaves at runtime.
 
-Ship all of A/B/C or none (principle 8). The exception is an *explicitly approved* incremental rollout with tracked follow-ups.
+Ship all of A/B/C or none (principle 8). The exception is an _explicitly approved_ incremental rollout with tracked follow-ups.
 
 ## Decay suffix
 
-Naming patterns that mark code as transitional and then never get cleaned up: `_old`, `_new`, `_v2`, `_temp`, `_tmp`, `Old`, `New`, `Legacy`. The replacement should have a clear name describing what it *does*; the original should be deleted when the migration completes. Leaving both is rot bait (principle 17).
+Naming patterns that mark code as transitional and then never get cleaned up: `_old`, `_new`, `_v2`, `_temp`, `_tmp`, `Old`, `New`, `Legacy`. The replacement should have a clear name describing what it _does_; the original should be deleted when the migration completes. Leaving both is rot bait (principle 17).
 
 ## Derived state vs stored state
 
 - **Derived state**: a value computed from other values (`total = sum(items)`, `is_complete = status == "done"`). Should be computed on read, not stored.
-- **Stored state**: a value that is the *source of truth* — not reconstructible from anything else. The smallest possible set of stored values yields the most maintainable system.
+- **Stored state**: a value that is the _source of truth_ — not reconstructible from anything else. The smallest possible set of stored values yields the most maintainable system.
 
 When stored state and derived state both exist for the same value, you have a cache-invalidation problem. See principle 18.
 
@@ -68,11 +68,11 @@ When stored state and derived state both exist for the same value, you have a ca
 
 The per-principle violation tag: how hard a rule pushes, and so which violation gets fixed first. What each of the three tags means, and the order they impose when several violations land at once, is stated in `principles.md` — this entry names the term rather than restating the rule, so the glossary can never contradict the owner.
 
-Severity is not **tier** (Goals / Design / Pruning, in `mantras.md`). Severity governs *triage*; tier governs *design conflicts*. They answer different questions and neither overrides the other.
+Severity is not **tier** (Goals / Design / Pruning, in `mantras.md`). Severity governs _triage_; tier governs _design conflicts_. They answer different questions and neither overrides the other.
 
 ## Write-mode vs review-mode
 
-- **Write-mode** — the default; applying the skill while authoring code. Checklist asks *"am I about to violate X?"*. Defined inline in `../SKILL.md`.
-- **Review-mode** — applying the skill to an existing diff/PR. Workflow asks *"did the author violate X?"*. Defined in the review capability.
+- **Write-mode** — the default; applying the skill while authoring code. Checklist asks _"am I about to violate X?"_. Defined inline in `../SKILL.md`.
+- **Review-mode** — applying the skill to an existing diff/PR. Workflow asks _"did the author violate X?"_. Defined in the review capability.
 
 Same rules; opposite vantage.

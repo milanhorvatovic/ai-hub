@@ -1,6 +1,6 @@
 # Rust — project structure & mechanics
 
-Language-specific *mechanics* for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the *why*; this is the Rust *how*. Load when structuring or restructuring a Rust crate or workspace.
+Language-specific _mechanics_ for the architecture concepts in `../../../references/architecture.md` (dependency-points-inward, hexagonal, package-by-feature). That file is the _why_; this is the Rust _how_. Load when structuring or restructuring a Rust crate or workspace.
 
 > **The tools named below were last checked 2026-08.** The mechanics do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
 
@@ -12,13 +12,13 @@ Language-specific *mechanics* for the architecture concepts in `../../../referen
 
 ## Visibility / boundary enforcement
 
-Rust *enforces* visibility at compile time — the strongest of the four languages here:
+Rust _enforces_ visibility at compile time — the strongest of the four languages here:
 
 - **Private by default.** Items are module-private unless marked `pub`.
 - **`pub(crate)`** — visible within the crate, not exported. The workhorse for "internal but cross-module."
 - **`pub(super)`** / **`pub(in path)`** — finer-grained scoping.
 - **`pub`** — the crate's public API (minimum public surface — modular-by-composition mantra). Re-export the intended API from `lib.rs` with `pub use`; keep everything else `pub(crate)` or private.
-- Multi-crate workspace: a crate simply *can't* depend on another unless it's in `[dependencies]` — the dependency direction is enforced by Cargo, not by a linter.
+- Multi-crate workspace: a crate simply _can't_ depend on another unless it's in `[dependencies]` — the dependency direction is enforced by Cargo, not by a linter.
 
 ## Ports & adapters
 
@@ -42,7 +42,7 @@ The domain depends on the `UserRepository` trait; the Postgres type lives in (an
 
 ## Dependency injection
 
-- **Pass values in** — generics (`fn handle<R: UserRepository>(repo: &R)`) for static dispatch (zero-cost, monomorphized), or trait objects (`repo: &dyn UserRepository`) for dynamic dispatch when you need heterogeneity. No DI framework; Rust DI *is* passing arguments.
+- **Pass values in** — generics (`fn handle<R: UserRepository>(repo: &R)`) for static dispatch (zero-cost, monomorphized), or trait objects (`repo: &dyn UserRepository`) for dynamic dispatch when you need heterogeneity. No DI framework; Rust DI _is_ passing arguments.
 - The composition root is `main` (binary) or the app constructor — build concrete adapters there (imperative shell — principle 16).
 - Prefer generics for hot paths (no vtable); `dyn` when you store mixed implementations or want smaller binaries (see performance.md).
 

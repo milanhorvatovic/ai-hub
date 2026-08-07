@@ -40,7 +40,7 @@ gh api repos/{owner}/{repo} --jq '{
 ### 2. Determine method
 
 | Repo allows | User intent | Recommended `--method` |
-|---|---|---|
+| --- | --- | --- |
 | squash only | (default) | `--squash` |
 | rebase only | (default) | `--rebase` |
 | merge only | (default) | `--merge` |
@@ -76,6 +76,7 @@ Notes:
 ```
 
 If user wants auto-merge:
+
 ```
   gh pr merge 42 --squash --delete-branch --auto
 ```

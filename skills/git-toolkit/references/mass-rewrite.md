@@ -7,7 +7,7 @@ Load this when a capability needs to rewrite messages or bodies of many commits 
 Three tools can do mass rewrites; pick by availability and risk tolerance.
 
 | Tool | When | Caveats |
-|---|---|---|
+| --- | --- | --- |
 | `git filter-repo` | Preferred when installed. Faster, safer defaults, no orphan refs. | Not in stock git; user may need `pip install git-filter-repo` or `brew install git-filter-repo`. |
 | `git filter-branch` | Universal fallback. Ships with git. | Officially deprecated. Creates `refs/original/*` backups that persist. Emits a "glut of gotchas" warning unless `FILTER_BRANCH_SQUELCH_WARNING=1` is set. |
 | `git rebase --exec` per-commit | Useful when the transformation depends on commit content rather than just message. | Slower; one rebase invocation per branch; needs a wrapper script. |

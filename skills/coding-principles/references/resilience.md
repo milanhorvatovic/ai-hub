@@ -1,8 +1,8 @@
 # Resilience — industry conventions
 
-Language-agnostic fault-tolerance patterns for code that calls across a network or process boundary. Load when the code under change makes outbound calls (HTTP, RPC, DB, cache, queue) or coordinates distributed work. The canon here is the *Release It!* (Nygard) family of stability patterns.
+Language-agnostic fault-tolerance patterns for code that calls across a network or process boundary. Load when the code under change makes outbound calls (HTTP, RPC, DB, cache, queue) or coordinates distributed work. The canon here is the _Release It!_ (Nygard) family of stability patterns.
 
-Scope boundary: this is resilience *as code* — how a service survives its dependencies failing. Deployment-level resilience (multi-region, autoscaling, failover infrastructure) is ops/SRE, not here.
+Scope boundary: this is resilience _as code_ — how a service survives its dependencies failing. Deployment-level resilience (multi-region, autoscaling, failover infrastructure) is ops/SRE, not here.
 
 > **The library names below were last checked 2026-08.** The patterns do not decay; the libraries implementing them do. How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
 
@@ -11,7 +11,7 @@ The core assumption: **every remote call will eventually fail, hang, or slow dow
 ## Timeouts and deadlines
 
 - **Every outbound call has a timeout.** An un-timed call inherits the OS default (often minutes) and holds a thread/connection the whole time — one slow dependency exhausts the pool and takes down the whole service.
-- **Deadlines propagate.** If the inbound request has 2s left, downstream calls get *less* than 2s, not a fresh 2s. gRPC propagates deadlines natively; with HTTP, pass a remaining-budget header or compute it.
+- **Deadlines propagate.** If the inbound request has 2s left, downstream calls get _less_ than 2s, not a fresh 2s. gRPC propagates deadlines natively; with HTTP, pass a remaining-budget header or compute it.
 - **Timeout < the caller's timeout.** A 30s DB query timeout behind a 10s request timeout is pointless — the client already gave up.
 
 ## Retries
@@ -58,6 +58,6 @@ Isolate resources so one failing dependency can't starve the others. Separate co
 ## Principle alignment
 
 - Resilience logic lives at the **boundary** (the imperative shell — pure/impure separation): the retry wrapper, circuit breaker, and timeout wrap the outbound call; the pure business core stays unaware.
-- **Fail fast, fail loud** (mantra): a circuit breaker *is* fail-fast — it surfaces the dependency failure immediately instead of hanging.
-- **YAGNI check**: don't wrap every internal function call in retries + breakers. These patterns are for *crossing a trust/network boundary*; in-process calls don't need them. A single-process CLI needs none of this.
+- **Fail fast, fail loud** (mantra): a circuit breaker _is_ fail-fast — it surfaces the dependency failure immediately instead of hanging.
+- **YAGNI check**: don't wrap every internal function call in retries + breakers. These patterns are for _crossing a trust/network boundary_; in-process calls don't need them. A single-process CLI needs none of this.
 - **Observability**: instrument retries (count, exhaustion), breaker state changes, and timeouts as metrics — a silent retry storm is invisible until it's an outage.
