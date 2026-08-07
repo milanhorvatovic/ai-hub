@@ -132,8 +132,14 @@ def test_declared_language_capabilities_match_the_router(
     contract vacuous, so the declaration stays and this test holds it to the
     router, which is the surface a new language has to touch anyway.
     """
-    routed = set(re.findall(r"capabilities/([a-z-]+)/capability\.md", skill_md.read_text("utf-8")))
-    assert routed, "router lists no capability paths — the routing table moved"
+    # Table rows only. Matching the whole file would count the prose mentions of
+    # `capabilities/comments/capability.md` in the checklist and anti-patterns, so
+    # deleting a routing row would leave this green — the opposite of the point.
+    rows = "\n".join(
+        ln for ln in skill_md.read_text(encoding="utf-8").splitlines() if ln.lstrip().startswith("|")
+    )
+    routed = set(re.findall(r"capabilities/([a-z-]+)/capability\.md", rows))
+    assert routed, "no capability rows in the router's tables — the routing table moved"
     workflow = {"comments", "review"}
     unknown = workflow - routed
     assert not unknown, f"workflow capabilities no longer routed: {sorted(unknown)}"
