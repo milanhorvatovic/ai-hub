@@ -69,11 +69,29 @@ def test_hook_runs_the_pinned_binary() -> None:
 
 @pytest.mark.parametrize(
     "path_filter",
-    ["**/*.md", ".prettierrc.json", ".prettierignore", "package.json", "package-lock.json"],
+    [
+        "**/*.md",
+        ".prettierrc.json",
+        ".prettierignore",
+        "package.json",
+        "package-lock.json",
+        ".nvmrc",
+    ],
 )
 def test_push_filter_covers_the_gate_inputs(path_filter: str) -> None:
-    """Absent from `paths:`, the job runs on pull requests and never on push to main."""
-    assert f'"{path_filter}"' in _read(_LINT_WORKFLOW)
+    """Absent from `paths:`, the job runs on pull requests and never on push to main.
+
+    Matched as a list item with optional quoting: YAML accepts `- package.json`
+    and `- "package.json"` alike, and which one is written is not this rule.
+    """
+    entry = re.compile(
+        rf"""^\s*-\s*(?P<q>["']?){re.escape(path_filter)}(?P=q)\s*$""", re.MULTILINE
+    )
+
+    assert entry.search(_read(_LINT_WORKFLOW)), (
+        f"{path_filter} is not in lint.yml's push paths: filter; a push touching"
+        " only that file would skip the job it is an input to"
+    )
 
 
 def test_generated_changelogs_stay_out_of_the_gate() -> None:
