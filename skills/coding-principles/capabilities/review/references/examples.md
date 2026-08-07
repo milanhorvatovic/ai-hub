@@ -6,9 +6,9 @@ Python here is incidental. The lens is language-agnostic: the same triage, ancho
 
 ## What the reviewer was given
 
-The diff below, plus the pull-request description: "Fixes double-writes to the refund audit log."
+The diff below; the pull-request description, "Fixes double-writes to the refund audit log."; and the two call sites of `refund` in `billing/`, read because the workflow's first step asks for the diff plus enough surrounding context to judge each change.
 
-That sentence is part of the input. A change that presents itself as a bug fix is judged against principle 2, and the diff either carries the test that failed before it or it does not.
+The description is part of the input. A change that presents itself as a bug fix is judged against principle 2, and the diff either carries the test that failed before it or it does not. The call sites matter for a different reason, visible in the findings below: one concern could be settled by reading them and one could not, and that difference is what decides where each ends up.
 
 ```diff
 --- a/billing/refunds.py
@@ -47,7 +47,7 @@ Two blockers: a card number reaches the logs, and the bug this fixes has no test
 
 ## Should fix (2)
 
-- [billing/refunds.py:13] **principle 5** — `amount_cents` is annotated `int`, so the `is None` branch is unreachable from any caller that typechecks; the guard reads as if callers were untrusted and hides the fact that this function is internal. Delete it. If a `None` genuinely arrives from an HTTP handler upstream, the check belongs in that handler's request parsing, not here.
+- [billing/refunds.py:13] **principle 5** — the `amount_cents` guard defends against a caller that does not exist: both call sites in `billing/` pass an amount the HTTP layer has already parsed, so nothing reaches `refund` with `None`. Delete it. If untyped input can reach this path by some route the call sites do not show, the check belongs in the handler that admits it, where it can reject with a useful error — the annotation alone would not have settled this, since Python does not enforce it at runtime.
 - [billing/refunds.py:24] **principle 16** — `datetime.now(tz=UTC)` is called inside `refund`, so any test asserting on the audit row's timestamp has to patch the clock. Take the timestamp as a parameter and let the caller pass it:
 
   ```python
@@ -68,5 +68,6 @@ Two blockers: a card number reaches the logs, and the bug this fixes has no test
 - **Two musts lead, and the summary says so in one line.** Triage is the shape of the output, not a note inside it. A reader who stops after the summary still knows the change is blocked and why.
 - **The principle 2 finding has no line number.** It is about something absent from the diff, so `[billing/refunds.py]` alone is the honest anchor. Inventing a line to satisfy the format would point at code that is not the problem.
 - **Each finding names the observable thing first** — `order.card_number` reaching the logs, the unreachable `is None` branch — and the principle number second. A reviewer who has never read this skill can still act on all five.
+- **The principle 5 finding is confident because someone looked.** The annotation would not have carried it: Python does not enforce `int` at runtime, so "the type says so" is an argument about intent, not about what can arrive. Reading the two call sites is what turned a suspicion into a finding. A reviewer who cannot or will not read them has an Observation, not a `should`.
 - **One could, not four.** The diff also uses `result` where the file's other functions use `res`, and the `log.info` call is wrapped in a way `ruff format` would rewrite. Both were dropped: the first matches nothing worth a round trip (principle 9 — the file's local convention wins), and the second is the formatter's job. Stacking those under the card-number finding would cost it attention it needs.
-- **The last item is not a finding.** The reviewer could not tell from the diff whether `actor=reason` is a real bug, and a concern without a confident anchor goes to Observations as a question rather than into a severity bucket as a verdict. Inventing an anchor to promote it would be the anti-pattern the capability names.
+- **The last item is not a finding.** The call sites settled the `is None` question and did not settle this one — whether the audit schema wants an actor or a reason is not answerable from anything the reviewer was given. A concern without a confident anchor goes to Observations as a question rather than into a severity bucket as a verdict. Inventing an anchor to promote it would be the anti-pattern the capability names, and the two items together are the honest shape of a review: what reading further resolved, and what it did not.
