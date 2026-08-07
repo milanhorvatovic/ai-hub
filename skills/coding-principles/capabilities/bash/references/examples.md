@@ -58,8 +58,14 @@ rm -rf "$WORKSPACE/"
 # the destructive path is the one you have to ask for; the default reports
 purge_workspace() {
   local workspace="$1" confirmed="${2:-0}" resolved
+  # a symlink is refused rather than resolved: rm would unlink it, resolving
+  # would delete what it points at, and that gap is not ours to choose inside
+  [[ ! -L "$workspace" ]] || {
+    printf 'refusing to purge %q: symlink; name the target to purge it\n' "$workspace" >&2
+    return 64                                   # EX_USAGE
+  }
   # resolve before judging: `cd --` disarms a leading dash, `pwd -P` collapses
-  # `..`, `//` and symlinks, so the check sees the path rm would actually act on
+  # `..` and `//`, so the check sees the path rm would actually act on
   resolved=$(cd -- "$workspace" 2>/dev/null && pwd -P) || return 0   # nothing there
   [[ "$resolved" != "/" ]] || {
     printf 'refusing to purge %q: resolves to /\n' "$workspace" >&2
@@ -79,7 +85,9 @@ purge_workspace() {
 
 Resolving before judging is doing more work than it looks like, and it is why the guard sits above both branches rather than beside `rm`. The reporting branch has no `--` to reach for: `find "$workspace" -mindepth 1` with a workspace of `-delete` becomes `find -delete -mindepth 1`, which finds no path operand, defaults its starting point to `.`, and deletes the tree you are standing in — from the branch whose entire job was to _not_ delete anything. `!` and `(` open a `find` expression the same way.
 
-Which is the argument for checking the resolved value rather than the spelling. A blocklist of `-*` fixes the case you thought of and leaves the two you did not. Even demanding a leading `/` only looks safe: `//`, `/./` and `/var/tmp/../..` all satisfy it and all resolve to root. Ask the filesystem what the path _is_ — `cd --` disarms the leading dash, `pwd -P` collapses the traversals and symlinks — then judge that, and hand the resolved value to every command downstream. A check on how an argument is written is a check on the wrong thing; the commands act on where it points.
+Which is the argument for checking the resolved value rather than the spelling. A blocklist of `-*` fixes the case you thought of and leaves the two you did not. Even demanding a leading `/` only looks safe: `//`, `/./` and `/var/tmp/../..` all satisfy it and all resolve to root. Ask the filesystem what the path _is_ — `cd --` disarms the leading dash, `pwd -P` collapses the traversals — then judge that, and hand the resolved value to every command downstream. A check on how an argument is written is a check on the wrong thing; the commands act on where it points.
+
+Resolving buys that at a price worth naming, because it is the trap directly under this technique: `pwd -P` follows symlinks, so a workspace whose last component is one resolves to its target, and a function that then deletes the resolved path removes the target where `rm` would have removed only the link. The safe-looking rewrite would destroy strictly more than the naive one. Hence the refusal above it — the two behaviors are genuinely different operations, and a purge routine does not get to pick on the caller's behalf which one they meant.
 
 ## Principle 13 — Security hygiene (no secrets in process listing or logs)
 
