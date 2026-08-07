@@ -2,6 +2,8 @@
 
 External standards and published thinking behind the comment-value rubric. Complements the operational rules in `../capability.md`; load when a choice needs justifying against industry consensus rather than house rules.
 
+> **The docstring-detection tools named below were last checked 2026-08.** The rules do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../../../SKILL.md`.
+
 ## External standards
 
 - **[John Ousterhout, *A Philosophy of Software Design*](https://web.stanford.edu/~ouster/cgi-bin/book.php)** — the strongest published case *for* comments: they should describe what is not obvious from the code, at a different level of abstraction than the code itself (higher: intent and invariants; or lower: units, boundary conditions, ownership). His comment categories — interface, data-structure member, implementation, cross-module — map directly onto the rubric's meaning categories.

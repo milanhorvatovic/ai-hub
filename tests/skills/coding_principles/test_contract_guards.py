@@ -17,6 +17,7 @@ the table. A convention change edits the skill, and these follow.
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime
 from pathlib import Path
 
 _SEVERITY = r"\*(must|should|could)\*"
@@ -231,21 +232,28 @@ _CLAIM_FREE = frozenset({"anti-patterns.md", "examples.md"})
 # separates them. Every file directly under references/ must appear in exactly
 # one bucket — a new one in neither fails this test rather than slipping past.
 _SHARED_STAMPED = frozenset(
-    {"configuration.md", "data-handling.md", "observability.md", "platform-matrix.md",
-     "resilience.md", "testing.md"}
+    {"api-design.md", "configuration.md", "data-handling.md", "observability.md",
+     "persistence.md", "platform-matrix.md", "resilience.md", "testing.md"}
 )
 _SHARED_CLAIM_FREE = frozenset(
-    {"api-design.md", "architecture.md", "glossary.md", "mantras.md", "persistence.md",
-     "principles.md", "refactoring.md", "smells.md"}
+    {"architecture.md", "glossary.md", "mantras.md", "principles.md", "refactoring.md",
+     "smells.md"}
 )
 
-# The workflow capabilities ship references about writing — comment content,
-# review phrasing — and name no toolchain. They reuse the `best-practices.md`
-# filename without inheriting its language-capability meaning, so they are
-# classified here rather than by the convention above.
-_WORKFLOW_CLAIM_FREE = frozenset(
-    {"anti-patterns.md", "best-practices.md", "by-file-type.md", "examples.md"}
-)
+# The workflow capabilities are classified per (capability, file) rather than by
+# filename, because `best-practices.md` means different things in the two: the
+# comments one argues that detection tooling — not taste — decides whether a
+# docstring is required, so the tools it names are load-bearing, while the review
+# one is about phrasing and severity and names none. That is the line everywhere
+# here: owning a recommendation earns the stamp, mentioning one while making a
+# different argument does not.
+_WORKFLOW_REFERENCES = {
+    ("comments", "best-practices.md"): True,
+    ("comments", "anti-patterns.md"): False,
+    ("comments", "by-file-type.md"): False,
+    ("review", "best-practices.md"): False,
+    ("review", "examples.md"): False,
+}
 
 
 def test_currency_stamps_cover_every_claim_bearing_reference(
@@ -275,16 +283,26 @@ def test_currency_stamps_cover_every_claim_bearing_reference(
             problems.append(f"{rel}: carries decaying claims but no currency stamp")
         elif not expect_stamp and stamp:
             problems.append(f"{rel}: stamped, but classified as carrying no decaying claims")
-        elif stamp and not (2020 <= int(stamp.group(1)) and 1 <= int(stamp.group(2)) <= 12):
-            problems.append(f"{rel}: unparseable stamp {stamp.group(0)!r}")
+        elif stamp:
+            year, month = int(stamp.group(1)), int(stamp.group(2))
+            now = datetime.now(UTC)
+            if not (2020 <= year and 1 <= month <= 12):
+                problems.append(f"{rel}: unparseable stamp {stamp.group(0)!r}")
+            elif (year, month) > (now.year, now.month):
+                # "last checked" cannot be ahead of now; a typo like 2099-01 would
+                # otherwise inherit the same trust as a real verification date.
+                problems.append(f"{rel}: stamp {year}-{month:02d} is in the future")
 
     for refs in sorted(capabilities_dir.glob("*/references")):
         is_language = refs.parent.name in language_capabilities
         for md in sorted(refs.glob("*.md")):
+            workflow = _WORKFLOW_REFERENCES.get((refs.parent.name, md.name))
             if is_language and md.name in _CLAIM_BEARING:
                 check(md, expect_stamp=True)
-            elif md.name in (_CLAIM_FREE if is_language else _WORKFLOW_CLAIM_FREE):
+            elif is_language and md.name in _CLAIM_FREE:
                 check(md, expect_stamp=False)
+            elif not is_language and workflow is not None:
+                check(md, expect_stamp=workflow)
             else:
                 problems.append(
                     f"{md.relative_to(skill_root).as_posix()}: unclassified reference —"

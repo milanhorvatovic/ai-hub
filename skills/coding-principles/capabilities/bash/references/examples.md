@@ -57,27 +57,29 @@ rm -rf "$WORKSPACE/"
 ```bash
 # the destructive path is the one you have to ask for; the default reports
 purge_workspace() {
-  local workspace="$1" confirmed="${2:-0}"
-  [[ "$workspace" = /* && "$workspace" != "/" ]] || {
-    printf 'refusing to purge %q: want an absolute path below /\n' "$workspace" >&2
+  local workspace="$1" confirmed="${2:-0}" resolved
+  # resolve before judging: `cd --` disarms a leading dash, `pwd -P` collapses
+  # `..`, `//` and symlinks, so the check sees the path rm would actually act on
+  resolved=$(cd -- "$workspace" 2>/dev/null && pwd -P) || return 0   # nothing there
+  [[ "$resolved" != "/" ]] || {
+    printf 'refusing to purge %q: resolves to /\n' "$workspace" >&2
     return 64                                   # EX_USAGE
   }
-  [[ -d "$workspace" ]] || return 0
 
   if [[ "$confirmed" != 1 ]]; then
     printf 'would remove %s paths under %s\n' \
-      "$(find "$workspace" -mindepth 1 | wc -l)" "$workspace" >&2
+      "$(find "$resolved" -mindepth 1 | wc -l)" "$resolved" >&2
     return 0
   fi
-  rm -rf -- "$workspace"
+  rm -rf -- "$resolved"
 }
 ```
 
 `rm -rf` cannot be undone, so caution is spent up front: the path is checked before it is interpolated, `--` stops a leading dash being read as a flag, and deleting takes an explicit second argument that a caller has to mean. A script that is safe only when its environment is set correctly is not safe.
 
-Requiring an absolute path is doing more work than it looks like, and it is why the guard sits above both branches rather than beside `rm`. The reporting branch has no `--` to reach for: `find "$workspace" -mindepth 1` with a workspace of `-delete` becomes `find -delete -mindepth 1`, which finds no path operand, defaults its starting point to `.`, and deletes the tree you are standing in — from the branch whose entire job was to _not_ delete anything. `!` and `(` open a `find` expression the same way.
+Resolving before judging is doing more work than it looks like, and it is why the guard sits above both branches rather than beside `rm`. The reporting branch has no `--` to reach for: `find "$workspace" -mindepth 1` with a workspace of `-delete` becomes `find -delete -mindepth 1`, which finds no path operand, defaults its starting point to `.`, and deletes the tree you are standing in — from the branch whose entire job was to _not_ delete anything. `!` and `(` open a `find` expression the same way.
 
-Which is the argument for the shape of this guard. Blocklisting `-*` fixes the case you thought of and leaves the two you did not; requiring a leading `/` admits only paths, so every hostile spelling fails the same test without anyone having to enumerate them. Constrain the input to the shape you want at the boundary and every command downstream inherits it — screen each command for the metacharacters it happens to treat specially and you will eventually meet the one that had no flag terminator to offer.
+Which is the argument for checking the resolved value rather than the spelling. A blocklist of `-*` fixes the case you thought of and leaves the two you did not. Even demanding a leading `/` only looks safe: `//`, `/./` and `/var/tmp/../..` all satisfy it and all resolve to root. Ask the filesystem what the path _is_ — `cd --` disarms the leading dash, `pwd -P` collapses the traversals and symlinks — then judge that, and hand the resolved value to every command downstream. A check on how an argument is written is a check on the wrong thing; the commands act on where it points.
 
 ## Principle 13 — Security hygiene (no secrets in process listing or logs)
 

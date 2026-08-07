@@ -186,7 +186,8 @@ def issue_token(user_id: str) -> Token:
 
 ```python
 # all three arrive as arguments; note the two `datetime.now()` calls collapsed
-# into one value, which also removes a real straddling-midnight bug
+# into one, so the token's lifetime is exactly the ttl instead of the ttl plus
+# however long the two clock reads were apart
 @dataclass(frozen=True)
 class TokenPolicy:
     ttl: timedelta

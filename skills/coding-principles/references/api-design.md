@@ -2,6 +2,8 @@
 
 Language-agnostic conventions for designing service APIs (REST, GraphQL, gRPC). Applies whenever the code under change exposes or consumes a network API. Load alongside the relevant language capability when the task touches HTTP handlers, RPC services, or client code.
 
+> **The spec and resolver tools named below were last checked 2026-08.** The rules do not decay; the tools do. How to read a stamped file is stated once under "Currency" in `../SKILL.md`.
+
 These are *industry* conventions, not this skill's invention — cite them when an API choice needs justification.
 
 ## REST / HTTP

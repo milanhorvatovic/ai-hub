@@ -151,7 +151,10 @@ def test_worked_review_cites_the_lines_it_names(capabilities_dir: Path) -> None:
     body_lines = [ln for ln in diff.splitlines() if not ln.startswith(("@@", "---", "+++"))]
     minus = [ln for ln in body_lines if ln.startswith("-")]
     plus = [ln[1:] for ln in body_lines if ln.startswith("+")]
-    context = [ln for ln in body_lines if ln.strip() and not ln.startswith(("-", "+"))]
+    # No `.strip()` here: a blank context line in a unified diff is a lone space,
+    # and stripping it would erase the only evidence that it is context — the
+    # line would then slip past this assertion and shift every citation after it.
+    context = [ln for ln in body_lines if not ln.startswith(("-", "+"))]
     assert not context, (
         f"worked diff carries {len(context)} context line(s); new-file numbering counts"
         " those too, which the citation mapping below does not — keep the hunk all-added"
