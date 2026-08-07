@@ -57,37 +57,40 @@ rm -rf "$WORKSPACE/"
 ```bash
 # the destructive path is the one you have to ask for; the default reports
 purge_workspace() {
-  local workspace="$1" confirmed="${2:-0}" resolved
-  # a symlink is refused rather than resolved: rm would unlink it, resolving
-  # would delete what it points at, and that gap is not ours to choose inside
-  [[ ! -L "$workspace" ]] || {
-    printf 'refusing to purge %q: symlink; name the target to purge it\n' "$workspace" >&2
+  local name="$1" confirmed="${2:-0}" root="${WORKSPACE_ROOT:?WORKSPACE_ROOT is required}" dir
+  # the caller names a workspace and never supplies a path, so traversal, a
+  # leading dash and a trailing slash are unrepresentable rather than screened
+  [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]] || {
+    printf 'refusing to purge %q: names are [A-Za-z0-9_-]+\n' "$name" >&2
     return 64                                   # EX_USAGE
   }
-  # resolve before judging: `cd --` disarms a leading dash, `pwd -P` collapses
-  # `..` and `//`, so the check sees the path rm would actually act on
-  resolved=$(cd -- "$workspace" 2>/dev/null && pwd -P) || return 0   # nothing there
-  [[ "$resolved" != "/" ]] || {
-    printf 'refusing to purge %q: resolves to /\n' "$workspace" >&2
-    return 64                                   # EX_USAGE
+  [[ "$root" = /* ]] || {
+    printf 'WORKSPACE_ROOT must be absolute, got %q\n' "$root" >&2
+    return 78                                   # EX_CONFIG
   }
 
+  dir="$root/$name"                             # built, so it has no odd spelling
+  [[ ! -L "$dir" ]] || {
+    printf 'refusing to purge %q: %s is a symlink\n' "$name" "$dir" >&2
+    return 64
+  }
+  [[ -d "$dir" ]] || return 0                   # nothing to purge
+
   if [[ "$confirmed" != 1 ]]; then
-    printf 'would remove %s paths under %s\n' \
-      "$(find "$resolved" -mindepth 1 | wc -l)" "$resolved" >&2
+    printf 'would remove %s paths under %s\n' "$(find "$dir" -mindepth 1 | wc -l)" "$dir" >&2
     return 0
   fi
-  rm -rf -- "$resolved"
+  rm -rf -- "$dir"
 }
 ```
 
 `rm -rf` cannot be undone, so caution is spent up front: the path is checked before it is interpolated, `--` stops a leading dash being read as a flag, and deleting takes an explicit second argument that a caller has to mean. A script that is safe only when its environment is set correctly is not safe.
 
-Resolving before judging is doing more work than it looks like, and it is why the guard sits above both branches rather than beside `rm`. The reporting branch has no `--` to reach for: `find "$workspace" -mindepth 1` with a workspace of `-delete` becomes `find -delete -mindepth 1`, which finds no path operand, defaults its starting point to `.`, and deletes the tree you are standing in — from the branch whose entire job was to _not_ delete anything. `!` and `(` open a `find` expression the same way.
+The interesting part is what the rewrite refused to do, because the obvious fix does not converge. Accept a path and you owe it a validator, and every check you write teaches you the next spelling: `-delete` makes `find "$workspace" -mindepth 1` into `find -delete -mindepth 1`, which takes no path operand, defaults to `.`, and deletes the tree you are standing in — from the branch whose only job was to _not_ delete anything. Reject a leading dash and `!` and `(` open a `find` expression the same way. Demand a leading `/` and `//`, `/./` and `/var/tmp/../..` all satisfy it and all resolve to root. Resolve with `pwd -P` and a workspace whose last component is a symlink now resolves to its target, so the safe-looking version deletes what the link points at where plain `rm` would have unlinked it — destroying strictly more than the naive code it replaced. Guard that with `-L` and a trailing slash slips past, because `[[ -L link/ ]]` is false while `cd link/ && pwd -P` still lands on the target.
 
-Which is the argument for checking the resolved value rather than the spelling. A blocklist of `-*` fixes the case you thought of and leaves the two you did not. Even demanding a leading `/` only looks safe: `//`, `/./` and `/var/tmp/../..` all satisfy it and all resolve to root. Ask the filesystem what the path _is_ — `cd --` disarms the leading dash, `pwd -P` collapses the traversals — then judge that, and hand the resolved value to every command downstream. A check on how an argument is written is a check on the wrong thing; the commands act on where it points.
+That is five rounds of validator against an input that has more spellings than you have checks, and the lesson is not the fifth check. Take a name instead of a path. `[A-Za-z0-9_-]+` cannot express a traversal, a leading dash, a trailing slash, or a second path component, so none of those need screening — they stopped being sayable. Build the path yourself from a root you validated once at the edge, and the only hazard left is the one the construction cannot rule out, a symlink sitting where you put the directory, which is a single reliable check because the path you are testing has no odd spelling in it.
 
-Resolving buys that at a price worth naming, because it is the trap directly under this technique: `pwd -P` follows symlinks, so a workspace whose last component is one resolves to its target, and a function that then deletes the resolved path removes the target where `rm` would have removed only the link. The safe-looking rewrite would destroy strictly more than the naive one. Hence the refusal above it — the two behaviors are genuinely different operations, and a purge routine does not get to pick on the caller's behalf which one they meant.
+Reversibility is what makes the trade worth it. A validator that is wrong about a search argument returns bad results; a validator that is wrong here removes a filesystem. When the operation cannot be undone, narrow what it can be _asked_ to do until the dangerous inputs are unrepresentable — an argument you cannot express is one you never have to get right.
 
 ## Principle 13 — Security hygiene (no secrets in process listing or logs)
 
