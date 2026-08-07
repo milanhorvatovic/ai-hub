@@ -13,36 +13,15 @@ import ast
 import re
 import shutil
 import subprocess
-import textwrap
 from pathlib import Path
 
-# Captures indented fences too (a suggestion nested in a list item) and remembers
-# the indent so the closing fence must match it. A ````-opened block never starts
-# a match — the fourth backtick is not `\w` — so its inner fences are collected
-# individually, which is what we want: they are samples in their own right.
-_FENCE = re.compile(
-    r"^(?P<indent>[ \t]*)```(?P<lang>\w+)[^\n]*\n(?P<body>.*?)^(?P=indent)```",
-    re.M | re.S,
-)
+from tests.support.fences import fences_in as _fences_in
+from tests.support.fences import fences_under
 
 # `[path:line]` at the head of a finding, and the first backticked token in the
 # rest of that line — the thing the finding says is at that location.
 _CITATION = re.compile(r"^- \[(?P<path>[^\]:]+):(?P<line>\d+)\](?P<rest>.*)$", re.M)
 _FIRST_TOKEN = re.compile(r"`([^`]+)`")
-
-
-def _fences_in(md: Path) -> list[tuple[int, str, str]]:
-    """(1-based fence line, language, dedented body) for one markdown file.
-
-    Bodies are normalized to LF. `.gitattributes` sets `* text=auto`, so markdown
-    arrives CRLF on a Windows checkout, and a shell parser reads the stray `\\r`
-    as part of the last token on every line.
-    """
-    text = md.read_text(encoding="utf-8").replace("\r\n", "\n")
-    return [
-        (text[: m.start()].count("\n") + 1, m.group("lang"), textwrap.dedent(m.group("body")))
-        for m in _FENCE.finditer(text)
-    ]
 
 
 def _usable_bash() -> str | None:
@@ -66,12 +45,7 @@ def _usable_bash() -> str | None:
 def _fences(skill_root: Path) -> list[tuple[str, int, str, str]]:
     """(relative path, 1-based fence line, language, dedented body) for every
     fenced block in the skill tree."""
-    return [
-        # POSIX-form path so a failure reads the same on every platform.
-        (md.relative_to(skill_root).as_posix(), line, lang, body)
-        for md in sorted(skill_root.rglob("*.md"))
-        for line, lang, body in _fences_in(md)
-    ]
+    return fences_under(skill_root)
 
 
 def test_python_and_bash_samples_parse(skill_root: Path) -> None:
