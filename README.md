@@ -50,10 +50,11 @@ Then unzip the bundle into your agent's skills directory.
 ```sh
 python -m venv venv
 ./venv/bin/pip install -r requirements-test.txt
+npm ci
 ./venv/bin/pytest -q
 ```
 
-Markdown is formatted with Prettier (`proseWrap: never`) — see `.prettierrc.json`. Python is linted with Ruff (`[tool.ruff]` in `pyproject.toml`), enforced in CI on every PR; `.pre-commit-config.yaml` wires Ruff and Prettier for contributors who want them locally.
+Markdown is formatted with Prettier (`proseWrap: never`) — see `.prettierrc.json`. Python is linted with Ruff (`[tool.ruff]` in `pyproject.toml`). Both are enforced in CI on every PR: `ruff check` and `npm run format:check` each block. Prettier's version is pinned in `package-lock.json` — `npm ci` installs it, `npm run format` fixes formatting. `.pre-commit-config.yaml` wires both to run locally at commit time for contributors who want them.
 
 ## Contributing
 

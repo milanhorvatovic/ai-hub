@@ -38,3 +38,25 @@ updates:
     labels:
       - dependencies
       - python
+
+  # package.json holds the Node tools CI and the pre-commit hooks run. Without
+  # this entry the pin is invisible to Dependabot and goes stale silently,
+  # which is the failure the pin exists to prevent.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      node:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    # Dependabot ignores a label that is not defined in the repository rather
+    # than creating it, and `javascript` does not exist yet — so until someone
+    # creates it these PRs arrive with `dependencies` alone. Kept rather than
+    # dropped: the other two ecosystems each carry an ecosystem label, and one
+    # repo-settings step is cheaper than a permanently inconsistent convention.
+    labels:
+      - dependencies
+      - javascript

@@ -8,7 +8,8 @@ ai-hub is a repository of AI-agnostic artifacts — primarily **skills** under `
 
 - Setup: `python -m venv venv && ./venv/bin/pip install -r requirements-test.txt`
 - Test: `./venv/bin/pytest -q`
-- Lint: `ruff check` (config in `pyproject.toml`) runs in CI on every PR; `prettier --check '**/*.md'` is opt-in
+- Lint: `ruff check` (config in `pyproject.toml`) and `npm run format:check` (Prettier over every `.md` not excluded by `.gitignore` or `.prettierignore`) both run in CI on every PR and both block
+- Markdown toolchain: `npm ci` installs the Prettier pinned in `package-lock.json`; run `npm run format` to fix formatting before pushing
 - Hooks (opt-in, recommended for agents): `git config core.hooksPath .githooks` — rejects a rule-breaking commit message at commit time with the same linter CI runs, so violations surface as same-turn feedback instead of a red check later (`.githooks/pre-commit` delegates to `pre-commit` when installed, so skip `pre-commit install`)
 
 ## Conventions

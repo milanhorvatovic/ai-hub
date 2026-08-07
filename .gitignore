@@ -111,11 +111,13 @@ $RECYCLE.BIN/
 *.stackdump
 
 # ===========================================================================
-# Node.js — npx-invoked formatters used by some skills
+# Node.js — the repo's pinned toolchain, plus formatters some skills invoke
 # ---------------------------------------------------------------------------
-# Several skills (e.g. docs-steward) shell out to npx-installed formatters
-# such as markdownlint-cli2, prettier, and remark. Local installs leave
-# node_modules and tool logs behind that must not be committed.
+# `npm ci` installs the tools pinned in package-lock.json (prettier today) that
+# CI and the pre-commit hooks run. Several skills (e.g. docs-steward) also shell
+# out to npx-installed formatters such as markdownlint-cli2 and remark. Both
+# leave node_modules and tool logs behind that must not be committed — and
+# Prettier reads this file, so ignoring it here also keeps it out of the gate.
 # ===========================================================================
 node_modules/
 npm-debug.log*

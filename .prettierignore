@@ -1,0 +1,9 @@
+# Prettier also reads .gitignore by default, so node_modules/ and venv/ need no
+# entry here. This file is only for tracked paths the format gate must not own.
+
+# release-please generates these from commit history on every run: it emits `*`
+# list markers and a blank line Prettier removes, and any fix is overwritten by
+# the next release. Gating generated output would redden every release PR on a
+# diff no edit survives. The root CHANGELOG.md is not here — it is hand-authored
+# and stays under the gate.
+skills/*/CHANGELOG.md

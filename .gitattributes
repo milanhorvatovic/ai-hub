@@ -28,7 +28,11 @@
 /.gitignore                 export-ignore
 /.pre-commit-config.yaml    export-ignore
 /.prettierrc.json           export-ignore
+/.prettierignore            export-ignore
 /.python-version            export-ignore
+/.nvmrc                     export-ignore
+/package.json               export-ignore
+/package-lock.json          export-ignore
 /pyproject.toml             export-ignore
 /requirements-test.txt      export-ignore
 /release-please-config.json export-ignore

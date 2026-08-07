@@ -1,5 +1,7 @@
 # Opt-in developer hooks. Install with `pre-commit install`.
-# Hooks run on changed files only, so they won't trip on as-yet-unnormalized files.
+# Hooks run on changed files only — for speed. They used to be scoped that way
+# so they would not trip on as-yet-unnormalized files; the tracked tree is
+# Prettier-clean now and CI checks all of it, so that reason is spent.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -15,8 +17,13 @@ repos:
         args: [--fix]
   - repo: local
     hooks:
+      # `npx --no-install` runs the prettier pinned in package-lock.json and
+      # fails loudly when `npm ci` has not been run, instead of silently using
+      # whatever version is on PATH — which is how a hook starts formatting
+      # files into a shape CI rejects. Not `--no`: npm parses that as its own
+      # flag and reports npm's version rather than prettier's.
       - id: prettier
         name: prettier (markdown, proseWrap:never)
-        entry: prettier --write
+        entry: npx --no-install prettier --write
         language: system
         types_or: [markdown]
