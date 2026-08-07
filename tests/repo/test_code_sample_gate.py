@@ -1,10 +1,10 @@
 """Structural contracts for the code-sample syntax gate.
 
-The lane that parses the shipped TypeScript is an ordinary pytest test, and an
-ordinary pytest test skips when the compiler is missing. That is correct
-locally and indistinguishable from success in CI, so what has to be asserted is
-not the parsing — the lane checks its own work with control samples — but the
-wiring that guarantees the lane runs somewhere with the compiler present.
+The lanes that parse the shipped samples are ordinary pytest tests, and an
+ordinary pytest test skips when its parser is missing. That is correct locally
+and indistinguishable from success in CI, so what has to be asserted is not the
+parsing — the lanes check their own work with control samples — but the wiring
+that guarantees they run somewhere the parsers are present.
 """
 
 import json
@@ -24,12 +24,12 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _typescript_job() -> str:
-    """The `typescript:` job block, up to the next job at the same indent."""
+def _code_samples_job() -> str:
+    """The `code-samples:` job block, up to the next job at the same indent."""
     match = re.search(
-        r"^  typescript:\n(?P<body>(?:^(?:    .*)?\n)*)", _read(_LINT_WORKFLOW), re.MULTILINE
+        r"^  code-samples:\n(?P<body>(?:^(?:    .*)?\n)*)", _read(_LINT_WORKFLOW), re.MULTILINE
     )
-    assert match, "lint.yml has no `typescript:` job; the lane runs nowhere with a compiler"
+    assert match, "lint.yml has no `code-samples:` job; the lanes run nowhere with a parser"
     return match.group("body")
 
 
@@ -63,7 +63,7 @@ def test_the_pinned_major_still_ships_a_compiler_api() -> None:
 
 def test_ci_runs_the_lane_where_the_compiler_exists() -> None:
     """A lane nothing runs is a lane that reports on nothing."""
-    job = _typescript_job()
+    job = _code_samples_job()
 
     assert "npm ci" in job, "the job does not install the pinned compiler"
     assert _LANE in job, f"the job does not run {_LANE}"
@@ -73,11 +73,19 @@ def test_ci_turns_a_skipped_lane_into_a_failure() -> None:
     """This is the assertion the whole file exists for. Without the variable a
     broken install skips the lane and the job still reports success — the exact
     shape of green-over-unchecked this gate is here to prevent."""
-    job = _typescript_job()
+    job = _code_samples_job()
 
-    assert "REQUIRE_TYPESCRIPT_LANE" in job, (
-        "the job does not set REQUIRE_TYPESCRIPT_LANE, so a missing compiler"
-        f" skips {_LANE} and the job passes anyway"
+    assert "REQUIRE_SAMPLE_LANES" in job, (
+        "the job does not set REQUIRE_SAMPLE_LANES, so a missing parser"
+        f" skips a lane in {_LANE} and the job passes anyway"
+    )
+    # The variable does nothing on its own. What enforces it is a hook that
+    # fails any skip in that module while it is set — the half a contributor
+    # deleting a "weird" conftest would take with them.
+    enforcement = _read(_REPO_ROOT / "tests" / "skills" / "conftest.py")
+    assert "REQUIRE_SAMPLE_LANES" in enforcement, (
+        "nothing reads REQUIRE_SAMPLE_LANES, so setting it in CI is decoration"
+        " and a skipped lane still reports success"
     )
 
 

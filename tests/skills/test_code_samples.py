@@ -28,10 +28,11 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
+from typing import NoReturn
 
 import pytest
 
-from tests.support.fences import Fence, fences_under
+from tests.support.fences import Fence, GitUnavailable, fences_under
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PARSER = _REPO_ROOT / "tests" / "support" / "parse_typescript.mjs"
@@ -74,17 +75,31 @@ _CONTROLS = {
 }
 
 
-def _no_toolchain(reason: str) -> None:
-    """Skip, unless this is the job that exists to run the lane.
+def _no_toolchain(reason: str) -> NoReturn:
+    """Skip, unless this is the job that exists to run the lanes.
 
     Skipping is right on a machine that has never run `npm ci` — the alternative
     is a suite that fails for a reason unrelated to what the contributor
-    changed. It is wrong in CI's `typescript` job, where a skip is a green tick
-    over an unchecked sample, so that job sets the variable and gets a failure.
+    changed. It is wrong in the CI job built to run these lanes, where a skip is
+    a green tick over an unchecked sample, so that job sets the variable and
+    gets a failure instead.
+
+    Every lane routes its "cannot run" path through here rather than calling
+    `pytest.skip` directly. The TypeScript lane had this protection first and the
+    others did not, which left the guarantee resting on the accident that CI
+    runners happen to ship bash: true today, and not a thing the suite checked.
     """
-    if os.environ.get("REQUIRE_TYPESCRIPT_LANE"):
-        raise AssertionError(f"the TypeScript lane is required here but could not run: {reason}")
+    if os.environ.get("REQUIRE_SAMPLE_LANES"):
+        raise AssertionError(f"a sample lane is required here but could not run: {reason}")
     pytest.skip(reason)
+
+
+def _tracked_fences() -> list[Fence]:
+    """Every fence in the tracked tree, or a skip if the file list is unobtainable."""
+    try:
+        return fences_under(_REPO_ROOT)
+    except GitUnavailable as exc:
+        _no_toolchain(str(exc))
 
 
 def _samples(language: str) -> list[Fence]:
@@ -95,7 +110,7 @@ def _samples(language: str) -> list[Fence]:
     """
     return [
         fence
-        for fence in fences_under(_REPO_ROOT)
+        for fence in _tracked_fences()
         if fence.language == language and not fence.is_template
     ]
 
@@ -148,7 +163,7 @@ def test_bash_samples_parse() -> None:
     """
     bash = _usable_bash()
     if not bash:
-        pytest.skip("no usable bash on PATH")
+        _no_toolchain("no usable bash on PATH")
 
     problems = []
     samples = _samples("bash")
@@ -180,9 +195,9 @@ def test_template_fences_are_exempt_because_they_are_templates() -> None:
     """
     bash = _usable_bash()
     if not bash:
-        pytest.skip("no usable bash on PATH")
+        _no_toolchain("no usable bash on PATH")
 
-    marked = [fence for fence in fences_under(_REPO_ROOT) if fence.is_template]
+    marked = [fence for fence in _tracked_fences() if fence.is_template]
     unverifiable = [
         f"{fence.path}:{fence.line} ({fence.language})"
         for fence in marked
@@ -236,7 +251,6 @@ def test_typescript_samples_parse() -> None:
     node = shutil.which("node")
     if not node:
         _no_toolchain("node is not installed")
-        return
 
     samples = _typescript_samples()
     payload = [{"id": f"{f.path}:{f.line}", "source": f.body} for f in samples]
@@ -252,7 +266,6 @@ def test_typescript_samples_parse() -> None:
     )
     if done.returncode == _NO_TOOLCHAIN:
         _no_toolchain(done.stderr.strip() or "the pinned typescript is not installed")
-        return
     assert done.returncode == 0, f"the TypeScript parser failed to run: {done.stderr.strip()}"
 
     result = json.loads(done.stdout)
@@ -321,7 +334,7 @@ def test_every_fence_spelling_is_accounted_for() -> None:
     be tested. So the tree's spellings are declared instead, and an undeclared
     one fails here until someone maps it to a lane or records why it has none.
     """
-    present = {fence.raw_language for fence in fences_under(_REPO_ROOT)}
+    present = {fence.raw_language for fence in _tracked_fences()}
     undeclared = present - _CHECKED_SPELLINGS - _UNCHECKED_SPELLINGS
 
     assert not undeclared, (

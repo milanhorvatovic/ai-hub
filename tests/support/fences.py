@@ -9,7 +9,9 @@ using goes dark while still reporting green.
 from __future__ import annotations
 
 import re
+import subprocess
 import textwrap
+from functools import cache
 from pathlib import Path
 from typing import NamedTuple
 
@@ -85,19 +87,51 @@ def fences_in(md: Path, path: str | None = None) -> list[Fence]:
     ]
 
 
-# Directories that hold markdown nobody here authored. Walking the working tree
-# rather than asking git keeps this stdlib-only and matches how the formatter
-# behaves — a document is checked before it is ever staged — but it also means
-# an installed dependency's README is one careless glob away from the lanes.
-EXCLUDED_DIRS = frozenset({".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache"})
+class GitUnavailable(RuntimeError):
+    """Raised when the file list cannot be obtained, so a caller can skip rather
+    than silently check a different set of files than it claims to."""
+
+
+@cache
+def tracked_markdown(root: Path) -> tuple[Path, ...]:
+    """Every `.md` file in the working tree that is not ignored.
+
+    Asking git rather than walking and filtering, because a hand-kept exclusion
+    list is a second definition of "which files count" and `.gitignore` is the
+    first. The first version of this did keep such a list, and it was already
+    wrong: it named six directories where `.gitignore` names a dozen, so a
+    `build/` or `htmlcov/` left behind by another tool would have been scanned
+    as content. `--cached --others --exclude-standard` is precisely the set the
+    formatter checks — tracked files plus new ones not yet staged, minus
+    everything ignored — so a new document is checked before it is committed and
+    an installed dependency's README never is.
+    """
+    try:
+        done = subprocess.run(
+            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "*.md"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:  # git is not installed at all
+        raise GitUnavailable(f"could not run git: {exc}") from exc
+    if done.returncode:
+        raise GitUnavailable(f"git ls-files failed: {done.stderr.strip()}")
+
+    # `-z` because a path may contain anything but NUL, and git would otherwise
+    # quote and escape the awkward ones into something that no longer opens.
+    names = sorted(name for name in done.stdout.split("\0") if name)
+    # A deleted-but-still-tracked file is listed by `--cached`; skip rather than
+    # fail, since the deletion is the contributor's intent and not a defect.
+    return tuple(path for name in names if (path := root / name).is_file())
 
 
 def fences_under(root: Path, relative_to: Path | None = None) -> list[Fence]:
-    """Every fenced block in a tree, paths relative to `relative_to` (default `root`)."""
+    """Every fenced block in the tracked markdown under a tree."""
     base = relative_to or root
     return [
         fence
-        for md in sorted(root.rglob("*.md"))
-        if not EXCLUDED_DIRS & set(md.parts)
+        for md in tracked_markdown(root)
         for fence in fences_in(md, path=md.relative_to(base).as_posix())
     ]
