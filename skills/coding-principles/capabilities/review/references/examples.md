@@ -38,9 +38,11 @@ The description is part of the input. A change that presents itself as a bug fix
 ````markdown
 ## Summary
 
-Two blockers: a card number reaches the logs, and the bug this fixes has no test. The rest is small.
+Three blockers: the new parameter breaks both callers, a card number reaches the logs, and the fix the description claims is not in the diff. The rest is small.
 
-## Must fix (2)
+## Must fix (3)
+
+- [billing/refunds.py:12] **principle 8** — `reason` is added as a required positional, and neither of the two call sites passes it, so every refund raises `TypeError` the moment this merges. Give it a default, or update both callers in this PR; a signature change and its call sites are one change, and shipping half of it is the half that pages someone.
 
 - [billing/refunds.py:19] **principle 13** — `order.card_number` is interpolated into the `log.info` call, so a full PAN lands in whatever the log ships to. Log the shape instead of the value: `card_last4=%s` with `order.card_last4`, or drop the field — `order_id` is already enough to find the payment.
 - [billing/refunds.py] **principle 2** — the description says this fixes double-writes to the audit log, but the diff *adds* the only `audit.write` in the function and changes nothing about how often it runs, so the duplication it claims to fix is not addressed here and no test would fail without the change. Either the description belongs to a different branch or the fix is missing; say which. When the real fix lands, put one refund through the duplicating path and assert exactly one audit row — two refunds legitimately write two rows, so asserting one across a pair would suppress real history instead of reproducing the defect.
@@ -65,10 +67,11 @@ Two blockers: a card number reaches the logs, and the bug this fixes has no test
 
 ## Why the review looks like this
 
-- **Two musts lead, and the summary says so in one line.** Triage is the shape of the output, not a note inside it. A reader who stops after the summary still knows the change is blocked and why.
+- **Three musts lead, and the summary says so in one line.** Triage is the shape of the output, not a note inside it. A reader who stops after the summary still knows the change is blocked and why. The `TypeError` goes first inside that group because it is the one that breaks on merge rather than on audit.
 - **The principle 2 finding has no line number.** It is about something absent from the diff, so `[billing/refunds.py]` alone is the honest anchor. Inventing a line to satisfy the format would point at code that is not the problem.
 - **It also reads the description as a claim to be checked, not as context.** The stated fix and the shown diff disagree — one adds auditing, the other says it removes duplicate auditing — and noticing that is upstream of noticing the missing test. A description that does not match its diff is a finding on its own; treating it as background is how a branch merges under a summary of work it does not contain.
-- **Each finding names the observable thing first** — `order.card_number` reaching the logs, the unreachable `is None` branch — and the principle number second. A reviewer who has never read this skill can still act on all five.
+- **Each finding names the observable thing first** — `order.card_number` reaching the logs, the unreachable `is None` branch — and the principle number second. A reviewer who has never read this skill can still act on all six.
+- **Reading the call sites paid for itself twice.** They settled the principle 5 question and they surfaced the `TypeError`, which is invisible from the diff alone: the signature grows a required argument and the diff shows no caller. Two of the three blockers came from context the diff did not contain, which is the argument for the workflow's first step being what it is.
 - **The principle 5 finding is confident because someone looked.** The annotation would not have carried it: Python does not enforce `int` at runtime, so "the type says so" is an argument about intent, not about what can arrive. Reading the two call sites is what turned a suspicion into a finding. A reviewer who cannot or will not read them has an Observation, not a `should`.
 - **One could, not four.** The diff also uses `result` where the file's other functions use `res`, and the `log.info` call is wrapped in a way `ruff format` would rewrite. Both were dropped: the first matches nothing worth a round trip (principle 9 — the file's local convention wins), and the second is the formatter's job. Stacking those under the card-number finding would cost it attention it needs.
 - **The last item is not a finding.** The call sites settled the `is None` question and did not settle this one — whether the audit schema wants an actor or a reason is not answerable from anything the reviewer was given. A concern without a confident anchor goes to Observations as a question rather than into a severity bucket as a verdict. Inventing an anchor to promote it would be the anti-pattern the capability names, and the two items together are the honest shape of a review: what reading further resolved, and what it did not.

@@ -60,13 +60,19 @@ purge_workspace() {
   local name="$1" confirmed="${2:-0}" root="${WORKSPACE_ROOT:?WORKSPACE_ROOT is required}" dir
   # the caller names a workspace and never supplies a path, so traversal, a
   # leading dash and a trailing slash are unrepresentable rather than screened
-  [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]] || {
-    printf 'refusing to purge %q: names are [A-Za-z0-9_-]+\n' "$name" >&2
+  [[ "$name" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]] || {
+    printf 'refusing to purge %q: names match [A-Za-z0-9_][A-Za-z0-9_-]*\n' "$name" >&2
     return 64                                   # EX_USAGE
   }
-  [[ "$root" = /* ]] || {
-    printf 'WORKSPACE_ROOT must be absolute, got %q\n' "$root" >&2
+  # canonicalize the one value arriving from outside: an absolute-looking
+  # /srv/ws/../.. builds a path that leaves the base it claims to name
+  root=$(cd -- "$root" 2>/dev/null && pwd -P) || {
+    printf 'WORKSPACE_ROOT %q is not a directory\n' "$WORKSPACE_ROOT" >&2
     return 78                                   # EX_CONFIG
+  }
+  [[ "$root" != "/" ]] || {
+    printf 'WORKSPACE_ROOT must not be /\n' >&2
+    return 78
   }
 
   dir="$root/$name"                             # built, so it has no odd spelling
@@ -84,11 +90,13 @@ purge_workspace() {
 }
 ```
 
-`rm -rf` cannot be undone, so caution is spent up front: the path is checked before it is interpolated, `--` stops a leading dash being read as a flag, and deleting takes an explicit second argument that a caller has to mean. A script that is safe only when its environment is set correctly is not safe.
+`rm -rf` cannot be undone, so caution is spent up front: nothing is interpolated that was not built here, `--` stops a leading dash being read as a flag, and deleting takes an explicit second argument that a caller has to mean. A script that is safe only when its environment is set correctly is not safe — which is why the root is canonicalized rather than merely checked for a leading slash.
 
 The interesting part is what the rewrite refused to do, because the obvious fix does not converge. Accept a path and you owe it a validator, and every check you write teaches you the next spelling: `-delete` makes `find "$workspace" -mindepth 1` into `find -delete -mindepth 1`, which takes no path operand, defaults to `.`, and deletes the tree you are standing in — from the branch whose only job was to _not_ delete anything. Reject a leading dash and `!` and `(` open a `find` expression the same way. Demand a leading `/` and `//`, `/./` and `/var/tmp/../..` all satisfy it and all resolve to root. Resolve with `pwd -P` and a workspace whose last component is a symlink now resolves to its target, so the safe-looking version deletes what the link points at where plain `rm` would have unlinked it — destroying strictly more than the naive code it replaced. Guard that with `-L` and a trailing slash slips past, because `[[ -L link/ ]]` is false while `cd link/ && pwd -P` still lands on the target.
 
-That is five rounds of validator against an input that has more spellings than you have checks, and the lesson is not the fifth check. Take a name instead of a path. `[A-Za-z0-9_-]+` cannot express a traversal, a leading dash, a trailing slash, or a second path component, so none of those need screening — they stopped being sayable. Build the path yourself from a root you validated once at the edge, and the only hazard left is the one the construction cannot rule out, a symlink sitting where you put the directory, which is a single reliable check because the path you are testing has no odd spelling in it.
+That is five rounds of validator against an input that has more spellings than you have checks, and the lesson is not the fifth check. Take a name instead of a path. `[A-Za-z0-9_][A-Za-z0-9_-]*` cannot express a traversal, a leading dash, a trailing slash, or a second path component, so none of those need screening — they stopped being sayable. Note the first character class is separate: writing the dash into one class would have let `-delete` through as a name, harmless here because the built path still starts with the root, but a contract the code no longer kept.
+
+Build the path yourself, from a root you canonicalize rather than pattern-match. `/srv/ws/../..` is absolute and passes any leading-slash test while naming somewhere else entirely, so the root gets `cd`-and-`pwd -P` once on the way in, and `/` is refused as a base. After that the only hazard construction cannot remove is a symlink standing where the directory should be — one reliable check, because by then the path being tested has no odd spelling left in it.
 
 Reversibility is what makes the trade worth it. A validator that is wrong about a search argument returns bad results; a validator that is wrong here removes a filesystem. When the operation cannot be undone, narrow what it can be _asked_ to do until the dangerous inputs are unrepresentable — an argument you cannot express is one you never have to get right.
 
