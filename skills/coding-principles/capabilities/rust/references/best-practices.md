@@ -71,7 +71,7 @@ Pick *one* error strategy per crate; do not mix.
 
 - **`cargo-audit`** in CI — checks dependencies against RUSTSEC advisories.
 - **`cargo-deny`** in CI — license enforcement, denied crates, advisory checks. Configure via `deny.toml`.
-- **`Cargo.lock`** committed for binaries; **not committed** for libraries (Cargo's default).
+- **`Cargo.lock`** committed, libraries included — Cargo dropped the binaries-only split in 2023-08 and now starts from committing it. A library's lockfile is never published and never constrains consumers; see `dependencies.md`.
 - **Workspace dependencies** to keep versions aligned across a workspace:
   ```toml
   [workspace.dependencies]

@@ -155,7 +155,7 @@ function describe(state: RequestState): string {
 }
 ```
 
-Note the missing `default`: with `strict` on, that is what makes the switch exhaustive, so adding a fifth state turns every unhandled `switch` into a compile error instead of a silent `undefined`. A `default` branch would throw that away. The compiler is now enforcing the state machine the interface could only describe.
+Adding a fifth state makes this a compile error, but be precise about why, because the mechanism is easy to misattribute: TypeScript has no exhaustiveness check for `switch`. What catches it is the declared `: string` return with `strictNullChecks` on — an unhandled state falls out of the function returning `undefined`, which is not assignable. Drop the return annotation and the same switch goes quiet. The other way to get the guarantee is a `default` that calls an `assertNever(state: never)` helper, which fails to compile the moment `state` can still be something; a `default` is not the problem, a `default` that quietly handles the unknown case is. Either way the compiler is enforcing the state machine the bag of booleans could only describe.
 
 ## Principle 19 — Boundaries serialize output
 

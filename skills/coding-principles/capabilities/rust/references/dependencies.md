@@ -18,9 +18,9 @@ tokio = { version = "=1.40.0", features = ["full"] }
 ```
 
 - **Applications / binaries**: prefer exact `=` pins in `Cargo.toml`, *and* commit `Cargo.lock`. `Cargo.lock` already pins the full transitive tree for binaries — the `=` pins make the manifest itself explicit too.
-- **`Cargo.lock` commit rule**: commit it for **binaries** (reproducible builds); by Cargo convention do **not** commit it for **libraries** (let consumers resolve). This is the standard; this skill's pin-exact default applies to the binary case.
+- **`Cargo.lock` commit rule**: commit it, for libraries too. The old split — lock for binaries, no lock for libraries — was Cargo's guidance until 2023-08, when the team replaced it with "do what suits the project, and start from committing it"; `cargo new` stopped gitignoring the lockfile for libraries at the same time. The reason the old rule felt safe does not survive scrutiny: a library's lockfile is not published to crates.io and never constrains a consumer's resolution, so committing it costs downstream nothing and buys contributors and CI a tree that changes when someone changes it rather than overnight. Pair it with a scheduled job that builds against latest, which is the check the old convention was standing in for.
 
-**Exception (ecosystem constraint, not style): published libraries.** A library must **not** use `=` pins — exact pins in a library force the whole dependency graph to one version and make the crate nearly unusable alongside others. Libraries use caret (the default bare version) so the ecosystem can unify versions. So: `=` pins + committed lock for binaries; caret + no committed lock for published libraries. Surface this when the crate is a library.
+**Exception (ecosystem constraint, not style): published libraries.** A library must **not** use `=` pins — exact pins in a library force the whole dependency graph to one version and make the crate nearly unusable alongside others. Libraries use caret (the default bare version) so the ecosystem can unify versions. So: `=` pins for binaries, caret for published libraries, and a committed lockfile either way — the manifest is what reaches consumers, and that is where the constraint has to be loose. Surface this when the crate is a library.
 
 ## Toolchain
 
@@ -48,6 +48,6 @@ tokio = { version = "=1.40.0", features = ["full"] }
 
 ## Principle alignment
 
-- **Reproducibility** — `=` pins + committed `Cargo.lock` (for binaries) = deterministic builds (this skill's default); the caret gotcha is the trap that silently defeats it.
+- **Reproducibility** — `=` pins in a binary's manifest plus a committed `Cargo.lock` give deterministic builds (this skill's default); the caret gotcha is the trap that silently defeats it.
 - **No dead code** (principle 20) — `cargo-machete` prunes unused deps.
 - **Security** (principle 13) — `cargo-audit` / `cargo-deny` against the locked tree.
