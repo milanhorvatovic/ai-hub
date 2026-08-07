@@ -63,6 +63,26 @@ def test_catalog_ids_are_wellformed_unique_and_counted(references_dir: Path) -> 
     )
 
 
+def test_registry_prose_counts_the_catalog_it_points_at(references_dir: Path) -> None:
+    """review-output.md's "(N rules)" figure for the catalog half must be real.
+
+    Its sibling figure in commit-smells.md has been asserted since the registry
+    landed; this one was written the same day and guarded by nothing, so adding
+    a smell left it silently stale — a registry describing its own size wrongly,
+    in the file that defines what the registry is.
+    """
+    text = (references_dir / "review-output.md").read_text(encoding="utf-8")
+    section = text.split("## Rule-id registry", 1)[1].split("\n## ", 1)[0]
+    claimed = [int(n) for n in re.findall(r"\((\d+) rules\)", section)]
+    assert len(claimed) == 1, (
+        f"expected exactly one '(N rules)' figure in the registry section, found {claimed}"
+    )
+    actual = len(_catalog_ids(references_dir))
+    assert claimed[0] == actual, (
+        f"registry section claims the catalog holds {claimed[0]} rules; it holds {actual}"
+    )
+
+
 def test_registry_table_extends_the_catalog_without_overlap(
     references_dir: Path,
 ) -> None:

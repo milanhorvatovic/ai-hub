@@ -187,7 +187,7 @@ Parse into subject + body + trailers. Preserve trailers verbatim per `../../refe
 
 ### 3. Validate
 
-Run the candidate through the REVIEW-mode per-commit checks (the Step 2 table below), plus one AMEND-specific check: trailers preserved byte-for-byte (`trailers-preserved`, `error` if reformatted). AMEND is repair-first: if any error-level check fails, fix and re-validate before proposing, rather than emitting a findings report. When the user asks for the verdict instead of a rewrite ("what's wrong with HEAD's message?"), that's REVIEW mode: surface the failed checks as findings per `../../references/review-output.md` — registry rule ids, the `error`/`warn` severity mapping, the report shape.
+Run the candidate through the REVIEW-mode per-commit checks (the Step 2 table below, including the wrap detection that step opens with — a reworded body is being rewritten, so the convention has to be known before it is reflowed), plus one AMEND-specific check: trailers preserved byte-for-byte (`trailers-preserved`, `error` if reformatted). AMEND is repair-first: if any error-level check fails, fix and re-validate before proposing, rather than emitting a findings report. When the user asks for the verdict instead of a rewrite ("what's wrong with HEAD's message?"), that's REVIEW mode: surface the failed checks as findings per `../../references/review-output.md` — registry rule ids, the `error`/`warn` severity mapping, the report shape.
 
 ### 4. Output
 
@@ -218,7 +218,7 @@ For a pushed HEAD, the amend is followed by the impact-gated `git push --force-w
 
 ### 0. Rule catalog
 
-REVIEW findings must use rule ids from the registry defined in `../../references/review-output.md`: every smell entry in `../../references/commit-smells.md` (e.g., `generic-verb`, `vague-noun`, `status-marker`, `issue-in-subject`, `trailing-period`, `imperative-mood`, `subject-length`, `restated-subject`, `listed-files`, `auto-trailer`, `marketing-language`) plus the registry's check ids for the format checks in Step 2 (`conventional-commits-prefix`, `body-wrap`, `blank-line-after-subject`, `trailer-position`, `trailer-format`, `novel-scope`, `secret-leak`, `dangling-issue-ref`). The catalog is the authoritative source for detection patterns, fixes, and before/after examples. The schema in `../../references/review-output.schema.json` enforces registry membership through its `rule` enum — a finding with an unregistered id fails validation, so a new rule lands in the registry (and the enum) before any capability may emit it.
+REVIEW findings must use rule ids from the registry defined in `../../references/review-output.md`: every smell entry in `../../references/commit-smells.md` (e.g., `generic-verb`, `vague-noun`, `status-marker`, `issue-in-subject`, `trailing-period`, `imperative-mood`, `subject-length`, `restated-subject`, `listed-files`, `auto-trailer`, `marketing-language`, `hard-wrapped-paragraph`) plus the registry's check ids for the format checks in Step 2 (`conventional-commits-prefix`, `body-wrap`, `blank-line-after-subject`, `trailer-position`, `trailer-format`, `novel-scope`, `secret-leak`, `dangling-issue-ref`). The catalog is the authoritative source for detection patterns, fixes, and before/after examples. The schema in `../../references/review-output.schema.json` enforces registry membership through its `rule` enum — a finding with an unregistered id fails validation, so a new rule lands in the registry (and the enum) before any capability may emit it.
 
 ### 0b. Rule selectivity (optional `rules:` filter)
 
@@ -238,6 +238,12 @@ For PR-aware ranges, fetch `baseRefName` from `gh pr view` first if a PR exists 
 
 ### 2. Per-commit validation
 
+Two rows below — `body-wrap` and `hard-wrapped-paragraph` — grade opposite directions of the same convention, so neither can be graded until the convention is known. Run the same detection WRITE mode's pre-flight runs, against the history the range sits on, and carry its verdict into the §4 preamble:
+
+- `git log --pretty=format:'%b' -20 | head -100` — bodies consistently wrapped near 70–72 columns mean the repo opts into hard-wrap; anything else is the flowing-paragraph default.
+
+This is not optional and not inferable from the commit under review: a hard-wrapped body is a violation in a flowing repo and correct in a hard-wrapping one, and the two rows are mutually exclusive by construction — whichever fires, the other is `N/A`. If both come back `N/A`, the detection did not run.
+
 For each commit in the range, run `git show <sha> --no-patch --format='%H%n%s%n%n%b%n%n%(trailers:only,unfold)'`, then check:
 
 | Check | Rule id | Passes when | Severity on violation |
@@ -248,6 +254,7 @@ For each commit in the range, run `git show <sha> --no-patch --format='%H%n%s%n%
 | Conventional-commits prefix | `conventional-commits-prefix` | If repo uses CC, subject matches the conventional-commits pattern in `../../references/format-subject.md` | `error` if missing; `N/A` when the repo doesn't use CC |
 | Scope consistency | `novel-scope` | Scope (if present) matches past-commits scopes | `warn` if novel scope |
 | Body wrap | `body-wrap` | Conditional on repo style per `../../references/format-body.md`: only when the repo demonstrably hard-wraps, flag body lines >72 chars (excluding URLs / code blocks). When the repo uses the flowing-paragraph default, this is `N/A` — do not flag long single-line paragraphs | `warn` if hard-wrap repo; else `N/A` |
+| Hard-wrapped paragraph | `hard-wrapped-paragraph` | The inverse of the row above, and the verdict the wrap detection above exists to make checkable: in a flowing-paragraph repo, no body paragraph has a line that continues the previous one. Fenced blocks, tab/4-space indented blocks, bullet lists with their indented continuations, and the trailer block are exempt; a 1–3 space indent is not a block | `error` in a flowing-paragraph repo; `N/A` where the repo hard-wraps. Graded harder than the row above deliberately — the two are mirrors in what they detect, not in what a violation costs: overrunning a column cap by a few characters is cosmetic, while wrapping against a flowing convention restructures every paragraph in the body |
 | Blank line after subject | `blank-line-after-subject` | Subject and body separated by exactly one blank line | `error` if missing |
 | WIP / fixup markers | `status-marker` | No `WIP`, `wip`, `fixup!`, `squash!` in committed (non-rebase) commits | `error` |
 | Trailer position | `trailer-position` | Trailers at end only, after blank line | `warn` |
@@ -265,10 +272,10 @@ Group Step 2's results per rule across the whole range and apply the severity ma
 
 ### 4. Output
 
-Emit the report in the canonical REVIEW shape from `../../references/review-output.md`: preamble (range, commit count, active rule subset when a `rules:` filter is set), the per-rule `Rule | Result | Details` table, one finding block per `FAIL` / `MOSTLY-PASS` rule, and the verdict line.
+Emit the report in the canonical REVIEW shape from `../../references/review-output.md`: preamble (range, commit count, the detected body-wrap convention, active rule subset when a `rules:` filter is set), the per-rule `Rule | Result | Details` table, one finding block per `FAIL` / `MOSTLY-PASS` rule, and the verdict line. The wrap convention belongs in the preamble for the same reason WRITE mode states it there: it decides which of the two wrap rules is graded and which is `N/A`, so a reader who cannot see it cannot tell a rule that passed from a detection that never ran.
 
 ```
-Reviewed 3 commit(s) on main..HEAD (all registry rules active):
+Reviewed 3 commit(s) on main..HEAD (body wrap = flowing; all registry rules active):
 
 | Rule | Result | Details |
 |---|---|---|
@@ -278,6 +285,7 @@ Reviewed 3 commit(s) on main..HEAD (all registry rules active):
 | Subject length | PASS | longest is 58 |
 | Status markers | PASS | |
 | Body wrap | N/A | flowing-paragraph repo |
+| Hard-wrapped paragraph | PASS | every body paragraph is one source line |
 
 ### Finding: Imperative mood on def5678
 
@@ -320,7 +328,8 @@ Findings with the same rule on multiple commits group under a single heading wit
 {"rule": "subject-length", "result": "PASS", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 0, "max_length": 58, "limit": 72}
 {"rule": "status-marker", "result": "PASS", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 0}
 {"rule": "body-wrap", "result": "N/A", "scope": "range", "ref": "main..HEAD", "details": {"excerpt": "flowing-paragraph repo"}}
-{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 1, "details": {"excerpt": "2 FAIL, 1 MOSTLY-PASS, 2 PASS, 1 N/A"}, "fix": "Address the 2 FAIL findings before requesting review."}
+{"rule": "hard-wrapped-paragraph", "result": "PASS", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 0}
+{"rule": "verdict", "result": "FAIL", "scope": "range", "ref": "main..HEAD", "count_checked": 3, "count_failed": 1, "details": {"excerpt": "2 FAIL, 1 MOSTLY-PASS, 3 PASS, 1 N/A"}, "fix": "Address the 2 FAIL findings before requesting review."}
 ```
 
 ### 5. Handling pushed commits
@@ -355,6 +364,7 @@ Skip this hook when the correction reflects a repo rule (e.g., user pointed at a
 ## Anti-patterns
 
 - Don't draft a body without running the Step 0 wrap-detection and stating its result in the §8 Detected-conventions preamble. `../../references/format-body.md` states the flowing-vs-hard-wrap rule, but an unrun check silently falls back to a ~72-column habit — the exact failure this capability guards against.
+- Don't report a wrap verdict the detection never produced. `body-wrap` and `hard-wrapped-paragraph` are the two directions of one convention and exactly one of them applies to any repo, so grading both `N/A` is not a result — it is what an unrun detection looks like from the outside, and it reads as a clean bill of health.
 - Don't auto-amend or auto-rebase. Always propose; let the user run the command.
 - Don't reformat trailers; copy them through verbatim per `../../references/trailer-semantics.md`.
 - Don't invent issue numbers in proposed messages. If the user didn't mention an issue and the diff doesn't reference one, leave issue refs out.
