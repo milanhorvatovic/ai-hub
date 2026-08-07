@@ -20,7 +20,9 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-_SEVERITY = r"\*(must|should|could)\*"
+# Either emphasis marker: which character spells italics is Prettier's call, not
+# the skill's, and the guard asserts the tag rather than the formatter's choice.
+_SEVERITY = r"[*_](must|should|could)[*_]"
 # The reverse map's stated exemption for principles no mantra operationalizes.
 _EXEMPTION_MARKER = "**Outside the map, deliberately:"
 
