@@ -45,7 +45,9 @@ Steps 1–2 are validated from the working tree, so they fail a plain `./venv/bi
 
 ### Adding a capability instead
 
-A capability added to a skill that already ships is a smaller job and touches two of the six steps: the manifest's capability list (step 3), and the corpus (step 2) whenever the change edits the skill's description — which it does as soon as the description enumerates what the skill covers. Steps 4–6 are new-skill concerns and stay untouched.
+A capability added to a skill that already ships is a smaller job, but not a two-step one. **Step 1 always changes** — the capability directory plus the router row that makes it loadable, which is what the orphan checks run in both directions on. Two repo-level steps follow: the manifest's capability list (step 3), and the corpus (step 2) whenever the change edits the skill's description, which it does as soon as the description enumerates what the skill covers. Steps 4–6 are new-skill concerns and stay untouched.
+
+One step is on no checklist here, because it belongs to a skill rather than to the repo: a skill's own contract tests may declare what they cover, and a capability left out of that declaration is routed but unenrolled. coding-principles declares its language set in `tests/skills/coding_principles/conftest.py`, and a new language missing from it fails the router-consistency check while the seven-file, pointer, and currency contracts quietly never see the capability at all.
 
 A skill may also set its own bar for what a capability must carry before it lands, and that bar lives with the skill rather than here: coding-principles states one for languages in [`skills/coding-principles/references/language-expansion.md`](../skills/coding-principles/references/language-expansion.md), covering when a language earns a capability and what it owes on day one.
 
