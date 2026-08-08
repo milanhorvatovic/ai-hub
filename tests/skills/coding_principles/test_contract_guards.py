@@ -315,6 +315,12 @@ def test_currency_stamps_cover_every_claim_bearing_reference(
                     " decide whether it carries decaying claims and add it to a set"
                 )
 
+    # The docstring's "by design" half, which was stated and not checked: an
+    # entry point summarizes its references, so a date here is a second copy of
+    # theirs with nothing keeping the two equal.
+    for cap in sorted(capabilities_dir.glob("*/capability.md")):
+        check(cap, expect_stamp=False)
+
     for md in sorted(references_dir.glob("*.md")):
         if md.name in _SHARED_STAMPED:
             check(md, expect_stamp=True)
