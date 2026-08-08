@@ -366,19 +366,32 @@ def _reachable_markdown(skill: Path) -> set[Path]:
     Edges are the router's capability rows plus the backtick paths and
     relative markdown links the resolution checks already collect, so a link
     that resolves and a link that carries reachability are the same link —
-    and a filename inside a fenced example is prose to both, since the
-    collectors read prose lines only.
+    and a filename inside a fenced example is prose to both, since every
+    collector here reads prose lines only.
+
+    Capability rows are read from `SKILL.md` alone, because routing is the
+    only place a capability edge legitimately comes from: a capability named
+    in passing by some other file is a mention, not navigation. Scanning them
+    everywhere cannot mask an orphan today — the routing checks already put
+    every capability in the router — but it would make this walk correct only
+    for as long as that other guard holds, and a reachability check should
+    not borrow its answer from one.
     """
+    root = (skill / "SKILL.md").resolve()
     seen: set[Path] = set()
-    queue = [(skill / "SKILL.md").resolve()]
+    queue = [root]
     while queue:
         md = queue.pop()
         if md in seen or not md.is_file():
             continue
         seen.add(md)
-        text = md.read_text(encoding="utf-8")
-        targets = [skill / m.group(0) for m in _CAPABILITY_PATH.finditer(text)]
-        targets += [md.parent / token for token, _ in _backtick_paths(md) + _markdown_links(md)]
+        targets = [md.parent / token for token, _ in _backtick_paths(md) + _markdown_links(md)]
+        if md == root:
+            targets += [
+                skill / m.group(0)
+                for _, line in _prose_lines(md)
+                for m in _CAPABILITY_PATH.finditer(line)
+            ]
         queue += [t.resolve() for t in targets if t.suffix == ".md"]
     return seen
 
