@@ -3,7 +3,8 @@
 Every skill must satisfy the same structural invariants — frontmatter shape,
 Agent-Skills spec limits, annotated semver, router/capability registration
 consistency, internal-link resolution, and the direction pointers may run
-(no capability into a sibling, no shared reference into a capability). Parametrizing over the discovered
+(no capability into a sibling, no shared reference into a capability), and that
+every shared reference is named by something. Parametrizing over the discovered
 skill set means a newly added skill is validated from its first commit with no
 bespoke test directory, and deleting a per-skill test directory leaves the
 skill structurally covered. Per-skill *content* contracts (mantra counts,
@@ -357,6 +358,35 @@ def test_shared_references_never_point_into_capabilities(skill: Path) -> None:
             if (md_file.parent / token).resolve().is_relative_to(cap_root):
                 offenders.append(f"{md_file.relative_to(skill)}:{lineno} -> {token}")
     assert not offenders, "references pointing into capabilities:\n" + "\n".join(offenders)
+
+
+@pytest.mark.parametrize("skill", skill_params("reference_reachability"))
+def test_every_shared_reference_is_named_somewhere(skill: Path) -> None:
+    """Some other file in the skill names each shared reference.
+
+    A reference nothing points at still ships and still costs bytes; it is
+    simply never loaded, which is the failure that looks like nothing at all.
+    The foundry validator reports it as an orphan, but no CI job runs the
+    validator, so the last pointer to a file can go in an unrelated edit and
+    nothing says so until someone re-runs it by hand.
+
+    Naming is the whole assertion, because the neighbours own the rest: that a
+    pointer resolves is the two resolution checks above, and whether the file
+    doing the naming is itself reachable is the validator's walk. A skill with
+    no skill-root `references/` has nothing to name, so the glob yields
+    nothing and this passes — the right answer rather than a hole.
+    """
+    # The self-exclusion carries the word "other": a file mentioning its own
+    # name would otherwise vouch for itself. No file in any skill does today, so
+    # the clause protects the assertion's meaning rather than a live case — and
+    # the day one does, it must not be what keeps itself alive.
+    corpus = {md: md.read_text(encoding="utf-8") for md in sorted(skill.rglob("*.md"))}
+    unnamed = [
+        ref.relative_to(skill).as_posix()
+        for ref in sorted((skill / "references").glob("*.md"))
+        if not any(ref.name in text for md, text in corpus.items() if md != ref)
+    ]
+    assert not unnamed, "shared references nothing names:\n" + "\n".join(unnamed)
 
 
 @pytest.mark.parametrize("skill", skill_params("cross_capability"))
