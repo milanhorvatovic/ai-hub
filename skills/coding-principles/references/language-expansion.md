@@ -26,9 +26,9 @@ Some of it also reaches outside the skill directory: a repo packaging several sk
 
 ## Candidates
 
-Go, Java, Swift, Ruby, and C/C++ — the languages the Capabilities section names as uncovered.
+The candidates are whichever languages the Capabilities section lists as uncovered, and this file deliberately does not copy that list. Two copies need a third thing to keep them equal, and the copy here is the one that would rot: the first candidate to earn a capability leaves its own row in the router and this file still calling it uncovered.
 
-This is a list of names and deliberately not a scoreboard. Where each one stands against the threshold is a running count, and a shipped file is a poor ledger for one: every sighting would edit the skill, consumers would install somebody else's tally, and the number would rot between edits with nothing to catch it. Status lives in the host repo's issue tracker instead, one proposal per language.
+It is not a scoreboard either. Where a language stands against the threshold is a running count, and a shipped file is a poor ledger for one — every sighting would edit the skill, consumers would install somebody else's tally, and the number would go stale between edits with nothing to catch it. Status lives in the host repo's issue tracker, one proposal per language.
 
 ## Until a language has one
 
