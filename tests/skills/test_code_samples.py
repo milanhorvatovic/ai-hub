@@ -37,6 +37,20 @@ from tests.support.fences import Fence, GitUnavailable, fences_under
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PARSER = _REPO_ROOT / "tests" / "support" / "parse_typescript.mjs"
 
+# Every pipe carrying a sample is UTF-8 by instruction, never by locale. With a
+# bare `text=True`, Python encodes subprocess stdin with the platform default —
+# cp1252 on a Windows runner — and a sample containing an arrow or an accent
+# raises UnicodeEncodeError before the parser ever sees it. That is the checker
+# failing on content that is perfectly valid, which is the one outcome these
+# lanes must never produce. Found on a Windows runner, by a `→` in a shell
+# sample that this change brought into scope for the first time.
+_TEXT_UTF8 = {"text": True, "encoding": "utf-8"}
+
+# Probes bash with a non-ASCII byte deliberately, so an encoding regression
+# surfaces here — as "the interpreter cannot take our input" — instead of as a
+# malformed-sample report against the first sample that happens to contain one.
+_PROBE = "# \N{RIGHTWARDS ARROW} utf-8 round-trip\ntrue\n"
+
 # `parse_typescript.mjs` exits with this when the pinned compiler is absent, so
 # a machine that has never run `npm ci` skips the lane instead of failing it.
 _NO_TOOLCHAIN = 3
@@ -123,12 +137,17 @@ def _usable_bash() -> str | None:
     which exists, runs, and exits non-zero without parsing anything — reporting
     every sample as malformed with an empty stderr. Probing a known-good script
     is the only honest way to tell an interpreter from a name.
+
+    The probe carries a non-ASCII character on purpose, so the pipe's encoding is
+    part of what "usable" means. Get that wrong and the failure lands on the
+    first sample containing an arrow, reported as a malformed sample — a true
+    statement about the pipe dressed up as a false one about the content.
     """
     exe = shutil.which("bash")
     if not exe:
         return None
     probe = subprocess.run(
-        [exe, "-n"], input="true\n", text=True, capture_output=True, check=False
+        [exe, "-n"], input=_PROBE, **_TEXT_UTF8, capture_output=True, check=False
     )
     return exe if probe.returncode == 0 else None
 
@@ -169,7 +188,7 @@ def test_bash_samples_parse() -> None:
     samples = _samples("bash")
     for fence in samples:
         done = subprocess.run(
-            [bash, "-n"], input=fence.body, text=True, capture_output=True, check=False
+            [bash, "-n"], input=fence.body, **_TEXT_UTF8, capture_output=True, check=False
         )
         if done.returncode:
             detail = done.stderr.strip().splitlines()[-1] if done.stderr.strip() else "?"
@@ -223,7 +242,7 @@ def test_template_fences_are_exempt_because_they_are_templates() -> None:
             return False
         return (
             subprocess.run(
-                [bash, "-n"], input=fence.body, text=True, capture_output=True, check=False
+                [bash, "-n"], input=fence.body, **_TEXT_UTF8, capture_output=True, check=False
             ).returncode
             != 0
         )
@@ -264,7 +283,7 @@ def test_typescript_samples_parse() -> None:
     done = subprocess.run(
         [node, str(_PARSER)],
         input=json.dumps(payload),
-        text=True,
+        **_TEXT_UTF8,
         capture_output=True,
         check=False,
         cwd=_REPO_ROOT,

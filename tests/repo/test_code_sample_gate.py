@@ -89,6 +89,39 @@ def test_ci_turns_a_skipped_lane_into_a_failure() -> None:
     )
 
 
+def test_sample_pipes_name_their_encoding() -> None:
+    """A bare `text=True` encodes subprocess input with the platform default.
+
+    That is cp1252 on a Windows runner, so a sample containing an arrow or an
+    accent raises before the parser sees it and the lane reports valid content as
+    malformed — the one outcome these lanes must never produce. It is invisible
+    on a UTF-8 machine, which is why it reached CI. Asserted on the source
+    because the alternative is re-learning it from a red Windows job each time a
+    subprocess call is added.
+    """
+    lane = _read(_REPO_ROOT / _LANE)
+    definition = '_TEXT_UTF8 = {"text": True, "encoding": "utf-8"}'
+
+    assert definition in lane, "the lanes no longer define one UTF-8 pipe setting"
+    # Matched as an argument rather than anywhere the characters appear, and in
+    # both shapes a call can take: inline after `(` or `,`, and alone on its own
+    # line in a wrapped call. Scanning whole lines flagged the comment explaining
+    # this rule — a guard owning more text than its rule — and matching only the
+    # inline shape then missed the wrapped call, which is the same error with the
+    # sign flipped. Comments are excluded outright; prose about the rule is not
+    # a violation of it.
+    argument = re.compile(r"(?:[(,]\s*|^\s*)text=True\b")
+    bare = [
+        line.strip()
+        for line in lane.splitlines()
+        if not line.strip().startswith("#") and argument.search(line)
+    ]
+    assert not bare, (
+        "these subprocess calls take the platform's default encoding instead of"
+        " UTF-8, so a non-ASCII sample fails on a Windows runner:\n" + "\n".join(bare)
+    )
+
+
 @pytest.mark.parametrize("declaration", ["AGENTS.md", "CONTRIBUTING.md"])
 def test_declarations_state_the_template_marker(declaration: str) -> None:
     """An author who has not read the lane's source has to learn the exemption
