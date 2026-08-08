@@ -360,33 +360,54 @@ def test_shared_references_never_point_into_capabilities(skill: Path) -> None:
     assert not offenders, "references pointing into capabilities:\n" + "\n".join(offenders)
 
 
-@pytest.mark.parametrize("skill", skill_params("reference_reachability"))
-def test_every_shared_reference_is_named_somewhere(skill: Path) -> None:
-    """Some other file in the skill names each shared reference.
+def _reachable_markdown(skill: Path) -> set[Path]:
+    """Markdown reachable from `SKILL.md` by following pointers transitively.
 
-    A reference nothing points at still ships and still costs bytes; it is
+    Edges are the router's capability rows plus the backtick paths and
+    relative markdown links the resolution checks already collect, so a link
+    that resolves and a link that carries reachability are the same link —
+    and a filename inside a fenced example is prose to both, since the
+    collectors read prose lines only.
+    """
+    seen: set[Path] = set()
+    queue = [(skill / "SKILL.md").resolve()]
+    while queue:
+        md = queue.pop()
+        if md in seen or not md.is_file():
+            continue
+        seen.add(md)
+        text = md.read_text(encoding="utf-8")
+        targets = [skill / m.group(0) for m in _CAPABILITY_PATH.finditer(text)]
+        targets += [md.parent / token for token, _ in _backtick_paths(md) + _markdown_links(md)]
+        queue += [t.resolve() for t in targets if t.suffix == ".md"]
+    return seen
+
+
+@pytest.mark.parametrize("skill", skill_params("reference_reachability"))
+def test_every_shared_reference_is_reachable(skill: Path) -> None:
+    """Every skill-root reference is reachable from the router.
+
+    A reference nothing reaches still ships and still costs bytes; it is
     simply never loaded, which is the failure that looks like nothing at all.
     The foundry validator reports it as an orphan, but no CI job runs the
     validator, so the last pointer to a file can go in an unrelated edit and
     nothing says so until someone re-runs it by hand.
 
-    Naming is the whole assertion, because the neighbours own the rest: that a
-    pointer resolves is the two resolution checks above, and whether the file
-    doing the naming is itself reachable is the validator's walk. A skill with
-    no skill-root `references/` has nothing to name, so the glob yields
+    Reachability is transitive from `SKILL.md`, not "some other file mentions
+    the name": two orphaned files naming each other are still orphaned, and
+    the weaker check passes them. The same walk currently reaches every
+    markdown file in every skill, not only the shared ones, so widening this
+    beyond `references/` is a one-line change whenever that is wanted. A skill
+    with no skill-root `references/` has nothing to reach, so the glob yields
     nothing and this passes — the right answer rather than a hole.
     """
-    # The self-exclusion carries the word "other": a file mentioning its own
-    # name would otherwise vouch for itself. No file in any skill does today, so
-    # the clause protects the assertion's meaning rather than a live case — and
-    # the day one does, it must not be what keeps itself alive.
-    corpus = {md: md.read_text(encoding="utf-8") for md in sorted(skill.rglob("*.md"))}
-    unnamed = [
+    reachable = _reachable_markdown(skill)
+    unreachable = [
         ref.relative_to(skill).as_posix()
         for ref in sorted((skill / "references").glob("*.md"))
-        if not any(ref.name in text for md, text in corpus.items() if md != ref)
+        if ref.resolve() not in reachable
     ]
-    assert not unnamed, "shared references nothing names:\n" + "\n".join(unnamed)
+    assert not unreachable, "shared references nothing reaches:\n" + "\n".join(unreachable)
 
 
 @pytest.mark.parametrize("skill", skill_params("cross_capability"))
