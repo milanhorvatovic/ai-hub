@@ -376,7 +376,15 @@ def _reachable_markdown(skill: Path) -> set[Path]:
     every capability in the router — but it would make this walk correct only
     for as long as that other guard holds, and a reachability check should
     not borrow its answer from one.
+
+    The walk also never leaves the skill directory, for the same reason and a
+    second one. A route that goes out to a repo-level document and back in
+    would make an orphan look reachable over a path that does not exist once
+    the skill is installed, since only `skills/<name>/` ships. No skill can
+    point outward today — the resolution checks reject a pointer that escapes
+    the tree — so this is again a borrowed invariant made local.
     """
+    inside = skill.resolve()
     root = (skill / "SKILL.md").resolve()
     seen: set[Path] = set()
     queue = [root]
@@ -392,7 +400,11 @@ def _reachable_markdown(skill: Path) -> set[Path]:
                 for _, line in _prose_lines(md)
                 for m in _CAPABILITY_PATH.finditer(line)
             ]
-        queue += [t.resolve() for t in targets if t.suffix == ".md"]
+        queue += [
+            t
+            for t in (candidate.resolve() for candidate in targets)
+            if t.suffix == ".md" and t.is_relative_to(inside)
+        ]
     return seen
 
 
@@ -492,6 +504,18 @@ def test_reachability_walk_follows_pointers_not_mentions(tmp_path: Path) -> None
     (skill / "references" / "orphan-a.md").write_text("See `orphan-b.md`.\n", encoding="utf-8")
     (skill / "references" / "orphan-b.md").write_text("See `orphan-a.md`.\n", encoding="utf-8")
     (skill / "references" / "guides" / "nested-orphan.md").write_text("# Nested\n", encoding="utf-8")
+    # An out-and-back route: reachable prose links to a repo-level document,
+    # which links back in. That path exists in the repo and not in an install,
+    # where only the skill directory ships.
+    (skill / "references" / "deep.md").write_text(
+        "The stray one lives at capabilities/stray/capability.md.\n"
+        "See [the runbook](../../outside.md).\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "outside.md").write_text(
+        "Back in: [policy](probe-skill/references/only-via-outside.md).\n", encoding="utf-8"
+    )
+    (skill / "references" / "only-via-outside.md").write_text("# Only via outside\n", encoding="utf-8")
 
     reached = {p.relative_to(skill.resolve()).as_posix() for p in _reachable_markdown(skill)}
 
@@ -504,6 +528,9 @@ def test_reachability_walk_follows_pointers_not_mentions(tmp_path: Path) -> None
     assert "references/via-stray.md" not in reached, "nothing routes through an unrouted capability"
     assert not {"references/orphan-a.md", "references/orphan-b.md"} & reached, (
         "orphans naming each other are still orphans"
+    )
+    assert "references/only-via-outside.md" not in reached, (
+        "a route out of the skill and back does not exist once installed"
     )
 
     # The guard is called directly rather than re-globbed here: what needs
