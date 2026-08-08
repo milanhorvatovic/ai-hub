@@ -12,7 +12,12 @@
 
 let ts;
 try {
-  ts = (await import("typescript")).default;
+  // `.default` is the CJS interop shape the pinned 5.x publishes; an ESM-only
+  // package would put the compiler on the namespace instead. Falling back costs
+  // one `??` and keeps a shape change reporting as "no usable compiler" rather
+  // than as a TypeError thrown while building that very message.
+  const imported = await import("typescript");
+  ts = imported.default ?? imported;
 } catch {
   process.stderr.write("typescript is not installed; run `npm ci`\n");
   process.exit(3);
@@ -21,7 +26,7 @@ try {
 // The compiler API this lane uses belongs to the 5.x line. TypeScript 7's npm
 // package is the native port and exports only `version`, so a blind major bump
 // lands here rather than somewhere subtle.
-if (typeof ts.createSourceFile !== "function") {
+if (!ts || typeof ts.createSourceFile !== "function") {
   process.stderr.write(
     `typescript ${ts.version} exposes no createSourceFile; this lane needs the 5.x compiler API\n`,
   );

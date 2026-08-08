@@ -89,6 +89,38 @@ def test_ci_turns_a_skipped_lane_into_a_failure() -> None:
     )
 
 
+def test_documented_job_names_exist() -> None:
+    """A doc that names a CI job sends a contributor looking for that check.
+
+    This gate's job was renamed mid-branch and two documents kept pointing at the
+    old name — caught in review, which is later than a rename should be caught.
+    Nothing tied the declaration to the workflow, so the phrase "`x` job" is
+    resolved against the real job ids instead: rename a job and the docs that
+    name it fail until they move with it.
+    """
+    workflows = sorted((_REPO_ROOT / ".github" / "workflows").glob("*.y*ml"))
+    real: set[str] = set()
+    for workflow in workflows:
+        # Split on the top-level `jobs:` key so a `name:` elsewhere in the file
+        # cannot be mistaken for a job id.
+        body = _read(workflow).split("\njobs:", 1)[-1]
+        real |= set(re.findall(r"^  ([a-z0-9][\w-]*):", body, re.MULTILINE))
+    assert "code-samples" in real, "the code-samples job is gone; this gate runs nowhere"
+
+    named = re.compile(r"`([a-z0-9][\w.-]*)`\s+job\b")
+    dangling = [
+        f"{doc}: `{match.group(1)}` job"
+        for doc in ("AGENTS.md", "CONTRIBUTING.md", "README.md")
+        for match in named.finditer(_read(_REPO_ROOT / doc))
+        if match.group(1) not in real
+    ]
+
+    assert not dangling, (
+        "these documents name a CI job that no workflow defines, so a contributor"
+        " looks for a check that does not exist:\n" + "\n".join(dangling)
+    )
+
+
 def test_sample_pipes_name_their_encoding() -> None:
     """A bare `text=True` encodes subprocess input with the platform default.
 
