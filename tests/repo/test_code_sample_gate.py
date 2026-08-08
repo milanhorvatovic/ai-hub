@@ -8,7 +8,10 @@ that guarantees they run somewhere the parsers are present.
 """
 
 import json
+import os
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -86,6 +89,56 @@ def test_ci_turns_a_skipped_lane_into_a_failure() -> None:
     assert "REQUIRE_SAMPLE_LANES" in enforcement, (
         "nothing reads REQUIRE_SAMPLE_LANES, so setting it in CI is decoration"
         " and a skipped lane still reports success"
+    )
+
+
+def test_the_enforcement_hook_really_converts_a_skip(tmp_path: Path) -> None:
+    """Runs the hook under a real pytest instead of trusting that it registers.
+
+    `@pytest.hookimpl(wrapper=True)` is the modern wrapper form; the older
+    spelling is `hookwrapper=True`, and the two differ in whether the wrapper
+    returns the result. Getting that wrong does not raise anywhere obvious — it
+    would leave skips unconverted, so the job that exists to force the lanes to
+    run would go back to passing over them silently, which is precisely the
+    failure the hook was added to prevent. Review flagged the keyword as wrong;
+    it is correct for the pinned pytest, and asserting that here is better than
+    the manual check that answered it once.
+    """
+    (tmp_path / "conftest.py").write_text(
+        _read(_REPO_ROOT / "tests" / "skills" / "conftest.py"), encoding="utf-8"
+    )
+    # Named for the module the hook is scoped to, since that scoping is part of
+    # what is being checked.
+    (tmp_path / "test_code_samples.py").write_text(
+        "import pytest\n\n\ndef test_planted() -> None:\n    pytest.skip('planted')\n",
+        encoding="utf-8",
+    )
+
+    def run(required: bool) -> subprocess.CompletedProcess[str]:
+        env = {k: v for k, v in os.environ.items() if k != "REQUIRE_SAMPLE_LANES"}
+        if required:
+            env["REQUIRE_SAMPLE_LANES"] = "1"
+        return subprocess.run(
+            [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", str(tmp_path)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+            cwd=tmp_path,
+            env=env,
+        )
+
+    required = run(True)
+    assert required.returncode != 0, (
+        "a skipped sample lane passed while REQUIRE_SAMPLE_LANES was set, so the"
+        f" hook is not converting skips:\n{required.stdout[-800:]}"
+    )
+    # The other direction matters as much: a hook that failed every skip would
+    # break every contributor without the toolchain.
+    optional = run(False)
+    assert optional.returncode == 0, (
+        "a skipped lane failed with REQUIRE_SAMPLE_LANES unset, so the hook is"
+        f" firing when it should not:\n{optional.stdout[-800:]}"
     )
 
 
