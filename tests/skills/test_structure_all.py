@@ -4,7 +4,7 @@ Every skill must satisfy the same structural invariants — frontmatter shape,
 Agent-Skills spec limits, annotated semver, router/capability registration
 consistency, internal-link resolution, and the direction pointers may run
 (no capability into a sibling, no shared reference into a capability), and that
-every shared reference is named by something. Parametrizing over the discovered
+every shared reference is reachable from the router. Parametrizing over the discovered
 skill set means a newly added skill is validated from its first commit with no
 bespoke test directory, and deleting a per-skill test directory leaves the
 skill structurally covered. Per-skill *content* contracts (mantra counts,
@@ -408,16 +408,22 @@ def test_every_shared_reference_is_reachable(skill: Path) -> None:
 
     Reachability is transitive from `SKILL.md`, not "some other file mentions
     the name": two orphaned files naming each other are still orphaned, and
-    the weaker check passes them. The same walk currently reaches every
-    markdown file in every skill, not only the shared ones, so widening this
-    beyond `references/` is a one-line change whenever that is wanted. A skill
-    with no skill-root `references/` has nothing to reach, so the glob yields
-    nothing and this passes — the right answer rather than a hole.
+    the weaker check passes them. The walk's semantics are pinned on a
+    synthetic tree below, because a valid fleet cannot tell a real traversal
+    from a filename scan — both leave every skill green.
+
+    The reference tree is walked recursively, matching the direction guard
+    above: a nested `references/guides/setup.md` is as unloadable as a flat
+    one. The same walk currently reaches every markdown file in every skill,
+    not only the shared ones, so widening this beyond `references/` is a
+    one-line change whenever that is wanted. A skill with no skill-root
+    `references/` has nothing to reach, so the glob yields nothing and this
+    passes — the right answer rather than a hole.
     """
     reachable = _reachable_markdown(skill)
     unreachable = [
         ref.relative_to(skill).as_posix()
-        for ref in sorted((skill / "references").glob("*.md"))
+        for ref in sorted(skill.glob("references/**/*.md"))
         if ref.resolve() not in reachable
     ]
     assert not unreachable, "shared references nothing reaches:\n" + "\n".join(unreachable)
@@ -441,3 +447,67 @@ def test_no_cross_capability_references(skill: Path) -> None:
                     f"{md_file.relative_to(skill)}:{lineno} -> {token}"
                 )
     assert not offenders, "cross-capability references:\n" + "\n".join(offenders)
+
+
+def test_reachability_walk_follows_pointers_not_mentions(tmp_path: Path) -> None:
+    """The walk's negative cases, pinned on a synthetic tree.
+
+    Every shipped skill is valid, so running the reachability guard against
+    the fleet cannot distinguish a real traversal from one that counts any
+    filename mention — a rewrite to the weaker form leaves all four skills
+    green and ships. These cases fail on that rewrite instead.
+
+    Two of them cannot be staged in the fleet at all: an unrouted capability
+    is impossible there, because the orphan checks fail first. That is exactly
+    why the walk takes capability edges from the router alone, and the only
+    place the rule can be held to account is a tree built to break it.
+    """
+    skill = tmp_path / "probe-skill"
+    (skill / "references" / "guides").mkdir(parents=True)
+    (skill / "capabilities" / "routed").mkdir(parents=True)
+    (skill / "capabilities" / "stray").mkdir(parents=True)
+
+    # A router row is plain table text, and the fenced pointer below is a
+    # backticked path a fence-blind collector would happily follow.
+    (skill / "SKILL.md").write_text(
+        "# Probe\n\n"
+        "| routed | on demand | capabilities/routed/capability.md |\n\n"
+        "```\n"
+        "see `references/fenced-only.md`\n"
+        "```\n",
+        encoding="utf-8",
+    )
+    (skill / "capabilities" / "routed" / "capability.md").write_text(
+        "Complements `../../references/deep.md`.\n", encoding="utf-8"
+    )
+    (skill / "capabilities" / "stray" / "capability.md").write_text(
+        "Complements `../../references/via-stray.md`.\n", encoding="utf-8"
+    )
+    # Reached, and it names an unrouted capability in prose — a mention.
+    (skill / "references" / "deep.md").write_text(
+        "The stray one lives at capabilities/stray/capability.md.\n", encoding="utf-8"
+    )
+    (skill / "references" / "fenced-only.md").write_text("# Fenced only\n", encoding="utf-8")
+    (skill / "references" / "via-stray.md").write_text("# Via stray\n", encoding="utf-8")
+    (skill / "references" / "orphan-a.md").write_text("See `orphan-b.md`.\n", encoding="utf-8")
+    (skill / "references" / "orphan-b.md").write_text("See `orphan-a.md`.\n", encoding="utf-8")
+    (skill / "references" / "guides" / "nested-orphan.md").write_text("# Nested\n", encoding="utf-8")
+
+    reached = {p.relative_to(skill.resolve()).as_posix() for p in _reachable_markdown(skill)}
+
+    assert "capabilities/routed/capability.md" in reached, "a router row is an edge"
+    assert "references/deep.md" in reached, "router -> capability -> shared reference is transitive"
+    assert "references/fenced-only.md" not in reached, "a pointer inside a fence is prose"
+    assert "capabilities/stray/capability.md" not in reached, (
+        "a capability named by a reference is a mention, not routing"
+    )
+    assert "references/via-stray.md" not in reached, "nothing routes through an unrouted capability"
+    assert not {"references/orphan-a.md", "references/orphan-b.md"} & reached, (
+        "orphans naming each other are still orphans"
+    )
+
+    # The guard is called directly rather than re-globbed here: what needs
+    # pinning is that it enumerates the reference tree recursively, and the
+    # only way to state that is to let it fail on a nested orphan.
+    with pytest.raises(AssertionError, match="references/guides/nested-orphan.md"):
+        test_every_shared_reference_is_reachable(skill)
