@@ -20,6 +20,8 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 # Either emphasis marker: which character spells italics is Prettier's call, not
 # the skill's, and the guard asserts the tag rather than the formatter's choice.
 # The pair still has to match and stand alone, so a doubled `**must**` and a stray
@@ -242,8 +244,8 @@ _SHARED_STAMPED = frozenset(
      "persistence.md", "platform-matrix.md", "resilience.md", "testing.md"}
 )
 _SHARED_CLAIM_FREE = frozenset(
-    {"architecture.md", "glossary.md", "mantras.md", "principles.md", "refactoring.md",
-     "smells.md"}
+    {"architecture.md", "glossary.md", "language-expansion.md", "mantras.md",
+     "principles.md", "refactoring.md", "smells.md"}
 )
 
 # The workflow capabilities are classified per (capability, file) rather than by
@@ -315,6 +317,12 @@ def test_currency_stamps_cover_every_claim_bearing_reference(
                     " decide whether it carries decaying claims and add it to a set"
                 )
 
+    # The docstring's "by design" half, which was stated and not checked: an
+    # entry point summarizes its references, so a date here is a second copy of
+    # theirs with nothing keeping the two equal.
+    for cap in sorted(capabilities_dir.glob("*/capability.md")):
+        check(cap, expect_stamp=False)
+
     for md in sorted(references_dir.glob("*.md")):
         if md.name in _SHARED_STAMPED:
             check(md, expect_stamp=True)
@@ -357,3 +365,36 @@ def test_every_principle_is_reachable_from_the_reverse_map(references_dir: Path)
         " exemption — add a row if a mantra operationalizes them, or name them in"
         f" the {_EXEMPTION_MARKER!r} note with the reason"
     )
+
+
+def test_currency_guard_rejects_a_stamped_entry_point(tmp_path: Path) -> None:
+    """The no-stamp rule for capability entry points, on a synthetic tree.
+
+    Every shipped entry point is unstamped, so deleting the loop that checks
+    them leaves the whole suite green and silently reopens the gap it was
+    added to close — the rule would go back to being a docstring. The fleet
+    cannot show the difference; only a capability built to break it can.
+    """
+    root = tmp_path / "skill"
+    caps = root / "capabilities"
+    (caps / "python" / "references").mkdir(parents=True)
+    (root / "references").mkdir()
+    stamp = "**The claims here were last checked 2026-08.**\n"
+    for name in _CLAIM_BEARING:
+        (caps / "python" / "references" / name).write_text(stamp, encoding="utf-8")
+    for name in _CLAIM_FREE:
+        (caps / "python" / "references" / name).write_text("# no claims\n", encoding="utf-8")
+
+    # Control first: the same tree with an unstamped entry point must pass, or
+    # the failure below could be caused by anything in the fixture.
+    entry = caps / "python" / "capability.md"
+    entry.write_text("# python\n", encoding="utf-8")
+    test_currency_stamps_cover_every_claim_bearing_reference(
+        root, caps, root / "references", ("python",)
+    )
+
+    entry.write_text(stamp, encoding="utf-8")
+    with pytest.raises(AssertionError, match="capabilities/python/capability.md"):
+        test_currency_stamps_cover_every_claim_bearing_reference(
+            root, caps, root / "references", ("python",)
+        )
