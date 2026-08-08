@@ -242,8 +242,8 @@ _SHARED_STAMPED = frozenset(
      "persistence.md", "platform-matrix.md", "resilience.md", "testing.md"}
 )
 _SHARED_CLAIM_FREE = frozenset(
-    {"architecture.md", "glossary.md", "mantras.md", "principles.md", "refactoring.md",
-     "smells.md"}
+    {"architecture.md", "glossary.md", "language-expansion.md", "mantras.md",
+     "principles.md", "refactoring.md", "smells.md"}
 )
 
 # The workflow capabilities are classified per (capability, file) rather than by

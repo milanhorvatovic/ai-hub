@@ -212,7 +212,7 @@ Load on demand: language capabilities by the file's language; the comments capab
 | comments | about to write any comment in a task this skill covers; comment-bearing files the task touches (source, config, workflow, infra, script, migration, test, notebook, markdown); plan docs that mention comments or docstrings | capabilities/comments/capability.md |
 | review | reviewing an existing diff / PR / change | capabilities/review/capability.md |
 
-For languages without a capability (Go, Ruby, Java, C/C++, Swift, …), use the core principles plus the repo's declared conventions; propose a new capability if the language recurs. Capabilities extend the core, never override it — a conflict is a bug, so flag it. Write-mode (avoid violations as you author) is the default and lives in this router; review-mode loads from the review capability.
+For languages without a capability (Go, Ruby, Java, C/C++, Swift, …), use the core principles plus the repo's declared conventions; propose a new capability if the language recurs — `references/language-expansion.md` sets the threshold behind _recurs_ and the file set a new capability owes on day one. Capabilities extend the core, never override it — a conflict is a bug, so flag it. Write-mode (avoid violations as you author) is the default and lives in this router; review-mode loads from the review capability.
 
 ## Output behavior
 
