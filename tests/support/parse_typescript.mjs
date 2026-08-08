@@ -27,9 +27,12 @@ try {
 // package is the native port and exports only `version`, so a blind major bump
 // lands here rather than somewhere subtle.
 if (!ts || typeof ts.createSourceFile !== "function") {
-  process.stderr.write(
-    `typescript ${ts.version} exposes no createSourceFile; this lane needs the 5.x compiler API\n`,
-  );
+  // `ts?.version` because the condition above admits a falsy `ts`, and reading
+  // through it here would throw while building the message that exists to
+  // report exactly that — the crash-instead-of-diagnostic this guard prevents,
+  // reintroduced one line below the guard.
+  const found = ts?.version ? `typescript ${ts.version}` : "the installed typescript";
+  process.stderr.write(`${found} exposes no createSourceFile; this lane needs the 5.x compiler API\n`);
   process.exit(3);
 }
 
