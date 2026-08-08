@@ -19,6 +19,8 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".nvmrc"
+      - "**/*.mjs"
+      - "requirements-test.txt"
       - ".github/workflows/lint.yml"
 
 permissions:
@@ -75,3 +77,46 @@ jobs:
       # contributor typing `npm run format:check` all run the same command.
       - name: Check markdown formatting
         run: npm run format:check
+
+  # The code samples are parsed here rather than in the tests workflow so the npm
+  # registry stays a dependency of one job instead of four required ones. The
+  # lanes are ordinary pytest tests that skip where their parser is absent; this
+  # is the job that guarantees somewhere they do not skip.
+  code-samples:
+    name: code-samples
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # actions/checkout v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      # actions/setup-node v7.0.0
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # actions/setup-python v6.2.0
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version-file: ".python-version"
+          cache: pip
+          cache-dependency-path: requirements-test.txt
+
+      - name: Install the pinned toolchain
+        run: npm ci
+
+      - name: Install test dependencies
+        run: pip install -r requirements-test.txt
+
+      # A lane skips where its parser is missing, which is right on a
+      # contributor's machine and wrong here — a skipped lane in the job that
+      # exists to run it is a green tick over an unchecked sample. The variable
+      # turns those skips into failures, so a broken install reports as one.
+      - name: Check code samples
+        env:
+          REQUIRE_SAMPLE_LANES: "1"
+        run: pytest tests/skills/test_code_samples.py -q

@@ -9,12 +9,13 @@ ai-hub is a repository of AI-agnostic artifacts — primarily **skills** under `
 - Setup: `python -m venv venv && ./venv/bin/pip install -r requirements-test.txt`
 - Test: `./venv/bin/pytest -q`
 - Lint: `ruff check` (config in `pyproject.toml`) and `npm run format:check` (Prettier over every `.md` not excluded by `.gitignore` or `.prettierignore`) both run in CI on every PR and both block
-- Markdown toolchain: `npm ci` installs the Prettier pinned in `package-lock.json`; run `npm run format` to fix formatting before pushing
+- Node toolchain: `npm ci` installs the Prettier and TypeScript pinned in `package-lock.json`; run `npm run format` to fix formatting before pushing. Without it the suite still passes — the lane that parses the shipped `typescript` samples skips rather than fails, and CI's `code-samples` job is where a skip is turned back into a failure
 - Hooks (opt-in, recommended for agents): `git config core.hooksPath .githooks` — rejects a rule-breaking commit message at commit time with the same linter CI runs, so violations surface as same-turn feedback instead of a red check later (`.githooks/pre-commit` delegates to `pre-commit` when installed, so skip `pre-commit install`)
 
 ## Conventions
 
 - **Markdown:** Prettier with `proseWrap: never` (`.prettierrc.json`) — author prose as one line per paragraph; never hard-wrap. `embeddedLanguageFormatting: off` keeps code inside fenced blocks (e.g. GitHub-Actions `${{ }}` examples) intact.
+- **Code samples are parsed:** every `python`, `bash`/`sh`, and `typescript` fence in the repo's markdown — shipped skills and the repo's own docs alike — is syntax-checked by the test suite, so a malformed sample fails CI rather than teaching a reader something that does not run. A fence that is a shape to fill in rather than a command to run — `<install command>`, or a real invocation carrying a `<placeholder>` argument — marks itself in the info string as ` ```bash template `, and is skipped. The marker is opt-in and checked both ways: an unmarked placeholder fence fails the parser, and a marked fence that parses cleanly fails too, so the exemption cannot quietly outlive the reason for it. A new info-string spelling must be mapped to a lane or declared unchecked before it can land.
 - **Skills are decoupled:** a skill never references another skill by name; express relationships as concepts.
 - **Capabilities declare their own `allowed-tools`;** a router's `allowed-tools` is the union of its capabilities'.
 - **Tests are stdlib-only** and validate on-disk shape (frontmatter, semver, capability/reference resolution) — keep them passing for any skill-shape change.

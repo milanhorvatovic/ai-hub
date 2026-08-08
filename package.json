@@ -3,7 +3,8 @@
   "private": true,
   "description": "Pins the Node-based tools this repo's CI and hooks run. Not a published package; it exists so the versions live in one Dependabot-visible place.",
   "devDependencies": {
-    "prettier": "3.9.6"
+    "prettier": "3.9.6",
+    "typescript": "5.9.3"
   },
   "scripts": {
     "format:check": "prettier --check \"**/*.md\"",
