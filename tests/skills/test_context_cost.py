@@ -311,6 +311,35 @@ def test_discovery_bills_a_capability_the_router_never_reaches(tmp_path: Path) -
     assert cost.load_bytes == cost.skill_md_bytes
 
 
+def test_a_route_through_a_payload_directory_still_reaches_what_it_links(
+    tmp_path: Path,
+) -> None:
+    """`SKILL.md` → `assets/index.md` → `references/detail.md`, all three billed.
+
+    Excluding a whole directory after the walk had already run left a shape
+    where a file was dropped while everything it linked stayed — billing a
+    descendant reached only through something declared unreachable. Excluding
+    payload rather than the directory dissolves it: the only unbilled files are
+    non-markdown, and the walk never traverses those, so nothing can be reached
+    exclusively through one. Pinned because a directory-wide exclusion would
+    reintroduce the shape without failing anything else here.
+    """
+    skill = tmp_path / "sample"
+    (skill / "assets").mkdir(parents=True)
+    (skill / "references").mkdir()
+    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nSee [i](assets/index.md).\n")
+    (skill / "assets" / "index.md").write_bytes(b"# Index\n\nSee [d](../references/detail.md).\n")
+    (skill / "references" / "detail.md").write_bytes(b"# Detail\n")
+    (skill / "assets" / "tool.json").write_bytes(b"{}\n")
+
+    cost = measure(skill)
+    assert cost.files == 3
+    assert cost.load_bytes == sum(
+        len((skill / name).read_bytes())
+        for name in ("SKILL.md", "assets/index.md", "references/detail.md")
+    )
+
+
 def test_payload_is_not_billed_but_documentation_beside_it_is(tmp_path: Path) -> None:
     """`assets/` and `scripts/` hold payload, and payload is not context.
 
