@@ -10,7 +10,7 @@ Accepted
 
 Every workflow acts as some identity, and the choice between the default `GITHUB_TOKEN`, a GitHub App, and a user-owned PAT fails in two ways that produce no error message:
 
-- **A `GITHUB_TOKEN`-authored event triggers nothing.** GitHub suppresses workflow triggers for pushes, PRs, and Releases authored by the default token, to prevent a workflow from re-triggering itself. A branch pushed under it never re-runs the required checks, and the PR simply sits with nothing reported.
+- **A `GITHUB_TOKEN`-authored event triggers almost nothing.** GitHub suppresses workflow triggers for events authored by the default token — pushes, pull requests, and Releases among them — to prevent a workflow from re-triggering itself, with `workflow_dispatch` and `repository_dispatch` the documented exceptions that do start a run. So a branch pushed under it never re-runs the required checks and the PR simply sits with nothing reported, while automation that only needs to kick off a dispatch needs no other identity.
 - **An App cannot satisfy `require_code_owner_review`.** CODEOWNERS accepts only users and teams, so an App's approval never counts toward a code-owner review no matter how it is permissioned.
 
 Neither rule is written down here. One of them has been rediscovered and applied — the Dependabot workflows act as a human for the approval only a human can give — and the other has not been discovered at all, on the path where missing it costs the most. Four facts fix the shape of the decision:

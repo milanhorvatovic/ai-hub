@@ -74,7 +74,9 @@ def _key(text: str) -> str:
 _ALL_AUTHORING = frozenset({"*"})
 
 
-def _granted_write(block: list[str], inline: str = "") -> frozenset[str]:
+def _granted_write(
+    block: list[str], inline: str = "", exempt: frozenset[str] = _NON_AUTHORING_SCOPES
+) -> frozenset[str]:
     """Event-authoring scopes granted `write` by one `permissions:` declaration.
 
     Every form GitHub accepts has to be read, because each unread one is a job holding
@@ -90,7 +92,7 @@ def _granted_write(block: list[str], inline: str = "") -> frozenset[str]:
         if scalar in {"read-all", "{}"}:
             return frozenset()
         if scalar.startswith("{") and scalar.endswith("}"):
-            return _flow_grants(scalar)
+            return _flow_grants(scalar, exempt)
         return frozenset(_ALL_AUTHORING)  # unrecognized: fail closed
 
     granted = set()
@@ -102,17 +104,17 @@ def _granted_write(block: list[str], inline: str = "") -> frozenset[str]:
         key, sep, value = line.partition(":")
         if not sep:
             return frozenset(_ALL_AUTHORING)  # unparsed entry: fail closed
-        if _value(value) == "write" and _key(key) not in _NON_AUTHORING_SCOPES:
+        if _value(value) == "write" and _key(key) not in exempt:
             granted.add(_key(key))
     return frozenset(granted)
 
 
-def _flow_grants(scalar: str) -> frozenset[str]:
-    """Event-authoring scopes granted `write` by an inline `{a: b, c: d}` mapping."""
+def _flow_grants(scalar: str, exempt: frozenset[str]) -> frozenset[str]:
+    """Scopes granted `write` by an inline `{a: b, c: d}` mapping, minus the exempt ones."""
     granted = set()
     for entry in scalar[1:-1].split(","):
         key, _, value = entry.partition(":")
-        if _value(value) == "write" and _key(key) not in _NON_AUTHORING_SCOPES:
+        if _value(value) == "write" and _key(key) not in exempt:
             granted.add(_key(key))
     return frozenset(granted)
 
@@ -177,7 +179,10 @@ def test_every_workflow_declares_a_read_only_floor() -> None:
         ]
         assert len(tops) == 1, f"{workflow.name}: expected exactly one top-level permissions block"
         inline = lines[tops[0]].partition(":")[2]
-        assert not _granted_write(_block(lines, tops[0], 0), inline), (
+        # No exemption here, unlike the job audit below: the floor rule is that a
+        # workflow grants nothing repo-wide, so `id-token: write` at the top would hand
+        # OIDC to every job in the file even though it authors no event.
+        assert not _granted_write(_block(lines, tops[0], 0), inline, exempt=frozenset()), (
             f"{workflow.name}: the workflow-wide floor grants write; elevate per job instead"
         )
 
@@ -226,15 +231,31 @@ def test_every_secret_a_workflow_uses_is_named_in_its_own_audit_row() -> None:
     audit = _audit_section(_ADR.read_text(encoding="utf-8"))
     pattern = re.compile(r"""secrets(?:\.([A-Za-z_]\w*)|\[\s*['"]([A-Za-z_]\w*)['"]\s*\])""")
 
-    total, unrecorded = 0, []
+    total, unrecorded, inherited = 0, [], []
     for workflow in _workflows():
+        text = workflow.read_text(encoding="utf-8")
         row = _audit_rows_for(audit, workflow.stem).lower()
-        for dotted, bracketed in pattern.findall(workflow.read_text(encoding="utf-8")):
+
+        # `secrets: inherit` hands a called workflow everything at once and produces no
+        # `secrets.NAME` to match, so it is the one form that would pass this guard by
+        # naming nothing. The audit has no way to record it, so it is refused rather
+        # than silently allowed.
+        if re.search(r"^\s*secrets\s*:\s*inherit\s*$", text, re.M):
+            inherited.append(workflow.name)
+
+        for dotted, bracketed in pattern.findall(text):
             name = dotted or bracketed
             total += 1
-            if name.lower() not in row:
+            # The row must name the secret as its own code span. A substring test would
+            # accept `TOKEN` against a row documenting `GITHUB_TOKEN` — passing exactly
+            # the new identity this exists to catch.
+            if f"`{name.lower()}`" not in row:
                 unrecorded.append(f"{workflow.name}:{name}")
 
+    assert not inherited, (
+        f"workflows passing secrets by inheritance: {', '.join(inherited)} — the audit "
+        "records identities by name, and `secrets: inherit` names none"
+    )
     assert total, "no secrets referenced by any workflow; the pattern probably stopped matching"
     assert not unrecorded, (
         "secrets a workflow reads that its own audit row does not name: "
