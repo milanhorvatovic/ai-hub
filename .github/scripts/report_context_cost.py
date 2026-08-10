@@ -7,8 +7,10 @@ happened in the suite, where a baseline that no longer describes the tree fails.
 
 Both inputs are the committed baseline rather than a fresh measurement, so the
 summary and the JSON diff a reviewer reads in the PR are the same numbers. That
-holds because the staleness guard runs in the same job: if the recorded costs
-had drifted from the tree, this step would not be reached.
+only means something while the record is current, which is why the job carrying
+this script waits on the suite: the staleness guard lives there, and without the
+dependency a drifted baseline would render happily — most likely as "no change"
+— beside the test that just failed for saying so.
 
 Stdlib only, and a pure function of its two files — the git plumbing that
 fetches the base copy stays in the workflow.

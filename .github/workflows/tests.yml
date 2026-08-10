@@ -53,6 +53,11 @@ jobs:
   context-cost:
     name: context cost
     if: github.event_name == 'pull_request'
+    # The report reads the committed baseline rather than measuring, so it is
+    # only meaningful once the suite has confirmed that baseline still describes
+    # the tree. Without this the two run concurrently and a stale record renders
+    # as "No context-cost change" beside a failing test.
+    needs: pytest
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

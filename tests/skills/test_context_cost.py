@@ -19,7 +19,12 @@ from pathlib import Path
 
 import pytest
 
-from tests.support.context_cost import frontmatter_bytes, lf_bytes, measure
+from tests.support.context_cost import (
+    _DECLARED_BINARY_SUFFIXES,
+    frontmatter_bytes,
+    lf_bytes,
+    measure,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_ROOT = REPO_ROOT / "skills"
@@ -211,6 +216,25 @@ def test_a_reached_binary_keeps_every_byte_it_has(tmp_path: Path) -> None:
     assert cost.load_bytes == cost.skill_md_bytes + len(binary.read_bytes())
 
 
+def test_a_declared_binary_without_a_nul_byte_is_still_raw(tmp_path: Path) -> None:
+    """The attribute decides, not the content.
+
+    `.gitattributes` marks `.jpg` binary, which is `-text`: git never normalizes
+    it however it looks inside. A small JPEG can carry no NUL byte at all, so a
+    content sniff on its own would rewrite `\r\n` pairs that are payload and
+    report the file shorter than it loads.
+    """
+    skill = tmp_path / "sample"
+    (skill / "references").mkdir(parents=True)
+    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nSee [p](references/p.jpg).\n")
+    photo = skill / "references" / "p.jpg"
+    photo.write_bytes(b"\xff\xd8\xff\xe0JFIF\r\n\r\ntrailer\xff\xd9")
+    assert b"\x00" not in photo.read_bytes()
+
+    assert lf_bytes(photo) == len(photo.read_bytes())
+    assert measure(skill).load_bytes == measure(skill).skill_md_bytes + len(photo.read_bytes())
+
+
 def test_a_text_target_outside_any_suffix_list_is_still_normalized(tmp_path: Path) -> None:
     """Because git decides how it arrives, and git goes by content.
 
@@ -287,3 +311,24 @@ def test_neither_number_bills_the_directories_a_skill_only_ships(tmp_path: Path)
     assert cost.discovery_bytes == frontmatter_bytes(skill / "SKILL.md")
     assert cost.load_bytes == cost.skill_md_bytes
     assert cost.files == 1
+
+
+def test_the_declared_binary_suffixes_match_the_attributes_file() -> None:
+    """The code's list and `.gitattributes` are one decision in two places.
+
+    `binary` is `-text`: git never normalizes those files whatever they contain,
+    so the content heuristic must not get a vote on them. Keeping the set in
+    Python means it can drift from the attributes file that motivates it, and
+    the drift is invisible — a suffix dropped here still passes every count on a
+    fleet that ships no binaries.
+    """
+    attributes = (REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
+    declared = {
+        line.split()[0].removeprefix("*")
+        for line in attributes.splitlines()
+        if line.strip().endswith(" binary")
+    }
+
+    assert declared == set(_DECLARED_BINARY_SUFFIXES), (
+        "the binary suffixes in .gitattributes and context_cost.py disagree"
+    )

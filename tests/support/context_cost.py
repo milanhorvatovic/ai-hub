@@ -47,6 +47,13 @@ _DELIMITER = b"---\n"
 # allowlist would count it raw and fail the baseline there.
 _BINARY_SNIFF_BYTES = 8000
 
+# `.gitattributes` marks these `binary`, which is `-text` — git never normalizes
+# them whatever they contain, so the content heuristic must not get a vote. A
+# NUL-free JPEG holding a `\r\n` pair is the case: sniffing alone rewrites
+# payload and undercounts the file. A test holds this set against the attributes
+# file so the two cannot drift.
+_DECLARED_BINARY_SUFFIXES = frozenset({".png", ".jpg", ".pdf"})
+
 # Reached but not loaded. A skill points at these so a tool or a human can open
 # one; they are never pulled into context the way a reference is, so billing
 # them would price the wrong thing.
@@ -58,12 +65,15 @@ def lf_bytes(path: Path) -> int:
 
     A `\r\n` pair is a line ending in markdown and a value in a PNG, so payload
     is counted raw: rewriting pairs inside it would report the file smaller than
-    it loads, silently. The split follows git's rule rather than a suffix list,
-    since git is what decides how the file arrives — under `text=auto` a blob is
-    binary when a NUL byte appears near its start, and everything else is
-    normalized on checkin and rendered native on checkout.
+    it loads, silently. The split follows git's rules, since git is what decides
+    how the file arrives — an explicit `binary` attribute first, because that
+    setting means never normalize whatever the content looks like, and then
+    `text=auto`'s own heuristic, where a blob is binary when a NUL byte appears
+    near its start.
     """
     data = path.read_bytes()
+    if path.suffix.lower() in _DECLARED_BINARY_SUFFIXES:
+        return len(data)
     if b"\x00" in data[:_BINARY_SNIFF_BYTES]:
         return len(data)
     return len(data.replace(b"\r\n", b"\n"))

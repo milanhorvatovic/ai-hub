@@ -102,3 +102,15 @@ def test_the_comparison_point_is_the_merge_base() -> None:
     # to say why it is the wrong commit, and forbidding the substring would make
     # the explanation and the check unable to coexist.
     assert "${{ github.event.pull_request.base.sha }}" not in workflow
+
+
+def test_the_report_waits_for_the_suite() -> None:
+    """Its inputs are only trustworthy once the staleness guard has passed.
+
+    The reporter reads the committed baseline rather than measuring, so without
+    the dependency it races the tests and a drifted record renders happily —
+    most likely as "no change" — beside the test that just failed for saying so.
+    """
+    workflow = _WORKFLOW.read_text(encoding="utf-8")
+
+    assert "needs: pytest" in workflow
