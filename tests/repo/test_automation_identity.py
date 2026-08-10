@@ -21,10 +21,14 @@ _WRITE_PRIVILEGED_JOBS = {
     ("release-please.yml", "catalog-publish"),
 }
 
-# `contents` and `pull-requests` are the two scopes that let a workflow author an event
-# — a push, a branch, a pull request — so they are the ones the identity rule turns on.
-# `security-events`, `id-token`, and `attestations` write elsewhere and cascade nothing.
-_EVENT_AUTHORING_SCOPES = ("contents", "pull-requests")
+# Scopes whose `write` cannot produce an event another workflow could have been
+# triggered by. Everything else counts, because the rule turns on whether a token can
+# author something — `issues: write` creates issues and comments, `pages` and
+# `deployments` create deployment events, and all of them are suppressed the same way.
+# Stated as an exemption rather than an allowlist so a scope nobody has thought about
+# counts by default: the list to maintain is the harmless one, and forgetting to extend
+# it makes the guard noisy rather than blind.
+_NON_AUTHORING_SCOPES = frozenset({"security-events", "id-token", "attestations"})
 
 
 def _workflows() -> list[Path]:
@@ -54,24 +58,46 @@ def _value(text: str) -> str:
     return text.split("#", 1)[0].strip().strip("\"'")
 
 
-def _granted_write(block: list[str], inline: str = "") -> set[str]:
+_ALL_AUTHORING = frozenset({"*"})
+
+
+def _granted_write(block: list[str], inline: str = "") -> frozenset[str]:
     """Event-authoring scopes granted `write` by one `permissions:` declaration.
 
-    `write-all` is the shorthand that grants every scope at once, so it has to count as
-    both — a guard that only reads `<scope>: write` would read a job holding full write
-    access as holding none, which is the direction that fails open.
+    Every form GitHub accepts has to be read, because each unread one is a job holding
+    write access that this guard reports as holding none: `write-all` grants everything
+    at once, values may be quoted, and the whole mapping may be written inline in flow
+    style. A form that is none of those is not assumed harmless — it returns a grant, so
+    an unparsed declaration fails loudly instead of silently.
     """
-    if _value(inline) == "write-all":
-        return set(_EVENT_AUTHORING_SCOPES)
+    scalar = _value(inline)
+    if scalar:
+        if scalar == "write-all":
+            return frozenset(_ALL_AUTHORING)
+        if scalar in {"read-all", "{}"}:
+            return frozenset()
+        if scalar.startswith("{") and scalar.endswith("}"):
+            return _flow_grants(scalar)
+        return frozenset(_ALL_AUTHORING)  # unrecognized: fail closed
 
     granted = set()
     for line in block:
         if _value(line) == "write-all":
-            return set(_EVENT_AUTHORING_SCOPES)
+            return frozenset(_ALL_AUTHORING)
         match = re.match(r"\s*([a-z-]+):(.*)$", line)
-        if match and match.group(1) in _EVENT_AUTHORING_SCOPES and _value(match.group(2)) == "write":
+        if match and _value(match.group(2)) == "write" and match.group(1) not in _NON_AUTHORING_SCOPES:
             granted.add(match.group(1))
-    return granted
+    return frozenset(granted)
+
+
+def _flow_grants(scalar: str) -> frozenset[str]:
+    """Event-authoring scopes granted `write` by an inline `{a: b, c: d}` mapping."""
+    granted = set()
+    for entry in scalar[1:-1].split(","):
+        key, _, value = entry.partition(":")
+        if _value(value) == "write" and key.strip().strip("\"'") not in _NON_AUTHORING_SCOPES:
+            granted.add(key.strip().strip("\"'"))
+    return frozenset(granted)
 
 
 def _jobs(lines: list[str]) -> list[tuple[str, int]]:
@@ -90,7 +116,7 @@ def _jobs(lines: list[str]) -> list[tuple[str, int]]:
         line = lines[index]
         if line.strip() and not line.startswith(" "):
             break
-        match = re.match(r"^  ([A-Za-z0-9_-]+):$", line)
+        match = re.match(r"^  ([A-Za-z0-9_-]+):\s*(?:#.*)?$", line)
         if match:
             found.append((match.group(1), index))
     return found
@@ -106,6 +132,17 @@ def _audit_section(adr: str) -> str:
     section, _, _ = after.partition("\n### ")
     assert section.strip(), "the ADR's audit section was not found under its heading"
     return section
+
+
+def _audit_rows_for(audit: str, stem: str) -> str:
+    """The audit rows naming `stem`, joined — the rows that speak for one workflow.
+
+    Scoping to the section is not enough on its own: asking whether a secret appears
+    anywhere in the audit passes when some other workflow's row happens to name it, so
+    two independently true facts stand in for the pairing nobody checked.
+    """
+    rows = [row for row in audit.splitlines() if row.startswith("|") and f"`{stem}`" in row]
+    return "\n".join(rows)
 
 
 def test_every_workflow_declares_a_read_only_floor() -> None:
@@ -149,19 +186,29 @@ def test_only_the_release_jobs_can_author_events() -> None:
     )
 
 
-def test_every_secret_a_workflow_uses_is_named_in_the_audit() -> None:
-    # A new secret is a new identity, which is the thing the ADR exists to decide. The
-    # audit table records the identity each workflow acts as, so a secret reaching a
-    # workflow without reaching that table means an identity nobody chose.
+def test_every_secret_a_workflow_uses_is_named_in_its_own_audit_row() -> None:
+    # A new secret is a new identity, which is the thing the ADR exists to decide — and
+    # the row is the unit, not the table: a secret named somewhere in the audit says
+    # nothing about the workflow now reading it, so each is checked against the rows
+    # that speak for it. Both expression forms count, since `secrets.X` and
+    # `secrets['X']` reach the same value and only one of them used to be read here.
     audit = _audit_section(_ADR.read_text(encoding="utf-8"))
-    used = set()
-    for workflow in _workflows():
-        used |= set(re.findall(r"secrets\.([A-Z_][A-Z0-9_]*)", workflow.read_text(encoding="utf-8")))
-    assert used, "no secrets referenced by any workflow; the pattern probably stopped matching"
+    pattern = re.compile(r"""secrets(?:\.([A-Z_][A-Z0-9_]*)|\[\s*['"]([A-Za-z_][A-Za-z0-9_]*)['"]\s*\])""")
 
-    unrecorded = sorted(name for name in used if name not in audit)
+    total, unrecorded = 0, []
+    for workflow in _workflows():
+        row = _audit_rows_for(audit, workflow.stem)
+        for dotted, bracketed in pattern.findall(workflow.read_text(encoding="utf-8")):
+            name = dotted or bracketed
+            total += 1
+            if name not in row:
+                unrecorded.append(f"{workflow.name}:{name}")
+
+    assert total, "no secrets referenced by any workflow; the pattern probably stopped matching"
     assert not unrecorded, (
-        f"secrets used by a workflow but absent from the ADR's audit: {', '.join(unrecorded)}"
+        "secrets a workflow reads that its own audit row does not name: "
+        f"{', '.join(sorted(set(unrecorded)))} — record the identity in that row in "
+        "docs/adr/0002-automation-identity.md"
     )
 
 
