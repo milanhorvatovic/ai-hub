@@ -60,10 +60,14 @@ _BINARY_SNIFF_BYTES = 8000
 # attributes file should carry uppercase patterns is a question for that file.
 _DECLARED_BINARY_SUFFIXES = frozenset({".png", ".jpg", ".pdf"})
 
-# Reached but not loaded. A skill points at these so a tool or a human can open
-# one; they are never pulled into context the way a reference is, so billing
-# them would price the wrong thing.
-_NOT_LOADED = frozenset({"assets", "scripts"})
+# Payload directories: a skill ships these so a tool can be handed a file or a
+# script can be run, and that is not context anyone loads. The exclusion is of
+# the payload rather than the directory, because documentation lands in them
+# too — docs-steward's router names `assets/configs/README.md` in the same
+# breath as its references, and that file is prose about the bundled configs
+# sitting beside the configs themselves. Markdown reached under a payload
+# directory is read like any other markdown and is billed like any other.
+_PAYLOAD_DIRECTORIES = frozenset({"assets", "scripts"})
 
 
 def lf_bytes(path: Path) -> int:
@@ -152,13 +156,15 @@ def measure(skill: Path) -> ContextCost:
     """
     inside = skill.resolve()
 
-    def is_skill_content(path: Path) -> bool:
-        # First component only: the reserved directories are top-level in a
+    def is_loaded(path: Path) -> bool:
+        # First component only: the payload directories are top-level in a
         # skill, so `references/scripts/guide.md` is a reference that happens to
         # sit in a directory sharing the name, not a script.
-        return path.relative_to(inside).parts[0] not in _NOT_LOADED
+        if path.relative_to(inside).parts[0] not in _PAYLOAD_DIRECTORIES:
+            return True
+        return path.suffix == ".md"
 
-    loaded = {path for path in reachable_files(skill) if is_skill_content(path)}
+    loaded = {path for path in reachable_files(skill) if is_loaded(path)}
     return ContextCost(
         discovery_bytes=sum(frontmatter_bytes(md) for md in discovery_contributors(skill)),
         skill_md_bytes=lf_bytes(skill / "SKILL.md"),

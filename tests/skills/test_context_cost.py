@@ -311,24 +311,28 @@ def test_discovery_bills_a_capability_the_router_never_reaches(tmp_path: Path) -
     assert cost.load_bytes == cost.skill_md_bytes
 
 
-def test_neither_number_bills_the_directories_a_skill_only_ships(tmp_path: Path) -> None:
-    """Assets and scripts are handed to a tool, never pulled into context.
+def test_payload_is_not_billed_but_documentation_beside_it_is(tmp_path: Path) -> None:
+    """`assets/` and `scripts/` hold payload, and payload is not context.
 
-    Load has excluded them from the start; discovery reads the directory rather
-    than the walk and has to exclude them by the same rule, or a frontmatter
-    block under `assets/` would be billed for a scan that never looks there.
-    Latent today — the one shipped file in that position carries no frontmatter
-    — so the case is stated here rather than left to the first one that does.
+    A config handed to a formatter and a script that gets run are not read by
+    anyone; the bytes belong to the tool. Documentation that happens to live
+    beside them is a different thing — docs-steward's router names
+    `assets/configs/README.md` in the same sentence as its references, and that
+    file is prose about the configs rather than one of them. Excluding the whole
+    directory undercounts the skill by the size of that document.
     """
     skill = tmp_path / "sample"
     (skill / "assets").mkdir(parents=True)
-    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nSee `assets/sheet.md`.\n")
-    (skill / "assets" / "sheet.md").write_bytes(b"---\nname: sheet\n---\n\nData.\n")
+    (skill / "SKILL.md").write_bytes(
+        b"---\nname: sample\n---\n\nPolicy: [a](assets/policy.md). Config: `assets/tool.json`.\n"
+    )
+    policy = skill / "assets" / "policy.md"
+    policy.write_bytes(b"# Policy\n\nWhy these settings.\n")
+    (skill / "assets" / "tool.json").write_bytes(b'{"rule": true}\n')
 
     cost = measure(skill)
-    assert cost.discovery_bytes == frontmatter_bytes(skill / "SKILL.md")
-    assert cost.load_bytes == cost.skill_md_bytes
-    assert cost.files == 1
+    assert cost.files == 2
+    assert cost.load_bytes == cost.skill_md_bytes + lf_bytes(policy)
 
 
 def test_the_declared_binary_suffixes_match_the_attributes_file() -> None:

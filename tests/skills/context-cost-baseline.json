@@ -8,8 +8,8 @@
   "docs-steward": {
     "discovery_bytes": 965,
     "skill_md_bytes": 11495,
-    "load_bytes": 56995,
-    "files": 6
+    "load_bytes": 62250,
+    "files": 7
   },
   "git-toolkit": {
     "discovery_bytes": 9590,
