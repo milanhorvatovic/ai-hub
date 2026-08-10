@@ -235,6 +235,24 @@ def test_a_declared_binary_without_a_nul_byte_is_still_raw(tmp_path: Path) -> No
     assert measure(skill).load_bytes == measure(skill).skill_md_bytes + len(photo.read_bytes())
 
 
+def test_an_uppercase_suffix_follows_the_attributes_not_the_intent(tmp_path: Path) -> None:
+    """`*.png` does not match `P.PNG`, and neither should this.
+
+    Attribute patterns are matched with case on a case-sensitive checkout —
+    `git check-attr` reports `IMAGE.PNG` as `text: auto`, not binary — so git
+    may deliver it CRLF on Windows. Counting it raw because the suffix looks
+    like an image would make the recorded number depend on the platform, which
+    is the one property this measurement has to keep.
+    """
+    skill = tmp_path / "sample"
+    (skill / "references").mkdir(parents=True)
+    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nSee [p](references/P.PNG).\n")
+    shouty = skill / "references" / "P.PNG"
+    shouty.write_bytes(b"header\r\nbody\r\n")
+
+    assert lf_bytes(shouty) == len(b"header\nbody\n")
+
+
 def test_a_text_target_outside_any_suffix_list_is_still_normalized(tmp_path: Path) -> None:
     """Because git decides how it arrives, and git goes by content.
 

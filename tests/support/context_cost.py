@@ -52,6 +52,12 @@ _BINARY_SNIFF_BYTES = 8000
 # NUL-free JPEG holding a `\r\n` pair is the case: sniffing alone rewrites
 # payload and undercounts the file. A test holds this set against the attributes
 # file so the two cannot drift.
+#
+# Matched with case, because the attribute patterns are. `git check-attr` on a
+# case-sensitive checkout reports `IMAGE.PNG` as `text: auto` — `*.png` does not
+# cover it — so lowercasing here would count a file raw that git may hand over
+# as CRLF, and the baseline would stop being platform-independent. Whether the
+# attributes file should carry uppercase patterns is a question for that file.
 _DECLARED_BINARY_SUFFIXES = frozenset({".png", ".jpg", ".pdf"})
 
 # Reached but not loaded. A skill points at these so a tool or a human can open
@@ -72,7 +78,7 @@ def lf_bytes(path: Path) -> int:
     near its start.
     """
     data = path.read_bytes()
-    if path.suffix.lower() in _DECLARED_BINARY_SUFFIXES:
+    if path.suffix in _DECLARED_BINARY_SUFFIXES:
         return len(data)
     if b"\x00" in data[:_BINARY_SNIFF_BYTES]:
         return len(data)
