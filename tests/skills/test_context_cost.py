@@ -100,14 +100,20 @@ def test_counts_ignore_the_line_endings_the_checkout_chose(tmp_path: Path) -> No
     matrix read every file a byte per line heavier. Raw counts would make the
     platform the largest mover in the trend, so the guard is here rather than in
     a comment on the normalization.
+
+    Every fixture in this module writes bytes rather than text: `write_text`
+    translates `\n` to `\r\n` on Windows, so a "LF" fixture built that way is
+    already CRLF there and converting it again yields `\r\r\n`. That corrupts
+    the frontmatter delimiter and fails this test for a reason that has nothing
+    to do with the code under it — which is exactly what it did on the first CI
+    run. A suite about byte counts cannot let the platform choose its input.
     """
     skill = tmp_path / "sample"
     (skill / "references").mkdir(parents=True)
-    (skill / "SKILL.md").write_text(
-        "---\nname: sample\ndescription: one\n---\n\nSee `references/one.md`.\n",
-        encoding="utf-8",
+    (skill / "SKILL.md").write_bytes(
+        b"---\nname: sample\ndescription: one\n---\n\nSee `references/one.md`.\n"
     )
-    (skill / "references" / "one.md").write_text("# One\n\nBody line.\n", encoding="utf-8")
+    (skill / "references" / "one.md").write_bytes(b"# One\n\nBody line.\n")
 
     as_lf = measure(skill)
     for path in sorted(skill.rglob("*.md")):
@@ -121,9 +127,9 @@ def test_frontmatterless_files_cost_nothing_to_discover(tmp_path: Path) -> None:
     skill = tmp_path / "sample"
     (skill / "references").mkdir(parents=True)
     router = skill / "SKILL.md"
-    router.write_text("---\nname: sample\n---\n\nSee `references/one.md`.\n", encoding="utf-8")
+    router.write_bytes(b"---\nname: sample\n---\n\nSee `references/one.md`.\n")
     reference = skill / "references" / "one.md"
-    reference.write_text("# One\n", encoding="utf-8")
+    reference.write_bytes(b"# One\n")
 
     cost = measure(skill)
     assert frontmatter_bytes(reference) == 0
@@ -142,9 +148,9 @@ def test_discovery_bills_a_capability_the_router_never_reaches(tmp_path: Path) -
     """
     skill = tmp_path / "sample"
     (skill / "capabilities" / "orphan").mkdir(parents=True)
-    (skill / "SKILL.md").write_text("---\nname: sample\n---\n\nNo rows.\n", encoding="utf-8")
+    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nNo rows.\n")
     orphan = skill / "capabilities" / "orphan" / "capability.md"
-    orphan.write_text("---\nname: orphan\n---\n\nUnrouted.\n", encoding="utf-8")
+    orphan.write_bytes(b"---\nname: orphan\n---\n\nUnrouted.\n")
 
     cost = measure(skill)
     assert cost.discovery_bytes == frontmatter_bytes(skill / "SKILL.md") + frontmatter_bytes(orphan)
@@ -163,12 +169,8 @@ def test_neither_number_bills_the_directories_a_skill_only_ships(tmp_path: Path)
     """
     skill = tmp_path / "sample"
     (skill / "assets").mkdir(parents=True)
-    (skill / "SKILL.md").write_text(
-        "---\nname: sample\n---\n\nSee `assets/sheet.md`.\n", encoding="utf-8"
-    )
-    (skill / "assets" / "sheet.md").write_text(
-        "---\nname: sheet\n---\n\nData.\n", encoding="utf-8"
-    )
+    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nSee `assets/sheet.md`.\n")
+    (skill / "assets" / "sheet.md").write_bytes(b"---\nname: sheet\n---\n\nData.\n")
 
     cost = measure(skill)
     assert cost.discovery_bytes == frontmatter_bytes(skill / "SKILL.md")
