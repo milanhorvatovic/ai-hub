@@ -368,6 +368,10 @@ def test_pr_body_mode_accepts_an_empty_body() -> None:
         "dependabot[bot]@users.noreply.github.com",
         "49699333+dependabot[bot]@users.noreply.github.com",
         "41898282+github-actions[bot]@users.noreply.github.com",
+        # A custom App commits under the same address shape, so the release path keeps
+        # its waiver when docs/adr/0002-automation-identity.md moves it off the default
+        # token — nothing here names an identity.
+        "1234567+ai-hub-automation[bot]@users.noreply.github.com",
         "snyk-bot@snyk.io",
         "bot@renovateapp.com",
     ],
@@ -392,6 +396,7 @@ def test_human_author_emails_are_not_skipped(email: str) -> None:
     [
         ("dependabot[bot]", True),
         ("github-actions[bot]", True),
+        ("ai-hub-automation[bot]", True),  # a custom App, per docs/adr/0002
         ("renovate-bot", True),
         ("milanhorvatovic", False),
         ("botanist", False),  # "bot" substring alone is not a bot marker
