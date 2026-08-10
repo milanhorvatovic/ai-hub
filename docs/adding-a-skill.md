@@ -39,9 +39,10 @@ Only distributable content may live under `skills/<name>/` — the whole directo
 | 3 | `manifest.yaml` | Fleet entry: canonical path, type, capabilities | `tests/repo/test_skill_manifest.py` (tracked files) |
 | 4 | `release-please-config.json` | Package entry | `tests/release/test_manifest_sync.py` (tracked files) |
 | 5 | `.release-please-manifest.json` | Version baseline | `tests/release/test_manifest_sync.py` (tracked files) |
-| 6 | `README.md` Skills section | One-line entry | **Nothing — review catches this one** |
+| 6 | `tests/skills/context-cost-baseline.json` | Recorded discovery / router / load bytes | `tests/skills/test_context_cost.py` (working tree) |
+| 7 | `README.md` Skills section | One-line entry | **Nothing — review catches this one** |
 
-Steps 1–2 are validated from the working tree, so they fail a plain `./venv/bin/pytest -q` while you draft, before anything is committed. Steps 3–5 compare against tracked files, so they engage once the skill is staged (`git add`) — run the suite again after staging and every missed wiring point fails with a message naming the file. Step 6 is the one purely manual step: no test reads the README's Skills list, so the PR review must.
+Steps 1–2 and 6 are validated from the working tree, so they fail a plain `./venv/bin/pytest -q` while you draft, before anything is committed. Steps 3–5 compare against tracked files, so they engage once the skill is staged (`git add`) — run the suite again after staging and every missed wiring point fails with a message naming the file. Step 7 is the one purely manual step: no test reads the README's Skills list, so the PR review must.
 
 ### Adding a capability instead
 
@@ -54,6 +55,10 @@ A skill may also set its own bar for what a capability must carry before it land
 ### The corpus (step 2)
 
 Every shipped description carries an activation corpus at `tests/skill-corpus/<name>/skill.json`: `target` (the skill name), `kind: "skill"`, and `positive`/`negative` prompt lists, with `_`-prefixed keys free for annotations (the existing corpora record their boundary decisions in a `_comment`). The pytest guards enforce the house floors: at least 8 prompts per side, no duplicates within a side, no prompt on both sides, no prompt shared with another skill's corpus, and varied prompt openings. Draw the negatives from sibling skills' domains so the corpus encodes the real routing decision, not strawmen. After writing it — and after any later description edit — backfill the recorded `description_sha256` with the evaluator from [skill-system-foundry](https://github.com/milanhorvatovic/skill-system-foundry) (`evaluate_descriptions.py tests/skill-corpus --skill-set skills --backfill-hash`): the hash is required by the shape guards, and the `description-eval` workflow blocks on a stale one while scoring precision/recall as advisory.
+
+### The context-cost baseline (step 6)
+
+Every skill's discovery, router, and load bytes are recorded in `tests/skills/context-cost-baseline.json`, and the suite fails when the recorded figures no longer describe the tree — including when a skill exists with no entry at all. Refresh it with `./venv/bin/python -m tests.support.context_cost` and commit the result; the failure message names that command too. The numbers are never hand-edited, and the growth they show is not gated: the check exists so a change in what a skill costs to load arrives as a reviewable diff instead of a surprise, and the same refresh applies whenever an edit adds or removes reference files.
 
 ### The fleet manifest (step 3)
 

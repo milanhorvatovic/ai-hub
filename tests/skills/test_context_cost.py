@@ -58,6 +58,41 @@ def test_recorded_cost_still_describes_the_tree(name: str, baseline) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "document", ["CONTRIBUTING.md", "docs/adding-a-skill.md"], ids=lambda p: Path(p).name
+)
+def test_the_contributor_docs_name_the_refresh_command(document: str) -> None:
+    """A gate nobody declared is a gate contributors meet as a CI failure.
+
+    Adding a skill now fails this suite until the baseline records it, which is
+    a wiring step like the manifest and the corpus — so the runbook lists it and
+    both documents name the command the failure message names. Pinned because
+    the two can drift apart silently: the gate keeps working while the docs stop
+    describing it.
+    """
+    text = (REPO_ROOT / document).read_text(encoding="utf-8")
+
+    assert BASELINE_PATH.name in text
+    assert REFRESH.removeprefix("./") in text
+
+
+def test_the_runbook_lists_the_baseline_as_a_wiring_step() -> None:
+    """In the checklist, not only in the prose below it.
+
+    Someone adding a skill reads the table and works down it; a step that exists
+    only in a later section is a step they meet as a failing test. Asserting the
+    filename appears somewhere in the document does not catch that — the section
+    alone satisfies it — so this looks for the row.
+    """
+    runbook = (REPO_ROOT / "docs" / "adding-a-skill.md").read_text(encoding="utf-8")
+    rows = [line for line in runbook.splitlines() if line.startswith("|")]
+
+    listed = [
+        row for row in rows if BASELINE_PATH.name in row and "test_context_cost.py" in row
+    ]
+    assert listed, "the wiring checklist has no row for the context-cost baseline"
+
+
 def test_counts_ignore_the_line_endings_the_checkout_chose(tmp_path: Path) -> None:
     """A CRLF checkout must report what an LF checkout reports.
 
