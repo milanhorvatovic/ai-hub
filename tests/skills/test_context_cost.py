@@ -59,16 +59,16 @@ def test_recorded_cost_still_describes_the_tree(name: str, baseline) -> None:
 
 
 @pytest.mark.parametrize(
-    "document", ["CONTRIBUTING.md", "docs/adding-a-skill.md"], ids=lambda p: Path(p).name
+    "document", ["AGENTS.md", "CONTRIBUTING.md", "docs/adding-a-skill.md"], ids=lambda p: Path(p).name
 )
 def test_the_contributor_docs_name_the_refresh_command(document: str) -> None:
     """A gate nobody declared is a gate contributors meet as a CI failure.
 
     Adding a skill now fails this suite until the baseline records it, which is
-    a wiring step like the manifest and the corpus — so the runbook lists it and
-    both documents name the command the failure message names. Pinned because
-    the two can drift apart silently: the gate keeps working while the docs stop
-    describing it.
+    a wiring step like the manifest and the corpus — so all three declaration
+    surfaces name the command the failure message names. Pinned because they
+    drift apart silently: the gate keeps working while the docs stop describing
+    it.
     """
     text = (REPO_ROOT / document).read_text(encoding="utf-8")
 
