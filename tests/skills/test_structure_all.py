@@ -169,7 +169,7 @@ def _resolve_all(
     assert not broken, f"broken {description}:\n" + "\n".join(broken)
 
 
-def testprose_lines_keep_longer_fences_closed(tmp_path: Path) -> None:
+def test_prose_lines_keep_longer_fences_closed(tmp_path: Path) -> None:
     """A ````-fenced block may embed ``` lines as content; only a same-char
     run at least as long as the opener closes it (CommonMark)."""
     md = tmp_path / "sample.md"
@@ -267,12 +267,12 @@ def test_router_tools_cover_capability_tools(skill: Path) -> None:
 
 
 @pytest.mark.parametrize("skill", skill_params("markdown_links"))
-def testmarkdown_links_resolve(skill: Path) -> None:
+def test_markdown_links_resolve(skill: Path) -> None:
     _resolve_all(skill, markdown_links, "markdown links", target_must_be_file=False)
 
 
 @pytest.mark.parametrize("skill", skill_params("backtick_paths"))
-def testbacktick_paths_resolve(skill: Path) -> None:
+def test_backtick_paths_resolve(skill: Path) -> None:
     _resolve_all(skill, backtick_paths, "backtick path pointers")
 
 
