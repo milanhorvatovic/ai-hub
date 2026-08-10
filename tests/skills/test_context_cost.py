@@ -123,6 +123,32 @@ def test_counts_ignore_the_line_endings_the_checkout_chose(tmp_path: Path) -> No
     assert measure(skill) == as_lf
 
 
+@pytest.mark.parametrize(
+    ("label", "content", "expected"),
+    [
+        ("normal block", b"---\nname: x\n---\n\nBody.\n", 16),
+        ("block closing at end of file", b"---\nname: x\n---", 15),
+        ("thematic break, no frontmatter", b"---\n\n# Title\n\n----\n\nBody.\n", 0),
+        ("value line opening with the delimiter", b"---\nname: x\n---note: y\n---\n\nB\n", 27),
+        ("never closed", b"---\nname: x\n\nBody.\n", 0),
+    ],
+    ids=lambda value: value if isinstance(value, str) else "",
+)
+def test_the_closing_delimiter_is_a_line_not_a_prefix(
+    tmp_path: Path, label: str, content: bytes, expected: int
+) -> None:
+    """A line that *is* `---`, not one that starts with it.
+
+    Scanning for the prefix ends the block early on a value like `---note: y`,
+    and invents a block in a file that merely opens with a thematic break and
+    closes with `----` further down — billing prose as discovery metadata.
+    """
+    path = tmp_path / "x.md"
+    path.write_bytes(content)
+
+    assert frontmatter_bytes(path) == expected
+
+
 def test_a_reference_with_frontmatter_is_load_cost_not_discovery_cost(tmp_path: Path) -> None:
     """Discovery is what a harness reads before it routes anywhere.
 

@@ -85,15 +85,26 @@ def frontmatter_bytes(path: Path) -> int:
 
     The block runs from the opening delimiter through the newline that ends the
     closing one, which is the span the foundry's `discovery_bytes` counts.
+
+    The closing delimiter is a line that *is* `---`, not one that starts with
+    it. Scanning for the prefix ends the block early on a value like
+    `---note: y`, and invents a block entirely in a file that merely opens with
+    a thematic break and closes with `----` further down.
     """
     data = path.read_bytes().replace(b"\r\n", b"\n")
     if not data.startswith(_DELIMITER):
         return 0
-    closing = data.find(b"\n---", len(_DELIMITER) - 1)
-    if closing == -1:
-        return 0
-    end_of_line = data.find(b"\n", closing + 1)
-    return len(data) if end_of_line == -1 else end_of_line + 1
+
+    offset = len(_DELIMITER)
+    while offset <= len(data):
+        break_at = data.find(b"\n", offset)
+        line = data[offset:] if break_at == -1 else data[offset:break_at]
+        if line == b"---":
+            return len(data) if break_at == -1 else break_at + 1
+        if break_at == -1:
+            return 0
+        offset = break_at + 1
+    return 0
 
 
 @dataclass(frozen=True)
