@@ -9,6 +9,13 @@ the language — which is where the growth worth reviewing on a PR shows up and
 where a threshold would eventually attach. Against a 350 KB tree a kilobyte of
 new router is a rounding error; against the router it is four percent.
 
+These are not the foundry's numbers on every skill, and the difference is the
+foundry's. Its `stats.py` reads one router table, so on a multi-table router it
+never descends into the capabilities the other tables list — eleven of
+git-toolkit's, twelve of oss-repository-conventions' — and reports a load up to
+40% under the truth. That is the multi-table limitation this repo already tracks
+upstream; where its parser sees the whole router the two agree exactly.
+
 `skill_md` overlaps `discovery` by one block and that is deliberate: the always-
 loaded cost is what the file weighs, and netting the frontmatter out to keep the
 three disjoint would report a quantity nothing actually loads.
@@ -22,7 +29,7 @@ default where the signal belongs and fail those legs on the first run.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from tests.support.reachability import reachable_files
@@ -64,12 +71,7 @@ class ContextCost:
     files: int
 
     def as_baseline(self) -> dict[str, int]:
-        return {
-            "discovery_bytes": self.discovery_bytes,
-            "skill_md_bytes": self.skill_md_bytes,
-            "load_bytes": self.load_bytes,
-            "files": self.files,
-        }
+        return asdict(self)
 
 
 def measure(skill: Path) -> ContextCost:
@@ -79,17 +81,28 @@ def measure(skill: Path) -> ContextCost:
     reported and the reachability the structural suite asserts come from one
     walk — a file nothing routes to is not billed, and cannot be, without the
     two disagreeing.
+
+    Discovery is the exception, and reads the directory instead. What a harness
+    pays to know a skill exists is a property of the files on disk: an unrouted
+    capability still ships a frontmatter block and still costs whoever scans it.
+    Walking for that number would make it right only for as long as the orphan
+    checks hold, and a measurement should not rest on another guard's invariant.
     """
-    reachable = {
-        path
-        for path in reachable_files(skill)
-        if _NOT_LOADED.isdisjoint(path.relative_to(skill.resolve()).parts)
-    }
+    inside = skill.resolve()
+
+    def is_skill_content(path: Path) -> bool:
+        return _NOT_LOADED.isdisjoint(path.relative_to(inside).parts)
+
+    loaded = {path for path in reachable_files(skill) if is_skill_content(path)}
     return ContextCost(
-        discovery_bytes=sum(frontmatter_bytes(md) for md in sorted(reachable)),
+        discovery_bytes=sum(
+            frontmatter_bytes(md)
+            for md in skill.rglob("*.md")
+            if is_skill_content(md.resolve())
+        ),
         skill_md_bytes=lf_bytes(skill / "SKILL.md"),
-        load_bytes=sum(lf_bytes(md) for md in sorted(reachable)),
-        files=len(reachable),
+        load_bytes=sum(lf_bytes(path) for path in loaded),
+        files=len(loaded),
     )
 
 

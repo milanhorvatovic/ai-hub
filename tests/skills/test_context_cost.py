@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.support.context_cost import baseline_for, lf_bytes, measure
+from tests.support.context_cost import frontmatter_bytes, lf_bytes, measure
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_ROOT = REPO_ROOT / "skills"
@@ -47,9 +47,9 @@ def test_recorded_cost_still_describes_the_tree(name: str, baseline) -> None:
 
     measured = measure(SKILLS_ROOT / name).as_baseline()
     drift = {
-        key: f"{recorded[key]} -> {value}"
-        for key, value in measured.items()
-        if recorded.get(key) != value
+        key: f"{recorded.get(key)} -> {measured.get(key)}"
+        for key in recorded.keys() | measured.keys()
+        if recorded.get(key) != measured.get(key)
     }
     assert not drift, (
         f"{name}'s recorded context cost is stale: {drift}\n"
@@ -85,19 +85,57 @@ def test_frontmatterless_files_cost_nothing_to_discover(tmp_path: Path) -> None:
     """Discovery bills frontmatter only, so a reference adds load and no more."""
     skill = tmp_path / "sample"
     (skill / "references").mkdir(parents=True)
-    (skill / "SKILL.md").write_text(
-        "---\nname: sample\n---\n\nSee `references/one.md`.\n", encoding="utf-8"
-    )
+    router = skill / "SKILL.md"
+    router.write_text("---\nname: sample\n---\n\nSee `references/one.md`.\n", encoding="utf-8")
     reference = skill / "references" / "one.md"
     reference.write_text("# One\n", encoding="utf-8")
 
     cost = measure(skill)
-    assert cost.discovery_bytes == cost.skill_md_bytes - len("\nSee `references/one.md`.\n")
+    assert frontmatter_bytes(reference) == 0
+    assert cost.discovery_bytes == frontmatter_bytes(router)
     assert cost.load_bytes == cost.skill_md_bytes + lf_bytes(reference)
 
 
-def test_baseline_file_matches_what_the_generator_writes(baseline) -> None:
-    """The committed file is the generator's output, not a hand-edited copy."""
-    assert baseline == baseline_for(SKILLS_ROOT), (
-        f"committed baseline differs from a fresh computation; refresh with {REFRESH}"
+def test_discovery_bills_a_capability_the_router_never_reaches(tmp_path: Path) -> None:
+    """An orphaned capability costs discovery but not load.
+
+    Whoever scans the directory reads its frontmatter whether the router points
+    at it or not, so discovery has to come from the tree rather than the walk.
+    Computing it from the walk gives the same answer on a valid fleet and stops
+    being right the moment the orphan checks do — this is the case that
+    separates the two.
+    """
+    skill = tmp_path / "sample"
+    (skill / "capabilities" / "orphan").mkdir(parents=True)
+    (skill / "SKILL.md").write_text("---\nname: sample\n---\n\nNo rows.\n", encoding="utf-8")
+    orphan = skill / "capabilities" / "orphan" / "capability.md"
+    orphan.write_text("---\nname: orphan\n---\n\nUnrouted.\n", encoding="utf-8")
+
+    cost = measure(skill)
+    assert cost.discovery_bytes == frontmatter_bytes(skill / "SKILL.md") + frontmatter_bytes(orphan)
+    assert cost.files == 1
+    assert cost.load_bytes == cost.skill_md_bytes
+
+
+def test_neither_number_bills_the_directories_a_skill_only_ships(tmp_path: Path) -> None:
+    """Assets and scripts are handed to a tool, never pulled into context.
+
+    Load has excluded them from the start; discovery reads the directory rather
+    than the walk and has to exclude them by the same rule, or a frontmatter
+    block under `assets/` would be billed for a scan that never looks there.
+    Latent today — the one shipped file in that position carries no frontmatter
+    — so the case is stated here rather than left to the first one that does.
+    """
+    skill = tmp_path / "sample"
+    (skill / "assets").mkdir(parents=True)
+    (skill / "SKILL.md").write_text(
+        "---\nname: sample\n---\n\nSee `assets/sheet.md`.\n", encoding="utf-8"
     )
+    (skill / "assets" / "sheet.md").write_text(
+        "---\nname: sheet\n---\n\nData.\n", encoding="utf-8"
+    )
+
+    cost = measure(skill)
+    assert cost.discovery_bytes == frontmatter_bytes(skill / "SKILL.md")
+    assert cost.load_bytes == cost.skill_md_bytes
+    assert cost.files == 1
