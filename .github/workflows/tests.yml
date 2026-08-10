@@ -74,17 +74,20 @@ jobs:
           python-version-file: ".python-version"
 
       # On a pull_request event this checkout is the merge commit, so its first
-      # parent is the base branch and its second is the PR head. The merge base
-      # of those two is the commit GitHub's three-dot diff is computed against —
-      # not `base.sha`, which is the base branch tip at event time and drifts as
-      # other pull requests merge. Using the tip would attribute their changes,
-      # in reverse, to this one.
+      # parent is the base branch and its second is the PR head. Both endpoints
+      # come from commits rather than the working tree, and they are exactly the
+      # ends of GitHub's three-dot diff: the merge base, and the head. Neither
+      # obvious shortcut works — `base.sha` is the base branch tip at event time
+      # and drifts as other pull requests merge, and the merge tree carries
+      # whatever landed on the base after this branch diverged. Either one
+      # attributes somebody else's change to this pull request.
       - name: Report context-cost deltas
         env:
           BASELINE: tests/skills/context-cost-baseline.json
         run: |
           merge_base=$(git merge-base HEAD^1 HEAD^2)
-          echo "comparing against merge base $merge_base"
+          echo "comparing $merge_base (merge base) against $(git rev-parse HEAD^2) (head)"
           git show "$merge_base:$BASELINE" > "$RUNNER_TEMP/base-cost.json" 2>/dev/null || true
+          git show "HEAD^2:$BASELINE" > "$RUNNER_TEMP/head-cost.json" 2>/dev/null || true
           python .github/scripts/report_context_cost.py \
-            "$RUNNER_TEMP/base-cost.json" "$BASELINE" >> "$GITHUB_STEP_SUMMARY"
+            "$RUNNER_TEMP/base-cost.json" "$RUNNER_TEMP/head-cost.json" >> "$GITHUB_STEP_SUMMARY"

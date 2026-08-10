@@ -98,6 +98,11 @@ def test_the_comparison_point_is_the_merge_base() -> None:
     workflow = _WORKFLOW.read_text(encoding="utf-8")
 
     assert "git merge-base HEAD^1 HEAD^2" in workflow
+    # Both ends of the three-dot diff, and neither from the working tree: the
+    # merge tree holds whatever landed on the base after this branch diverged,
+    # so rendering it as the head would attribute that to this pull request.
+    assert 'git show "HEAD^2:$BASELINE"' in workflow
+    assert '"$RUNNER_TEMP/base-cost.json" "$RUNNER_TEMP/head-cost.json"' in workflow
     # The interpolation, not the words: the comment beside it names `base.sha`
     # to say why it is the wrong commit, and forbidding the substring would make
     # the explanation and the check unable to coexist.
