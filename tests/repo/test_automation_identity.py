@@ -231,7 +231,7 @@ def test_every_secret_a_workflow_uses_is_named_in_its_own_audit_row() -> None:
     audit = _audit_section(_ADR.read_text(encoding="utf-8"))
     pattern = re.compile(r"""secrets(?:\.([A-Za-z_]\w*)|\[\s*['"]([A-Za-z_]\w*)['"]\s*\])""")
 
-    total, unrecorded, inherited = 0, [], []
+    total, unrecorded, inherited, dynamic = 0, [], [], []
     for workflow in _workflows():
         text = workflow.read_text(encoding="utf-8")
         row = _audit_rows_for(audit, workflow.stem).lower()
@@ -239,9 +239,22 @@ def test_every_secret_a_workflow_uses_is_named_in_its_own_audit_row() -> None:
         # `secrets: inherit` hands a called workflow everything at once and produces no
         # `secrets.NAME` to match, so it is the one form that would pass this guard by
         # naming nothing. The audit has no way to record it, so it is refused rather
-        # than silently allowed.
-        if re.search(r"^\s*secrets\s*:\s*inherit\s*$", text, re.M):
-            inherited.append(workflow.name)
+        # than silently allowed. Read through the same normalizers as everything else:
+        # a regex anchored to the bare spelling is bypassed by a trailing comment or a
+        # quoted key, which is the exact gap those helpers exist to close.
+        for line in text.splitlines():
+            head, sep, rest = line.partition(":")
+            if sep and _key(head) == "secrets" and _value(rest) == "inherit":
+                inherited.append(workflow.name)
+                break
+
+        # A bracket lookup whose name is an expression cannot be audited: the identity
+        # is chosen at run time and no row could name it. Literal lookups are recorded
+        # below; these are refused, since contributing nothing to the count is how a
+        # secret-backed identity would pass by being unreadable rather than absent.
+        for match in re.finditer(r"secrets\[\s*([^\]]+?)\s*\]", text):
+            if not re.fullmatch(r"""['"][A-Za-z_]\w*['"]""", match.group(1)):
+                dynamic.append(f"{workflow.name}: {match.group(0)}")
 
         for dotted, bracketed in pattern.findall(text):
             name = dotted or bracketed
@@ -255,6 +268,10 @@ def test_every_secret_a_workflow_uses_is_named_in_its_own_audit_row() -> None:
     assert not inherited, (
         f"workflows passing secrets by inheritance: {', '.join(inherited)} — the audit "
         "records identities by name, and `secrets: inherit` names none"
+    )
+    assert not dynamic, (
+        f"secret lookups whose name is an expression: {', '.join(dynamic)} — the "
+        "identity is chosen at run time, so no audit row can name it"
     )
     assert total, "no secrets referenced by any workflow; the pattern probably stopped matching"
     assert not unrecorded, (
