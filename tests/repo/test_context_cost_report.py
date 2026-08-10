@@ -44,7 +44,7 @@ def test_only_the_skills_that_moved_appear() -> None:
     assert "200 → 712 (+512)" in out
 
 
-def test_a_shrinking_router_reads_as_a_loss_not_a_gain() -> None:
+def test_a_shrinking_load_tree_reads_as_a_loss_not_a_gain() -> None:
     """Signed deltas, so the direction survives a skim."""
     out = reporter.render({"alpha": COST}, {"alpha": COST | {"load_bytes": 300 - 34}})
 

@@ -123,6 +123,26 @@ def test_counts_ignore_the_line_endings_the_checkout_chose(tmp_path: Path) -> No
     assert measure(skill) == as_lf
 
 
+def test_a_reference_nested_under_a_reserved_name_is_still_billed(tmp_path: Path) -> None:
+    """`assets` and `scripts` are reserved at a skill's top level, not anywhere.
+
+    Testing every path component excludes `references/scripts/guide.md`, which
+    is a reference that happens to sit in a directory sharing the name — loaded
+    like any other and billed like any other. Latent: no skill nests one today.
+    """
+    skill = tmp_path / "sample"
+    (skill / "references" / "scripts").mkdir(parents=True)
+    (skill / "SKILL.md").write_bytes(
+        b"---\nname: sample\n---\n\nSee `references/scripts/guide.md`.\n"
+    )
+    nested = skill / "references" / "scripts" / "guide.md"
+    nested.write_bytes(b"# Guide\n")
+
+    cost = measure(skill)
+    assert cost.files == 2
+    assert cost.load_bytes == cost.skill_md_bytes + lf_bytes(nested)
+
+
 def test_a_reached_binary_keeps_every_byte_it_has(tmp_path: Path) -> None:
     """Normalization is for line endings, and a binary has none.
 

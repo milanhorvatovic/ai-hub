@@ -110,7 +110,10 @@ def measure(skill: Path) -> ContextCost:
     inside = skill.resolve()
 
     def is_skill_content(path: Path) -> bool:
-        return _NOT_LOADED.isdisjoint(path.relative_to(inside).parts)
+        # First component only: the reserved directories are top-level in a
+        # skill, so `references/scripts/guide.md` is a reference that happens to
+        # sit in a directory sharing the name, not a script.
+        return path.relative_to(inside).parts[0] not in _NOT_LOADED
 
     loaded = {path for path in reachable_files(skill) if is_skill_content(path)}
     return ContextCost(
