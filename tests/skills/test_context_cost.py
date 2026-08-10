@@ -202,11 +202,35 @@ def test_a_reached_binary_keeps_every_byte_it_has(tmp_path: Path) -> None:
     (skill / "references").mkdir(parents=True)
     (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nSee [chart](references/c.png).\n")
     binary = skill / "references" / "c.png"
-    binary.write_bytes(b"\x89PNG\r\n\x1a\n\r\n\r\n")
+    # A real PNG header: the signature's own CRLF, then an IHDR length whose
+    # NUL bytes are what marks the blob binary to git and to this code.
+    binary.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\r\n")
 
     cost = measure(skill)
     assert lf_bytes(binary) == len(binary.read_bytes())
     assert cost.load_bytes == cost.skill_md_bytes + len(binary.read_bytes())
+
+
+def test_a_text_target_outside_any_suffix_list_is_still_normalized(tmp_path: Path) -> None:
+    """Because git decides how it arrives, and git goes by content.
+
+    `.gitattributes` sets `text=auto` repo-wide, so a linked `.csv` — or a file
+    with no suffix at all — is text to git and arrives CRLF on Windows. Keying
+    the split to a list of known suffixes would count it raw there and fail a
+    baseline refreshed on Linux, which is the same platform trap from the other
+    side.
+    """
+    skill = tmp_path / "sample"
+    (skill / "references").mkdir(parents=True)
+    (skill / "SKILL.md").write_bytes(
+        b"---\nname: sample\n---\n\nSee [data](references/d.csv) and [n](references/NOTES).\n"
+    )
+    for name in ("d.csv", "NOTES"):
+        (skill / "references" / name).write_bytes(b"a,b\r\n1,2\r\n")
+
+    cost = measure(skill)
+    assert lf_bytes(skill / "references" / "d.csv") == len(b"a,b\n1,2\n")
+    assert cost.load_bytes == cost.skill_md_bytes + 2 * len(b"a,b\n1,2\n")
 
 
 def test_frontmatterless_files_cost_nothing_to_discover(tmp_path: Path) -> None:

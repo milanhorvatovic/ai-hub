@@ -47,25 +47,39 @@ jobs:
       - name: Run unit tests
         run: pytest -q
 
-      # Report-only. The blocking half ran above, where a baseline that no
-      # longer describes the tree fails; this just shows what moved. One leg
-      # writes it, because four copies of one table is not four reports.
-      #
-      # The comparison point is the PR's own base commit, not the tip of the
-      # base branch: the tip moves as other PRs merge, which would fold their
-      # deltas into this summary and make it disagree with the diff a reviewer
-      # is reading. Fetching that one commit keeps the checkout shallow, and
-      # the ref reaches git through the environment so it can never be shell.
+  # Report-only, and in its own job for one reason: it needs history, and the
+  # pytest legs are deliberately shallow. Nothing here gates — the blocking half
+  # is the staleness check inside the suite.
+  context-cost:
+    name: context cost
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Full history: the comparison needs a real merge base, and a shallow
+      # clone cannot produce one. actions/checkout v4.3.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      # actions/setup-python v5.6.0
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version-file: ".python-version"
+
+      # On a pull_request event this checkout is the merge commit, so its first
+      # parent is the base branch and its second is the PR head. The merge base
+      # of those two is the commit GitHub's three-dot diff is computed against —
+      # not `base.sha`, which is the base branch tip at event time and drifts as
+      # other pull requests merge. Using the tip would attribute their changes,
+      # in reverse, to this one.
       - name: Report context-cost deltas
-        if: >-
-          github.event_name == 'pull_request'
-          && matrix.os == 'ubuntu-latest'
-          && matrix.python == '3.13'
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           BASELINE: tests/skills/context-cost-baseline.json
         run: |
-          git fetch --depth=1 origin "$BASE_SHA"
-          git show "$BASE_SHA:$BASELINE" > "$RUNNER_TEMP/base-cost.json" 2>/dev/null || true
+          merge_base=$(git merge-base HEAD^1 HEAD^2)
+          echo "comparing against merge base $merge_base"
+          git show "$merge_base:$BASELINE" > "$RUNNER_TEMP/base-cost.json" 2>/dev/null || true
           python .github/scripts/report_context_cost.py \
             "$RUNNER_TEMP/base-cost.json" "$BASELINE" >> "$GITHUB_STEP_SUMMARY"

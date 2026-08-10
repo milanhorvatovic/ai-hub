@@ -74,29 +74,31 @@ def test_a_deleted_skill_is_not_silently_dropped() -> None:
     assert "(gone)" in out
 
 
-def test_the_workflow_runs_the_reporter_on_one_leg_only() -> None:
-    """Four matrix legs writing the same table is not four reports.
+def test_the_report_runs_where_history_is_available() -> None:
+    """Its own job with a full checkout, not a step on a shallow matrix leg.
 
-    Pinned here because the guard is a workflow condition: nothing else fails if
-    the `if:` is dropped, and the result is a summary repeated four times.
+    A merge base cannot be computed from a depth-one clone, and deepening the
+    four pytest legs to serve a report nobody gates on is the wrong trade.
     """
     workflow = _WORKFLOW.read_text(encoding="utf-8")
 
     assert "report_context_cost.py" in workflow
-    assert "matrix.os == 'ubuntu-latest'" in workflow
-    assert "matrix.python == '3.13'" in workflow
+    assert "context-cost:" in workflow
+    assert "fetch-depth: 0" in workflow
 
 
-def test_the_comparison_point_is_the_pr_base_commit() -> None:
-    """Not the tip of the base branch.
+def test_the_comparison_point_is_the_merge_base() -> None:
+    """Not `base.sha`, which is the base branch tip at event time.
 
-    The tip moves as other PRs merge, which would fold their deltas into this
-    summary and make it disagree with the diff the reviewer is reading. The ref
-    also reaches git through the environment rather than the run line, so it can
-    never be shell.
+    That tip moves as other pull requests merge, so comparing against it
+    attributes their changes — in reverse — to this one, and disagrees with the
+    three-dot diff the reviewer is reading. On a pull_request checkout the merge
+    commit's parents give the real merge base.
     """
     workflow = _WORKFLOW.read_text(encoding="utf-8")
 
-    assert "BASE_SHA: ${{ github.event.pull_request.base.sha }}" in workflow
-    assert "github.base_ref" not in workflow
-    assert 'git fetch --depth=1 origin "$BASE_SHA"' in workflow
+    assert "git merge-base HEAD^1 HEAD^2" in workflow
+    # The interpolation, not the words: the comment beside it names `base.sha`
+    # to say why it is the wrong commit, and forbidding the substring would make
+    # the explanation and the check unable to coexist.
+    assert "${{ github.event.pull_request.base.sha }}" not in workflow
