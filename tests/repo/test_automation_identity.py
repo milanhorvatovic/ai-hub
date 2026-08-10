@@ -6,10 +6,19 @@ access without anyone re-reading the rule, a secret-backed identity arriving tha
 audit row accounts for, and a workflow arriving that the audit never covered. The two
 identity checks are complements — a `permissions:` block governs only the default token,
 so it can never be the whole answer to which jobs act as something.
+
+These read the parsed document rather than its text. An earlier version matched YAML by
+regex and five review rounds each found a legal spelling it could not see — quoted keys,
+flow mappings, trailing comments, name casing, aliases — every one of them a grant the
+guard reported as absent. The spellings are not a list that can be finished, so the fix
+is to stop reading spellings: `safe_load` resolves aliases, drops comments, and makes
+quoting and flow-versus-block style stop existing before any check runs.
 """
 
 import re
 from pathlib import Path
+
+import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WORKFLOW_DIR = _REPO_ROOT / ".github" / "workflows"
@@ -32,6 +41,11 @@ _WRITE_PRIVILEGED_JOBS = {
 # it makes the guard noisy rather than blind.
 _NON_AUTHORING_SCOPES = frozenset({"security-events", "id-token", "attestations"})
 
+_ANY_GRANT = frozenset({"*"})
+_EXPRESSION = re.compile(r"\$\{\{(.+?)\}\}", re.S)
+_NAMED_SECRET = re.compile(r"""secrets(?:\.([A-Za-z_]\w*)|\[\s*['"]([A-Za-z_]\w*)['"]\s*\])""")
+_ANY_SECRETS_MENTION = re.compile(r"\bsecrets\b")
+
 
 def _workflows() -> list[Path]:
     found = sorted(_WORKFLOW_DIR.glob("*.y*ml"))
@@ -39,111 +53,46 @@ def _workflows() -> list[Path]:
     return found
 
 
-def _block(lines: list[str], start: int, indent: int) -> list[str]:
-    """The lines below `start` indented deeper than `indent`, stopping at the first that is not."""
-    body = []
-    for line in lines[start + 1 :]:
-        if not line.strip():
-            continue
-        if len(line) - len(line.lstrip()) <= indent:
-            break
-        body.append(line)
-    return body
+def _document(workflow: Path) -> dict:
+    parsed = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+    assert isinstance(parsed, dict), f"{workflow.name}: not a mapping at the top level"
+    return parsed
 
 
-def _value(text: str) -> str:
-    """A YAML scalar's value: comment dropped, surrounding quotes stripped.
+def _jobs(document: dict) -> dict:
+    jobs = document.get("jobs") or {}
+    assert isinstance(jobs, dict) and jobs, "no jobs found"
+    return jobs
 
-    `contents: "write"` grants exactly what `contents: write` grants, so a check that
-    reads only the bare form would let the quoted one through — the open direction.
+
+def _grants(node: object, exempt: frozenset[str]) -> frozenset[str]:
+    """Scopes granted `write` by a parsed `permissions:` value, minus the exempt ones.
+
+    A shape this does not recognize returns a grant rather than an absence: an
+    unreadable declaration is the case where a guard about identity must be noisy.
     """
-    return text.split("#", 1)[0].strip().strip("\"'")
+    if node is None:
+        return frozenset()
+    if isinstance(node, str):
+        if node == "write-all":
+            return _ANY_GRANT
+        return frozenset() if node in {"read-all", "none"} else _ANY_GRANT
+    if isinstance(node, dict):
+        return frozenset(
+            str(scope) for scope, level in node.items() if level == "write" and scope not in exempt
+        )
+    return _ANY_GRANT
 
 
-def _key(text: str) -> str:
-    """A YAML mapping key, unquoted.
-
-    Every identifier in this file's grammar may legally be quoted — the job id, the
-    `permissions` key, and each scope inside it — and each spelling read only in its
-    bare form is a grant this guard cannot see. Normalizing once, here, is what stops
-    that from being a list of spellings someone has to keep extending.
-    """
-    return text.strip().strip("\"'")
-
-
-_ALL_AUTHORING = frozenset({"*"})
-
-
-def _granted_write(
-    block: list[str], inline: str = "", exempt: frozenset[str] = _NON_AUTHORING_SCOPES
-) -> frozenset[str]:
-    """Event-authoring scopes granted `write` by one `permissions:` declaration.
-
-    Every form GitHub accepts has to be read, because each unread one is a job holding
-    write access that this guard reports as holding none: `write-all` grants everything
-    at once, values may be quoted, and the whole mapping may be written inline in flow
-    style. A form that is none of those is not assumed harmless — it returns a grant, so
-    an unparsed declaration fails loudly instead of silently.
-    """
-    scalar = _value(inline)
-    if scalar:
-        if scalar == "write-all":
-            return frozenset(_ALL_AUTHORING)
-        if scalar in {"read-all", "{}"}:
-            return frozenset()
-        if scalar.startswith("{") and scalar.endswith("}"):
-            return _flow_grants(scalar, exempt)
-        return frozenset(_ALL_AUTHORING)  # unrecognized: fail closed
-
-    granted = set()
-    for line in block:
-        if line.lstrip().startswith("#"):
-            continue
-        if _value(line) == "write-all":
-            return frozenset(_ALL_AUTHORING)
-        key, sep, value = line.partition(":")
-        if not sep:
-            return frozenset(_ALL_AUTHORING)  # unparsed entry: fail closed
-        if _value(value) == "write" and _key(key) not in exempt:
-            granted.add(_key(key))
-    return frozenset(granted)
-
-
-def _flow_grants(scalar: str, exempt: frozenset[str]) -> frozenset[str]:
-    """Scopes granted `write` by an inline `{a: b, c: d}` mapping, minus the exempt ones."""
-    granted = set()
-    for entry in scalar[1:-1].split(","):
-        key, _, value = entry.partition(":")
-        if _value(value) == "write" and _key(key) not in exempt:
-            granted.add(_key(key))
-    return frozenset(granted)
-
-
-def _jobs(lines: list[str]) -> list[tuple[str, int]]:
-    """Each top-level job as `(name, line index)`, scoped to the block under `jobs:`.
-
-    Matching a two-space key anywhere in the file would collect the trigger names under
-    `on:` as well — `push`, `pull_request`, `schedule` — which is how a count of them
-    can look healthy while the real jobs are unreadable.
-    """
-    start = next((i for i, line in enumerate(lines) if line.rstrip() == "jobs:"), None)
-    if start is None:
-        return []
-
-    found, unparsed = [], []
-    for index in range(start + 1, len(lines)):
-        line = lines[index]
-        if line.strip() and not line.startswith(" "):
-            break
-        if not re.match(r"^  \S", line) or line.lstrip().startswith("#"):
-            continue
-        key, sep, rest = line.partition(":")
-        if sep and not _value(rest):
-            found.append((_key(key), index))
-        else:
-            unparsed.append(line.strip())
-    assert not unparsed, f"unreadable job declarations under `jobs:`: {unparsed}"
-    return found
+def _expressions(node: object) -> list[str]:
+    """Every `${{ … }}` expression in the document, wherever it is nested."""
+    if isinstance(node, str):
+        return [match.group(1) for match in _EXPRESSION.finditer(node)]
+    if isinstance(node, dict):
+        return [found for value in node.values() for found in _expressions(value)]
+    if isinstance(node, list):
+        return [found for item in node for found in _expressions(item)]
+    return []
 
 
 def _audit_section(adr: str) -> str:
@@ -171,18 +120,12 @@ def _audit_rows_for(audit: str, stem: str) -> str:
 
 def test_every_workflow_declares_a_read_only_floor() -> None:
     for workflow in _workflows():
-        lines = workflow.read_text(encoding="utf-8").splitlines()
-        tops = [
-            i
-            for i, line in enumerate(lines)
-            if line[:1].strip() and _key(line.partition(":")[0]) == "permissions"
-        ]
-        assert len(tops) == 1, f"{workflow.name}: expected exactly one top-level permissions block"
-        inline = lines[tops[0]].partition(":")[2]
+        document = _document(workflow)
+        assert "permissions" in document, f"{workflow.name}: no workflow-wide permissions floor"
         # No exemption here, unlike the job audit below: the floor rule is that a
         # workflow grants nothing repo-wide, so `id-token: write` at the top would hand
         # OIDC to every job in the file even though it authors no event.
-        assert not _granted_write(_block(lines, tops[0], 0), inline, exempt=frozenset()), (
+        assert not _grants(document["permissions"], exempt=frozenset()), (
             f"{workflow.name}: the workflow-wide floor grants write; elevate per job instead"
         )
 
@@ -195,24 +138,12 @@ def test_only_the_release_jobs_elevate_the_default_token() -> None:
     # That half belongs to the secret guard below, which pairs every secret a workflow
     # reads with the audit row naming it. Derived from the tree rather than counted, so
     # a newly elevated job fails here and sends its author to the rule.
-    elevated = set()
-    for workflow in _workflows():
-        lines = workflow.read_text(encoding="utf-8").splitlines()
-        jobs = _jobs(lines)
-
-        # A workflow whose jobs this parser cannot see contributes nothing and would
-        # leave the comparison below satisfied by the others — so an unreadable file has
-        # to fail here rather than pass quietly. Two-space job indentation is the house
-        # form, not a YAML requirement.
-        assert jobs, f"{workflow.name}: no jobs parsed; the guard cannot see this file"
-
-        for name, index in jobs:
-            body = _block(lines, index, 2)
-            for offset, inner in enumerate(body):
-                if _key(inner.partition(":")[0]) == "permissions":
-                    indent = len(inner) - len(inner.lstrip())
-                    if _granted_write(_block(body, offset, indent), inner.partition(":")[2]):
-                        elevated.add((workflow.name, name))
+    elevated = {
+        (workflow.name, name)
+        for workflow in _workflows()
+        for name, job in _jobs(_document(workflow)).items()
+        if _grants((job or {}).get("permissions"), _NON_AUTHORING_SCOPES)
+    }
 
     assert elevated == _WRITE_PRIVILEGED_JOBS, (
         "a job's default-token write access changed; the identity it acts "
@@ -226,51 +157,46 @@ def test_every_secret_a_workflow_uses_is_named_in_its_own_audit_row() -> None:
     # A new secret is a new identity, which is the thing the ADR exists to decide — and
     # the row is the unit, not the table: a secret named somewhere in the audit says
     # nothing about the workflow now reading it, so each is checked against the rows
-    # that speak for it. Both expression forms count, since `secrets.X` and
-    # `secrets['X']` reach the same value and only one of them used to be read here.
+    # that speak for it.
     audit = _audit_section(_ADR.read_text(encoding="utf-8"))
-    pattern = re.compile(r"""secrets(?:\.([A-Za-z_]\w*)|\[\s*['"]([A-Za-z_]\w*)['"]\s*\])""")
 
-    total, unrecorded, inherited, dynamic = 0, [], [], []
+    total, unrecorded, inherited, unauditable = 0, [], [], []
     for workflow in _workflows():
-        text = workflow.read_text(encoding="utf-8")
+        document = _document(workflow)
         row = _audit_rows_for(audit, workflow.stem).lower()
 
-        # `secrets: inherit` hands a called workflow everything at once and produces no
-        # `secrets.NAME` to match, so it is the one form that would pass this guard by
-        # naming nothing. The audit has no way to record it, so it is refused rather
-        # than silently allowed. Read through the same normalizers as everything else:
-        # a regex anchored to the bare spelling is bypassed by a trailing comment or a
-        # quoted key, which is the exact gap those helpers exist to close.
-        for line in text.splitlines():
-            head, sep, rest = line.partition(":")
-            if sep and _key(head) == "secrets" and _value(rest) == "inherit":
-                inherited.append(workflow.name)
-                break
+        # `secrets: inherit` hands a called workflow everything at once and names none
+        # of it, so it is the one form that could pass this guard by having nothing to
+        # check. An audit that lists identities by name cannot record it.
+        inherited += [
+            f"{workflow.name}:{name}"
+            for name, job in _jobs(document).items()
+            if (job or {}).get("secrets") == "inherit"
+        ]
 
-        # A bracket lookup whose name is an expression cannot be audited: the identity
-        # is chosen at run time and no row could name it. Literal lookups are recorded
-        # below; these are refused, since contributing nothing to the count is how a
-        # secret-backed identity would pass by being unreadable rather than absent.
-        for match in re.finditer(r"secrets\[\s*([^\]]+?)\s*\]", text):
-            if not re.fullmatch(r"""['"][A-Za-z_]\w*['"]""", match.group(1)):
-                dynamic.append(f"{workflow.name}: {match.group(0)}")
+        for expression in _expressions(document):
+            named = _NAMED_SECRET.findall(expression)
+            for dotted, bracketed in named:
+                name = dotted or bracketed
+                total += 1
+                # The row must name the secret as its own code span. A substring test
+                # would accept `TOKEN` against a row documenting `GITHUB_TOKEN` —
+                # passing exactly the new identity this exists to catch.
+                if f"`{name.lower()}`" not in row:
+                    unrecorded.append(f"{workflow.name}:{name}")
 
-        for dotted, bracketed in pattern.findall(text):
-            name = dotted or bracketed
-            total += 1
-            # The row must name the secret as its own code span. A substring test would
-            # accept `TOKEN` against a row documenting `GITHUB_TOKEN` — passing exactly
-            # the new identity this exists to catch.
-            if f"`{name.lower()}`" not in row:
-                unrecorded.append(f"{workflow.name}:{name}")
+            # Anything else that reaches the context reads secrets this cannot name: a
+            # dynamic index like `secrets[env.NAME]`, or a whole-context read such as
+            # `toJSON(secrets)`. Both choose an identity no audit row could record.
+            if _ANY_SECRETS_MENTION.search(expression) and not named:
+                unauditable.append(f"{workflow.name}: {expression.strip()}")
 
     assert not inherited, (
-        f"workflows passing secrets by inheritance: {', '.join(inherited)} — the audit "
+        f"jobs passing secrets by inheritance: {', '.join(inherited)} — the audit "
         "records identities by name, and `secrets: inherit` names none"
     )
-    assert not dynamic, (
-        f"secret lookups whose name is an expression: {', '.join(dynamic)} — the "
+    assert not unauditable, (
+        f"secret reads whose name is not a literal: {', '.join(unauditable)} — the "
         "identity is chosen at run time, so no audit row can name it"
     )
     assert total, "no secrets referenced by any workflow; the pattern probably stopped matching"
