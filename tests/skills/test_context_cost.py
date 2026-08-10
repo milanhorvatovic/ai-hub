@@ -123,6 +123,26 @@ def test_counts_ignore_the_line_endings_the_checkout_chose(tmp_path: Path) -> No
     assert measure(skill) == as_lf
 
 
+def test_a_reference_with_frontmatter_is_load_cost_not_discovery_cost(tmp_path: Path) -> None:
+    """Discovery is what a harness reads before it routes anywhere.
+
+    A reference is opened after routing, so frontmatter on one is a load cost.
+    Billing every markdown file with a block would inflate discovery the day a
+    reference grows one — latent, since none carries frontmatter today, and the
+    reason the contributor set is enumerated rather than globbed.
+    """
+    skill = tmp_path / "sample"
+    (skill / "references").mkdir(parents=True)
+    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nSee `references/one.md`.\n")
+    reference = skill / "references" / "one.md"
+    reference.write_bytes(b"---\nname: one\n---\n\nBody.\n")
+
+    cost = measure(skill)
+    assert frontmatter_bytes(reference) > 0
+    assert cost.discovery_bytes == frontmatter_bytes(skill / "SKILL.md")
+    assert cost.load_bytes == cost.skill_md_bytes + lf_bytes(reference)
+
+
 def test_a_reference_nested_under_a_reserved_name_is_still_billed(tmp_path: Path) -> None:
     """`assets` and `scripts` are reserved at a skill's top level, not anywhere.
 

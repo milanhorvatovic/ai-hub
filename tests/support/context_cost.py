@@ -2,7 +2,8 @@
 
 Three numbers, because the two the foundry's `stats.py` puts in its headline
 answer different questions from the one this repo keeps growing. `discovery`
-sums every frontmatter block, so it prices being findable across the fleet;
+sums the frontmatter a harness reads before routing, so it prices being
+findable across the fleet;
 `load` is the whole reachable tree, so it prices a triggered skill in full; and
 `skill_md` is the router alone — read on every task the skill takes, whatever
 the language — which is where the growth worth reviewing on a PR shows up and
@@ -66,6 +67,19 @@ def lf_bytes(path: Path) -> int:
     return len(data.replace(b"\r\n", b"\n"))
 
 
+def discovery_contributors(skill: Path):
+    """The files read before routing: the router, and every capability entry on
+    disk whether the router reaches it or not.
+
+    Not every markdown file with frontmatter. A reference is opened after
+    routing has already happened, so its frontmatter — if one ever carries any —
+    is a load cost and not a discovery cost. Verified against the pinned
+    foundry, which bills exactly these two positions.
+    """
+    yield skill / "SKILL.md"
+    yield from sorted(skill.glob("capabilities/*/capability.md"))
+
+
 def frontmatter_bytes(path: Path) -> int:
     """Bytes of the file's opening YAML frontmatter block, 0 when it has none.
 
@@ -117,11 +131,7 @@ def measure(skill: Path) -> ContextCost:
 
     loaded = {path for path in reachable_files(skill) if is_skill_content(path)}
     return ContextCost(
-        discovery_bytes=sum(
-            frontmatter_bytes(md)
-            for md in skill.rglob("*.md")
-            if is_skill_content(md.resolve())
-        ),
+        discovery_bytes=sum(frontmatter_bytes(md) for md in discovery_contributors(skill)),
         skill_md_bytes=lf_bytes(skill / "SKILL.md"),
         load_bytes=sum(lf_bytes(path) for path in loaded),
         files=len(loaded),
