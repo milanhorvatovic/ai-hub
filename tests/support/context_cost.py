@@ -20,11 +20,12 @@ upstream; where its parser sees the whole router the two agree exactly.
 loaded cost is what the file weighs, and netting the frontmatter out to keep the
 three disjoint would report a quantity nothing actually loads.
 
-Every count normalizes CRLF to LF first. `.gitattributes` checks markdown out
+Text counts normalize CRLF to LF first. `.gitattributes` checks markdown out
 native, so the Windows legs of the test matrix read the same content a byte per
-line heavier — around 1.5% on a skill tree, which is more than twice the largest
-real growth step this program has produced. Raw counts would put a platform
-default where the signal belongs and fail those legs on the first run.
+line heavier — around 1.5% on a skill tree, which is larger than any single
+growth step this repo has recorded. Raw counts would put a platform default
+where the signal belongs and fail those legs on the first run. Files whose bytes
+are not text are counted raw, because there a `\r\n` pair is payload.
 """
 
 from __future__ import annotations
@@ -36,6 +37,14 @@ from tests.support.reachability import reachable_files
 
 _DELIMITER = b"---\n"
 
+# Suffixes whose bytes are text, so a CRLF pair is a line ending. Everything a
+# pointer can land on that is not listed here is counted raw. The markdown-link
+# collector accepts any relative target, so an image or a PDF can be reached
+# even though nothing links one today.
+_TEXT_SUFFIXES = frozenset(
+    {".md", ".json", ".ndjson", ".yaml", ".yml", ".toml", ".sh", ".py", ".txt"}
+)
+
 # Reached but not loaded. A skill points at these so a tool or a human can open
 # one; they are never pulled into context the way a reference is, so billing
 # them would price the wrong thing.
@@ -43,8 +52,18 @@ _NOT_LOADED = frozenset({"assets", "scripts"})
 
 
 def lf_bytes(path: Path) -> int:
-    """Byte length of `path` with CRLF normalized to LF."""
-    return len(path.read_bytes().replace(b"\r\n", b"\n"))
+    """Byte length of `path`, with CRLF normalized to LF in text files only.
+
+    A `\r\n` pair is a line ending in markdown and a value in a PNG, so the
+    normalization is keyed to the suffix rather than applied to every byte
+    string: rewriting pairs inside binary payload would report the file smaller
+    than it loads, and would do it silently. `.gitattributes` draws the same
+    line for its own purposes, marking the image and PDF suffixes binary.
+    """
+    data = path.read_bytes()
+    if path.suffix.lower() not in _TEXT_SUFFIXES:
+        return len(data)
+    return len(data.replace(b"\r\n", b"\n"))
 
 
 def frontmatter_bytes(path: Path) -> int:

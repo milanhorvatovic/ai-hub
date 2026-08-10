@@ -4,8 +4,9 @@ The numbers themselves are reported, not gated — how much a skill may grow is 
 judgment nobody has data for yet. What blocks is the baseline going stale: a PR
 that changes a skill's cost and leaves the recorded figure alone would make
 every later delta a comparison against a fossil, which is the failure this whole
-measurement exists to end. The same split R4 uses for the description corpora,
-where the scores advise and the freshness check blocks.
+measurement exists to end. The same split the description corpora use, where the
+evaluator's precision and recall scores are advisory and the corpus-hash
+freshness check blocks.
 
 So a failure here is not "the skill got too big". It is "the recorded cost no
 longer describes the tree", and the fix is to refresh and review the diff.
@@ -120,6 +121,26 @@ def test_counts_ignore_the_line_endings_the_checkout_chose(tmp_path: Path) -> No
         path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
 
     assert measure(skill) == as_lf
+
+
+def test_a_reached_binary_keeps_every_byte_it_has(tmp_path: Path) -> None:
+    """Normalization is for line endings, and a binary has none.
+
+    The markdown-link collector accepts any relative target, so an image or a
+    PDF can be reached. Rewriting `\\r\\n` inside one would report it smaller
+    than it loads, by however many of those pairs its payload happens to hold —
+    silently, since nothing else would disagree. Latent: nothing links a binary
+    today, which is why the case is stated rather than waited for.
+    """
+    skill = tmp_path / "sample"
+    (skill / "references").mkdir(parents=True)
+    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nSee [chart](references/c.png).\n")
+    binary = skill / "references" / "c.png"
+    binary.write_bytes(b"\x89PNG\r\n\x1a\n\r\n\r\n")
+
+    cost = measure(skill)
+    assert lf_bytes(binary) == len(binary.read_bytes())
+    assert cost.load_bytes == cost.skill_md_bytes + len(binary.read_bytes())
 
 
 def test_frontmatterless_files_cost_nothing_to_discover(tmp_path: Path) -> None:
