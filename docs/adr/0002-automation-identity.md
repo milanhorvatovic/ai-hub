@@ -28,7 +28,7 @@ Neither rule is written down here. One of them has been rediscovered and applied
 | --- | --- | --- |
 | The default — anything that need not trigger downstream workflows or satisfy code-owner review | **`GITHUB_TOKEN`** | Auto-rotated, no setup, no secret to leak; scope it per job with `permissions:` |
 | To **trigger downstream workflows** — a push, PR, or Release that must re-run other workflows — or any scoped, rotatable, non-human automation identity | A **GitHub App**, minting a short-lived token per run with `actions/create-github-app-token` from its `client-id` and private key | App-authored events fire other workflows; the App consumes no seat, is permissioned centrally, and outlives any contributor |
-| To **satisfy `require_code_owner_review`**, or otherwise act as a human | A **user-owned fine-grained PAT**, minimum scope | CODEOWNERS accepts only users and teams, so an App's approval does not count |
+| To **satisfy `require_code_owner_review`**, or otherwise act as a human | A **fine-grained PAT owned by an applicable code owner**, minimum scope | CODEOWNERS accepts only users and teams, so an App's approval does not count — and neither does an arbitrary user's: the token's owner must be a code owner for the changed paths and hold the repository access an approval requires |
 
 The three are complementary rather than alternatives: a flow that both pushes and approves needs an App for the push and a PAT for the approval.
 
