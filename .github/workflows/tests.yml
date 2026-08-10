@@ -46,3 +46,48 @@ jobs:
 
       - name: Run unit tests
         run: pytest -q
+
+  # Report-only, and in its own job for one reason: it needs history, and the
+  # pytest legs are deliberately shallow. Nothing here gates — the blocking half
+  # is the staleness check inside the suite.
+  context-cost:
+    name: context cost
+    if: github.event_name == 'pull_request'
+    # The report reads the committed baseline rather than measuring, so it is
+    # only meaningful once the suite has confirmed that baseline still describes
+    # the tree. Without this the two run concurrently and a stale record renders
+    # as "No context-cost change" beside a failing test.
+    needs: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Full history: the comparison needs a real merge base, and a shallow
+      # clone cannot produce one. actions/checkout v4.3.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      # actions/setup-python v5.6.0
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version-file: ".python-version"
+
+      # On a pull_request event this checkout is the merge commit, so its first
+      # parent is the base branch and its second is the PR head. Both endpoints
+      # come from commits rather than the working tree, and they are exactly the
+      # ends of GitHub's three-dot diff: the merge base, and the head. Neither
+      # obvious shortcut works — `base.sha` is the base branch tip at event time
+      # and drifts as other pull requests merge, and the merge tree carries
+      # whatever landed on the base after this branch diverged. Either one
+      # attributes somebody else's change to this pull request.
+      - name: Report context-cost deltas
+        env:
+          BASELINE: tests/skills/context-cost-baseline.json
+        run: |
+          merge_base=$(git merge-base HEAD^1 HEAD^2)
+          echo "comparing $merge_base (merge base) against $(git rev-parse HEAD^2) (head)"
+          git show "$merge_base:$BASELINE" > "$RUNNER_TEMP/base-cost.json" 2>/dev/null || true
+          git show "HEAD^2:$BASELINE" > "$RUNNER_TEMP/head-cost.json" 2>/dev/null || true
+          python .github/scripts/report_context_cost.py \
+            "$RUNNER_TEMP/base-cost.json" "$RUNNER_TEMP/head-cost.json" >> "$GITHUB_STEP_SUMMARY"

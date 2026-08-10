@@ -30,6 +30,14 @@ from pathlib import Path
 
 import pytest
 
+from tests.support.reachability import (
+    CAPABILITY_PATH,
+    backtick_paths,
+    markdown_links,
+    prose_lines,
+    reachable_markdown,
+)
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_ROOT = REPO_ROOT / "skills"
 
@@ -54,25 +62,6 @@ _ANNOTATED_SEMVER = re.compile(
     flags=re.MULTILINE,
 )
 
-_CAPABILITY_PATH = re.compile(r"capabilities/([a-z0-9-]+)/capability\.md")
-
-# Extensions checked by the backtick-path collector. Directory mentions and
-# glob patterns never match (no trailing extension / `*` outside the class).
-_CHECKED_EXTENSIONS = r"(?:md|json|ndjson|py|yaml|yml|toml|sh)"
-
-# A backtick token containing `/` is treated as a skill-internal pointer when
-# its first segment is a `../` traversal or a skill-content directory. Other
-# first segments (`docs/`, `.github/`, `tests/`, …) are external repo paths
-# that appear as *data* in skill prose (e.g. the oss conventions catalog).
-_INTERNAL_FIRST_SEGMENTS = frozenset({"..", "references", "capabilities", "scripts", "assets"})
-
-_BACKTICK_TOKEN = re.compile(rf"`([A-Za-z0-9_./-]+\.{_CHECKED_EXTENSIONS})`")
-
-# Relative markdown-link targets; external schemes and absolute paths are
-# filtered by the collector, anchors are stripped by the pattern.
-_MARKDOWN_LINK = re.compile(r"\]\(([^)#\s]+)(?:#[^)\s]*)?\)")
-
-_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 
 # (check, skill-name) -> reason. Strict xfail: proof the suite detects the
 # defect today, and a forced cleanup of this table by the PR that fixes it.
@@ -152,7 +141,7 @@ def _routed_capabilities(skill: Path) -> set[str]:
     """Capability names routed anywhere in SKILL.md — matched over the whole
     file, not a parsed table, so multi-table routers (git-toolkit's per-phase
     tables) are unioned by construction."""
-    return set(_CAPABILITY_PATH.findall((skill / "SKILL.md").read_text(encoding="utf-8")))
+    return set(CAPABILITY_PATH.findall((skill / "SKILL.md").read_text(encoding="utf-8")))
 
 
 def _capabilities_on_disk(skill: Path) -> set[str]:
@@ -160,63 +149,6 @@ def _capabilities_on_disk(skill: Path) -> set[str]:
     if not cap_dir.is_dir():
         return set()
     return {p.name for p in cap_dir.iterdir() if (p / "capability.md").is_file()}
-
-
-def _prose_lines(md_file: Path):
-    """Yield (lineno, line) for lines outside fenced code blocks — fenced
-    content is data (worked examples, scaffold templates), not skill
-    navigation, so its link-shaped text is never a pointer.
-
-    Per CommonMark, a fence closes only on a same-character run at least as
-    long as the opener with nothing after it — so a ````-fenced block can
-    embed ``` lines as content without ending the fence early. Fence-like
-    lines that don't close (shorter run, other char, trailing info string)
-    are fenced content and are skipped, not yielded.
-    """
-    open_fence: tuple[str, int] | None = None  # (fence char, opener length)
-    for lineno, line in enumerate(md_file.read_text(encoding="utf-8").splitlines(), start=1):
-        if m := _FENCE.match(line):
-            marker = m.group(1)
-            if open_fence is None:
-                open_fence = (marker[0], len(marker))
-            elif (
-                marker[0] == open_fence[0]
-                and len(marker) >= open_fence[1]
-                and not line[m.end() :].strip()
-            ):
-                open_fence = None
-            continue
-        if open_fence is None:
-            yield lineno, line
-
-
-def _backtick_paths(md_file: Path) -> list[tuple[str, int]]:
-    """(token, 1-based line) for every backtick-quoted skill-internal path.
-
-    Only `/`-bearing tokens whose first segment is a `../` traversal or a
-    skill-content directory are pointers; bare filenames and external repo
-    paths are prose mentions. Resolution is file-relative (the foundry rule
-    and the house convention from git-toolkit's reference tests).
-    """
-    out: list[tuple[str, int]] = []
-    for lineno, line in _prose_lines(md_file):
-        for m in _BACKTICK_TOKEN.finditer(line):
-            token = m.group(1)
-            if "/" in token and token.split("/", 1)[0] in _INTERNAL_FIRST_SEGMENTS:
-                out.append((token, lineno))
-    return out
-
-
-def _markdown_links(md_file: Path) -> list[tuple[str, int]]:
-    """(target, 1-based line) for every relative markdown-link target."""
-    out: list[tuple[str, int]] = []
-    for lineno, line in _prose_lines(md_file):
-        for m in _MARKDOWN_LINK.finditer(line):
-            target = m.group(1)
-            if "://" in target or target.startswith(("mailto:", "/")):
-                continue
-            out.append((target, lineno))
-    return out
 
 
 def _resolve_all(
@@ -251,7 +183,7 @@ def test_prose_lines_keep_longer_fences_closed(tmp_path: Path) -> None:
         "after\n",
         encoding="utf-8",
     )
-    assert [line for _, line in _prose_lines(md)] == ["before", "after"]
+    assert [line for _, line in prose_lines(md)] == ["before", "after"]
 
 
 @pytest.mark.parametrize("skill", skill_params("frontmatter"))
@@ -336,12 +268,12 @@ def test_router_tools_cover_capability_tools(skill: Path) -> None:
 
 @pytest.mark.parametrize("skill", skill_params("markdown_links"))
 def test_markdown_links_resolve(skill: Path) -> None:
-    _resolve_all(skill, _markdown_links, "markdown links", target_must_be_file=False)
+    _resolve_all(skill, markdown_links, "markdown links", target_must_be_file=False)
 
 
 @pytest.mark.parametrize("skill", skill_params("backtick_paths"))
 def test_backtick_paths_resolve(skill: Path) -> None:
-    _resolve_all(skill, _backtick_paths, "backtick path pointers")
+    _resolve_all(skill, backtick_paths, "backtick path pointers")
 
 
 @pytest.mark.parametrize("skill", skill_params("reference_direction"))
@@ -354,58 +286,10 @@ def test_shared_references_never_point_into_capabilities(skill: Path) -> None:
     cap_root = (skill / "capabilities").resolve()
     offenders: list[str] = []
     for md_file in sorted(skill.glob("references/**/*.md")):
-        for token, lineno in _backtick_paths(md_file) + _markdown_links(md_file):
+        for token, lineno in backtick_paths(md_file) + markdown_links(md_file):
             if (md_file.parent / token).resolve().is_relative_to(cap_root):
                 offenders.append(f"{md_file.relative_to(skill)}:{lineno} -> {token}")
     assert not offenders, "references pointing into capabilities:\n" + "\n".join(offenders)
-
-
-def _reachable_markdown(skill: Path) -> set[Path]:
-    """Markdown reachable from `SKILL.md` by following pointers transitively.
-
-    Edges are the router's capability rows plus the backtick paths and
-    relative markdown links the resolution checks already collect, so a link
-    that resolves and a link that carries reachability are the same link —
-    and a filename inside a fenced example is prose to both, since every
-    collector here reads prose lines only.
-
-    Capability rows are read from `SKILL.md` alone, because routing is the
-    only place a capability edge legitimately comes from: a capability named
-    in passing by some other file is a mention, not navigation. Scanning them
-    everywhere cannot mask an orphan today — the routing checks already put
-    every capability in the router — but it would make this walk correct only
-    for as long as that other guard holds, and a reachability check should
-    not borrow its answer from one.
-
-    The walk also never leaves the skill directory, for the same reason and a
-    second one. A route that goes out to a repo-level document and back in
-    would make an orphan look reachable over a path that does not exist once
-    the skill is installed, since only `skills/<name>/` ships. No skill can
-    point outward today — the resolution checks reject a pointer that escapes
-    the tree — so this is again a borrowed invariant made local.
-    """
-    inside = skill.resolve()
-    root = (skill / "SKILL.md").resolve()
-    seen: set[Path] = set()
-    queue = [root]
-    while queue:
-        md = queue.pop()
-        if md in seen or not md.is_file():
-            continue
-        seen.add(md)
-        targets = [md.parent / token for token, _ in _backtick_paths(md) + _markdown_links(md)]
-        if md == root:
-            targets += [
-                skill / m.group(0)
-                for _, line in _prose_lines(md)
-                for m in _CAPABILITY_PATH.finditer(line)
-            ]
-        queue += [
-            t
-            for t in (candidate.resolve() for candidate in targets)
-            if t.suffix == ".md" and t.is_relative_to(inside)
-        ]
-    return seen
 
 
 @pytest.mark.parametrize("skill", skill_params("reference_reachability"))
@@ -432,7 +316,7 @@ def test_every_shared_reference_is_reachable(skill: Path) -> None:
     `references/` has nothing to reach, so the glob yields nothing and this
     passes — the right answer rather than a hole.
     """
-    reachable = _reachable_markdown(skill)
+    reachable = reachable_markdown(skill)
     unreachable = [
         ref.relative_to(skill).as_posix()
         for ref in sorted(skill.glob("references/**/*.md"))
@@ -450,7 +334,7 @@ def test_no_cross_capability_references(skill: Path) -> None:
     offenders: list[str] = []
     for md_file in sorted(skill.glob("capabilities/**/*.md")):
         own = md_file.resolve().relative_to(cap_root).parts[0]
-        for token, lineno in _backtick_paths(md_file) + _markdown_links(md_file):
+        for token, lineno in backtick_paths(md_file) + markdown_links(md_file):
             target = (md_file.parent / token).resolve()
             if not target.is_relative_to(cap_root):
                 continue
@@ -517,7 +401,7 @@ def test_reachability_walk_follows_pointers_not_mentions(tmp_path: Path) -> None
     )
     (skill / "references" / "only-via-outside.md").write_text("# Only via outside\n", encoding="utf-8")
 
-    reached = {p.relative_to(skill.resolve()).as_posix() for p in _reachable_markdown(skill)}
+    reached = {p.relative_to(skill.resolve()).as_posix() for p in reachable_markdown(skill)}
 
     assert "capabilities/routed/capability.md" in reached, "a router row is an edge"
     assert "references/deep.md" in reached, "router -> capability -> shared reference is transitive"
