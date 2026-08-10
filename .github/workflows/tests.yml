@@ -46,3 +46,26 @@ jobs:
 
       - name: Run unit tests
         run: pytest -q
+
+      # Report-only. The blocking half ran above, where a baseline that no
+      # longer describes the tree fails; this just shows what moved. One leg
+      # writes it, because four copies of one table is not four reports.
+      #
+      # The comparison point is the PR's own base commit, not the tip of the
+      # base branch: the tip moves as other PRs merge, which would fold their
+      # deltas into this summary and make it disagree with the diff a reviewer
+      # is reading. Fetching that one commit keeps the checkout shallow, and
+      # the ref reaches git through the environment so it can never be shell.
+      - name: Report context-cost deltas
+        if: >-
+          github.event_name == 'pull_request'
+          && matrix.os == 'ubuntu-latest'
+          && matrix.python == '3.13'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASELINE: tests/skills/context-cost-baseline.json
+        run: |
+          git fetch --depth=1 origin "$BASE_SHA"
+          git show "$BASE_SHA:$BASELINE" > "$RUNNER_TEMP/base-cost.json" 2>/dev/null || true
+          python .github/scripts/report_context_cost.py \
+            "$RUNNER_TEMP/base-cost.json" "$BASELINE" >> "$GITHUB_STEP_SUMMARY"
