@@ -11,9 +11,13 @@ of seven drifted from their pins, four by at least a major version.
 
 The scan is text-level on purpose: comment placement does not survive YAML
 parsing, so a parser cannot check the half of the convention that keeps the
-other half true. Completeness is cross-checked in `tests/repo/test_action_pins.py`
-against a real YAML parse, so a `uses:` value this scan misses fails the suite
-instead of going quietly unchecked.
+other half true. What the line scan cannot see — a flow mapping, a value on
+the next line — is covered by `--verify-completeness`, which parses each
+workflow with PyYAML and fails closed on any `uses:` the scan disagrees about;
+the gate runs with it, and `tests/repo/test_action_pins.py` holds the same
+comparison against the tree. Only `.github/workflows/` is scanned: composite
+actions under `.github/actions/` do not exist here, and their steps would need
+this glob widened before they could rely on the gate.
 """
 
 from __future__ import annotations
@@ -33,6 +37,8 @@ _USES_LINE = re.compile(
 )
 
 _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
+
+_DOCKER_DIGEST = re.compile(r"^docker://[^@\s]+@sha256:[0-9a-f]{64}$")
 
 # A bare version or tag token (`v6.0.2`, `3.1.0`, `v5.0.0-rc1`) — the shape
 # Dependabot recognizes and rewrites on bump. Prose would freeze while the pin
@@ -91,9 +97,9 @@ def check(use: Use) -> str | None:
         return None  # same-repo content: there is no ref to pin
 
     if use.value.startswith("docker://"):
-        if "@sha256:" in use.value:
+        if _DOCKER_DIGEST.fullmatch(use.value):
             return None
-        return f"docker reference {use.value!r} must be pinned by digest (docker://image@sha256:…)"
+        return f"docker reference {use.value!r} must be pinned by a full digest (docker://image@sha256:<64 hex>)"
 
     _, at, ref = use.value.rpartition("@")
     if not at:
@@ -121,6 +127,49 @@ def scan(workflow_dir: Path) -> list[Finding]:
     ]
 
 
+def yaml_uses_values(document: object) -> list[str]:
+    """Every string under a `uses` key, at any depth of a parsed workflow."""
+    values: list[str] = []
+    if isinstance(document, dict):
+        for key, value in document.items():
+            if key == "uses" and isinstance(value, str):
+                values.append(value)
+            values.extend(yaml_uses_values(value))
+    elif isinstance(document, list):
+        for item in document:
+            values.extend(yaml_uses_values(item))
+    return values
+
+
+def verify_completeness(workflow_dir: Path) -> list[Finding]:
+    """Findings for every file where the line scan and a YAML parse disagree.
+
+    PyYAML is imported here rather than at module level so the default scan
+    stays dependency-free; the caller opting into verification is the one that
+    must provide the parser, and fails loudly when it cannot.
+    """
+    import yaml
+
+    scanned_by_file: dict[Path, list[str]] = {}
+    for use in collect_uses(workflow_dir):
+        scanned_by_file.setdefault(use.path, []).append(use.value)
+
+    findings: list[Finding] = []
+    for workflow in sorted(workflow_dir.glob("*.y*ml")):
+        parsed = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+        expected = sorted(yaml_uses_values(parsed))
+        scanned = sorted(scanned_by_file.get(workflow, []))
+        if scanned != expected:
+            findings.append(
+                Finding(
+                    workflow,
+                    1,
+                    f"the line scan and the YAML parse disagree on this file's `uses:` references (scan: {scanned}, parse: {expected}) — write every reference as a plain inline `uses: value` scalar so the pin and its trailing comment stay checkable",
+                )
+            )
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -135,6 +184,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="emit GitHub error annotations alongside the plain report",
     )
+    parser.add_argument(
+        "--verify-completeness",
+        action="store_true",
+        help="also parse each workflow with PyYAML and fail on any `uses:` the line scan disagrees about",
+    )
     args = parser.parse_args(argv)
 
     if not args.workflow_dir.is_dir():
@@ -142,6 +196,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     findings = scan(args.workflow_dir)
+    if args.verify_completeness:
+        findings += verify_completeness(args.workflow_dir)
     for finding in findings:
         print(f"{finding.path}:{finding.line}: {finding.problem}", file=sys.stderr)
         if args.annotate:

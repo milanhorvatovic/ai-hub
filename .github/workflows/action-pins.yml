@@ -42,10 +42,16 @@ jobs:
         with:
           python-version-file: ".python-version"
 
+      # The parser backs --verify-completeness, which fails the gate closed on
+      # any `uses:` shape the line scan cannot see (a flow mapping, a value on
+      # the next line). Installed from the base branch's pinned requirements.
+      - name: Install the pinned YAML parser
+        run: pip install -r requirements-test.txt
+
       - name: Check action pins
         run: |
           if [ ! -f .github/scripts/check_action_pins.py ]; then
             echo "::warning::base branch has no checker yet; skipping until it lands on the base branch (bootstrap only)"
             exit 0
           fi
-          python .github/scripts/check_action_pins.py --annotate pr-head/.github/workflows
+          python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head/.github/workflows

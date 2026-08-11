@@ -2,9 +2,11 @@
 
 The checker scans workflow text line by line because the trailing-comment rule
 lives in comments, which a YAML parser drops. That leaves one hole — a `uses:`
-written in a shape the line regex does not match — so the cross-check test here
-parses every workflow with PyYAML and asserts the scanner saw every `uses:`
-value the parser sees.
+written in a shape the line regex does not match, such as a flow mapping — so
+the checker's own `--verify-completeness` mode parses every workflow with
+PyYAML and fails on any disagreement. The gate runs that mode from the base
+branch; the tests here hold the same comparison against the tree and pin the
+gate's wiring.
 """
 
 import importlib.util
@@ -76,7 +78,8 @@ def test_compliant_reference_passes(tmp_path: Path, step: str) -> None:
         (f"      - uses: actions/checkout@{_SHA}\n", "no trailing version comment"),
         (f"      - uses: actions/checkout@{_SHA} # pinned for stability\n", "not a bare version token"),
         (f"      - uses: actions/checkout@{_SHA} # v6.0.2 and some prose\n", "not a bare version token"),
-        ("      - uses: docker://alpine:3.19\n", "pinned by digest"),
+        ("      - uses: docker://alpine:3.19\n", "pinned by a full digest"),
+        ("      - uses: docker://alpine@sha256:c5b1261d6d3e\n", "pinned by a full digest"),
         (
             f"      # actions/checkout v4.3.0\n      - uses: actions/checkout@{_SHA} # v6.0.2\n",
             "line above the pin",
@@ -91,6 +94,7 @@ def test_compliant_reference_passes(tmp_path: Path, step: str) -> None:
         "prose-comment",
         "version-plus-prose",
         "docker-tag",
+        "docker-short-digest",
         "version-comment-above",
     ],
 )
@@ -122,29 +126,56 @@ def test_repo_workflows_are_clean() -> None:
     assert not formatted, "\n".join(formatted)
 
 
-def _yaml_uses_values(document: object) -> list[str]:
-    """Every string under a `uses` key, at any depth of the parsed workflow."""
-    values: list[str] = []
-    if isinstance(document, dict):
-        for key, value in document.items():
-            if key == "uses" and isinstance(value, str):
-                values.append(value)
-            values.extend(_yaml_uses_values(value))
-    elif isinstance(document, list):
-        for item in document:
-            values.extend(_yaml_uses_values(item))
-    return values
-
-
 def test_scanner_sees_every_uses_the_yaml_parser_sees() -> None:
     workflows = sorted(_WORKFLOW_DIR.glob("*.y*ml"))
     assert workflows, "no workflow files found"
 
-    for workflow in workflows:
-        parsed = yaml.safe_load(workflow.read_text(encoding="utf-8"))
-        expected = sorted(_yaml_uses_values(parsed))
-        scanned = sorted(u.value for u in checker.collect_uses(_WORKFLOW_DIR) if u.path == workflow)
-        assert scanned == expected, f"{workflow.name}: line scan disagrees with the YAML parse"
+    findings = checker.verify_completeness(_WORKFLOW_DIR)
+    formatted = [f"{f.path.name}: {f.problem}" for f in findings]
+    assert not formatted, "\n".join(formatted)
+
+    # The walker itself must see the tree's pins, or the comparison above is
+    # trivially empty-vs-empty.
+    parsed = yaml.safe_load((_WORKFLOW_DIR / "action-pins.yml").read_text(encoding="utf-8"))
+    assert checker.yaml_uses_values(parsed), "the YAML walker found no uses: values at all"
+
+
+def test_verification_fails_on_a_shape_the_line_scan_cannot_see(tmp_path: Path) -> None:
+    (tmp_path / "evasive.yml").write_text(
+        "jobs:\n  a:\n    steps:\n      - { uses: actions/checkout@v4 }\n",
+        encoding="utf-8",
+    )
+    assert checker.scan(tmp_path) == [], "the line scan is expected to miss a flow mapping"
+    (finding,) = checker.verify_completeness(tmp_path)
+    assert "disagree" in finding.problem
+
+
+def test_verification_fails_when_the_scan_sees_more_than_the_parser(tmp_path: Path) -> None:
+    (tmp_path / "heredoc.yml").write_text(
+        "jobs:\n  a:\n    steps:\n      - run: |\n          uses: actions/foo@v1\n",
+        encoding="utf-8",
+    )
+    findings = checker.verify_completeness(tmp_path)
+    assert any("disagree" in f.problem for f in findings)
+
+
+# The gate's protection is split between the script and this wiring: the judge
+# comes from the base branch, the PR's workflows arrive as data, and the check
+# runs with completeness verification. A wiring edit shows up here as a failing
+# head-side suite, so it cannot ride along unremarked in a PR's diff.
+@pytest.mark.parametrize(
+    "required_fragment",
+    [
+        "ref: ${{ github.event.pull_request.base.ref }}",
+        "ref: ${{ github.event.pull_request.head.sha }}",
+        "path: pr-head",
+        "run: pip install -r requirements-test.txt",
+        "python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head/.github/workflows",
+    ],
+)
+def test_action_pins_workflow_wires_the_checker(required_fragment: str) -> None:
+    workflow = _WORKFLOW_DIR / "action-pins.yml"
+    assert required_fragment in workflow.read_text(encoding="utf-8")
 
 
 def test_main_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
@@ -166,5 +197,14 @@ def test_main_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     output = capsys.readouterr()
     assert "not a full 40-hex commit SHA" in output.err
     assert "::error file=" in output.out
+
+    evasive = tmp_path / "evasive"
+    evasive.mkdir()
+    (evasive / "flow.yml").write_text(
+        "jobs:\n  a:\n    steps:\n      - { uses: actions/checkout@v4 }\n",
+        encoding="utf-8",
+    )
+    assert checker.main([str(evasive)]) == 0, "without verification the flow mapping goes unseen"
+    assert checker.main([str(evasive), "--verify-completeness"]) == 1
 
     assert checker.main([str(tmp_path / "missing")]) == 2
