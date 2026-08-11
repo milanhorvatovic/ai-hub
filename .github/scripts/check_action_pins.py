@@ -45,10 +45,13 @@ _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 
 _DOCKER_DIGEST = re.compile(r"^docker://[^@\s]+@sha256:[0-9a-f]{64}$")
 
-# A bare version or tag token (`v6.0.2`, `3.1.0`, `v5.0.0-rc1`) — the shape
-# Dependabot recognizes and rewrites on bump. Prose would freeze while the pin
-# moves, which is the rot this whole check exists to prevent.
-_VERSION_TOKEN = re.compile(r"^v?\d[\w.+-]*$")
+# A bare version or tag token (`v6.0.2`, `3.1`, `v5.0.0-rc.1`) — the ASCII
+# version grammar Dependabot recognizes and rewrites on bump. Anything looser
+# (numeric-prefixed prose, Unicode digits) would pass the gate yet never be
+# maintained, which is the rot this whole check exists to prevent.
+_VERSION_TOKEN = re.compile(
+    r"^v?[0-9]+(?:\.[0-9]+){0,3}(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
+)
 
 # A dotted version literal in the comment line directly above a pin — the
 # rotting form this repo is migrating away from; only the trailing position
