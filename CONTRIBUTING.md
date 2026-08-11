@@ -74,7 +74,7 @@ Per-skill releases are automated; the CalVer catalog snapshot is a deliberate ma
 
 **Per-skill releases (automated).** On merge to `main`, release-please opens or updates a release PR that bumps each touched skill's `metadata.version` and writes that skill's own `skills/<name>/CHANGELOG.md` (which ships with the skill). Merging that PR cuts the per-skill `<skill>-v<x.y.z>` tags and GitHub Releases; a `bundle` job then builds the reproducible zip for each skill that released, attaches it together with a `SHA256SUMS` file, and signs build provenance. No manual step is required.
 
-Which identity each workflow acts as — and why the release path is moving off the default `GITHUB_TOKEN`, whose pushes trigger no workflows and so leave the release PR with nothing reported — is recorded in [docs/adr/0002-automation-identity.md](docs/adr/0002-automation-identity.md), along with how to get a real CI run onto that PR meanwhile. Read it before giving any workflow write access or adding a secret.
+The release path acts as the `oss-release-bot` GitHub App: the `release-please` job mints a token per run from the `OSS_RELEASE_BOT_CLIENT_ID` and `OSS_RELEASE_BOT_PRIVATE_KEY` Actions secrets, because a push under the default `GITHUB_TOKEN` triggers no workflows and would leave the release PR with nothing reported. Which identity each workflow acts as, and why, is recorded in [docs/adr/0002-automation-identity.md](docs/adr/0002-automation-identity.md) — read it before giving any workflow write access or adding a secret.
 
 **Catalog snapshots (manual).** A CalVer `vYYYY.MM.MICRO` catalog snapshot — the set of skill versions as of a date — is cut by hand:
 
@@ -103,11 +103,11 @@ Leaving `catalog_tag` empty makes the same dispatch a dry run that publishes the
 
 Every action reference is pinned to a full commit SHA, with the version as a trailing comment on the same `uses:` line (`uses: actions/checkout@de0fac2e… # v6.0.2`) — the one position Dependabot rewrites when it bumps a pin, so the comment stays true instead of rotting on the line above. First-party `actions/*` are held to the same bar; the two stated exceptions are local `./` references, which carry no ref to pin and whose targets are scanned as part of the tree, and `docker://` images, which pin by a full 64-hex digest instead of a SHA-plus-comment. The `action-pins` check enforces this on every pull request, over workflows and every reachable composite-action manifest alike, running under `pull_request_target` so both the checker and its invocation load from the base branch — a PR can edit neither its judge nor how the judge is called — against the PR's files as data, never executed, and verifying the text-level scan against a real YAML parse — occurrences bound to their source lines — so a `uses:` shape the scan cannot read fails closed; `tests/repo/test_action_pins.py` holds the same rules against the tree.
 
-Dependabot groups patch and minor updates by ecosystem and leaves major updates as standalone PRs. Actions that execute with repository write credentials or attestations (`actions/attest-build-provenance` and `googleapis/release-please-action`) are also excluded from the group so they remain standalone. The pinned `dependabot/fetch-metadata` action executes inside the approval workflow itself, so Dependabot ignores it and a maintainer updates that pin through a human-reviewed PR. `.github/workflows/dependabot-auto-merge.yaml` applies a three-tier policy: ordinary patch/minor updates are approved and armed for squash auto-merge; major and privileged-action updates are armed but wait for a code-owner approval; and PRs labeled `trust-boundary` or `security-review-required` remain fully manual. GitHub's branch rules and required checks are the merge safety boundary.
+Dependabot groups patch and minor updates by ecosystem and leaves major updates as standalone PRs. Actions that execute with repository write credentials or attestations (`actions/attest-build-provenance` and `googleapis/release-please-action`) are also excluded from the group so they remain standalone. The pinned `dependabot/fetch-metadata` and `actions/create-github-app-token` actions execute inside the privileged workflows themselves, so Dependabot ignores them and a maintainer updates those pins through human-reviewed PRs. `.github/workflows/dependabot-auto-merge.yaml` applies a three-tier policy: ordinary patch/minor updates are approved and armed for squash auto-merge; major and privileged-action updates are armed but wait for a maintainer approval; and PRs labeled `trust-boundary` or `security-review-required` remain fully manual. GitHub's branch rules and required checks are the merge safety boundary.
 
 `.github/workflows/dependabot-reconciler.yaml` runs after the policy workflow, after pushes to `main`, every 30 minutes, and on manual dispatch. It updates behind branches and re-arms approved PRs when an event or GitHub's auto-merge worker was missed. It deliberately leaves an unapproved and unarmed PR for manual triage because a scheduled workflow cannot safely reconstruct Dependabot's update type.
 
-`DEPENDABOT_AUTOMERGE_ENABLED` is an operational kill switch. Only the exact value `true` permits approval, auto-merge, and reconciliation; an unset variable or any other value leaves PRs manual. `CODEOWNER_APPROVER_TOKEN` must be a fine-grained PAT owned by a code owner, limited to this repository, with Contents and Pull requests read/write permissions. Store the same token in both the Actions and Dependabot secret stores because Dependabot-triggered workflows cannot read Actions secrets, while scheduled and maintainer-triggered runs cannot read Dependabot secrets.
+`DEPENDABOT_AUTOMERGE_ENABLED` is an operational kill switch. Only the exact value `true` permits approval, auto-merge, and reconciliation; an unset variable or any other value leaves PRs manual. Approvals and merges act as the `oss-automation-bot` GitHub App — install it on the repository with Contents and Pull requests read/write permissions, and store its client ID and private key as `OSS_AUTOMATION_BOT_CLIENT_ID` and `OSS_AUTOMATION_BOT_PRIVATE_KEY` in both the Actions and Dependabot secret stores, because Dependabot-triggered workflows cannot read Actions secrets while scheduled and maintainer-triggered runs cannot read Dependabot secrets. The branch ruleset must require one approving review without requiring a code-owner review: an App's approval never satisfies the latter.
 
 Provision the prerequisites after the workflows merge, then enable the kill switch last:
 
@@ -115,10 +115,14 @@ Provision the prerequisites after the workflows merge, then enable the kill swit
 gh repo edit --enable-auto-merge
 gh label create trust-boundary --color B60205 --description "Requires manual review because the update crosses a trust boundary"
 gh label create security-review-required --color D93F0B --description "Requires explicit security review before merge"
-gh secret set --app actions CODEOWNER_APPROVER_TOKEN
-gh secret set --app dependabot CODEOWNER_APPROVER_TOKEN
+gh secret set --app actions OSS_AUTOMATION_BOT_CLIENT_ID
+gh secret set --app actions OSS_AUTOMATION_BOT_PRIVATE_KEY
+gh secret set --app dependabot OSS_AUTOMATION_BOT_CLIENT_ID
+gh secret set --app dependabot OSS_AUTOMATION_BOT_PRIVATE_KEY
 gh variable set DEPENDABOT_AUTOMERGE_ENABLED --body true
 ```
+
+If the retired PAT-based design was ever provisioned, decommission it as part of the same pass: delete `CODEOWNER_APPROVER_TOKEN` from both stores (`gh secret delete CODEOWNER_APPROVER_TOKEN --app actions`, then `--app dependabot`) and revoke the underlying PAT, so switching designs also retires the standing human credential.
 
 To stop autonomous dependency updates without removing the workflows, set the variable to `false`. Applying either security-review label to an armed Dependabot PR also disables auto-merge immediately.
 

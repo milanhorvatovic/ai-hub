@@ -24,10 +24,11 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WORKFLOW_DIR = _REPO_ROOT / ".github" / "workflows"
 _ADR = _REPO_ROOT / "docs" / "adr" / "0002-automation-identity.md"
 
-# The jobs the ADR's audit records as write-privileged, and why each earns it: opening
-# the release PR, uploading release assets, uploading the catalog manifest.
+# The jobs the ADR's audit records as write-privileged, and why each earns it:
+# uploading release assets, uploading the catalog manifest. The release-please job is
+# deliberately absent — it writes through a minted App token, so its default token
+# stays on the read-only floor.
 _WRITE_PRIVILEGED_JOBS = {
-    ("release-please.yml", "release-please"),
     ("release-please.yml", "bundle"),
     ("release-please.yml", "catalog-publish"),
 }
