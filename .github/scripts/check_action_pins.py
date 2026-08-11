@@ -102,14 +102,18 @@ def _local_target(root: Path, value: str) -> Path | None:
     the repository root resolves to None, so the reference fails rather than
     exempting content the gate never sees.
     """
+    resolved_root = root.resolve()
     target = (root / value[2:]).resolve()
-    if not target.is_relative_to(root.resolve()):
+    if not target.is_relative_to(resolved_root):
         return None
     if value.endswith((".yml", ".yaml")):
         return target if target.is_file() else None
     for name in ("action.yml", "action.yaml"):
-        manifest = target / name
-        if manifest.is_file():
+        # Resolved before the boundary check: `is_file` follows symlinks, and a
+        # symlinked manifest pointing outside the repository must fail the
+        # reference rather than exempt content the gate never sees.
+        manifest = (target / name).resolve()
+        if manifest.is_file() and manifest.is_relative_to(resolved_root):
             return manifest
     return None
 
@@ -282,9 +286,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.verify_completeness:
         findings += verify_completeness(args.root)
     for finding in findings:
-        print(f"{finding.path}:{finding.line}: {finding.problem}", file=sys.stderr)
+        plain = " ".join(f"{finding.path}:{finding.line}: {finding.problem}".splitlines())
+        print(plain, file=sys.stderr)
         if args.annotate:
-            print(f"::error file={finding.path},line={finding.line}::{finding.problem}")
+            # Workflow-command escaping: paths and problem text embed values from
+            # the scanned tree — PR-controlled when the gate runs — so %/CR/LF
+            # must be encoded to keep each annotation one inert command, and the
+            # file property additionally needs its separator characters encoded.
+            data = finding.problem
+            for char, escape in (("%", "%25"), ("\r", "%0D"), ("\n", "%0A")):
+                data = data.replace(char, escape)
+            location = str(finding.path)
+            for char, escape in (("%", "%25"), ("\r", "%0D"), ("\n", "%0A"), (":", "%3A"), (",", "%2C")):
+                location = location.replace(char, escape)
+            print(f"::error file={location},line={finding.line}::{data}")
 
     if findings:
         return 1

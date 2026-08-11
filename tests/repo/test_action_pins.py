@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPT = _REPO_ROOT / ".github" / "scripts" / "check_action_pins.py"
@@ -255,24 +256,62 @@ def test_equal_values_at_different_lines_do_not_cancel(tmp_path: Path) -> None:
 
 # The gate's protection is split between the script and this wiring: the judge
 # comes from the base branch, the PR's files arrive as data, and the check runs
-# with completeness verification over the whole head. A wiring edit shows up
-# here as a failing head-side suite, so it cannot ride along unremarked in a
-# PR's diff.
-@pytest.mark.parametrize(
-    "required_fragment",
-    [
-        "pull_request_target:",
-        "ref: ${{ github.event.pull_request.base.ref }}",
-        "ref: ${{ github.event.pull_request.head.sha }}",
-        "path: pr-head",
-        "persist-credentials: false",
-        "run: pip install -r requirements-test.txt",
-        "python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head",
-    ],
-)
-def test_action_pins_workflow_wires_the_checker(required_fragment: str) -> None:
-    workflow = _WORKFLOW_DIR / "action-pins.yml"
-    assert required_fragment in workflow.read_text(encoding="utf-8")
+# with completeness verification over the whole head. Asserted as parsed units
+# bound to their steps rather than as substrings, so swapping the two
+# checkouts' refs — or moving `path` or `persist-credentials` to the wrong one
+# — fails here instead of leaving every fragment innocently present.
+def test_action_pins_workflow_wires_the_checker() -> None:
+    parsed = yaml.safe_load((_WORKFLOW_DIR / "action-pins.yml").read_text(encoding="utf-8"))
+
+    # PyYAML reads the bare `on:` key as boolean True.
+    triggers = parsed.get("on", parsed.get(True))
+    assert "pull_request_target" in triggers
+
+    steps = parsed["jobs"]["action-pins"]["steps"]
+    checkouts = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    assert len(checkouts) == 2
+
+    judges = [s for s in checkouts if "path" not in s["with"]]
+    data = [s for s in checkouts if s["with"].get("path") == "pr-head"]
+    assert len(judges) == 1 and len(data) == 1
+
+    assert judges[0]["with"]["ref"] == "${{ github.event.pull_request.base.ref }}"
+    assert data[0]["with"]["ref"] == "${{ github.event.pull_request.head.sha }}"
+    assert data[0]["with"]["persist-credentials"] is False
+
+    runs = [s["run"].strip() for s in steps if "run" in s]
+    assert "pip install -r requirements-test.txt" in runs
+    assert "python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head" in runs
+
+
+def test_symlinked_manifest_outside_the_repository_fails(tmp_path: Path) -> None:
+    # `is_file` follows symlinks, so the boundary check must run on the resolved
+    # manifest — a link pointing outside the repository fails the reference
+    # instead of exempting content the gate never scans.
+    repo = tmp_path / "repo"
+    _write_workflow(repo, "jobs:\n  a:\n    steps:\n      - uses: ./ci/local\n")
+    outside = tmp_path / "outside.yml"
+    outside.write_text("runs:\n  using: composite\n  steps: []\n", encoding="utf-8")
+    link_dir = repo / "ci" / "local"
+    link_dir.mkdir(parents=True)
+    try:
+        (link_dir / "action.yml").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks are unavailable on this platform")
+    (finding,) = checker.scan(repo)
+    assert "no scannable target" in finding.problem
+
+
+def test_annotations_escape_pr_controlled_newlines(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    # A double-quoted YAML value can smuggle a newline into finding text; the
+    # annotation must stay one inert workflow command, and the plain diagnostic
+    # one physical line.
+    _write_workflow(tmp_path, 'jobs:\n  a:\n    steps:\n      - uses: "foo\\nbar"\n')
+    assert checker.main([str(tmp_path), "--annotate", "--verify-completeness"]) == 1
+    output = capsys.readouterr()
+    assert "%0A" in output.out
+    assert "foo\nbar" not in output.out
+    assert "foo\nbar" not in output.err
 
 
 def test_main_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
