@@ -74,6 +74,60 @@ def test_a_deleted_skill_is_not_silently_dropped() -> None:
     assert "(gone)" in out
 
 
+def test_a_release_byte_is_not_attributed_to_the_refreshing_pr() -> None:
+    """The release-then-refresh sequence.
+
+    A width-crossing bump merges with the baseline unrefreshed — the staleness
+    guard tolerates exactly that — so the next refresh writes every priced
+    number one byte up alongside the new version. That byte is the release's,
+    and the render must say no change rather than billing it to the PR that
+    happened to refresh next.
+    """
+    before = COST | {"version": "1.9.0"}
+    after = {
+        "discovery_bytes": 101,
+        "skill_md_bytes": 201,
+        "load_bytes": 301,
+        "files": 4,
+        "version": "1.10.0",
+    }
+
+    out = reporter.render({"alpha": before}, {"alpha": after})
+
+    assert reporter.NO_CHANGE in out
+
+
+def test_growth_beside_a_release_bump_is_reported_without_the_release_byte() -> None:
+    """Real growth still shows, measured from the restated base."""
+    before = COST | {"version": "1.9.0"}
+    after = {
+        "discovery_bytes": 101,
+        "skill_md_bytes": 201,
+        "load_bytes": 301 + 512,
+        "files": 4,
+        "version": "1.10.0",
+    }
+
+    out = reporter.render({"alpha": before}, {"alpha": after})
+
+    assert "301 → 813 (+512)" in out
+
+
+def test_the_restatement_agrees_with_the_guard() -> None:
+    """Two homes for one rule, held together.
+
+    The reporter restates with its own copy of the arithmetic because it loads
+    standalone; if it and the suite's `at_version` ever move different keys or
+    different amounts, the summary starts disagreeing with the guard that gates
+    the record it renders.
+    """
+    from tests.support.context_cost import at_version
+
+    before = COST | {"version": "1.9.0"}
+
+    assert reporter._at_head_version(before, {"version": "1.10.0"}) == at_version(before, "1.10.0")
+
+
 def test_the_report_runs_where_history_is_available() -> None:
     """Its own job with a full checkout, not a step on a shallow matrix leg.
 
