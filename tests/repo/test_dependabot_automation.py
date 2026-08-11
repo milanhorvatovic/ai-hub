@@ -42,6 +42,7 @@ def test_dependabot_groups_exclude_major_updates() -> None:
     assert "actions/attest-build-provenance" in config
     assert "googleapis/release-please-action" in config
     assert "dependency-name: dependabot/fetch-metadata" in config
+    assert "dependency-name: actions/create-github-app-token" in config
 
 
 @pytest.mark.parametrize(
@@ -56,7 +57,10 @@ def test_dependabot_groups_exclude_major_updates() -> None:
         "!contains(steps.metadata.outputs.dependency-names, 'actions/attest-build-provenance')",
         "!contains(steps.metadata.outputs.dependency-names, 'googleapis/release-please-action')",
         "vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'",
-        "secrets.CODEOWNER_APPROVER_TOKEN",
+        "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1",
+        "secrets.OSS_AUTOMATION_BOT_CLIENT_ID",
+        "secrets.OSS_AUTOMATION_BOT_PRIVATE_KEY",
+        "GH_TOKEN: ${{ steps.bot-token.outputs.token }}",
         "gh pr review --approve",
         "gh pr merge --auto --squash",
         "trust-boundary",
@@ -82,7 +86,10 @@ def test_workflow_never_checks_out_pr_code() -> None:
         "schedule:",
         'cron: "*/30 * * * *"',
         "AUTOMERGE_ENABLED: ${{ vars.DEPENDABOT_AUTOMERGE_ENABLED }}",
-        "GH_TOKEN: ${{ secrets.CODEOWNER_APPROVER_TOKEN }}",
+        "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1",
+        "secrets.OSS_AUTOMATION_BOT_CLIENT_ID",
+        "secrets.OSS_AUTOMATION_BOT_PRIVATE_KEY",
+        "GH_TOKEN: ${{ steps.bot-token.outputs.token }}",
         "GH_REPO: ${{ github.repository }}",
         "gh pr list --search 'author:dependabot[bot]'",
         "gh pr list --search 'author:app/dependabot'",
