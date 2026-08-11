@@ -74,7 +74,7 @@ Per-skill releases are automated; the CalVer catalog snapshot is a deliberate ma
 
 **Per-skill releases (automated).** On merge to `main`, release-please opens or updates a release PR that bumps each touched skill's `metadata.version` and writes that skill's own `skills/<name>/CHANGELOG.md` (which ships with the skill). Merging that PR cuts the per-skill `<skill>-v<x.y.z>` tags and GitHub Releases; a `bundle` job then builds the reproducible zip for each skill that released, attaches it together with a `SHA256SUMS` file, and signs build provenance. No manual step is required.
 
-Which identity each workflow acts as — and why the release path is moving off the default `GITHUB_TOKEN`, whose pushes trigger no workflows and so leave the release PR with nothing reported — is recorded in [docs/adr/0002-automation-identity.md](docs/adr/0002-automation-identity.md), along with how to get a real CI run onto that PR meanwhile. Read it before giving any workflow write access or adding a secret.
+The release path acts as the `oss-release-bot` GitHub App: the `release-please` job mints a token per run from the `OSS_RELEASE_BOT_CLIENT_ID` and `OSS_RELEASE_BOT_PRIVATE_KEY` Actions secrets, because a push under the default `GITHUB_TOKEN` triggers no workflows and would leave the release PR with nothing reported. Which identity each workflow acts as, and why, is recorded in [docs/adr/0002-automation-identity.md](docs/adr/0002-automation-identity.md) — read it before giving any workflow write access or adding a secret.
 
 **Catalog snapshots (manual).** A CalVer `vYYYY.MM.MICRO` catalog snapshot — the set of skill versions as of a date — is cut by hand:
 
