@@ -1,0 +1,63 @@
+name: action-pins
+
+# Gate: every action reference — in workflows and reachable composite-action
+# manifests alike — must be pinned to a full commit SHA carrying a trailing
+# version comment. A tag or branch ref resolves at run time to whatever it then
+# points at, so it executes third-party code chosen after review; the SHA
+# freezes what was reviewed, and the same-line comment is the one position
+# Dependabot keeps truthful when it bumps the pin. Two stated exemptions: local
+# `./` references (no ref to pin, and their targets are scanned themselves) and
+# `docker://` images, which pin by full 64-hex digest instead.
+#
+# pull_request_target rather than pull_request, deliberately: the event loads
+# the workflow definition from the base branch, so a PR can edit neither the
+# checker nor the invocation that runs it. The event is safe here only under
+# two standing constraints — the job holds no secret beyond the read-only
+# default token, and nothing from pr-head is ever executed; it is parsed as
+# text. Keep both true through any future edit.
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: action-pins-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  action-pins:
+    name: action-pins
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The trusted judge: the base branch, the same place this workflow
+      # definition was loaded from.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      # The PR's workflows and composite-action manifests are the material
+      # under review — checked out into a subdirectory as data, never executed,
+      # and with no credentials left behind in that checkout.
+      - name: Check out the PR head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr-head
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: ".python-version"
+
+      # The parser backs --verify-completeness, which fails the gate closed on
+      # any `uses:` shape the line scan cannot see (a flow mapping, a value on
+      # the next line). Installed from the base branch's pinned requirements.
+      - name: Install the pinned YAML parser
+        run: pip install -r requirements-test.txt
+
+      - name: Check action pins
+        run: python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head

@@ -36,7 +36,7 @@ The three are complementary rather than alternatives: a flow that both pushes an
 
 | Workflow | Identity | Verdict |
 | --- | --- | --- |
-| `change-intent`, `codeql`, `description-eval`, `lint`, `tests` | `GITHUB_TOKEN`, read-only floor with per-job elevation | Correct — none of them authors an event. `codeql` does write, elevating `security-events: write` to upload findings, which cascades nothing |
+| `action-pins`, `change-intent`, `codeql`, `description-eval`, `lint`, `tests` | `GITHUB_TOKEN`, read-only floor with per-job elevation | Correct — none of them authors an event. `codeql` does write, elevating `security-events: write` to upload findings, which cascades nothing |
 | `release-please` (the release-please step) | `GITHUB_TOKEN` | **The one gap.** It pushes the release branch and opens the PR, and those events must re-run the required checks |
 | `release-please` (`bundle`, `catalog-publish`, `catalog-preview`) | `GITHUB_TOKEN` | Correct — uploading release assets need not cascade, and `catalog-preview` is the read-only dry run. The `bundle` job lives inside the release workflow precisely so it does not depend on a Release event that the default token cannot produce |
 | `dependabot-auto-merge` (approve, arm) | `CODEOWNER_APPROVER_TOKEN`, a user PAT; `GITHUB_TOKEN` for the metadata read | Correct — approving against a single-user CODEOWNERS is the one thing only a human identity can do, and reading update metadata needs nothing more than the default |
