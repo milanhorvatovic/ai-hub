@@ -1,0 +1,51 @@
+name: action-pins
+
+# Gate: every action reference must be pinned to a full commit SHA carrying a
+# trailing version comment. A tag or branch ref resolves at run time to whatever
+# it then points at, so it executes third-party code chosen after review; the
+# SHA freezes what was reviewed, and the same-line comment is the one position
+# Dependabot keeps truthful when it bumps the pin.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: action-pins-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  action-pins:
+    name: action-pins
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Check out the BASE branch, not the PR head: the checker that judges the
+      # PR must be the trusted copy from the base branch, so a PR cannot edit
+      # the script to make itself pass.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      # The PR's workflows are the material under review — checked out into a
+      # subdirectory as data, never executed.
+      - name: Check out the PR head's workflows
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr-head
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: ".python-version"
+
+      - name: Check action pins
+        run: |
+          if [ ! -f .github/scripts/check_action_pins.py ]; then
+            echo "::warning::base branch has no checker yet; skipping until it lands on the base branch (bootstrap only)"
+            exit 0
+          fi
+          python .github/scripts/check_action_pins.py --annotate pr-head/.github/workflows
