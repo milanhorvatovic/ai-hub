@@ -1,0 +1,47 @@
+name: Scorecard
+
+on:
+  schedule:
+    - cron: "30 6 * * 1"
+  push:
+    branches: [main]
+# The canonical Scorecard workflow adds branch_protection_rule as a third
+# trigger. It is deliberately absent: that event fires only for classic
+# branch-protection edits, and this repository protects main with a ruleset,
+# whose edits emit no Actions event at all — so the trigger could never fire
+# here, and a protection change is scored by the next push or scheduled run.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorecard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # SARIF upload to code scanning, the same elevation codeql makes.
+      security-events: write
+      # The OIDC proof of repository identity that publishing to the public
+      # Scorecard API requires; grants nothing on this repository.
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # Scorecard only reads the checkout; leaving the token in the git
+          # config would hand it to every later step for no benefit — and is
+          # itself a pattern Scorecard's Token-Permissions check flags.
+          persist-credentials: false
+      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          sarif_file: results.sarif
