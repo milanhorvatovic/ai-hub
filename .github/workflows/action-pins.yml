@@ -1,10 +1,13 @@
 name: action-pins
 
-# Gate: every action reference must be pinned to a full commit SHA carrying a
-# trailing version comment. A tag or branch ref resolves at run time to whatever
-# it then points at, so it executes third-party code chosen after review; the
-# SHA freezes what was reviewed, and the same-line comment is the one position
-# Dependabot keeps truthful when it bumps the pin.
+# Gate: every action reference — in workflows and composite-action manifests
+# alike — must be pinned to a full commit SHA carrying a trailing version
+# comment. A tag or branch ref resolves at run time to whatever it then points
+# at, so it executes third-party code chosen after review; the SHA freezes what
+# was reviewed, and the same-line comment is the one position Dependabot keeps
+# truthful when it bumps the pin. Two stated exemptions: local `./` references
+# (no ref to pin, and their targets are scanned themselves) and `docker://`
+# images, which pin by full 64-hex digest instead.
 
 on:
   pull_request:
@@ -29,9 +32,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.ref }}
 
-      # The PR's workflows are the material under review — checked out into a
-      # subdirectory as data, never executed.
-      - name: Check out the PR head's workflows
+      # The PR's workflows and composite-action manifests are the material
+      # under review — checked out into a subdirectory as data, never executed.
+      - name: Check out the PR head
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -54,4 +57,4 @@ jobs:
             echo "::warning::base branch has no checker yet; skipping until it lands on the base branch (bootstrap only)"
             exit 0
           fi
-          python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head/.github/workflows
+          python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head

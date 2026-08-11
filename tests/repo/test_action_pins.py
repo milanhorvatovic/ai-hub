@@ -1,12 +1,12 @@
 """Unit and tree-level tests for the action-pin checker (`.github/scripts/check_action_pins.py`).
 
-The checker scans workflow text line by line because the trailing-comment rule
-lives in comments, which a YAML parser drops. That leaves one hole — a `uses:`
-written in a shape the line regex does not match, such as a flow mapping — so
-the checker's own `--verify-completeness` mode parses every workflow with
-PyYAML and fails on any disagreement. The gate runs that mode from the base
-branch; the tests here hold the same comparison against the tree and pin the
-gate's wiring.
+The checker scans workflow and composite-action text line by line because the
+trailing-comment rule lives in comments, which a YAML parser drops. That leaves
+one hole — a `uses:` written in a shape the line regex does not match, such as
+a flow mapping — so the checker's own `--verify-completeness` mode parses every
+file with PyYAML and fails on any disagreement, bound to source lines so equal
+values cannot cancel. The gate runs that mode from the base branch; the tests
+here hold the same comparison against the tree and pin the gate's wiring.
 """
 
 import importlib.util
@@ -14,7 +14,6 @@ import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPT = _REPO_ROOT / ".github" / "scripts" / "check_action_pins.py"
@@ -37,9 +36,17 @@ def _load_module():
 checker = _load_module()
 
 
-def _scan_snippet(tmp_path: Path, body: str) -> list:
-    (tmp_path / "sample.yml").write_text(body, encoding="utf-8")
-    return checker.scan(tmp_path)
+def _write_workflow(root: Path, body: str, name: str = "sample.yml") -> Path:
+    workflows = root / ".github" / "workflows"
+    workflows.mkdir(parents=True, exist_ok=True)
+    target = workflows / name
+    target.write_text(body, encoding="utf-8")
+    return target
+
+
+def _scan_snippet(root: Path, body: str) -> list:
+    _write_workflow(root, body)
+    return checker.scan(root)
 
 
 @pytest.mark.parametrize(
@@ -120,30 +127,46 @@ def test_finding_reports_file_and_line(tmp_path: Path) -> None:
     assert finding.line == 4
 
 
-def test_repo_workflows_are_clean() -> None:
-    findings = checker.scan(_WORKFLOW_DIR)
+def test_composite_action_manifest_is_scanned(tmp_path: Path) -> None:
+    # The local `./` exemption is sound only because its target is scanned too;
+    # a manifest smuggling a mutable remote reference must fail on its own.
+    manifest = tmp_path / ".github" / "actions" / "local-thing" / "action.yml"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(
+        "runs:\n  using: composite\n  steps:\n    - uses: owner/action@main\n",
+        encoding="utf-8",
+    )
+    (finding,) = checker.scan(tmp_path)
+    assert finding.path == manifest
+    assert "not a full 40-hex commit SHA" in finding.problem
+
+
+def test_repo_tree_is_clean() -> None:
+    findings = checker.scan(_REPO_ROOT)
     formatted = [f"{f.path.name}:{f.line}: {f.problem}" for f in findings]
     assert not formatted, "\n".join(formatted)
 
 
 def test_scanner_sees_every_uses_the_yaml_parser_sees() -> None:
-    workflows = sorted(_WORKFLOW_DIR.glob("*.y*ml"))
-    assert workflows, "no workflow files found"
+    assert sorted(_WORKFLOW_DIR.glob("*.y*ml")), "no workflow files found"
 
-    findings = checker.verify_completeness(_WORKFLOW_DIR)
+    findings = checker.verify_completeness(_REPO_ROOT)
     formatted = [f"{f.path.name}: {f.problem}" for f in findings]
     assert not formatted, "\n".join(formatted)
 
     # The walker itself must see the tree's pins, or the comparison above is
     # trivially empty-vs-empty.
-    parsed = yaml.safe_load((_WORKFLOW_DIR / "action-pins.yml").read_text(encoding="utf-8"))
-    assert checker.yaml_uses_values(parsed), "the YAML walker found no uses: values at all"
+    entries = checker.yaml_uses_entries(
+        (_WORKFLOW_DIR / "action-pins.yml").read_text(encoding="utf-8")
+    )
+    assert entries, "the YAML walker found no uses: values at all"
 
 
 def test_verification_fails_on_a_shape_the_line_scan_cannot_see(tmp_path: Path) -> None:
-    (tmp_path / "evasive.yml").write_text(
+    _write_workflow(
+        tmp_path,
         "jobs:\n  a:\n    steps:\n      - { uses: actions/checkout@v4 }\n",
-        encoding="utf-8",
+        name="evasive.yml",
     )
     assert checker.scan(tmp_path) == [], "the line scan is expected to miss a flow mapping"
     (finding,) = checker.verify_completeness(tmp_path)
@@ -151,18 +174,35 @@ def test_verification_fails_on_a_shape_the_line_scan_cannot_see(tmp_path: Path) 
 
 
 def test_verification_fails_when_the_scan_sees_more_than_the_parser(tmp_path: Path) -> None:
-    (tmp_path / "heredoc.yml").write_text(
+    _write_workflow(
+        tmp_path,
         "jobs:\n  a:\n    steps:\n      - run: |\n          uses: actions/foo@v1\n",
-        encoding="utf-8",
+        name="heredoc.yml",
     )
     findings = checker.verify_completeness(tmp_path)
     assert any("disagree" in f.problem for f in findings)
 
 
+def test_equal_values_at_different_lines_do_not_cancel(tmp_path: Path) -> None:
+    # A compliant-looking decoy inside a run block (the scan sees it, the parse
+    # does not) must not excuse a flow-mapped real reference (the parse sees it,
+    # the scan does not), even though both carry the same value.
+    body = (
+        "jobs:\n  a:\n    steps:\n"
+        f"      - {{ uses: actions/checkout@{_SHA} }}\n"
+        "      - run: |\n"
+        f"          uses: actions/checkout@{_SHA} # v6.0.2\n"
+    )
+    _write_workflow(tmp_path, body, name="cancel.yml")
+    findings = checker.verify_completeness(tmp_path)
+    assert any("disagree" in f.problem for f in findings)
+
+
 # The gate's protection is split between the script and this wiring: the judge
-# comes from the base branch, the PR's workflows arrive as data, and the check
-# runs with completeness verification. A wiring edit shows up here as a failing
-# head-side suite, so it cannot ride along unremarked in a PR's diff.
+# comes from the base branch, the PR's files arrive as data, and the check runs
+# with completeness verification over the whole head. A wiring edit shows up
+# here as a failing head-side suite, so it cannot ride along unremarked in a
+# PR's diff.
 @pytest.mark.parametrize(
     "required_fragment",
     [
@@ -170,7 +210,7 @@ def test_verification_fails_when_the_scan_sees_more_than_the_parser(tmp_path: Pa
         "ref: ${{ github.event.pull_request.head.sha }}",
         "path: pr-head",
         "run: pip install -r requirements-test.txt",
-        "python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head/.github/workflows",
+        "python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head",
     ],
 )
 def test_action_pins_workflow_wires_the_checker(required_fragment: str) -> None:
@@ -180,18 +220,18 @@ def test_action_pins_workflow_wires_the_checker(required_fragment: str) -> None:
 
 def test_main_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     clean = tmp_path / "clean"
-    clean.mkdir()
-    (clean / "ok.yml").write_text(
+    _write_workflow(
+        clean,
         f"jobs:\n  a:\n    steps:\n      - uses: actions/checkout@{_SHA} # v6.0.2\n",
-        encoding="utf-8",
+        name="ok.yml",
     )
     assert checker.main([str(clean)]) == 0
 
     dirty = tmp_path / "dirty"
-    dirty.mkdir()
-    (dirty / "bad.yml").write_text(
+    _write_workflow(
+        dirty,
         "jobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n",
-        encoding="utf-8",
+        name="bad.yml",
     )
     assert checker.main([str(dirty), "--annotate"]) == 1
     output = capsys.readouterr()
@@ -199,10 +239,10 @@ def test_main_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     assert "::error file=" in output.out
 
     evasive = tmp_path / "evasive"
-    evasive.mkdir()
-    (evasive / "flow.yml").write_text(
+    _write_workflow(
+        evasive,
         "jobs:\n  a:\n    steps:\n      - { uses: actions/checkout@v4 }\n",
-        encoding="utf-8",
+        name="flow.yml",
     )
     assert checker.main([str(evasive)]) == 0, "without verification the flow mapping goes unseen"
     assert checker.main([str(evasive), "--verify-completeness"]) == 1

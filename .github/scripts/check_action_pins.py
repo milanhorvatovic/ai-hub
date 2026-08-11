@@ -11,13 +11,13 @@ of seven drifted from their pins, four by at least a major version.
 
 The scan is text-level on purpose: comment placement does not survive YAML
 parsing, so a parser cannot check the half of the convention that keeps the
-other half true. What the line scan cannot see — a flow mapping, a value on
-the next line — is covered by `--verify-completeness`, which parses each
-workflow with PyYAML and fails closed on any `uses:` the scan disagrees about;
-the gate runs with it, and `tests/repo/test_action_pins.py` holds the same
-comparison against the tree. Only `.github/workflows/` is scanned: composite
-actions under `.github/actions/` do not exist here, and their steps would need
-this glob widened before they could rely on the gate.
+other half true. What the line scan cannot see — a flow mapping, a value on the
+next line — is covered by `--verify-completeness`, which parses each file and
+fails closed on any `uses:` occurrence the scan and the parse disagree about,
+bound to its source line so equal values at different lines cannot cancel out.
+Both passes cover workflows and composite-action manifests
+(`.github/actions/**/action.y*ml`), which is what makes the local `./`
+exemption sound: a local reference points at content that is itself scanned.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ from pathlib import Path
 # `uses:` or `- uses:` with an optionally quoted value and an optional trailing
 # comment. `uses:` values are plain one-line scalars in practice; anything
 # fancier (aliases, block scalars) escapes this shape and is caught by the
-# suite's YAML cross-check rather than silently skipped.
+# completeness verification rather than silently skipped.
 _USES_LINE = re.compile(
     r"""^\s*(?:-\s+)?uses:\s*(?P<quote>["']?)(?P<value>[^\s"'#]+)(?P=quote)\s*(?:\#(?P<comment>.*))?$"""
 )
@@ -53,7 +53,7 @@ _VERSION_ABOVE = re.compile(r"\bv?\d+\.\d+")
 
 @dataclass(frozen=True)
 class Use:
-    """One `uses:` reference as written in a workflow file."""
+    """One `uses:` reference as written in a workflow or action manifest."""
 
     path: Path
     line: int
@@ -69,11 +69,21 @@ class Finding:
     problem: str
 
 
-def collect_uses(workflow_dir: Path) -> list[Use]:
-    """Every `uses:` reference in the directory's workflows, in file order."""
+def target_files(root: Path) -> list[Path]:
+    """Workflow files and composite-action manifests under `root`'s `.github`.
+
+    Both run with this repository's credentials, and manifests are where an
+    exempt local `./` reference could otherwise smuggle a mutable remote pin.
+    """
+    github = root / ".github"
+    return sorted(github.glob("workflows/*.y*ml")) + sorted(github.glob("actions/**/action.y*ml"))
+
+
+def collect_uses(root: Path) -> list[Use]:
+    """Every `uses:` reference in the target files, in file order."""
     uses: list[Use] = []
-    for workflow in sorted(workflow_dir.glob("*.y*ml")):
-        lines = workflow.read_text(encoding="utf-8").splitlines()
+    for path in target_files(root):
+        lines = path.read_text(encoding="utf-8").splitlines()
         for number, text in enumerate(lines, start=1):
             match = _USES_LINE.match(text)
             if match is None:
@@ -81,7 +91,7 @@ def collect_uses(workflow_dir: Path) -> list[Use]:
             comment = match["comment"]
             uses.append(
                 Use(
-                    path=workflow,
+                    path=path,
                     line=number,
                     value=match["value"],
                     comment=comment.strip() if comment is not None else None,
@@ -94,7 +104,7 @@ def collect_uses(workflow_dir: Path) -> list[Use]:
 def check(use: Use) -> str | None:
     """The problem with this reference, or None when it meets the convention."""
     if use.value.startswith("./"):
-        return None  # same-repo content: there is no ref to pin
+        return None  # same-repo content: no ref to pin, and the target is scanned
 
     if use.value.startswith("docker://"):
         if _DOCKER_DIGEST.fullmatch(use.value):
@@ -119,52 +129,73 @@ def check(use: Use) -> str | None:
     return None
 
 
-def scan(workflow_dir: Path) -> list[Finding]:
+def scan(root: Path) -> list[Finding]:
     return [
         Finding(use.path, use.line, problem)
-        for use in collect_uses(workflow_dir)
+        for use in collect_uses(root)
         if (problem := check(use)) is not None
     ]
 
 
-def yaml_uses_values(document: object) -> list[str]:
-    """Every string under a `uses` key, at any depth of a parsed workflow."""
-    values: list[str] = []
-    if isinstance(document, dict):
-        for key, value in document.items():
-            if key == "uses" and isinstance(value, str):
-                values.append(value)
-            values.extend(yaml_uses_values(value))
-    elif isinstance(document, list):
-        for item in document:
-            values.extend(yaml_uses_values(item))
-    return values
+def yaml_uses_entries(text: str) -> list[tuple[int, str]]:
+    """(line, value) for every scalar under a `uses` key, from a composed parse.
 
-
-def verify_completeness(workflow_dir: Path) -> list[Finding]:
-    """Findings for every file where the line scan and a YAML parse disagree.
-
-    PyYAML is imported here rather than at module level so the default scan
-    stays dependency-free; the caller opting into verification is the one that
-    must provide the parser, and fails loudly when it cannot.
+    Composed rather than loaded so each value keeps its source position — the
+    completeness comparison binds occurrences to lines, so a missed reference
+    cannot be cancelled by an equal-valued false positive elsewhere in the file.
     """
     import yaml
 
-    scanned_by_file: dict[Path, list[str]] = {}
-    for use in collect_uses(workflow_dir):
-        scanned_by_file.setdefault(use.path, []).append(use.value)
+    entries: list[tuple[int, str]] = []
+
+    def walk(node: object) -> None:
+        if isinstance(node, yaml.MappingNode):
+            for key, value in node.value:
+                if (
+                    isinstance(key, yaml.ScalarNode)
+                    and key.value == "uses"
+                    and isinstance(value, yaml.ScalarNode)
+                ):
+                    entries.append((value.start_mark.line + 1, value.value))
+                walk(value)
+        elif isinstance(node, yaml.SequenceNode):
+            for item in node.value:
+                walk(item)
+
+    document = yaml.compose(text, Loader=yaml.SafeLoader)
+    if document is not None:
+        walk(document)
+    return entries
+
+
+def _describe(entries: list[tuple[int, str]]) -> str:
+    return ", ".join(f"line {line}: {value}" for line, value in entries) or "none"
+
+
+def verify_completeness(root: Path) -> list[Finding]:
+    """Findings for every file where the line scan and a YAML parse disagree.
+
+    PyYAML is imported on demand (in `yaml_uses_entries`) rather than at module
+    level so the default scan stays dependency-free; the caller opting into
+    verification is the one that must provide the parser, and fails loudly when
+    it cannot.
+    """
+    scanned_by_file: dict[Path, list[tuple[int, str]]] = {}
+    for use in collect_uses(root):
+        scanned_by_file.setdefault(use.path, []).append((use.line, use.value))
 
     findings: list[Finding] = []
-    for workflow in sorted(workflow_dir.glob("*.y*ml")):
-        parsed = yaml.safe_load(workflow.read_text(encoding="utf-8"))
-        expected = sorted(yaml_uses_values(parsed))
-        scanned = sorted(scanned_by_file.get(workflow, []))
+    for path in target_files(root):
+        expected = sorted(yaml_uses_entries(path.read_text(encoding="utf-8")))
+        scanned = sorted(scanned_by_file.get(path, []))
         if scanned != expected:
             findings.append(
                 Finding(
-                    workflow,
+                    path,
                     1,
-                    f"the line scan and the YAML parse disagree on this file's `uses:` references (scan: {scanned}, parse: {expected}) — write every reference as a plain inline `uses: value` scalar so the pin and its trailing comment stay checkable",
+                    "the line scan and the YAML parse disagree on this file's `uses:` references "
+                    f"(scan: {_describe(scanned)}; parse: {_describe(expected)}) — write every reference "
+                    "as a plain inline `uses: value` scalar so the pin and its trailing comment stay checkable",
                 )
             )
     return findings
@@ -173,11 +204,11 @@ def verify_completeness(workflow_dir: Path) -> list[Finding]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
-        "workflow_dir",
+        "root",
         nargs="?",
         type=Path,
-        default=Path(__file__).resolve().parents[2] / ".github" / "workflows",
-        help="directory of workflow files to scan (default: this repository's)",
+        default=Path(__file__).resolve().parents[2],
+        help="repository root whose .github workflows and composite actions to scan (default: this repository)",
     )
     parser.add_argument(
         "--annotate",
@@ -187,17 +218,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--verify-completeness",
         action="store_true",
-        help="also parse each workflow with PyYAML and fail on any `uses:` the line scan disagrees about",
+        help="also parse each file with PyYAML and fail on any `uses:` the line scan disagrees about",
     )
     args = parser.parse_args(argv)
 
-    if not args.workflow_dir.is_dir():
-        print(f"not a directory: {args.workflow_dir}", file=sys.stderr)
+    if not args.root.is_dir():
+        print(f"not a directory: {args.root}", file=sys.stderr)
         return 2
 
-    findings = scan(args.workflow_dir)
+    findings = scan(args.root)
     if args.verify_completeness:
-        findings += verify_completeness(args.workflow_dir)
+        findings += verify_completeness(args.root)
     for finding in findings:
         print(f"{finding.path}:{finding.line}: {finding.problem}", file=sys.stderr)
         if args.annotate:
@@ -205,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if findings:
         return 1
-    print(f"All action references in {args.workflow_dir} are SHA-pinned with maintainable version comments.")
+    print(f"All action references under {args.root} are SHA-pinned with maintainable version comments.")
     return 0
 
 
