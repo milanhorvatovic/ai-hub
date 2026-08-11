@@ -21,6 +21,17 @@ upstream; where its parser sees the whole router the two agree exactly.
 loaded cost is what the file weighs, and netting the frontmatter out to keep the
 three disjoint would report a quantity nothing actually loads.
 
+Each record also carries the version its numbers were measured at, because one
+edit reaches `SKILL.md` without passing through any contributor: release-please
+rewrites the annotated `metadata.version` value on a release branch that must
+merge otherwise untouched. A width-crossing bump (`1.9.0` -> `1.10.0`) moves
+every number that prices `SKILL.md` by the width change, and the release PR can
+neither run the refresher nor take a hand-pushed fix without giving up merging
+unmodified. Recording the version makes that one drift attributable: the
+staleness guard restates the record at the tree's version before comparing — an
+arithmetic identity, not a threshold — so a release bump alone stays green while
+any other edit of any size still fails.
+
 Text counts normalize CRLF to LF first. `.gitattributes` checks markdown out
 native, so the Windows legs of the test matrix read the same content a byte per
 line heavier — around 1.5% on a skill tree, which is larger than any single
@@ -31,6 +42,7 @@ are not text are counted raw, because there a `\r\n` pair is payload.
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -68,6 +80,17 @@ _DECLARED_BINARY_SUFFIXES = frozenset({".png", ".jpg", ".pdf"})
 # sitting beside the configs themselves. Markdown reached under a payload
 # directory is read like any other markdown and is billed like any other.
 _PAYLOAD_DIRECTORIES = frozenset({"assets", "scripts"})
+
+# The exact line release-please rewrites, which the structural suite requires
+# every router to carry.
+_ANNOTATED_VERSION = re.compile(
+    r'^\s+version:\s*"([^"]+)"\s*#\s*x-release-please-version\s*$', flags=re.MULTILINE
+)
+
+# What a version rewrite moves: the annotated line lives in the router's
+# frontmatter, so it is priced by discovery, by the router, and by the load
+# that includes the router — and by nothing else.
+_VERSION_PRICED_KEYS = ("discovery_bytes", "skill_md_bytes", "load_bytes")
 
 
 def lf_bytes(path: Path) -> int:
@@ -173,10 +196,65 @@ def measure(skill: Path) -> ContextCost:
     )
 
 
-def baseline_for(skills_root: Path) -> dict[str, dict[str, int]]:
-    """The whole fleet's costs, in the shape the committed baseline stores."""
+def skill_version(skill: Path) -> str:
+    """The version the release path rewrites: the annotated `metadata.version`.
+
+    Matched inside the frontmatter block alone. The router body is prose that
+    may quote YAML, and a worked example carrying the same annotated line would
+    win a whole-file search — recording a version nothing releases, silently.
+    """
+    router = skill / "SKILL.md"
+    data = router.read_bytes().replace(b"\r\n", b"\n")
+    match = _ANNOTATED_VERSION.search(data[: frontmatter_bytes(router)].decode("utf-8"))
+    if match is None:
+        raise ValueError(f"{router} has no annotated metadata.version to record")
+    return match.group(1)
+
+
+def record_for(skill: Path) -> dict[str, int | str]:
+    """One skill's baseline record: the costs, and the version they were measured at."""
+    return {**measure(skill).as_baseline(), "version": skill_version(skill)}
+
+
+def at_version(recorded: dict[str, int | str], version: str) -> dict[str, int | str]:
+    """The recorded costs restated at `version`.
+
+    A version rewrite is one frontmatter line changing width, so it moves each
+    priced number by exactly the width change of the string and nothing else. A
+    record that predates the version annotation cannot be restated; it comes
+    back unchanged, so the comparison downstream reports the missing key as
+    ordinary staleness and the refresher supplies it.
+    """
+    known = recorded.get("version")
+    if known is None:
+        return dict(recorded)
+    delta = len(version) - len(known)
     return {
-        skill_md.parent.name: measure(skill_md.parent).as_baseline()
+        **recorded,
+        "version": version,
+        **{key: recorded[key] + delta for key in _VERSION_PRICED_KEYS},
+    }
+
+
+def drift(recorded: dict[str, int | str], measured: dict[str, int | str]) -> dict[str, str]:
+    """What moved beyond a release bump, as `key: expected -> measured`.
+
+    The one tolerated difference is the release path's own edit: the record is
+    restated at the measured version before comparing, and everything past that
+    restatement is exact equality — a second edit of any size still surfaces.
+    """
+    expected = at_version(recorded, measured["version"])
+    return {
+        key: f"{expected.get(key)} -> {measured.get(key)}"
+        for key in sorted(expected.keys() | measured.keys())
+        if expected.get(key) != measured.get(key)
+    }
+
+
+def baseline_for(skills_root: Path) -> dict[str, dict[str, int | str]]:
+    """The whole fleet's records, in the shape the committed baseline stores."""
+    return {
+        skill_md.parent.name: record_for(skill_md.parent)
         for skill_md in sorted(skills_root.glob("*/SKILL.md"))
     }
 

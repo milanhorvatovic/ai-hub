@@ -58,7 +58,7 @@ Every shipped description carries an activation corpus at `tests/skill-corpus/<n
 
 ### The context-cost baseline (step 6)
 
-Every skill's discovery, router, and load bytes are recorded in `tests/skills/context-cost-baseline.json`, and the suite fails when the recorded figures no longer describe the tree — including when a skill exists with no entry at all. Refresh it with `./venv/bin/python -m tests.support.context_cost` and commit the result; the failure message names that command too. The numbers are never hand-edited, and the growth they show is not gated: the check exists so a change in what a skill costs to load arrives as a reviewable diff instead of a surprise, and the same refresh applies whenever an edit adds or removes reference files.
+Every skill's discovery, router, and load bytes are recorded in `tests/skills/context-cost-baseline.json`, together with the `metadata.version` they were measured at, and the suite fails when the recorded figures no longer describe the tree — including when a skill exists with no entry at all. Refresh it with `./venv/bin/python -m tests.support.context_cost` and commit the result; the failure message names that command too. The numbers are never hand-edited, and the growth they show is not gated: the check exists so a change in what a skill costs to load arrives as a reviewable diff instead of a surprise, and the same refresh applies whenever an edit adds or removes reference files. The recorded version is what lets the release path through — release-please rewrites exactly that string on a branch that must merge unmodified, so the guard restates the record at the tree's version before comparing instead of failing a PR nobody can fix.
 
 ### The fleet manifest (step 3)
 
