@@ -99,6 +99,24 @@ def test_a_release_bump_alone_is_not_drift(tmp_path: Path, before: str, after: s
     assert drift(recorded, measured) == {}
 
 
+def test_the_changelog_the_release_writes_is_not_billed(tmp_path: Path) -> None:
+    """The release PR's other edit, stated so the tolerance's claim is complete.
+
+    release-please writes `skills/<name>/CHANGELOG.md` beside the version bump.
+    No router links it, so it sits outside the reachable tree the load numbers
+    price — which is why the version line is the only release edit the guard
+    has to absorb, and why this stays true only while changelogs stay unlinked.
+    """
+    skill = tmp_path / "sample"
+    skill.mkdir()
+    (skill / "SKILL.md").write_bytes(_router_at("1.9.0"))
+    recorded = record_for(skill)
+
+    (skill / "SKILL.md").write_bytes(_router_at("1.10.0"))
+    (skill / "CHANGELOG.md").write_bytes(b"# Changelog\n\n## 1.10.0\n")
+    assert drift(recorded, record_for(skill)) == {}
+
+
 def test_a_bump_with_any_other_edit_is_still_drift(tmp_path: Path) -> None:
     """The tolerance is the bump's arithmetic, not a small-change allowance.
 
