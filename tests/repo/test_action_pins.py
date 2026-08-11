@@ -57,7 +57,6 @@ def _scan_snippet(root: Path, body: str) -> list:
         f"      - uses: github/codeql-action/init@{_SHA} # v4.37.4\n",
         f"      - uses: actions/checkout@{_SHA} # 6.0.2\n",
         f"      - uses: owner/repo/.github/workflows/reusable.yml@{_SHA} # v1.2.3\n",
-        "      - uses: ./.github/actions/local-action\n",
         "      - uses: docker://alpine@sha256:c5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b\n",
     ],
     ids=[
@@ -66,7 +65,6 @@ def _scan_snippet(root: Path, body: str) -> list:
         "action-subpath",
         "bare-version-token",
         "reusable-workflow-sha",
-        "local-action-exempt",
         "docker-digest",
     ],
 )
@@ -141,6 +139,63 @@ def test_composite_action_manifest_is_scanned(tmp_path: Path) -> None:
     assert "not a full 40-hex commit SHA" in finding.problem
 
 
+def test_local_action_anywhere_in_the_tree_is_scanned(tmp_path: Path) -> None:
+    # Local actions are not confined to .github/actions — the scan set follows
+    # each `./` reference to wherever its manifest lives.
+    _write_workflow(tmp_path, "jobs:\n  a:\n    steps:\n      - uses: ./ci/local\n")
+    manifest = tmp_path / "ci" / "local" / "action.yml"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(
+        "runs:\n  using: composite\n  steps:\n    - uses: owner/action@main\n",
+        encoding="utf-8",
+    )
+    (finding,) = checker.scan(tmp_path)
+    assert finding.path == manifest
+    assert "not a full 40-hex commit SHA" in finding.problem
+
+
+def test_local_reference_with_a_clean_manifest_is_exempt(tmp_path: Path) -> None:
+    _write_workflow(tmp_path, "jobs:\n  a:\n    steps:\n      - uses: ./ci/local\n")
+    manifest = tmp_path / "ci" / "local" / "action.yml"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(
+        f"runs:\n  using: composite\n  steps:\n    - uses: owner/action@{_SHA} # v1.0.0\n",
+        encoding="utf-8",
+    )
+    assert checker.scan(tmp_path) == []
+
+
+def test_local_reusable_workflow_file_is_exempt(tmp_path: Path) -> None:
+    _write_workflow(tmp_path, "jobs:\n  a:\n    uses: ./.github/workflows/reusable.yml\n")
+    _write_workflow(tmp_path, "jobs:\n  b:\n    steps:\n      - run: echo ok\n", name="reusable.yml")
+    assert checker.scan(tmp_path) == []
+
+
+@pytest.mark.parametrize(
+    "reference",
+    ["./ci/missing", "./../outside"],
+    ids=["no-manifest", "escapes-the-repository"],
+)
+def test_unresolvable_local_reference_fails(tmp_path: Path, reference: str) -> None:
+    _write_workflow(tmp_path, f"jobs:\n  a:\n    steps:\n      - uses: {reference}\n")
+    (finding,) = checker.scan(tmp_path)
+    assert "no scannable target" in finding.problem
+
+
+def test_uses_named_input_is_deliberately_rejected(tmp_path: Path) -> None:
+    # An action input literally named `uses` is treated as a reference and
+    # rejected. Deliberate: a context-free rule leaves no nesting game to hide
+    # a real reference in, at the cost of forbidding that input name here.
+    body = (
+        "jobs:\n  a:\n    steps:\n"
+        f"      - uses: actions/checkout@{_SHA} # v6.0.2\n"
+        "        with:\n"
+        "          uses: something@v4\n"
+    )
+    (finding,) = _scan_snippet(tmp_path, body)
+    assert "not a full 40-hex commit SHA" in finding.problem
+
+
 def test_repo_tree_is_clean() -> None:
     findings = checker.scan(_REPO_ROOT)
     formatted = [f"{f.path.name}:{f.line}: {f.problem}" for f in findings]
@@ -206,9 +261,11 @@ def test_equal_values_at_different_lines_do_not_cancel(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "required_fragment",
     [
+        "pull_request_target:",
         "ref: ${{ github.event.pull_request.base.ref }}",
         "ref: ${{ github.event.pull_request.head.sha }}",
         "path: pr-head",
+        "persist-credentials: false",
         "run: pip install -r requirements-test.txt",
         "python .github/scripts/check_action_pins.py --annotate --verify-completeness pr-head",
     ],

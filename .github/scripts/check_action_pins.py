@@ -15,9 +15,14 @@ other half true. What the line scan cannot see — a flow mapping, a value on th
 next line — is covered by `--verify-completeness`, which parses each file and
 fails closed on any `uses:` occurrence the scan and the parse disagree about,
 bound to its source line so equal values at different lines cannot cancel out.
-Both passes cover workflows and composite-action manifests
-(`.github/actions/**/action.y*ml`), which is what makes the local `./`
-exemption sound: a local reference points at content that is itself scanned.
+
+The scanned set is the workflows, the `.github/actions` manifests, and every
+local action manifest reachable through `./` references anywhere in the tree —
+which is what makes the local exemption sound: a local reference either points
+at content that is itself scanned, or is a finding. Any `uses:` key counts,
+regardless of nesting; an action input literally named `uses` is rejected too,
+deliberately, because a context-free rule leaves no nesting game to hide a
+reference in.
 """
 
 from __future__ import annotations
@@ -69,43 +74,79 @@ class Finding:
     problem: str
 
 
-def target_files(root: Path) -> list[Path]:
-    """Workflow files and composite-action manifests under `root`'s `.github`.
-
-    Both run with this repository's credentials, and manifests are where an
-    exempt local `./` reference could otherwise smuggle a mutable remote pin.
-    """
-    github = root / ".github"
-    return sorted(github.glob("workflows/*.y*ml")) + sorted(github.glob("actions/**/action.y*ml"))
-
-
-def collect_uses(root: Path) -> list[Use]:
-    """Every `uses:` reference in the target files, in file order."""
+def _uses_in_file(path: Path) -> list[Use]:
     uses: list[Use] = []
-    for path in target_files(root):
-        lines = path.read_text(encoding="utf-8").splitlines()
-        for number, text in enumerate(lines, start=1):
-            match = _USES_LINE.match(text)
-            if match is None:
-                continue
-            comment = match["comment"]
-            uses.append(
-                Use(
-                    path=path,
-                    line=number,
-                    value=match["value"],
-                    comment=comment.strip() if comment is not None else None,
-                    preceding=lines[number - 2] if number > 1 else "",
-                )
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for number, text in enumerate(lines, start=1):
+        match = _USES_LINE.match(text)
+        if match is None:
+            continue
+        comment = match["comment"]
+        uses.append(
+            Use(
+                path=path,
+                line=number,
+                value=match["value"],
+                comment=comment.strip() if comment is not None else None,
+                preceding=lines[number - 2] if number > 1 else "",
             )
+        )
     return uses
 
 
-def check(use: Use) -> str | None:
-    """The problem with this reference, or None when it meets the convention."""
-    if use.value.startswith("./"):
-        return None  # same-repo content: no ref to pin, and the target is scanned
+def _local_target(root: Path, value: str) -> Path | None:
+    """The scannable file a local `./` reference points at, or None.
 
+    A directory reference resolves to its action manifest; a `.y*ml` reference
+    (a local reusable workflow) resolves to the file itself. A target escaping
+    the repository root resolves to None, so the reference fails rather than
+    exempting content the gate never sees.
+    """
+    target = (root / value[2:]).resolve()
+    if not target.is_relative_to(root.resolve()):
+        return None
+    if value.endswith((".yml", ".yaml")):
+        return target if target.is_file() else None
+    for name in ("action.yml", "action.yaml"):
+        manifest = target / name
+        if manifest.is_file():
+            return manifest
+    return None
+
+
+def reachable_files(root: Path) -> list[Path]:
+    """The seed files plus every local target reachable through `./` references.
+
+    Seeds are the workflows and the conventional `.github/actions` manifests;
+    the expansion then follows local references wherever they point, to a
+    fixpoint. The expansion reads the line scan, and a local reference written
+    in a shape the scan cannot read is caught as a scan/parse disagreement in
+    the file that holds it — verification keeps the expansion honest.
+    """
+    github = root / ".github"
+    pending = sorted(github.glob("workflows/*.y*ml")) + sorted(github.glob("actions/**/action.y*ml"))
+    seen: set[Path] = set(pending)
+    ordered: list[Path] = []
+    while pending:
+        path = pending.pop(0)
+        ordered.append(path)
+        for use in _uses_in_file(path):
+            if not use.value.startswith("./"):
+                continue
+            target = _local_target(root, use.value)
+            if target is not None and target not in seen:
+                seen.add(target)
+                pending.append(target)
+    return sorted(ordered)
+
+
+def collect_uses(root: Path) -> list[Use]:
+    """Every `uses:` reference in the reachable files, in file order."""
+    return [use for path in reachable_files(root) for use in _uses_in_file(path)]
+
+
+def check(use: Use) -> str | None:
+    """The problem with this remote reference, or None when it meets the convention."""
     if use.value.startswith("docker://"):
         if _DOCKER_DIGEST.fullmatch(use.value):
             return None
@@ -130,11 +171,22 @@ def check(use: Use) -> str | None:
 
 
 def scan(root: Path) -> list[Finding]:
-    return [
-        Finding(use.path, use.line, problem)
-        for use in collect_uses(root)
-        if (problem := check(use)) is not None
-    ]
+    findings: list[Finding] = []
+    for use in collect_uses(root):
+        if use.value.startswith("./"):
+            if _local_target(root, use.value) is None:
+                findings.append(
+                    Finding(
+                        use.path,
+                        use.line,
+                        f"local reference {use.value!r} resolves to no scannable target inside the repository — the local exemption holds only for targets the gate scans",
+                    )
+                )
+            continue
+        problem = check(use)
+        if problem is not None:
+            findings.append(Finding(use.path, use.line, problem))
+    return findings
 
 
 def yaml_uses_entries(text: str) -> list[tuple[int, str]]:
@@ -185,7 +237,7 @@ def verify_completeness(root: Path) -> list[Finding]:
         scanned_by_file.setdefault(use.path, []).append((use.line, use.value))
 
     findings: list[Finding] = []
-    for path in target_files(root):
+    for path in reachable_files(root):
         expected = sorted(yaml_uses_entries(path.read_text(encoding="utf-8")))
         scanned = sorted(scanned_by_file.get(path, []))
         if scanned != expected:
@@ -208,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
         nargs="?",
         type=Path,
         default=Path(__file__).resolve().parents[2],
-        help="repository root whose .github workflows and composite actions to scan (default: this repository)",
+        help="repository root whose .github workflows and reachable action manifests to scan (default: this repository)",
     )
     parser.add_argument(
         "--annotate",
