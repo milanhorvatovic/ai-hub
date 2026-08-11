@@ -27,10 +27,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # Reconciliation mutates PR state (update-branch, approve re-arm), so it acts
+      # as oss-automation-bot with a token minted per run; this run reads the pair from the Actions secret store. Skipped
+      # while the kill switch is off, so a dormant repository never fails on absent
+      # secrets.
+      - name: Mint the automation-bot token
+        id: bot-token
+        if: vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.OSS_AUTOMATION_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.OSS_AUTOMATION_BOT_PRIVATE_KEY }}
+
       - name: Reconcile open Dependabot PRs
         env:
           AUTOMERGE_ENABLED: ${{ vars.DEPENDABOT_AUTOMERGE_ENABLED }}
-          GH_TOKEN: ${{ secrets.CODEOWNER_APPROVER_TOKEN }}
+          GH_TOKEN: ${{ steps.bot-token.outputs.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -38,10 +50,6 @@ jobs:
           if [[ "${AUTOMERGE_ENABLED:-}" != "true" ]]; then
             echo "::notice::DEPENDABOT_AUTOMERGE_ENABLED is '${AUTOMERGE_ENABLED:-<unset>}'; reconciliation is disabled."
             exit 0
-          fi
-          if [[ -z "${GH_TOKEN:-}" ]]; then
-            echo "::error::CODEOWNER_APPROVER_TOKEN is unavailable; reconciliation cannot mutate PR state."
-            exit 1
           fi
 
           dependabot_prs=$(gh pr list --search 'author:dependabot[bot]' --state open --limit 100 --json number,author,isCrossRepository)

@@ -28,18 +28,27 @@ jobs:
     # Only the push pipeline cuts releases; workflow_dispatch is a bundle-only path.
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
+    timeout-minutes: 10
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
     steps:
-      # googleapis/release-please-action v4.4.1
-      - id: release
-        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
+      # The release branch and PR must be authored by the oss-release-bot App: a push
+      # under the default GITHUB_TOKEN triggers no workflows, so the release PR would
+      # report none of the required checks (docs/adr/0002-automation-identity.md). The
+      # App token also carries the write access, which is why this job no longer
+      # elevates the default token.
+      - name: Mint the release-bot token
+        id: bot-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          client-id: ${{ secrets.OSS_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.OSS_RELEASE_BOT_PRIVATE_KEY }}
+
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.bot-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -50,20 +59,21 @@ jobs:
     needs: [release-please]
     if: github.event_name == 'push' && needs.release-please.outputs.releases_created == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write # upload release assets
       id-token: write # sigstore keyless signing (OIDC)
       attestations: write # build-provenance attestation
     steps:
-      # actions/checkout v4.3.0 — full history + tags so `git archive <tag>` resolves the
-      # per-skill tags release-please just created.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      # Full history + tags so `git archive <tag>` resolves the per-skill tags
+      # release-please just created.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
-      # actions/setup-python v5.6.0 — the builder is stdlib-only, so no install step.
+      # The builder is stdlib-only, so no install step.
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version-file: ".python-version"
 
@@ -83,9 +93,9 @@ jobs:
           done
           echo "uploads=$(echo "$uploads" | jq -c .)" >> "$GITHUB_OUTPUT"
 
-      # github/actions attest-build-provenance v4.1.0 — keyless sigstore + SLSA provenance.
+      # Keyless sigstore + SLSA provenance.
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
           subject-path: "dist/**/*.zip"
 
@@ -104,20 +114,20 @@ jobs:
     name: catalog-publish
     if: github.event_name == 'workflow_dispatch' && inputs.catalog_tag != ''
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write # upload the manifest to the CalVer Release
       id-token: write # sigstore keyless signing (OIDC)
       attestations: write # build-provenance attestation
     steps:
-      # actions/checkout v4.3.0 — full history + tags; check out the requested ref (empty = default).
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      # Full history + tags; check out the requested ref (empty = default).
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           ref: ${{ inputs.ref }}
 
-      # actions/setup-python v5.6.0
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version-file: ".python-version"
 
@@ -131,9 +141,9 @@ jobs:
           python .github/scripts/build_bundles.py \
             --ref "${REF:-HEAD}" --out dist --index --repo "$REPO" --catalog "$CATALOG_TAG"
 
-      # github/actions attest-build-provenance v4.1.0 — provenance for the catalog manifest.
+      # Provenance for the catalog manifest.
       - name: Attest catalog provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
           subject-path: "dist/index.json"
 
@@ -151,18 +161,18 @@ jobs:
     name: catalog-preview
     if: github.event_name == 'workflow_dispatch' && inputs.catalog_tag == ''
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
-      # actions/checkout v4.3.0 — full history + tags; check out the requested ref (empty = default).
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      # Full history + tags; check out the requested ref (empty = default).
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           ref: ${{ inputs.ref }}
 
-      # actions/setup-python v5.6.0
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version-file: ".python-version"
 
@@ -174,9 +184,8 @@ jobs:
           # Empty input means "the ref this run already checked out".
           python .github/scripts/build_bundles.py --ref "${REF:-HEAD}" --out dist --index --repo "$REPO"
 
-      # actions/upload-artifact v7.0.1
       - name: Publish catalog as a workflow artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: skill-bundles
           path: dist/

@@ -109,6 +109,10 @@ def test_bot_waiver_is_length_only(title: str) -> None:
     [
         ("dependabot[bot]", True),
         ("github-actions[bot]", True),
+        # A custom App, of the kind docs/adr/0002-automation-identity.md moves the
+        # release path onto. The waiver is by shape, so an App that does not exist yet
+        # is already covered and there is no list to extend when one is created.
+        ("ai-hub-automation[bot]", True),
         ("renovate-bot", True),
         ("milanhorvatovic", False),
         ("botanist", False),  # a bare "bot" substring is not a bot marker

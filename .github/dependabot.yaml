@@ -10,7 +10,7 @@ updates:
       actions:
         patterns: ["*"]
         # Actions that execute with write credentials or attestations remain
-        # standalone and always wait for a code-owner approval.
+        # standalone and always wait for a maintainer approval.
         exclude-patterns:
           - actions/attest-build-provenance
           - googleapis/release-please-action
@@ -20,10 +20,13 @@ updates:
     labels:
       - dependencies
       - github_actions
-    # This action executes inside the privileged approval workflow. Updating its
-    # pin is a deliberate human-reviewed change, never an automated PR.
+    # These actions execute inside the privileged workflows — fetch-metadata
+    # before the token-bearing steps, create-github-app-token holding the App's
+    # private key. Updating their pins is a deliberate human-reviewed change,
+    # never an automated PR.
     ignore:
       - dependency-name: dependabot/fetch-metadata
+      - dependency-name: actions/create-github-app-token
 
   - package-ecosystem: pip
     directory: "/"
