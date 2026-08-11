@@ -25,17 +25,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # actions/checkout v4.3.0
       # Check out the BASE branch, not the PR head: the validator that judges the PR
       # must be the trusted copy from the base branch, so a PR cannot edit the script
       # to make itself pass. Only the PR title (from the event payload) is under review.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.pull_request.base.ref }}
 
-      # actions/setup-python v5.6.0
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version-file: ".python-version"
 
@@ -59,19 +57,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # actions/checkout v4.3.0
       # Check out the BASE branch, not the PR head: the linter that judges the PR's
       # commits must be the trusted copy from the base branch, so a PR cannot edit the
       # script to make itself pass. Full history so base..head resolves after the head
       # fetch below; only commit messages from the head are read, never its code.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
 
-      # actions/setup-python v5.6.0
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version-file: ".python-version"
 
