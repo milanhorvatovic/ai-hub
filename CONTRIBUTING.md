@@ -122,6 +122,8 @@ gh secret set --app dependabot OSS_AUTOMATION_BOT_PRIVATE_KEY
 gh variable set DEPENDABOT_AUTOMERGE_ENABLED --body true
 ```
 
+If the retired PAT-based design was ever provisioned, decommission it as part of the same pass: delete `CODEOWNER_APPROVER_TOKEN` from both stores (`gh secret delete CODEOWNER_APPROVER_TOKEN --app actions`, then `--app dependabot`) and revoke the underlying PAT, so switching designs also retires the standing human credential.
+
 To stop autonomous dependency updates without removing the workflows, set the variable to `false`. Applying either security-review label to an armed Dependabot PR also disables auto-merge immediately.
 
 ## Contribution basis
