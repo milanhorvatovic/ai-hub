@@ -12,6 +12,14 @@ this script waits on the suite: the staleness guard lives there, and without the
 dependency a drifted baseline would render happily — most likely as "no change"
 — beside the test that just failed for saying so.
 
+One transformation happens on the way to the table, and it is the guard's own:
+the base record is restated at the head record's version before deltas are
+computed. A width-crossing release merges its version rewrite without a
+baseline refresh — the suite tolerates exactly that — so the byte it added
+surfaces in whichever later pull request next refreshes the file, and rendering
+it there would attribute the release's edit to that unrelated PR. A test holds
+this restatement to the same arithmetic the guard uses.
+
 Stdlib only, and a pure function of its two files — the git plumbing that
 fetches the base copy stays in the workflow.
 """
@@ -34,6 +42,28 @@ COLUMNS = (
 HEADING = "### Context cost"
 NO_CHANGE = "No context-cost change."
 
+# The keys a version rewrite moves — the same set the suite's guard adjusts.
+_VERSION_PRICED_KEYS = ("discovery_bytes", "skill_md_bytes", "load_bytes")
+
+
+def _at_head_version(before: dict[str, int | str], after: dict[str, int | str]) -> dict[str, int | str]:
+    """The base record restated at the head record's version.
+
+    A version rewrite is one frontmatter line changing width, so it moves each
+    priced number by exactly the width change of the string. Records from
+    before the version annotation, and absent records, pass through unchanged
+    and render raw.
+    """
+    known, current = before.get("version"), after.get("version")
+    if not isinstance(known, str) or not isinstance(current, str):
+        return before
+    delta = len(current) - len(known)
+    return {
+        **before,
+        "version": current,
+        **{key: before[key] + delta for key in _VERSION_PRICED_KEYS},
+    }
+
 
 def _cell(before: int | None, after: int | None) -> str:
     if before is None:
@@ -46,15 +76,15 @@ def _cell(before: int | None, after: int | None) -> str:
     return f"{before:,} → {after:,} ({delta:+,})"
 
 
-def _changed(before: dict[str, int], after: dict[str, int]) -> bool:
+def _changed(before: dict[str, int | str], after: dict[str, int | str]) -> bool:
     return any(before.get(key) != after.get(key) for key, _ in COLUMNS)
 
 
-def render(before: dict[str, dict[str, int]], after: dict[str, dict[str, int]]) -> str:
+def render(before: dict[str, dict[str, int | str]], after: dict[str, dict[str, int | str]]) -> str:
     """Markdown for every skill whose recorded cost moved; a note when none did."""
     rows = []
     for name in sorted(before.keys() | after.keys()):
-        was, now = before.get(name, {}), after.get(name, {})
+        was, now = _at_head_version(before.get(name, {}), after.get(name, {})), after.get(name, {})
         if not _changed(was, now):
             continue
         cells = " | ".join(_cell(was.get(key), now.get(key)) for key, _ in COLUMNS)
@@ -68,7 +98,7 @@ def render(before: dict[str, dict[str, int]], after: dict[str, dict[str, int]]) 
     return "\n".join([HEADING, "", f"| Skill | {headings} |", f"| --- | {rule} |", *rows, ""])
 
 
-def _load(path: Path) -> dict[str, dict[str, int]]:
+def _load(path: Path) -> dict[str, dict[str, int | str]]:
     """The baseline at `path`, or an empty fleet when it is absent or blank.
 
     A PR that introduces the baseline has no base copy to read, and that is a

@@ -3,24 +3,28 @@
     "discovery_bytes": 4838,
     "skill_md_bytes": 25315,
     "load_bytes": 357933,
-    "files": 55
+    "files": 55,
+    "version": "1.0.0"
   },
   "docs-steward": {
     "discovery_bytes": 965,
     "skill_md_bytes": 11495,
     "load_bytes": 62250,
-    "files": 7
+    "files": 7,
+    "version": "1.1.0"
   },
   "git-toolkit": {
     "discovery_bytes": 9590,
     "skill_md_bytes": 21839,
     "load_bytes": 309963,
-    "files": 36
+    "files": 36,
+    "version": "1.1.0"
   },
   "oss-repository-conventions": {
     "discovery_bytes": 12440,
     "skill_md_bytes": 18114,
     "load_bytes": 238569,
-    "files": 51
+    "files": 51,
+    "version": "1.0.0"
   }
 }

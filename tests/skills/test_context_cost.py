@@ -10,6 +10,10 @@ freshness check blocks.
 
 So a failure here is not "the skill got too big". It is "the recorded cost no
 longer describes the tree", and the fix is to refresh and review the diff.
+
+One drift is tolerated by design: release-please rewriting the annotated
+`metadata.version` on the release branch, which the record absorbs by carrying
+the version its numbers were measured at — the support module states the why.
 """
 
 from __future__ import annotations
@@ -21,9 +25,12 @@ import pytest
 
 from tests.support.context_cost import (
     _DECLARED_BINARY_SUFFIXES,
+    drift,
     frontmatter_bytes,
     lf_bytes,
     measure,
+    record_for,
+    skill_version,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -36,7 +43,7 @@ SKILL_NAMES = sorted(path.parent.name for path in SKILLS_ROOT.glob("*/SKILL.md")
 
 
 @pytest.fixture(scope="module")
-def baseline() -> dict[str, dict[str, int]]:
+def baseline() -> dict[str, dict[str, int | str]]:
     return json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
 
 
@@ -51,17 +58,114 @@ def test_recorded_cost_still_describes_the_tree(name: str, baseline) -> None:
     recorded = baseline.get(name)
     assert recorded is not None, f"{name} has no recorded cost; refresh with {REFRESH}"
 
-    measured = measure(SKILLS_ROOT / name).as_baseline()
-    drift = {
-        key: f"{recorded.get(key)} -> {measured.get(key)}"
-        for key in recorded.keys() | measured.keys()
-        if recorded.get(key) != measured.get(key)
-    }
-    assert not drift, (
-        f"{name}'s recorded context cost is stale: {drift}\n"
+    unexplained = drift(recorded, record_for(SKILLS_ROOT / name))
+    assert not unexplained, (
+        f"{name}'s recorded context cost is stale: {unexplained}\n"
         f"Refresh with {REFRESH}, then review the deltas in the diff — that "
         "review is the point of the number."
     )
+
+
+def _router_at(version: str, body: bytes = b"Body.\n") -> bytes:
+    return (
+        b'---\nname: sample\nmetadata:\n  version: "'
+        + version.encode("ascii")
+        + b'" # x-release-please-version\n---\n\n'
+        + body
+    )
+
+
+@pytest.mark.parametrize(
+    ("before", "after"), [("1.9.0", "1.10.0"), ("1.9.9", "2.0.0")], ids=["wider", "same-width"]
+)
+def test_a_release_bump_alone_is_not_drift(tmp_path: Path, before: str, after: str) -> None:
+    """The one tolerated drift, because nothing on the release PR can refresh.
+
+    release-please rewrites the annotated version on a branch that must merge
+    unmodified, so a width-crossing bump moves discovery, router, and load by
+    the width change and the record has no way to follow. Restating the record
+    at the measured version absorbs exactly that shift.
+    """
+    skill = tmp_path / "sample"
+    skill.mkdir()
+    (skill / "SKILL.md").write_bytes(_router_at(before))
+    recorded = record_for(skill)
+
+    (skill / "SKILL.md").write_bytes(_router_at(after))
+    measured = record_for(skill)
+    shift = len(after) - len(before)
+    assert measured["skill_md_bytes"] == recorded["skill_md_bytes"] + shift
+    assert measured["discovery_bytes"] == recorded["discovery_bytes"] + shift
+    assert drift(recorded, measured) == {}
+
+
+def test_the_changelog_the_release_writes_is_not_billed(tmp_path: Path) -> None:
+    """The release PR's other edit, stated so the tolerance's claim is complete.
+
+    release-please writes `skills/<name>/CHANGELOG.md` beside the version bump.
+    No router links it, so it sits outside the reachable tree the load numbers
+    price — which is why the version line is the only release edit the guard
+    has to absorb, and why this stays true only while changelogs stay unlinked.
+    """
+    skill = tmp_path / "sample"
+    skill.mkdir()
+    (skill / "SKILL.md").write_bytes(_router_at("1.9.0"))
+    recorded = record_for(skill)
+
+    (skill / "SKILL.md").write_bytes(_router_at("1.10.0"))
+    (skill / "CHANGELOG.md").write_bytes(b"# Changelog\n\n## 1.10.0\n")
+    assert drift(recorded, record_for(skill)) == {}
+
+
+def test_a_bump_with_any_other_edit_is_still_drift(tmp_path: Path) -> None:
+    """The tolerance is the bump's arithmetic, not a small-change allowance.
+
+    An edit landing beside the bump moves the router without moving discovery,
+    which no version width can explain — the guard still demands a refresh.
+    """
+    skill = tmp_path / "sample"
+    skill.mkdir()
+    (skill / "SKILL.md").write_bytes(_router_at("1.9.0"))
+    recorded = record_for(skill)
+
+    (skill / "SKILL.md").write_bytes(_router_at("1.10.0", body=b"Body, grown.\n"))
+    assert drift(recorded, record_for(skill))
+
+
+def test_a_record_without_a_version_reads_as_ordinary_staleness(tmp_path: Path) -> None:
+    """The transition case: a branch carrying the old baseline schema meets
+    this guard, and the answer must be the refresh message, not a KeyError."""
+    skill = tmp_path / "sample"
+    skill.mkdir()
+    (skill / "SKILL.md").write_bytes(_router_at("1.0.0"))
+    versionless = {k: v for k, v in record_for(skill).items() if k != "version"}
+
+    assert list(drift(versionless, record_for(skill))) == ["version"]
+
+
+def test_the_version_is_read_from_the_frontmatter_not_the_prose(tmp_path: Path) -> None:
+    """A router quoting the annotated line in a worked example must not stand
+    in for the real one. The annotation lives in the frontmatter or nowhere: a
+    whole-file search would adopt the quoted sample — recording a version
+    nothing releases — exactly when the real annotation is missing."""
+    skill = tmp_path / "sample"
+    skill.mkdir()
+    quoted = b'```yaml\nmetadata:\n  version: "9.9.9" # x-release-please-version\n```\n'
+    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\n" + quoted)
+
+    with pytest.raises(ValueError, match="annotated metadata.version"):
+        skill_version(skill)
+
+
+def test_a_router_without_the_annotation_cannot_be_recorded(tmp_path: Path) -> None:
+    """Fail loud: a version the refresher guessed at would make every later
+    restatement wrong, so the absence is an error and not a default."""
+    skill = tmp_path / "sample"
+    skill.mkdir()
+    (skill / "SKILL.md").write_bytes(b"---\nname: sample\n---\n\nBody.\n")
+
+    with pytest.raises(ValueError, match="annotated metadata.version"):
+        record_for(skill)
 
 
 @pytest.mark.parametrize(
