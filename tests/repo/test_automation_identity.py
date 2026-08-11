@@ -39,6 +39,13 @@ _WRITE_PRIVILEGED_JOBS = {
 # Stated as an exemption rather than an allowlist so a scope nobody has thought about
 # counts by default: the list to maintain is the harmless one, and forgetting to extend
 # it makes the guard noisy rather than blind.
+#
+# `security-events` belongs here for a reason worth writing down, because it reads like
+# it should not. Uploading results does create code-scanning alerts, and
+# `code_scanning_alert` is a real webhook — but it is not one of the events that start
+# an Actions run, so no workflow exists for the suppression rule to withhold. The scope
+# is a privilege; this guard is about identity and cascade, and conflating the two is
+# what the rename in this file's history was correcting.
 _NON_AUTHORING_SCOPES = frozenset({"security-events", "id-token", "attestations"})
 
 _ANY_GRANT = frozenset({"*"})
@@ -188,7 +195,10 @@ def test_every_secret_a_workflow_uses_is_named_in_its_own_audit_row() -> None:
             # Anything else that reaches the context reads secrets this cannot name: a
             # dynamic index like `secrets[env.NAME]`, or a whole-context read such as
             # `toJSON(secrets)`. Both choose an identity no audit row could record.
-            if _ANY_SECRETS_MENTION.search(expression) and not named:
+            # The literal reads are removed first rather than merely counted, because a
+            # mixed expression — one literal beside one dynamic index — would otherwise
+            # be excused by the half that is readable.
+            if _ANY_SECRETS_MENTION.search(_NAMED_SECRET.sub("", expression)):
                 unauditable.append(f"{workflow.name}: {expression.strip()}")
 
     assert not inherited, (
