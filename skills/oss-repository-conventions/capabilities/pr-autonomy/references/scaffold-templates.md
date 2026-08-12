@@ -16,7 +16,7 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 
 ```yaml
       - id: app-token
-        uses: actions/create-github-app-token@<sha>   # v2
+        uses: actions/create-github-app-token@<sha>   # v3.2.0
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}

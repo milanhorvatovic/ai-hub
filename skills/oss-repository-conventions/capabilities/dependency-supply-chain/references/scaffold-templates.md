@@ -85,7 +85,7 @@ jobs:
       # permissions block — labeling needs the App token, minted from the
       # Dependabot secret store this run reads.
       - id: app-token
-        uses: actions/create-github-app-token@<sha>   # v2
+        uses: actions/create-github-app-token@<sha>   # v3.2.0
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
@@ -136,7 +136,7 @@ jobs:
         run: echo "DEPENDABOT_AUTOMERGE_ENABLED='${ENABLED:-<unset>}'"
       - id: app-token
         if: vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
-        uses: actions/create-github-app-token@<sha>   # v2
+        uses: actions/create-github-app-token@<sha>   # v3.2.0
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
@@ -195,7 +195,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: app-token
-        uses: actions/create-github-app-token@<sha>   # v2
+        uses: actions/create-github-app-token@<sha>   # v3.2.0
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
@@ -218,8 +218,11 @@ jobs:
               gh api -X PUT "repos/${{ github.repository }}/pulls/$PR/reviews/$id/dismissals" \
                 -f message="security-review-required"
             done
-          test -z "$(gh api --paginate "repos/${{ github.repository }}/pulls/$PR/reviews" \
+          # Capture in two steps: a failed substitution is empty too, and `test -z`
+          # on it would pass and paint this fail-closed job green without checking.
+          remaining="$(gh api --paginate "repos/${{ github.repository }}/pulls/$PR/reviews" \
             --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id')"
+          test -z "$remaining"
 ```
 
 **c) Reconciler — `.github/workflows/dependabot-reconciler.yaml`** (on `schedule: hourly cron` + `workflow_run` + `workflow_dispatch`)
