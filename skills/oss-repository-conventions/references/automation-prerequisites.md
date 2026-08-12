@@ -24,7 +24,7 @@ gh variable set AUTOMATION_CLIENT_ID --body "<client-id>"
 gh secret   set AUTOMATION_PRIVATE_KEY < private-key.pem
 ```
 
-- **Key format gotcha:** store the key file **exactly as downloaded** from the App settings page — a PEM (`BEGIN RSA PRIVATE KEY`) the mint action consumes directly. A key in any other container — most commonly OpenSSH's `BEGIN OPENSSH PRIVATE KEY` from a stray `ssh-keygen` — uploads without complaint and then fails every run at the mint step. The fix is re-downloading GitHub's PEM (or `ssh-keygen -p -m PEM` to convert in place); treat a mint failure right after provisioning as a key-format problem before anything else.
+- **Key gotcha:** store the key file **exactly as downloaded** from the App settings page — a PEM the mint action consumes directly (standard PEM encodings both work). The secret store accepts any blob without complaint, so the wrong file — a different key, a truncated paste, a hand-made `ssh-keygen` key that was never GitHub's — fails only later, at every mint. Conversion can't fix that: a key GitHub didn't register can never mint, whatever its encoding. Treat a mint failure right after provisioning as store-the-wrong-blob before anything else, and fix it by downloading a fresh key from the App settings and re-setting the secret in every store that holds it.
 
 **Two-App split (blast radius).** When automations span risk tiers, give each tier its own App — e.g. a lower-risk automation identity (labels, artifact pushes, branch updates) kept separate from a higher-risk release identity (tags, releases, moving the major tag) — so leaking the lower-risk key doesn't force rotating the release key. One App is fine to start; split when a single identity would otherwise hold both routine-write and release authority.
 

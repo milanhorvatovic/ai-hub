@@ -81,8 +81,18 @@ jobs:
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      # Dependabot-triggered runs get a READ-ONLY GITHUB_TOKEN regardless of the
+      # permissions block — labeling needs the App token, minted from the
+      # Dependabot secret store this run reads.
+      - id: app-token
+        uses: actions/create-github-app-token@<sha>   # v2
+        with:
+          client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
       - uses: dependabot/fetch-metadata@<sha>   # v2  -> outputs.update-type
-      - env: { PR_URL: ${{ github.event.pull_request.html_url }} }
+      - env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr edit "$PR_URL" --add-label "release:${LABEL}"   # map update-type -> label
 ```
 
@@ -119,7 +129,10 @@ jobs:
       # that isn't resolving. Switching off stops new arming only — the reconciler
       # disarms anything already armed (see c).
       - name: Report kill-switch state
-        env: { ENABLED: ${{ vars.DEPENDABOT_AUTOMERGE_ENABLED }} }
+        # Block-style env on purpose: an unquoted ${{ }} inside a { } flow mapping
+        # is invalid YAML — the expression's braces end the mapping early.
+        env:
+          ENABLED: ${{ vars.DEPENDABOT_AUTOMERGE_ENABLED }}
         run: echo "DEPENDABOT_AUTOMERGE_ENABLED='${ENABLED:-<unset>}'"
       - id: app-token
         if: vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
@@ -197,7 +210,7 @@ jobs:
           for id in $(gh api "repos/${{ github.repository }}/pulls/$PR/reviews" \
                         --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id'); do
             gh api -X PUT "repos/${{ github.repository }}/pulls/$PR/reviews/$id/dismissals" \
-              -f message="security-review-required" -f event="DISMISS"
+              -f message="security-review-required"
           done
 ```
 

@@ -40,7 +40,9 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 
 ```yaml
       - if: steps.gate.outputs.eligible == 'true'
-        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr review --approve "$PR_URL"
 ```
 
@@ -48,7 +50,9 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 
 ```yaml
       - if: steps.gate.outputs.eligible == 'true'
-        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr merge --squash --auto "$PR_URL"   # lands only when required checks pass
 ```
 
@@ -85,12 +89,17 @@ concurrency:
 #   `workflow_run` is required because a GITHUB_TOKEN-driven merge's push:main is anti-loop-suppressed
 #   (see automation-identity.md) — so a push:main trigger alone would miss it.
 
-# escape hatch: gate the whole flow behind a repo variable
-on: ...
+# escape hatch: gate the flow behind a repo variable — checked in the STEPS, with
+# an always-run step logging the resolved state (a skipped job can't report that
+# the switch is off, or distinguish off from not-resolving)
 jobs:
   autonomy:
-    if: vars.AUTONOMY_ENABLED == 'true'   # flip to 'false' to stop everything
-    ...
+    steps:
+      - env:
+          ENABLED: ${{ vars.AUTONOMY_ENABLED }}
+        run: echo "AUTONOMY_ENABLED='${ENABLED:-<unset>}'"   # unset fails safe
+      - if: vars.AUTONOMY_ENABLED == 'true'
+        run: echo "…the autonomous steps, each gated on the switch…"
   # also: a step that disables auto-merge when a security review is requested
 ```
 
