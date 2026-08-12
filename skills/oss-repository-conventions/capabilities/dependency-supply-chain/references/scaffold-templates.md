@@ -71,7 +71,9 @@ A near-hands-off mechanism that labels, approves, and merges Dependabot PRs, wit
 
 - A **GitHub App token** (`actions/create-github-app-token`) or a bot PAT — the default `GITHUB_TOKEN` triggers no downstream required checks and approves only behind the off-by-default Actions-can-approve setting.
 - **Branch protection** on `main` with required status checks **and at least one required approving review** — the checks make auto-merge land only green PRs, and the review requirement is what makes the held tier hold anything. Without it, arming a held PR is merging it: leave held updates unarmed instead.
+- **The `disarm-on-veto` job made a required status context** — a red disarm run only _blocks_ the armed merge if branch protection waits on it; otherwise the PR still lands once the unrelated required checks pass. Make the veto job always report (run unconditionally, succeed when there is nothing to disarm) and add its context to the required set.
 - **The policy job's own actions barred from bot updates** in the Dependabot config (`ignore:` entries for the metadata and token-minting actions): on `pull_request` events the workflow definition comes from the PR head, so a bot PR bumping one of these executes the PR-selected action code with the App key in scope **before** any tier logic runs — their pin changes must arrive as human PRs.
+- **Every label the workflows compute, created first** — the labeler derives `release:patch` / `release:minor` / `release:major`, and `gh pr edit --add-label` fails on a label that does not exist: `for t in patch minor major; do gh label create "release:$t"; done` (matching the no-space form the workflow writes).
 
 **a) Label by update type — `.github/workflows/dependabot-release-label.yaml`** (on `pull_request: [opened, reopened, synchronize]` — `synchronize` because an App's `update-branch` re-fires it; relabeling is idempotent)
 
@@ -83,7 +85,8 @@ jobs:
     # reopen or an App's update-branch re-fires these events on Dependabot's PR,
     # and an actor gate would skip exactly those re-runs.
     if: >-
-      github.event.pull_request.user.login == 'dependabot[bot]'
+      (github.event.pull_request.user.login == 'dependabot[bot]'
+      || github.event.pull_request.user.login == 'app/dependabot')
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
@@ -130,7 +133,8 @@ jobs:
     # must still be observable — the tier steps gate on it instead.
     if: >-
       github.event.action != 'labeled'
-      && github.event.pull_request.user.login == 'dependabot[bot]'
+      && (github.event.pull_request.user.login == 'dependabot[bot]'
+      || github.event.pull_request.user.login == 'app/dependabot')
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
@@ -200,7 +204,8 @@ jobs:
     if: >-
       github.event.action == 'labeled'
       && github.event.label.name == 'security-review-required'
-      && github.event.pull_request.user.login == 'dependabot[bot]'
+      && (github.event.pull_request.user.login == 'dependabot[bot]'
+      || github.event.pull_request.user.login == 'app/dependabot')
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
@@ -222,6 +227,9 @@ jobs:
           # can sit past page one), then VERIFY none remain — the verify carries the
           # fail-closed guarantee, since a failed substitution feeds a loop nothing
           # and exits green.
+          # This recipe posts approvals AS THE APP (type Bot). On the PAT
+          # alternative the automation's reviews are type User — match its login
+          # instead: select(.user.login == "<automation-account>").
           gh api --paginate "repos/${{ github.repository }}/pulls/$PR/reviews" \
             --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id' \
           | while read -r id; do
