@@ -34,7 +34,7 @@ jobs:
     steps:
       # The trusted judge: the base branch, the same place this workflow
       # definition was loaded from.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.base.ref }}
 
@@ -42,7 +42,7 @@ jobs:
       # under review — checked out into a subdirectory as data, never executed,
       # and with no credentials left behind in that checkout.
       - name: Check out the PR head
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr-head

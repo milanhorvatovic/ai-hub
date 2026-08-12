@@ -27,13 +27,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The corpus format and scorer come from the skill-system-foundry, pinned
       # by commit; refresh the pin deliberately alongside any corpus-contract
       # change.
       - name: Check out the pinned foundry
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: milanhorvatovic/skill-system-foundry
           ref: be14dfb78c71d7736b4b188e44ccdde8dc3b4e90
