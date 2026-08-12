@@ -224,11 +224,20 @@ def _operands(expression: str, operator: str) -> list[str]:
 
 
 def _unwrapped(conjunct: str) -> str:
-    """The conjunct without an enclosing parenthesis pair, when one wraps it whole."""
+    """The conjunct without an enclosing parenthesis pair, when one wraps it whole.
+
+    Quote-aware for the same reason `_operands` is: a parenthesis inside a quoted
+    string nests nothing, and counting it would read a wrapped guard that mentions
+    `')'` as ending early — opaque to the conjunct checks despite binding.
+    """
     while conjunct.startswith("(") and conjunct.endswith(")"):
-        depth = 0
+        depth, quoted = 0, False
         for index, char in enumerate(conjunct):
-            if char == "(":
+            if quoted:
+                quoted = char != "'"
+            elif char == "'":
+                quoted = True
+            elif char == "(":
                 depth += 1
             elif char == ")":
                 depth -= 1
