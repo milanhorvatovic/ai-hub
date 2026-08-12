@@ -243,7 +243,15 @@ def _conjuncts(expression: str) -> list[str]:
     `(A && B) && C` and `(A && B && C)` bind A, B, and C exactly as `A && B && C`
     does, so a pair wrapping an operand is removed and the operand re-split rather
     than read as one opaque conjunct the guard checks would then miss.
+
+    A bare `||` ends the decomposition instead: `&&` binds tighter, so
+    `A || B && C` means `A || (B && C)` and C binds nothing globally. Splitting on
+    `&&` anyway would report C as a conjunct — the exact bypass where deleting the
+    author group's parentheses keeps both pins green — so a disjunction is one
+    opaque operand, and the guard only passes in its parenthesized spelling.
     """
+    if len(_operands(expression, "||")) > 1:
+        return [" ".join(expression.split())]
     conjuncts = []
     for operand in _operands(expression, "&&"):
         unwrapped = _unwrapped(operand)
