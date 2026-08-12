@@ -31,12 +31,12 @@ gh secret   set AUTOMATION_PRIVATE_KEY < private-key.pem
 ## 2. Secret & variable stores
 
 - **Secret vs variable:** keys, tokens, and private keys are **secrets** (masked, write-only); non-sensitive ids and tuning knobs are **variables** (readable, shown in logs).
-- **Actions and Dependabot are separate stores.** A workflow **triggered by Dependabot** reads only the _Dependabot_ secret store; a workflow triggered by `push` / `pull_request` / `schedule` / `workflow_run` / `workflow_dispatch` reads only the _Actions_ store. A secret consumed from **both** contexts must be set in **both** stores under the same name — this is the single most common reason an autonomous-Dependabot flow only half-works.
+- **Actions and Dependabot are separate stores.** A run whose **triggering actor is Dependabot** reads only the _Dependabot_ secret store; a run triggered by any other actor — a human, an App, a schedule — reads only the _Actions_ store. A secret consumed from **both** contexts must be set in **both** stores under the same name — this is the single most common reason an autonomous-Dependabot flow only half-works.
 
-| Workflow triggered by | Reads secrets from |
+| Run triggered by | Reads secrets from |
 | --- | --- |
-| `dependabot` events | Dependabot store |
-| `push` / `pull_request` / `schedule` / `workflow_run` / `workflow_dispatch` | Actions store |
+| Dependabot's own events (its pushes, its PRs' `pull_request` runs) | Dependabot store |
+| any other actor's events (`push`, human/App-caused `pull_request`, `schedule`, `workflow_run`, `workflow_dispatch`) | Actions store |
 
 ```bash
 gh secret set AUTOMATION_PRIVATE_KEY < private-key.pem                   # Actions store

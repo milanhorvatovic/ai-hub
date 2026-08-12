@@ -72,7 +72,12 @@ A near-hands-off mechanism that labels, approves, and merges Dependabot PRs, wit
 permissions: { contents: read, pull-requests: write }
 jobs:
   add-release-label:
-    if: github.actor == 'dependabot[bot]'
+    # Gate on the PR's AUTHOR and an in-repo head, not github.actor: a maintainer's
+    # reopen or an App's update-branch re-fires these events on Dependabot's PR,
+    # and an actor gate would skip exactly those re-runs.
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]'
+      && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: dependabot/fetch-metadata@<sha>   # v2  -> outputs.update-type
@@ -83,6 +88,11 @@ jobs:
 
 ```yaml
 permissions: { contents: read, pull-requests: read }
+# Serialize per PR so a veto event cancels an in-flight arming run instead of
+# racing it (stale-snapshot TOCTOU); never cancel the disarm direction.
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: ${{ github.event.action == 'labeled' }}
 jobs:
   # For a built artifact (e.g. dist/): rebuild, then commit it AS THE APP via the
   # GraphQL createCommitOnBranch mutation — that lands a Verified commit and the
@@ -91,10 +101,13 @@ jobs:
   # re-run and the PR strands. A `built-artifact-verified` CI gate (ci-automation)
   # backstops a missed rebuild.
   auto-merge:
-    # Kill switch fails safe: unset reads as disabled. Log the resolved state in a
-    # real setup so deliberately-off is distinguishable from not-resolving.
+    # Author + in-repo head, not github.actor (see the label job). Kill switch
+    # fails safe: unset reads as disabled. Log the resolved state in a real setup
+    # so deliberately-off is distinguishable from not-resolving.
     if: >-
-      github.event.action != 'labeled' && github.actor == 'dependabot[bot]'
+      github.event.action != 'labeled'
+      && github.event.pull_request.user.login == 'dependabot[bot]'
+      && github.event.pull_request.head.repo.full_name == github.repository
       && vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -106,7 +119,9 @@ jobs:
       - id: meta
         uses: dependabot/fetch-metadata@<sha>   # v2
       # ELIGIBLE tier: patch/minor of an unprivileged dependency, no veto label ->
-      # approve + arm. Fail open: if this step can't run, the PR waits for a human.
+      # approve + arm. Both mutations fail OPEN — warn and stop, leaving a manual
+      # PR — and labels are RE-READ live first (the event payload is a stale
+      # snapshot; a veto applied since must win).
       - name: Approve and arm eligible updates
         if: >-
           contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
@@ -114,24 +129,32 @@ jobs:
           && !contains(github.event.pull_request.labels.*.name, 'security-review-required')
         env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
         run: |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --squash --auto "$PR_URL"
+          gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "security-review-required")' | grep -qx false \
+            || { echo "::warning::veto label present on live read; skipping"; exit 0; }
+          gh pr review --approve "$PR_URL" \
+            || { echo "::warning::approve failed; leaving for human review"; exit 0; }
+          gh pr merge --squash --auto "$PR_URL" \
+            || echo "::warning::arming failed; PR stays manual"
       # HELD tier: majors, and dependencies the automation itself runs on -> arm
-      # but never approve, so one human review is the ingredient that completes it.
+      # but never approve, so one human review is the ingredient that completes
+      # it. A veto label beats held: leave the PR untouched entirely.
       - name: Arm held updates without approving
         if: >-
-          !contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
-          || contains(steps.meta.outputs.dependency-names, '<privileged-dependency>')
+          (!contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
+          || contains(steps.meta.outputs.dependency-names, '<privileged-dependency>'))
+          && !contains(github.event.pull_request.labels.*.name, 'security-review-required')
         env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
-        run: gh pr merge --squash --auto "$PR_URL"
+        run: gh pr merge --squash --auto "$PR_URL" || echo "::warning::arming failed; PR stays manual"
 
-  # VETO tier: a hard-stop label applied after arming must disarm, and the disarm
+  # VETO tier: a hard-stop label applied after arming must disarm, whoever applied
+  # it (Dependabot can label its own PRs, so no actor exclusion), and the disarm
   # fails CLOSED — exit red unless auto-merge is confirmed off.
   disarm-on-veto:
     if: >-
       github.event.action == 'labeled'
       && github.event.label.name == 'security-review-required'
-      && github.actor != 'dependabot[bot]'
+      && github.event.pull_request.user.login == 'dependabot[bot]'
+      && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - id: app-token
@@ -156,8 +179,10 @@ jobs:
     steps:
       - name: Re-drive open Dependabot PRs (catch dropped events)
         run: |
-          # for each open dependabot PR: re-apply label, re-enable auto-merge,
-          # update-branch if behind. The hourly cron backstops missed webhooks.
+          # for each open dependabot PR: SKIP any PR carrying a veto label (the
+          # reconciler must never re-arm what the disarm job stopped), then
+          # re-apply label, re-enable auto-merge, update-branch if behind.
+          # The hourly cron backstops missed webhooks.
 ```
 
 Pin every action to a SHA; mint the bot token per job; never auto-merge major or security-flagged updates unattended.
