@@ -237,6 +237,23 @@ def _unwrapped(conjunct: str) -> str:
     return conjunct
 
 
+def _conjuncts(expression: str) -> list[str]:
+    """Every `&&` operand that binds the whole expression, parentheses flattened.
+
+    `(A && B) && C` and `(A && B && C)` bind A, B, and C exactly as `A && B && C`
+    does, so a pair wrapping an operand is removed and the operand re-split rather
+    than read as one opaque conjunct the guard checks would then miss.
+    """
+    conjuncts = []
+    for operand in _operands(expression, "&&"):
+        unwrapped = _unwrapped(operand)
+        if unwrapped == operand:
+            conjuncts.append(operand)
+        else:
+            conjuncts.extend(_conjuncts(unwrapped))
+    return conjuncts
+
+
 def _pull_request_minting_workflows() -> list[tuple[Path, dict]]:
     """Workflows that can mint the automation App token from a pull_request event.
 
@@ -249,8 +266,11 @@ def _pull_request_minting_workflows() -> list[tuple[Path, dict]]:
         document = _document(workflow)
         if not _events(document) & {"pull_request", "pull_request_target"}:
             continue
+        # Secret names and context property lookups are both case-insensitive on
+        # GitHub, so `secrets.oss_automation_bot_private_key` reads the same key —
+        # compared uppercased, or that spelling would evade the derivation.
         named = {
-            dotted or bracketed
+            (dotted or bracketed).upper()
             for expression in _expressions(document)
             for dotted, bracketed in _NAMED_SECRET.findall(expression)
         }
@@ -471,7 +491,7 @@ def test_every_pr_triggered_minting_job_acts_only_on_dependabots_own_prs() -> No
                 "that can mint the automation token on a pull_request event must "
                 "bind itself to Dependabot's own PRs"
             )
-            conjuncts = [_unwrapped(part) for part in _operands(condition, "&&")]
+            conjuncts = _conjuncts(condition)
             assert _SAME_REPO_COMPARISON in conjuncts, (
                 f"{workflow.name}:{name}: the same-repository comparison is not a "
                 "top-level conjunct of the job guard, so a fork's PR could reach the "
@@ -481,7 +501,7 @@ def test_every_pr_triggered_minting_job_acts_only_on_dependabots_own_prs() -> No
             author_logins = None
             for conjunct in conjuncts:
                 comparisons = [
-                    _PR_AUTHOR_COMPARISON.match(part)
+                    _PR_AUTHOR_COMPARISON.match(_unwrapped(part))
                     for part in _operands(conjunct, "||")
                 ]
                 if comparisons and all(comparisons):
@@ -504,11 +524,13 @@ def test_pr_triggered_minting_workflows_check_out_nothing() -> None:
     # inside the job holding the token. A checkout of any ref trips this on purpose —
     # the invariant worth pinning is the one with no exceptions to reason about.
     for workflow, document in _pull_request_minting_workflows():
+        # Action slugs resolve case-insensitively — `Actions/Checkout@…` runs the
+        # same action — so the comparison lowercases what the step declares.
         checkouts = [
             f"{workflow.name}:{name}"
             for name, job in _jobs(document).items()
             for step in (job or {}).get("steps") or []
-            if str((step or {}).get("uses") or "").partition("@")[0]
+            if str((step or {}).get("uses") or "").partition("@")[0].lower()
             == "actions/checkout"
         ]
         assert not checkouts, (
