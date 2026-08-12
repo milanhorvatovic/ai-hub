@@ -65,6 +65,7 @@ A near-hands-off mechanism that labels, approves, and merges Dependabot PRs, wit
 
 - A **GitHub App token** (`actions/create-github-app-token`) or a bot PAT — the default `GITHUB_TOKEN` cannot approve PRs or trigger the downstream required checks.
 - **Branch protection** on `main` with required status checks (so auto-merge only lands green PRs).
+- **The policy job's own actions barred from bot updates** in the Dependabot config (`ignore:` entries for the metadata and token-minting actions): on `pull_request` events the workflow definition comes from the PR head, so a bot PR bumping one of these executes the PR-selected action code with the App key in scope **before** any tier logic runs — their pin changes must arrive as human PRs.
 
 **a) Label by update type — `.github/workflows/dependabot-release-label.yaml`** (on `pull_request: [opened, reopened]`)
 
@@ -81,18 +82,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: dependabot/fetch-metadata@<sha>   # v2  -> outputs.update-type
-      - run: gh pr edit "$PR" --add-label "release:${LABEL}"   # map update-type -> label
+      - env: { PR_URL: ${{ github.event.pull_request.html_url }} }
+        run: gh pr edit "$PR_URL" --add-label "release:${LABEL}"   # map update-type -> label
 ```
 
 **b) Tiered approve + auto-merge — `.github/workflows/dependabot-auto-merge.yaml`** (on `pull_request: [opened, reopened, synchronize, labeled]`)
 
 ```yaml
 permissions: { contents: read, pull-requests: read }
-# Serialize per PR so a veto event cancels an in-flight arming run instead of
-# racing it (stale-snapshot TOCTOU); never cancel the disarm direction.
+# Serialize per PR so a VETO event cancels an in-flight arming run instead of
+# racing it (stale-snapshot TOCTOU). Routine label events (the release label lands
+# seconds after opening) must NOT cancel — they'd kill the arming run and their
+# own replacement skips the job; newer code snapshots may cancel older ones.
 concurrency:
   group: dependabot-auto-merge-${{ github.event.pull_request.number }}
-  cancel-in-progress: ${{ github.event.action == 'labeled' }}
+  cancel-in-progress: ${{ github.event.action != 'labeled' || github.event.label.name == 'security-review-required' }}
 jobs:
   # For a built artifact (e.g. dist/): rebuild, then commit it AS THE APP via the
   # GraphQL createCommitOnBranch mutation — that lands a Verified commit and the
@@ -101,22 +105,30 @@ jobs:
   # re-run and the PR strands. A `built-artifact-verified` CI gate (ci-automation)
   # backstops a missed rebuild.
   auto-merge:
-    # Author + in-repo head, not github.actor (see the label job). Kill switch
-    # fails safe: unset reads as disabled. Log the resolved state in a real setup
-    # so deliberately-off is distinguishable from not-resolving.
+    # Author + in-repo head, not github.actor (see the label job). The kill switch
+    # is NOT in this if: a skipped job can't log its state, and the off position
+    # must still be observable — the tier steps gate on it instead.
     if: >-
       github.event.action != 'labeled'
       && github.event.pull_request.user.login == 'dependabot[bot]'
       && github.event.pull_request.head.repo.full_name == github.repository
-      && vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
+      # Fail-safe switch, observably: unset reads as disabled, and every run logs
+      # the resolved state so deliberately-off is distinguishable from a variable
+      # that isn't resolving. Switching off stops new arming only — the reconciler
+      # disarms anything already armed (see c).
+      - name: Report kill-switch state
+        env: { ENABLED: ${{ vars.DEPENDABOT_AUTOMERGE_ENABLED }} }
+        run: echo "DEPENDABOT_AUTOMERGE_ENABLED='${ENABLED:-<unset>}'"
       - id: app-token
+        if: vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
         uses: actions/create-github-app-token@<sha>   # v2
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
       - id: meta
+        if: vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
         uses: dependabot/fetch-metadata@<sha>   # v2
       # ELIGIBLE tier: patch/minor of an unprivileged dependency, no veto label ->
       # approve + arm. Both mutations fail OPEN — warn and stop, leaving a manual
@@ -124,10 +136,13 @@ jobs:
       # snapshot; a veto applied since must win).
       - name: Approve and arm eligible updates
         if: >-
-          contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
+          vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
+          && contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
           && !contains(steps.meta.outputs.dependency-names, '<privileged-dependency>')
           && !contains(github.event.pull_request.labels.*.name, 'security-review-required')
-        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
           gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "security-review-required")' | grep -qx false \
             || { echo "::warning::veto label present on live read; skipping"; exit 0; }
@@ -135,16 +150,23 @@ jobs:
             || { echo "::warning::approve failed; leaving for human review"; exit 0; }
           gh pr merge --squash --auto "$PR_URL" \
             || echo "::warning::arming failed; PR stays manual"
-      # HELD tier: majors, and dependencies the automation itself runs on -> arm
+      # HELD tier: majors and privileged-but-not-in-this-job dependencies -> arm
       # but never approve, so one human review is the ingredient that completes
-      # it. A veto label beats held: leave the PR untouched entirely.
+      # it. Same live veto re-read: an armed PR with an existing human approval
+      # would otherwise merge the instant --auto lands, beating the disarm race.
       - name: Arm held updates without approving
         if: >-
-          (!contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
+          vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
+          && (!contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
           || contains(steps.meta.outputs.dependency-names, '<privileged-dependency>'))
           && !contains(github.event.pull_request.labels.*.name, 'security-review-required')
-        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
-        run: gh pr merge --squash --auto "$PR_URL" || echo "::warning::arming failed; PR stays manual"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "security-review-required")' | grep -qx false \
+            || { echo "::warning::veto label present on live read; skipping"; exit 0; }
+          gh pr merge --squash --auto "$PR_URL" || echo "::warning::arming failed; PR stays manual"
 
   # VETO tier: a hard-stop label applied after arming must disarm, whoever applied
   # it (Dependabot can label its own PRs, so no actor exclusion), and the disarm
@@ -162,11 +184,21 @@ jobs:
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
-      - name: Disable auto-merge and verify it took
-        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
+      - name: Disarm, dismiss the bot approval, and verify both took
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR: ${{ github.event.pull_request.number }}
         run: |
           gh pr merge --disable-auto "$PR_URL" || true
           test "$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest == null')" = "true"
+          # A pre-veto bot approval still satisfies the review rule — a human could
+          # merge on its strength. Dismiss it so the hard stop means a human review.
+          for id in $(gh api "repos/${{ github.repository }}/pulls/$PR/reviews" \
+                        --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id'); do
+            gh api -X PUT "repos/${{ github.repository }}/pulls/$PR/reviews/$id/dismissals" \
+              -f message="security-review-required" -f event="DISMISS"
+          done
 ```
 
 **c) Reconciler — `.github/workflows/dependabot-reconciler.yaml`** (on `schedule: hourly cron` + `workflow_run` + `workflow_dispatch`)
@@ -180,9 +212,11 @@ jobs:
       - name: Re-drive open Dependabot PRs (catch dropped events)
         run: |
           # for each open dependabot PR: SKIP any PR carrying a veto label (the
-          # reconciler must never re-arm what the disarm job stopped), then
-          # re-apply label, re-enable auto-merge, update-branch if behind.
-          # The hourly cron backstops missed webhooks.
+          # reconciler must never re-arm what the disarm job stopped). With the
+          # kill switch OFF, run in reverse: disarm still-armed bot PRs instead
+          # of arming — switching off must stop what's in flight, not only what's
+          # next. Otherwise re-apply label, re-enable auto-merge, update-branch
+          # if behind. The hourly cron backstops missed webhooks.
 ```
 
 Pin every action to a SHA; mint the bot token per job; never auto-merge major or security-flagged updates unattended.
