@@ -63,11 +63,11 @@ A near-hands-off mechanism that labels, approves, and merges Dependabot PRs, wit
 
 **Prerequisites**
 
-- A **GitHub App token** (`actions/create-github-app-token`) or a bot PAT — the default `GITHUB_TOKEN` cannot approve PRs or trigger the downstream required checks.
-- **Branch protection** on `main` with required status checks (so auto-merge only lands green PRs).
+- A **GitHub App token** (`actions/create-github-app-token`) or a bot PAT — the default `GITHUB_TOKEN` triggers no downstream required checks and approves only behind the off-by-default Actions-can-approve setting.
+- **Branch protection** on `main` with required status checks **and at least one required approving review** — the checks make auto-merge land only green PRs, and the review requirement is what makes the held tier hold anything. Without it, arming a held PR is merging it: leave held updates unarmed instead.
 - **The policy job's own actions barred from bot updates** in the Dependabot config (`ignore:` entries for the metadata and token-minting actions): on `pull_request` events the workflow definition comes from the PR head, so a bot PR bumping one of these executes the PR-selected action code with the App key in scope **before** any tier logic runs — their pin changes must arrive as human PRs.
 
-**a) Label by update type — `.github/workflows/dependabot-release-label.yaml`** (on `pull_request: [opened, reopened]`)
+**a) Label by update type — `.github/workflows/dependabot-release-label.yaml`** (on `pull_request: [opened, reopened, synchronize]` — `synchronize` because an App's `update-branch` re-fires it; relabeling is idempotent)
 
 ```yaml
 permissions: { contents: read, pull-requests: write }
@@ -165,8 +165,10 @@ jobs:
             || echo "::warning::arming failed; PR stays manual"
       # HELD tier: majors and privileged-but-not-in-this-job dependencies -> arm
       # but never approve, so one human review is the ingredient that completes
-      # it. Same live veto re-read: an armed PR with an existing human approval
-      # would otherwise merge the instant --auto lands, beating the disarm race.
+      # it. ONLY valid with a required-approving-review branch rule (see the
+      # prerequisites) — with no review rule, arming is merging. Same live veto
+      # re-read: an armed PR with an existing human approval would otherwise
+      # merge the instant --auto lands, beating the disarm race.
       - name: Arm held updates without approving
         if: >-
           vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
@@ -233,9 +235,11 @@ jobs:
           # for each open dependabot PR: SKIP any PR carrying a veto label (the
           # reconciler must never re-arm what the disarm job stopped). With the
           # kill switch OFF, run in reverse: disarm still-armed bot PRs instead
-          # of arming — switching off must stop what's in flight, not only what's
-          # next. Otherwise re-apply label, re-enable auto-merge, update-branch
-          # if behind. The hourly cron backstops missed webhooks.
+          # of arming. A variable change fires no event, so the stop procedure is
+          # two steps: flip the variable, then DISPATCH this workflow — that pass,
+          # not the flip, is what stops in-flight PRs; the cron is only a backstop.
+          # Otherwise re-apply label, re-enable auto-merge, update-branch if
+          # behind. The hourly cron backstops missed webhooks.
 ```
 
 Pin every action to a SHA; mint the bot token per job; never auto-merge major or security-flagged updates unattended.
