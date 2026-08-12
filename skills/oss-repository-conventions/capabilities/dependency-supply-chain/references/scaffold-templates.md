@@ -198,23 +198,30 @@ jobs:
           gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "security-review-required")' | grep -qx false \
             || { echo "::warning::veto label present on live read; skipping"; exit 0; }
           # Dismiss any prior App approval so "held == never approved" survives an
-          # eligible->held reclassification (same paginated form as the veto job).
+          # eligible->held reclassification, then VERIFY none remain — arming with a
+          # stale approval still standing would merge without a human.
           gh api --paginate "repos/${{ github.repository }}/pulls/$PR/reviews" \
             --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id' \
           | while read -r id; do
               gh api -X PUT "repos/${{ github.repository }}/pulls/$PR/reviews/$id/dismissals" \
-                -f message="held: needs human review" || true
+                -f message="held: needs human review"
             done
+          remaining="$(gh api --paginate "repos/${{ github.repository }}/pulls/$PR/reviews" \
+            --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id')"
+          [ -z "$remaining" ] || { echo "::warning::a bot approval survived dismissal; not arming"; exit 0; }
           gh pr merge --squash --auto "$PR_URL" || echo "::warning::arming failed; PR stays manual"
 
-  # VETO tier: a hard-stop label applied after arming must disarm, whoever applied
-  # it (Dependabot can label its own PRs, so no actor exclusion), and the disarm
+  # VETO tier: a hard-stop label disarms, whoever applied it (Dependabot can label
+  # its own PRs, so no actor exclusion). This job runs on EVERY bot-PR event and
+  # branches on the CURRENT labels rather than gating on `action == labeled`: if it
+  # gated on the label event alone, a later synchronize/reopened while the label
+  # persists would skip it, and a skipped required context replaces its own red
+  # result on the new head while auto-merge is still armed. Always-report also lets
+  # it serve as the required disarm context (see prerequisites). The disarm itself
   # fails CLOSED — exit red unless auto-merge is confirmed off.
   disarm-on-veto:
     if: >-
-      github.event.action == 'labeled'
-      && github.event.label.name == 'security-review-required'
-      && (github.event.pull_request.user.login == 'dependabot[bot]'
+      (github.event.pull_request.user.login == 'dependabot[bot]'
       || github.event.pull_request.user.login == 'app/dependabot')
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -224,12 +231,15 @@ jobs:
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
-      - name: Disarm, dismiss the bot approval, and verify both took
+      - name: Disarm on veto, dismiss the bot approval, verify both took
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR: ${{ github.event.pull_request.number }}
         run: |
+          # Read the label live off the current head; no veto -> nothing to hold,
+          # succeed so the required context reports green on this head.
+          gh pr view "$PR_URL" --json labels             --jq 'any(.labels[]; .name == "security-review-required")' | grep -qx true             || { echo "no veto label on the current head; nothing to disarm"; exit 0; }
           gh pr merge --disable-auto "$PR_URL" || true
           test "$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest == null')" = "true"
           # A pre-veto bot approval still satisfies the review rule — a human could
