@@ -206,12 +206,18 @@ jobs:
           gh pr merge --disable-auto "$PR_URL" || true
           test "$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest == null')" = "true"
           # A pre-veto bot approval still satisfies the review rule — a human could
-          # merge on its strength. Dismiss it so the hard stop means a human review.
-          for id in $(gh api "repos/${{ github.repository }}/pulls/$PR/reviews" \
-                        --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id'); do
-            gh api -X PUT "repos/${{ github.repository }}/pulls/$PR/reviews/$id/dismissals" \
-              -f message="security-review-required"
-          done
+          # merge on its strength. Dismiss ALL of them (paginated: an older approval
+          # can sit past page one), then VERIFY none remain — the verify carries the
+          # fail-closed guarantee, since a failed substitution feeds a loop nothing
+          # and exits green.
+          gh api --paginate "repos/${{ github.repository }}/pulls/$PR/reviews" \
+            --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id' \
+          | while read -r id; do
+              gh api -X PUT "repos/${{ github.repository }}/pulls/$PR/reviews/$id/dismissals" \
+                -f message="security-review-required"
+            done
+          test -z "$(gh api --paginate "repos/${{ github.repository }}/pulls/$PR/reviews" \
+            --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id')"
 ```
 
 **c) Reconciler — `.github/workflows/dependabot-reconciler.yaml`** (on `schedule: hourly cron` + `workflow_run` + `workflow_dispatch`)
