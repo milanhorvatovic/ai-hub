@@ -74,7 +74,7 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 
 - `autonomy-level-appropriate` — **could**. Pass when the rung fits the repo's risk and PR volume (a flooded repo stuck at L1 is toil; a high-blast-radius repo at L4 without gates is risk). Match autonomy to context.
 - `autonomy-guardrails-complete` — **should** (when above L1). Fail when the current rung lacks a guardrail it requires (e.g. auto-merge with no required checks, or auto-approve via `GITHUB_TOKEN`). Ungated autonomy merges unreviewed or red changes.
-- `autonomy-hard-stops` — **should** (when above L1). Fail when major/security/breaking changes aren't excluded from the automation, or when a hard-stop label applied after arming can't disarm an already-armed auto-merge. These must always reach a human, including late.
+- `autonomy-hard-stops` — **should** (when above L1). Fail when major/security/breaking changes can complete without a human's approval, or when a hard-stop label applied after arming can't disarm an already-armed auto-merge. Armed-but-never-approved is a compliant hold — the automation may arm these, so long as only a human review can complete them, including late.
 - `autonomy-scoped-identity` — **should** (when above L1). Fail when approval/merge runs as the default token or an over-scoped PAT. Least-privilege limits blast radius.
 - `autonomy-escape-hatch` — **could** (when above L2). Pass when there's a one-switch disable that fails safe (unset reads as off, resolved state logged) and auto-disable on security review. Operators need a fast stop that can't be on by accident.
 

@@ -24,7 +24,7 @@ gh variable set AUTOMATION_CLIENT_ID --body "<client-id>"
 gh secret   set AUTOMATION_PRIVATE_KEY < private-key.pem
 ```
 
-- **Key format gotcha:** `actions/create-github-app-token` accepts **PKCS#8** private keys only. An OpenSSH-format key uploads fine and then fails every run at the mint step — convert before storing (`openssl pkcs8 -topk8 -nocrypt`), and treat a mint-step failure right after provisioning as a format problem before anything else.
+- **Key format gotcha:** store the key file **exactly as downloaded** from the App settings page — a PEM (`BEGIN RSA PRIVATE KEY`) the mint action consumes directly. A key in any other container — most commonly OpenSSH's `BEGIN OPENSSH PRIVATE KEY` from a stray `ssh-keygen` — uploads without complaint and then fails every run at the mint step. The fix is re-downloading GitHub's PEM (or `ssh-keygen -p -m PEM` to convert in place); treat a mint failure right after provisioning as a key-format problem before anything else.
 
 **Two-App split (blast radius).** When automations span risk tiers, give each tier its own App — e.g. a lower-risk automation identity (labels, artifact pushes, branch updates) kept separate from a higher-risk release identity (tags, releases, moving the major tag) — so leaking the lower-risk key doesn't force rotating the release key. One App is fine to start; split when a single identity would otherwise hold both routine-write and release authority.
 
@@ -79,7 +79,7 @@ The repo-infrastructure capability owns merge-policy / settings depth; these are
 
 ## 6. Code-owner approval identity
 
-When the branch ruleset requires **code-owner review** (`branch-protection.md`, against the `CODEOWNERS` file the governance capability owns), the approving automation identity must **itself be a code-owner**. Otherwise `gh pr review --approve` exits 0 but the authoritative `reviewDecision` stays `REVIEW_REQUIRED` and nothing merges. The default `GITHUB_TOKEN` cannot approve at all, and a bot cannot approve its own PR. The hard edge: `CODEOWNERS` accepts only users and teams — an App can be a code-owner only through an org team, and **never on a personal-account repo**. The two ways through (a code-owner PAT, or reshaping the rule so App approvals suffice) are a maintainer decision weighed in `automation-identity.md` § "Code-owner review and automation" — provision whichever was chosen; don't assume the PAT.
+When the branch ruleset requires **code-owner review** (`branch-protection.md`, against the `CODEOWNERS` file the governance capability owns), the approving automation identity must **itself be a code-owner**. Otherwise `gh pr review --approve` exits 0 but the authoritative `reviewDecision` stays `REVIEW_REQUIRED` and nothing merges. The default `GITHUB_TOKEN` cannot approve at all, and a bot cannot approve its own PR. The hard edge: `CODEOWNERS` resolves to users and teams, and an App is neither a user nor a possible team member — **an App can never be a code-owner, in any repository**. The two ways through (a code-owner PAT, or reshaping the rule so App approvals suffice) are a maintainer decision weighed in `automation-identity.md` § "Code-owner review and automation" — provision whichever was chosen; don't assume the PAT.
 
 ## Prerequisites by autonomy rung
 

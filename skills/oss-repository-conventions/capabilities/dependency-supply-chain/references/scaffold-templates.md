@@ -79,7 +79,7 @@ jobs:
       - run: gh pr edit "$PR" --add-label "release:${LABEL}"   # map update-type -> label
 ```
 
-**b) Approve + auto-merge safe updates — `.github/workflows/dependabot-auto-merge.yaml`** (on `pull_request`)
+**b) Tiered approve + auto-merge — `.github/workflows/dependabot-auto-merge.yaml`** (on `pull_request: [opened, reopened, synchronize, labeled]`)
 
 ```yaml
 permissions: { contents: read, pull-requests: read }
@@ -91,7 +91,11 @@ jobs:
   # re-run and the PR strands. A `built-artifact-verified` CI gate (ci-automation)
   # backstops a missed rebuild.
   auto-merge:
-    if: github.actor == 'dependabot[bot]'
+    # Kill switch fails safe: unset reads as disabled. Log the resolved state in a
+    # real setup so deliberately-off is distinguishable from not-resolving.
+    if: >-
+      github.event.action != 'labeled' && github.actor == 'dependabot[bot]'
+      && vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
       - id: app-token
@@ -101,13 +105,45 @@ jobs:
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
       - id: meta
         uses: dependabot/fetch-metadata@<sha>   # v2
-      - name: Approve and enable auto-merge for patch/minor
-        if: contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
+      # ELIGIBLE tier: patch/minor of an unprivileged dependency, no veto label ->
+      # approve + arm. Fail open: if this step can't run, the PR waits for a human.
+      - name: Approve and arm eligible updates
+        if: >-
+          contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
+          && !contains(steps.meta.outputs.dependency-names, '<privileged-dependency>')
+          && !contains(github.event.pull_request.labels.*.name, 'security-review-required')
         env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
         run: |
           gh pr review --approve "$PR_URL"
           gh pr merge --squash --auto "$PR_URL"
-      # Major and security-flagged PRs are intentionally left for human review.
+      # HELD tier: majors, and dependencies the automation itself runs on -> arm
+      # but never approve, so one human review is the ingredient that completes it.
+      - name: Arm held updates without approving
+        if: >-
+          !contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
+          || contains(steps.meta.outputs.dependency-names, '<privileged-dependency>')
+        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
+        run: gh pr merge --squash --auto "$PR_URL"
+
+  # VETO tier: a hard-stop label applied after arming must disarm, and the disarm
+  # fails CLOSED — exit red unless auto-merge is confirmed off.
+  disarm-on-veto:
+    if: >-
+      github.event.action == 'labeled'
+      && github.event.label.name == 'security-review-required'
+      && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - id: app-token
+        uses: actions/create-github-app-token@<sha>   # v2
+        with:
+          client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
+      - name: Disable auto-merge and verify it took
+        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
+        run: |
+          gh pr merge --disable-auto "$PR_URL" || true
+          test "$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest == null')" = "true"
 ```
 
 **c) Reconciler — `.github/workflows/dependabot-reconciler.yaml`** (on `schedule: hourly cron` + `workflow_run` + `workflow_dispatch`)
