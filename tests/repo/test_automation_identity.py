@@ -81,9 +81,10 @@ _WRITE_GRANTS = {
 # The one place an outside contributor's input meets a write-capable identity is a
 # workflow that both triggers on a pull_request event and can mint the automation App
 # token. Its trust model, stated where that workflow declares its trigger, is held here
-# as three pins: every job binds itself to Dependabot as the PR author and to a head
-# branch inside this repository, and the workflow checks out nothing. Each is one
-# `if:` edit away from silently widening, and nothing else checks them.
+# as four pins: every job binds itself to Dependabot as the PR author and to a head
+# branch inside this repository, the workflow checks out nothing, and no PR-triggered
+# workflow delegates a job to a reusable workflow the first three cannot see into.
+# Each is one edit away from silently widening, and nothing else checks them.
 _DEPENDABOT_LOGINS = frozenset({"dependabot[bot]", "app/dependabot"})
 _SAME_REPO_COMPARISON = (
     "github.event.pull_request.head.repo.full_name == github.repository"
@@ -267,7 +268,8 @@ def _pull_request_minting_workflows() -> list[tuple[Path, dict]]:
 
     Derived rather than named so a future workflow that reaches the key from a
     pull_request or pull_request_target trigger meets the guard pins the day it lands,
-    not the day someone re-reads it.
+    not the day someone re-reads it. Reads one document at a time, which is sound only
+    while the delegation pin below keeps reusable-workflow calls off PR triggers.
     """
     minting = []
     for workflow in _workflows():
@@ -546,3 +548,31 @@ def test_pr_triggered_minting_workflows_check_out_nothing() -> None:
             f"{', '.join(checkouts)} — this workflow's trust model is that it checks "
             "out nothing; run checkouts in a separate workflow with no App key"
         )
+
+
+def test_pr_triggered_workflows_delegate_no_jobs_to_reusable_workflows() -> None:
+    # The minting derivation correlates a PR trigger with a key reference inside one
+    # document, and a reusable-workflow call is the edge that breaks that assumption:
+    # a local callee can read the key in its own document — an environment secret
+    # needs no mention in the caller — while carrying no PR trigger, so caller and
+    # callee each look innocent and the token-bearing path sits outside every pin
+    # above; a remote callee's steps are not in the tree for the checkout pin to read
+    # at all. No workflow delegates a job today, so the edge is rejected outright — a
+    # legitimate call arrives together with the transitive traversal that makes its
+    # closure visible to these pins.
+    delegating = []
+    for workflow in _workflows():
+        document = _document(workflow)
+        if not _events(document) & {"pull_request", "pull_request_target"}:
+            continue
+        delegating += [
+            f"{workflow.name}:{name} uses {job['uses']}"
+            for name, job in _jobs(document).items()
+            if "uses" in (job or {})
+        ]
+    assert not delegating, (
+        f"reusable-workflow calls in PR-triggered workflows: {', '.join(delegating)} "
+        "— the minting pins read one document at a time, so a call edge moves the "
+        "token-bearing path outside their sight; teach "
+        "_pull_request_minting_workflows to traverse the closure before admitting one"
+    )
