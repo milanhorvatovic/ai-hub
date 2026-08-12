@@ -3,9 +3,15 @@
 The rule and the per-workflow audit live in `docs/adr/0002-automation-identity.md`.
 These pin the things about it that go stale silently: a job gaining default-token write
 access without anyone re-reading the rule, a secret-backed identity arriving that no
-audit row accounts for, and a workflow arriving that the audit never covered. The two
-identity checks are complements — a `permissions:` block governs only the default token,
-so it can never be the whole answer to which jobs act as something.
+audit row accounts for, and a workflow arriving that the audit never covered.
+
+The two job-level pins answer different questions, stated once in the ADR's "Two
+pins, two questions": the event-authoring set pins which jobs hold a write scope able
+to author an event other workflows could be triggered by, and the write inventory pins
+every scope any job grants the default token, exempt ones included. Neither is the
+whole answer to which jobs act as something — a `permissions:` block governs only the
+default token — so the secret check pairs every secret-backed identity with the audit
+row that names it.
 
 These read the parsed document rather than its text. An earlier version matched YAML by
 regex and five review rounds each found a legal spelling it could not see — quoted keys,
@@ -24,11 +30,11 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WORKFLOW_DIR = _REPO_ROOT / ".github" / "workflows"
 _ADR = _REPO_ROOT / "docs" / "adr" / "0002-automation-identity.md"
 
-# The jobs the ADR's audit records as write-privileged, and why each earns it:
-# uploading release assets, uploading the catalog manifest. The release-please job is
-# deliberately absent — it writes through a minted App token, so its default token
-# stays on the read-only floor.
-_WRITE_PRIVILEGED_JOBS = {
+# The jobs holding default-token write scopes able to author events — the set the
+# cascade rule turns on — and why each earns it: uploading release assets, uploading
+# the catalog manifest. The release-please job is deliberately absent — it writes
+# through a minted App token, so its default token stays on the read-only floor.
+_EVENT_AUTHORING_JOBS = {
     ("release-please.yml", "bundle"),
     ("release-please.yml", "catalog-publish"),
 }
@@ -44,12 +50,30 @@ _WRITE_PRIVILEGED_JOBS = {
 # `security-events` belongs here for a reason worth writing down, because it reads like
 # it should not. Uploading results does create code-scanning alerts, and
 # `code_scanning_alert` is a real webhook — but it is not one of the events that start
-# an Actions run, so no workflow exists for the suppression rule to withhold. The scope
-# is a privilege; this guard is about identity and cascade, and conflating the two is
+# an Actions run, so no workflow exists for the suppression rule to withhold. Checked
+# 2026-08-12 against GitHub's "Events that trigger workflows" reference, which has no
+# code_scanning_alert entry while the webhook reference does. That list is GitHub's to
+# grow, so doubt is answered by re-checking it there, dated — not by re-arguing here —
+# and a scope it gains moves out of this set. Exemption is routing, not invisibility:
+# every scope here is still counted by the write inventory below, because a privilege
+# is a privilege whether or not its events cascade — conflating those two questions is
 # what the rename in this file's history was correcting.
 _NON_AUTHORING_SCOPES = frozenset({"security-events", "id-token", "attestations"})
 
+# Every write scope any job grants the default token — the privilege question, with the
+# exempt scopes counted. `id-token: write` is why the two pins are separate: the OIDC
+# token it mints proves this repository's identity to services that grant access on
+# their side, a larger capability than most authoring scopes, and a set scoped to
+# cascade alone would report it as no grant at all.
+_WRITE_GRANTS = {
+    ("codeql.yml", "analyze"): frozenset({"security-events"}),
+    ("release-please.yml", "bundle"): frozenset({"contents", "id-token", "attestations"}),
+    ("release-please.yml", "catalog-publish"): frozenset({"contents", "id-token", "attestations"}),
+    ("scorecard.yml", "analyze"): frozenset({"security-events", "id-token"}),
+}
+
 _ANY_GRANT = frozenset({"*"})
+_CODE_SPAN = re.compile(r"`([^`]+)`")
 _EXPRESSION = re.compile(r"\$\{\{(.+?)\}\}", re.S)
 _NAMED_SECRET = re.compile(r"""secrets(?:\.([A-Za-z_]\w*)|\[\s*['"]([A-Za-z_]\w*)['"]\s*\])""")
 _ANY_SECRETS_MENTION = re.compile(r"\bsecrets\b")
@@ -103,15 +127,16 @@ def _expressions(node: object) -> list[str]:
     return []
 
 
-def _audit_section(adr: str) -> str:
-    """The ADR's per-workflow audit, alone — not the whole document.
+def _section(adr: str, heading: str) -> str:
+    """One `###` section of the ADR, alone — not the whole document.
 
-    Asking whether the file mentions a workflow anywhere would pass on a name that
-    appears only in the prose around the table, which is not what being audited means.
+    Asking whether the file mentions something anywhere would pass on a name that
+    appears only in prose outside the section that vouches for it, which is not what
+    being recorded there means.
     """
-    _, _, after = adr.partition("### What each workflow uses today")
+    _, _, after = adr.partition(heading)
     section, _, _ = after.partition("\n### ")
-    assert section.strip(), "the ADR's audit section was not found under its heading"
+    assert section.strip(), f"the ADR section {heading!r} was not found under its heading"
     return section
 
 
@@ -138,26 +163,106 @@ def test_every_workflow_declares_a_read_only_floor() -> None:
         )
 
 
-def test_only_the_release_jobs_elevate_the_default_token() -> None:
-    # Named for what it reads. A `permissions:` block governs the default token and
-    # nothing else, so this cannot be the check for "which jobs may author events" —
-    # both Dependabot workflows author reviews, auto-merge state, and a synchronize
-    # event through a secret-backed identity, and no permissions block mentions it.
-    # That half belongs to the secret guard below, which pairs every secret a workflow
-    # reads with the audit row naming it. Derived from the tree rather than counted, so
-    # a newly elevated job fails here and sends its author to the rule.
-    elevated = {
+def test_only_the_release_jobs_hold_event_authoring_write_scopes() -> None:
+    # Named for its contract: the cascade question, so the exempt scopes are invisible
+    # here on purpose and the inventory test below counts them. A `permissions:` block
+    # governs the default token and nothing else, so this cannot be the check for
+    # "which jobs may author events" either — both Dependabot workflows author reviews,
+    # auto-merge state, and a synchronize event through a secret-backed identity, and
+    # no permissions block mentions it. That half belongs to the secret guard below,
+    # which pairs every secret a workflow reads with the audit row naming it. Derived
+    # from the tree rather than counted, so a newly elevated job fails here and sends
+    # its author to the rule.
+    authoring = {
         (workflow.name, name)
         for workflow in _workflows()
         for name, job in _jobs(_document(workflow)).items()
         if _grants((job or {}).get("permissions"), _NON_AUTHORING_SCOPES)
     }
 
-    assert elevated == _WRITE_PRIVILEGED_JOBS, (
-        "a job's default-token write access changed; the identity it acts "
-        "as is a decision, so read docs/adr/0002-automation-identity.md before updating "
-        f"this set (added: {sorted(elevated - _WRITE_PRIVILEGED_JOBS)}, "
-        f"removed: {sorted(_WRITE_PRIVILEGED_JOBS - elevated)})"
+    assert authoring == _EVENT_AUTHORING_JOBS, (
+        "the event-authoring set changed: a job's default token gained or lost write "
+        "access able to author an event other workflows can be triggered by. The "
+        "identity it acts as is a decision, so read docs/adr/0002-automation-identity.md "
+        f"before updating this set (added: {sorted(authoring - _EVENT_AUTHORING_JOBS)}, "
+        f"removed: {sorted(_EVENT_AUTHORING_JOBS - authoring)})"
+    )
+
+
+def test_every_write_scope_a_job_holds_is_pinned() -> None:
+    # Named for the other contract: privilege rather than cascade. This reads what the
+    # default token may write at all, so a job gaining `id-token: write` fails here as
+    # the deliberate edit it is without being mislabeled as event-authoring. Derived
+    # with no exemption — the inventory and the exemption list must never share a
+    # blind spot.
+    granted = {
+        (workflow.name, name): grants
+        for workflow in _workflows()
+        for name, job in _jobs(_document(workflow)).items()
+        if (grants := _grants((job or {}).get("permissions"), exempt=frozenset()))
+    }
+
+    differing = [
+        f"{workflow}:{job} holds {sorted(granted.get((workflow, job), ()))} "
+        f"but pins {sorted(_WRITE_GRANTS.get((workflow, job), ()))}"
+        for workflow, job in sorted(set(granted) | set(_WRITE_GRANTS))
+        if granted.get((workflow, job)) != _WRITE_GRANTS.get((workflow, job))
+    ]
+    assert not differing, (
+        "the write inventory changed: this is the privilege pin, not the "
+        "event-authoring set — it counts every scope the default token can write, "
+        "exempt ones included. A new grant is a decision, so read "
+        "docs/adr/0002-automation-identity.md and update the inventory and its ADR "
+        f"table together ({'; '.join(differing)})"
+    )
+
+
+def test_each_exempt_scope_is_counted_by_the_inventory() -> None:
+    # The division of labor, held per exempt scope: the event-authoring read may skip a
+    # scope only while the inventory read counts it. If either half fails, the
+    # exemption has stopped being routing and become a hole — a write the authoring set
+    # skips and the inventory misses would be a grant no guard sees.
+    for scope in sorted(_NON_AUTHORING_SCOPES):
+        declaration = {scope: "write"}
+        assert not _grants(declaration, _NON_AUTHORING_SCOPES), (
+            f"the event-authoring read no longer exempts `{scope}: write`; if GitHub's "
+            "trigger list grew an event for it, move the scope out of the exemption — "
+            "otherwise fix the read"
+        )
+        assert _grants(declaration, exempt=frozenset()) == {scope}, (
+            f"the inventory read does not count `{scope}: write`; an exempt scope must "
+            "still be a counted grant"
+        )
+
+
+def test_the_adr_inventory_table_matches_the_pinned_grants() -> None:
+    # The inventory pin's failure message says to update the set and the ADR's table
+    # together; this is what makes "together" a contract rather than an instruction.
+    # Both directions are the same defect — a grant the table does not document, and a
+    # row documenting a grant no job holds, are each a hand-written copy of a
+    # measurement drifting from the measurement.
+    section = _section(_ADR.read_text(encoding="utf-8"), "### Two pins, two questions")
+
+    documented = set()
+    for row in section.splitlines():
+        cells = [cell for cell in row.split("|") if cell.strip()]
+        if len(cells) < 2 or not _CODE_SPAN.search(cells[0]):
+            continue
+        stem, *jobs = _CODE_SPAN.findall(cells[0])
+        documented |= {
+            (stem, job, scope) for job in jobs for scope in _CODE_SPAN.findall(cells[1])
+        }
+
+    pinned = {
+        (Path(workflow).stem, job, scope)
+        for (workflow, job), scopes in _WRITE_GRANTS.items()
+        for scope in scopes
+    }
+    assert documented == pinned, (
+        "the ADR's inventory table and the pinned write grants disagree — they change "
+        "together, per docs/adr/0002-automation-identity.md "
+        f"(undocumented: {sorted(pinned - documented)}, "
+        f"stale rows: {sorted(documented - pinned)})"
     )
 
 
@@ -166,7 +271,7 @@ def test_every_secret_a_workflow_uses_is_named_in_its_own_audit_row() -> None:
     # the row is the unit, not the table: a secret named somewhere in the audit says
     # nothing about the workflow now reading it, so each is checked against the rows
     # that speak for it.
-    audit = _audit_section(_ADR.read_text(encoding="utf-8"))
+    audit = _section(_ADR.read_text(encoding="utf-8"), "### What each workflow uses today")
 
     total, unrecorded, inherited, unauditable = 0, [], [], []
     for workflow in _workflows():
@@ -221,7 +326,7 @@ def test_every_secret_a_workflow_uses_is_named_in_its_own_audit_row() -> None:
 def test_the_audit_covers_every_workflow() -> None:
     # An audit is only as good as its coverage, and a new workflow is exactly what it
     # would miss. Each is named by its stem, in backticks, inside the audit itself.
-    audit = _audit_section(_ADR.read_text(encoding="utf-8"))
+    audit = _section(_ADR.read_text(encoding="utf-8"), "### What each workflow uses today")
     missing = [w.name for w in _workflows() if f"`{w.stem}`" not in audit]
 
     assert not missing, (
