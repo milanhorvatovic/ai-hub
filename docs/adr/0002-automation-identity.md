@@ -36,11 +36,28 @@ The three are complementary rather than alternatives, and this repository exerci
 
 | Workflow | Identity | Verdict |
 | --- | --- | --- |
-| `action-pins`, `change-intent`, `codeql`, `description-eval`, `lint`, `scorecard`, `tests` | `GITHUB_TOKEN`, read-only floor with per-job elevation | Correct — none of them authors an event. `codeql` does write, elevating `security-events: write` to upload findings, which cascades nothing; `scorecard` elevates the same scope for its SARIF upload plus `id-token: write`, an OIDC proof of repository identity for publishing to the public Scorecard API — a grant on the OIDC provider's side, not on this repository, and it starts nothing here either |
+| `action-pins`, `change-intent`, `codeql`, `description-eval`, `lint`, `scorecard`, `tests` | `GITHUB_TOKEN`, read-only floor with per-job elevation | Correct — none of them authors an event. `codeql` does write, elevating `security-events: write` to upload findings, and `scorecard` elevates the same scope for its SARIF upload plus `id-token: write`, an OIDC proof of repository identity for publishing to the public Scorecard API. Those are real grants, counted in the write inventory below; what neither job can do is start a workflow here — a code-scanning upload emits no Actions-triggering event, and the OIDC grant is on the provider's side, not on this repository |
 | `release-please` (the release-please step) | The `oss-release-bot` App, a token minted per run from `OSS_RELEASE_BOT_CLIENT_ID` and `OSS_RELEASE_BOT_PRIVATE_KEY` | Correct — it pushes the release branch and opens the PR, and those App-authored events re-run the required checks |
 | `release-please` (`bundle`, `catalog-publish`, `catalog-preview`) | `GITHUB_TOKEN` | Correct — uploading release assets need not cascade, and `catalog-preview` is the read-only dry run. The `bundle` job lives inside the release workflow precisely so it does not depend on a Release event that the default token cannot produce |
 | `dependabot-auto-merge` (approve, arm, disarm) | The `oss-automation-bot` App, a token minted per run from `OSS_AUTOMATION_BOT_CLIENT_ID` and `OSS_AUTOMATION_BOT_PRIVATE_KEY` in the Dependabot secret store; `GITHUB_TOKEN` for the metadata read | Correct — the App's approval satisfies the one-review requirement, its events fire workflows, and reading update metadata needs nothing more than the default |
 | `dependabot-reconciler` (update-branch, re-arm) | The `oss-automation-bot` App, the same `OSS_AUTOMATION_BOT_CLIENT_ID` and `OSS_AUTOMATION_BOT_PRIVATE_KEY` pair read from the Actions secret store | Correct — a push an App should make, and the `synchronize` events it causes re-run the policy workflow |
+
+### Two pins, two questions
+
+The audit above is held to the tree by structural tests in `tests/repo/test_automation_identity.py`, and the two that read `permissions:` blocks deliberately answer different questions:
+
+- **The event-authoring set** — which jobs hold a default-token write scope able to author an event other workflows could be triggered by. This is the cascade question the rule turns on, and it exempts `security-events`, `id-token`, and `attestations`, whose writes start nothing here. The exemption is a claim about GitHub's product, not about this repository — it was verified against GitHub's "Events that trigger workflows" reference on 2026-08-12, and doubt about it is answered by re-checking that list, dated, rather than by re-arguing the set.
+- **The write inventory** — every scope any job grants the default token, exempt ones included. This is the privilege question, and it exists because the two sets genuinely differ: `id-token: write` mints an OIDC token that proves this repository's identity to services granting access on their own side, a larger capability than most authoring scopes, and under the cascade contract alone it reads as no grant at all.
+
+What the default token may write today, job by job — the pinned inventory the tests hold this table to:
+
+| Job | Write scopes | Why it holds them |
+| --- | --- | --- |
+| `codeql` / `analyze` | `security-events` | Uploads CodeQL findings to the Security tab |
+| `release-please` / `bundle`, `catalog-publish` | `contents`, `id-token`, `attestations` | Upload release assets and attest their provenance; the OIDC token backs the attestation |
+| `scorecard` / `analyze` | `security-events`, `id-token` | Uploads Scorecard SARIF; the OIDC token proves repository identity to the public Scorecard API |
+
+A job gaining any write scope fails the inventory pin; gaining one able to author an event fails the authoring pin as well. Either failure is the guard asking for a decision — this table and the sets in the test file change together.
 
 ### release-please acts as the oss-release-bot App
 
