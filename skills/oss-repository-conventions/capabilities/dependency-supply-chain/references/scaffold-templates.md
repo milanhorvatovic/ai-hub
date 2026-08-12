@@ -51,6 +51,7 @@ updates:
 ```yaml
   dependency-review:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@<sha>                  # v4
       - uses: actions/dependency-review-action@<sha>  # v4
@@ -89,6 +90,7 @@ jobs:
       || github.event.pull_request.user.login == 'app/dependabot')
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       # Dependabot-triggered runs get a READ-ONLY GITHUB_TOKEN regardless of the
       # permissions block — labeling needs the App token, minted from the
@@ -137,6 +139,7 @@ jobs:
       || github.event.pull_request.user.login == 'app/dependabot')
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       # Fail-safe switch, observably: unset reads as disabled, and every run logs
       # the resolved state so deliberately-off is distinguishable from a variable
@@ -225,6 +228,7 @@ jobs:
       || github.event.pull_request.user.login == 'app/dependabot')
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - id: app-token
         uses: actions/create-github-app-token@<sha>   # v3.2.0
@@ -237,9 +241,11 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          # Read the label live off the current head; no veto -> nothing to hold,
-          # succeed so the required context reports green on this head.
-          gh pr view "$PR_URL" --json labels             --jq 'any(.labels[]; .name == "security-review-required")' | grep -qx true             || { echo "no veto label on the current head; nothing to disarm"; exit 0; }
+          # Read the label live off the current head. Distinguish "read failed"
+          # from "no veto": a failed read fails CLOSED (exit red), not skip — only a
+          # confirmed absence of the label exits green.
+          label_state="$(gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "security-review-required")')" || { echo "::error::could not read labels; failing closed"; exit 1; }
+          [ "$label_state" = "true" ] || { echo "no veto label on the current head; nothing to disarm"; exit 0; }
           gh pr merge --disable-auto "$PR_URL" || true
           test "$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest == null')" = "true"
           # A pre-veto bot approval still satisfies the review rule — a human could
@@ -270,6 +276,7 @@ permissions: { contents: read, pull-requests: read }
 jobs:
   reconcile:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Re-drive open Dependabot PRs (catch dropped events)
         run: |
