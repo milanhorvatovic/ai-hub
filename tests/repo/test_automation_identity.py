@@ -97,10 +97,14 @@ _PR_AUTHOR_COMPARISON = re.compile(
 _ANY_GRANT = frozenset({"*"})
 _CODE_SPAN = re.compile(r"`([^`]+)`")
 _EXPRESSION = re.compile(r"\$\{\{(.+?)\}\}", re.S)
+# Expression context names are case-insensitive — `${{ Secrets.X }}` reads the same
+# store — so both matchers compile that way; every consumer normalizes the captured
+# name itself before comparing.
 _NAMED_SECRET = re.compile(
-    r"""secrets(?:\.([A-Za-z_]\w*)|\[\s*['"]([A-Za-z_]\w*)['"]\s*\])"""
+    r"""secrets(?:\.([A-Za-z_]\w*)|\[\s*['"]([A-Za-z_]\w*)['"]\s*\])""",
+    re.IGNORECASE,
 )
-_ANY_SECRETS_MENTION = re.compile(r"\bsecrets\b")
+_ANY_SECRETS_MENTION = re.compile(r"\bsecrets\b", re.IGNORECASE)
 
 
 def _workflows() -> list[Path]:
