@@ -15,6 +15,12 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    # If an auto-merge policy job runs on pull_request, bar the actions IT runs
+    # from bot updates — a bot PR bumping one executes PR-head code with the App
+    # key in scope before any tier logic. Their pins arrive as human PRs.
+    ignore:
+      - dependency-name: "dependabot/fetch-metadata"
+      - dependency-name: "actions/create-github-app-token"
 
   # One block per package ecosystem present (npm / pip / cargo / gomod / bundler …)
   - package-ecosystem: <npm|pip|cargo|gomod|bundler>
@@ -89,11 +95,15 @@ jobs:
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
-      - uses: dependabot/fetch-metadata@<sha>   # v2  -> outputs.update-type
+      - id: meta
+        uses: dependabot/fetch-metadata@<sha>   # v2  -> outputs.update-type
       - env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-        run: gh pr edit "$PR_URL" --add-label "release:${LABEL}"   # map update-type -> label
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+        # update-type is "version-update:semver-{patch,minor,major}"; the label is
+        # its last word.
+        run: gh pr edit "$PR_URL" --add-label "release:${UPDATE_TYPE##*semver-}"
 ```
 
 **b) Tiered approve + auto-merge — `.github/workflows/dependabot-auto-merge.yaml`** (on `pull_request: [opened, reopened, synchronize, labeled]`)

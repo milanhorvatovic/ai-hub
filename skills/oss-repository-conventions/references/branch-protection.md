@@ -32,7 +32,7 @@ The `required status checks` list matches on **context names**, and three regist
 - **Matrix** jobs append a parenthesized suffix in declaration order — `test (ubuntu-latest, 3.12)` — but only to the _default_ generated name; a job that sets `name:` registers that evaluated string instead, which may omit or reorder the matrix values. Read the actual names rather than assuming the suffix.
 - A job that **calls a reusable workflow** reports as `caller-job / callee-job` — so extracting a job into a reusable workflow silently renames its context, and the ruleset must be updated in the same change.
 
-Never infer a context name: push a PR and read **all** registered names with `gh pr checks <pr> --json name` (not `--required`, which filters to the already-required set and hides exactly the new or renamed context being discovered), copy them exactly into the ruleset, then confirm with `--required` that the list matches.
+Never infer a context name: push a PR and read **all** registered names with `gh pr checks <pr> --json name` (not `--required`, which filters to the already-required set and hides exactly the new or renamed context being discovered). Use that only to read the exact strings — then make required **only** the checks that report on _every_ protected PR; a path-filtered or optional check made required never reports on a PR that skips it and blocks the merge forever. Confirm the chosen set with `--required` afterward.
 
 ## Tag protection
 

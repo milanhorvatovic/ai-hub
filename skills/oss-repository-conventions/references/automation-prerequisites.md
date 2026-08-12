@@ -31,19 +31,20 @@ gh secret   set AUTOMATION_PRIVATE_KEY < private-key.pem
 ## 2. Secret & variable stores
 
 - **Secret vs variable:** keys, tokens, and private keys are **secrets** (masked, write-only); non-sensitive ids and tuning knobs are **variables** (readable, shown in logs).
-- **Actions and Dependabot are separate stores.** A run whose **triggering actor is Dependabot** reads only the _Dependabot_ secret store; a run triggered by any other actor — a human, an App, a schedule — reads only the _Actions_ store. A secret consumed from **both** contexts must be set in **both** stores under the same name — this is the single most common reason an autonomous-Dependabot flow only half-works.
+- **Actions and Dependabot are separate stores, and the delivering event picks which.** A run started by one of Dependabot's _own delivered events_ (its `pull_request` / `push`) reads only the _Dependabot_ store; a run started any other way — a human or App event, `schedule` — reads only the _Actions_ store. `workflow_run` and `workflow_dispatch` are the ones that trip people: they are their own events, so their store is not simply inherited from whatever ran upstream, and GitHub has changed this behavior over time. A secret consumed from **both** contexts must be set in **both** stores under the same name — the single most common reason an autonomous-Dependabot flow only half-works — and the reliable check is the actored run below, not a rule memorized from a table.
 
 | Run triggered by | Reads secrets from |
 | --- | --- |
-| Dependabot's own events (its pushes, its PRs' `pull_request` runs) | Dependabot store |
-| any other actor's events (`push`, human/App-caused `pull_request`, `schedule`, `workflow_run`, `workflow_dispatch`) | Actions store |
+| Dependabot's own delivered events (its `push`, its PRs' `pull_request` runs) | Dependabot store |
+| any human/App event, and `schedule` | Actions store |
+| `workflow_run` / `workflow_dispatch` | subtle — their own event, not inherited; verify with an actored run |
 
 ```bash
 gh secret set AUTOMATION_PRIVATE_KEY < private-key.pem                   # Actions store
 gh secret set AUTOMATION_PRIVATE_KEY --app dependabot < private-key.pem  # Dependabot store (mirror)
 ```
 
-- **The router is the triggering actor, not the workflow.** One workflow's runs can read _different_ stores: a `pull_request` run triggered by Dependabot's own push reads the Dependabot store, while the same workflow's run triggered by a human's label event reads the Actions store. So a half-broken mirror hides — every App-actored run stays green while every Dependabot-actored one fails.
+- **The delivering event routes the store, not the workflow file.** One workflow's runs can read _different_ stores: a `pull_request` run delivered to Dependabot's own push reads the Dependabot store, while the same workflow's run from a human's label event reads the Actions store. So a half-broken mirror hides — every Actions-store run stays green while every Dependabot-delivered one fails.
 - **Verify with an actored run, not by inspection.** Secret contents can't be read back, so the only proof the Dependabot-store copy works is a run Dependabot itself triggered (e.g. comment `@dependabot recreate` on one of its PRs and watch the mint step). A green run triggered by anything else proves only the Actions store.
 
 ## 3. Environment-scoped secrets
