@@ -63,7 +63,7 @@ Automation that reads labels needs those labels to **exist first**, or it jams:
 The community-health capability owns the repo's general triage-label taxonomy; these are the automation-gating subset of it. Create the labels the workflows reference:
 
 ```bash
-gh label create "release: patch" --color 0E8A16
+for t in patch minor major; do gh label create "release:$t"; done   # no space; the labeler writes this form
 gh label create "security-review-required" --color B60205
 ```
 

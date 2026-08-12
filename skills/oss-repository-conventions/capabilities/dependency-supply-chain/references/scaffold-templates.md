@@ -181,8 +181,9 @@ jobs:
       # but never approve, so one human review is the ingredient that completes
       # it. ONLY valid with a required-approving-review branch rule (see the
       # prerequisites) — with no review rule, arming is merging. Same live veto
-      # re-read: an armed PR with an existing human approval would otherwise
-      # merge the instant --auto lands, beating the disarm race.
+      # re-read; and a stale AUTOMATION approval from an earlier eligible run
+      # (before a policy change reclassified this PR as held) is dismissed first,
+      # or --auto merges on it with no human in the loop.
       - name: Arm held updates without approving
         if: >-
           vars.DEPENDABOT_AUTOMERGE_ENABLED == 'true'
@@ -192,9 +193,18 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          PR: ${{ github.event.pull_request.number }}
         run: |
           gh pr view "$PR_URL" --json labels --jq 'any(.labels[]; .name == "security-review-required")' | grep -qx false \
             || { echo "::warning::veto label present on live read; skipping"; exit 0; }
+          # Dismiss any prior App approval so "held == never approved" survives an
+          # eligible->held reclassification (same paginated form as the veto job).
+          gh api --paginate "repos/${{ github.repository }}/pulls/$PR/reviews" \
+            --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id' \
+          | while read -r id; do
+              gh api -X PUT "repos/${{ github.repository }}/pulls/$PR/reviews/$id/dismissals" \
+                -f message="held: needs human review" || true
+            done
           gh pr merge --squash --auto "$PR_URL" || echo "::warning::arming failed; PR stays manual"
 
   # VETO tier: a hard-stop label applied after arming must disarm, whoever applied
