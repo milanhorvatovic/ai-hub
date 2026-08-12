@@ -67,7 +67,7 @@ Consumption maturity is framed by the **S2C2F** (Secure Supply Chain Consumption
 
 Templates live in `references/scaffold-templates.md` (Dependabot config, Renovate config, a dependency-review CI step). Write after confirmation, targeting the detected ecosystems. House style uses **Dependabot** at `.github/dependabot.yaml` with a weekly cadence and grouped updates; offer Renovate if the maintainer prefers it. Enabling Dependabot alerts is a repo _setting_ — propose the command, don't apply it.
 
-For hands-off updates, scaffold the **autonomous Dependabot recipe** in the same file (release-label → auto-merge → reconciler), distilled from a proven setup. It requires:
+For hands-off updates, scaffold the **autonomous Dependabot recipe** in the same file (release-label → auto-merge → reconciler), distilled from a proven setup. The recipe classifies every bot PR into one of three tiers — **eligible** (patch/minor of an unprivileged dependency: approve + arm auto-merge, hands-off), **held** (major, or a dependency the automation itself runs on, e.g. the token-minting or metadata action: arm but never approve, so one human review completes the merge), and **veto** (a hard-stop label: untouched, and disarmed if already armed) — with the pr-autonomy failure postures (approve fails open, disarm fails closed). It requires:
 
 - a **GitHub App token or bot PAT** — the default `GITHUB_TOKEN` can't approve PRs or trigger the downstream required checks; pick per `../../references/automation-identity.md` (App token preferred);
 - **branch protection with required status checks**, so `gh pr merge --auto` lands a PR only when it's green;

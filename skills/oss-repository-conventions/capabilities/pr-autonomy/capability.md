@@ -46,7 +46,9 @@ Higher autonomy without these is reckless, not advanced:
 - **Required checks are the gate** — autonomy only ever lands a _green_ PR; branch protection enforces it. For high-traffic repos a **merge queue** (`branch-protection.md`) re-tests each PR against the latest base, removing the BEHIND-then-`update-branch` reconciliation the recipe otherwise needs.
 - **Concurrency control** — serialize per-PR so an automation can't race itself (`concurrency: { group: …-pr-${{ pr.number }} }`), and run the reconciler as a singleton (`cancel-in-progress: false`). Without it, overlapping `synchronize`/`labeled` events double-merge or strand PRs. Mechanism in the ci-automation capability.
 - **Reconciler + observability** — a scheduled/event-driven catch-up for dropped events, _and_ failures that surface: an unrecoverable autonomous action must fail the run **red** (`exit 1` + `::error::`), not warn-and-pass, and ideally notify or open-an-issue-on-failure so a broken reconciler isn't silent. Silent failure is the failure mode autonomy is most prone to.
-- **Escape hatch** — one switch to disable (a gating repo variable), plus auto-disable on a security review.
+- **Failure postures, asymmetric by direction** — steps that _raise_ autonomy fail **open** (an approve step that can't run skips with a warning and the PR falls back to a human review), while steps that _lower_ it fail **closed** (a disarm that cannot confirm auto-merge is actually off is a hard red error — a silently-armed hard-stop PR is a policy bypass). Getting this backwards turns every transient error into either a stall or a bypass.
+- **Held means armed, never approved** — the cleanest hard-stop mechanic: enable auto-merge on the held PR but withhold the automation's approval, so the one missing ingredient is a human's review and the merge completes itself the moment it arrives. The hold is enforced by the review requirement, not by the automation remembering to come back.
+- **Escape hatch** — one switch to disable (a gating repo variable) that **fails safe**: unset or missing reads as _disabled_, and the automation logs the resolved switch state every run so a deliberately-off switch is distinguishable from a variable that isn't resolving. Plus reactive auto-disable: a hard-stop label applied _after_ auto-merge was armed must trigger a disarm (with the fail-closed posture above), not just block re-arming.
 
 ## Inputs & guards
 
@@ -72,9 +74,9 @@ Checks follow the schema in `../../references/oss-health-rubric.md` (`id` — **
 
 - `autonomy-level-appropriate` — **could**. Pass when the rung fits the repo's risk and PR volume (a flooded repo stuck at L1 is toil; a high-blast-radius repo at L4 without gates is risk). Match autonomy to context.
 - `autonomy-guardrails-complete` — **should** (when above L1). Fail when the current rung lacks a guardrail it requires (e.g. auto-merge with no required checks, or auto-approve via `GITHUB_TOKEN`). Ungated autonomy merges unreviewed or red changes.
-- `autonomy-hard-stops` — **should** (when above L1). Fail when major/security/breaking changes aren't excluded from the automation. These must always reach a human.
+- `autonomy-hard-stops` — **should** (when above L1). Fail when major/security/breaking changes aren't excluded from the automation, or when a hard-stop label applied after arming can't disarm an already-armed auto-merge. These must always reach a human, including late.
 - `autonomy-scoped-identity` — **should** (when above L1). Fail when approval/merge runs as the default token or an over-scoped PAT. Least-privilege limits blast radius.
-- `autonomy-escape-hatch` — **could** (when above L2). Pass when there's a one-switch disable and auto-disable on security review. Operators need a fast stop.
+- `autonomy-escape-hatch` — **could** (when above L2). Pass when there's a one-switch disable that fails safe (unset reads as off, resolved state logged) and auto-disable on security review. Operators need a fast stop that can't be on by accident.
 
 ## Scaffold
 

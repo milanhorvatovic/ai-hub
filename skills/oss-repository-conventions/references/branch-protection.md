@@ -22,7 +22,17 @@ Prefer rulesets for new setups; recognize **either** as satisfying a protection 
 | Block force-push and deletion | history can't be rewritten or the branch removed |
 | Restrict who can push / bypass | least privilege on the protected branch |
 
-**Solo-maintainer note:** requiring ≥1 approval blocks a sole maintainer (no one to approve). For solo repos, gate on status checks + block force-push + linear history, and add review requirements when collaborators join.
+**Solo-maintainer note:** requiring ≥1 approval blocks a sole maintainer (no one to approve). For solo repos, gate on status checks + block force-push + linear history, and add review requirements when collaborators join. Where automation approves (the pr-autonomy ladder's L2+), a review requirement becomes satisfiable again — but **code-owner** review interacts with automation identity in a way worth deciding deliberately: see `automation-identity.md` § "Code-owner review and automation".
+
+## Required-check context names
+
+The `required status checks` list matches on **context names**, and three registration rules routinely produce a required context that never reports (blocking every merge):
+
+- Contexts register from the **job**, not the workflow: a job `test:` with no `name:` override registers as `test` — never `<workflow> / test`.
+- **Matrix** jobs append a parenthesized suffix in declaration order: `test (ubuntu-latest, 3.12)`.
+- A job that **calls a reusable workflow** reports as `caller-job / callee-job` — so extracting a job into a reusable workflow silently renames its context, and the ruleset must be updated in the same change.
+
+Never infer a context name: push a PR and read the registered names with `gh pr checks <pr> --required --json name`, then copy them exactly.
 
 ## Tag protection
 

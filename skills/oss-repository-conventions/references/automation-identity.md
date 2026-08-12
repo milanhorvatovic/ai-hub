@@ -19,6 +19,17 @@ Which identity an automation acts as — the most consequential choice for any C
 - **For git-only push** (e.g. pushing built artifacts): a **deploy key** beats a PAT — no API surface.
 - **Verified commits:** a GitHub App or the GitHub API (`createCommitOnBranch`) produces **verified** commits without managing signing keys; a PAT pushing over HTTPS does not (see `commit-signing.md`).
 
+- **Attribution is part of the choice.** A review or commit is a claim about who acted. An App's actions read as the bot they are (`some-bot[bot]`), so an auditor can distinguish "a human looked at this" from "policy acted"; a PAT's actions read as the human who minted it, even when no human was in the loop. Prefer the identity whose audit trail tells the truth.
+
+## Code-owner review and automation
+
+When the branch rules require **code-owner review**, automation meets a hard platform edge: `CODEOWNERS` accepts only users and teams, an App has no user form, and teams exist only in organizations — so on a personal-account repo **no App approval can ever satisfy the rule**. A bot also can't approve its own PR. Two honest ways through, and which fits is the maintainer's call:
+
+- **A code-owner PAT** — a fine-grained PAT belonging to a listed code owner, used by the automation to post the approval. Works everywhere; costs a standing human-shaped credential (expiry-driven rotation, leaves with its owner) and approvals that read as a human review no human performed.
+- **Reshape the rule** — before paying that cost, check what the rule binds _for this repo_. With a sole maintainer, any qualifying human approval is the code owner's anyway, and maintainer PRs often merge through an admin bypass — the rule's whole binding surface can turn out to be bot PRs, where the tier gates (pr-autonomy) are the real protection. Then dropping `require_code_owner_review` while keeping the plain review count loses nothing today, and it returns cleanly when a second human gets write access: a **second ruleset** holding only the code-owner rule, with the automation App as its bypass actor — humans face it, automation doesn't, and no credential impersonates anyone. (Native auto-merge won't exercise a bypass, so an automation relying on it merges via a direct API call under this shape.)
+
+Worked example of the second path, end to end: [ai-hub's ADR 0002](https://github.com/milanhorvatovic/ai-hub/blob/main/docs/adr/0002-automation-identity.md). Neither path is "the" answer — audit scores the _risk_ (an unrotated broad credential, an unaudited approval surface), not the choice.
+
 ## Guardrails
 
 - Store tokens/keys as repo/org **secrets**, never in files; mint App tokens **per-job** (`actions/create-github-app-token`) so they're short-lived.

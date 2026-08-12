@@ -24,6 +24,8 @@ gh variable set AUTOMATION_CLIENT_ID --body "<client-id>"
 gh secret   set AUTOMATION_PRIVATE_KEY < private-key.pem
 ```
 
+- **Key format gotcha:** `actions/create-github-app-token` accepts **PKCS#8** private keys only. An OpenSSH-format key uploads fine and then fails every run at the mint step — convert before storing (`openssl pkcs8 -topk8 -nocrypt`), and treat a mint-step failure right after provisioning as a format problem before anything else.
+
 **Two-App split (blast radius).** When automations span risk tiers, give each tier its own App — e.g. a lower-risk automation identity (labels, artifact pushes, branch updates) kept separate from a higher-risk release identity (tags, releases, moving the major tag) — so leaking the lower-risk key doesn't force rotating the release key. One App is fine to start; split when a single identity would otherwise hold both routine-write and release authority.
 
 ## 2. Secret & variable stores
@@ -37,9 +39,12 @@ gh secret   set AUTOMATION_PRIVATE_KEY < private-key.pem
 | `push` / `pull_request` / `schedule` / `workflow_run` / `workflow_dispatch` | Actions store |
 
 ```bash
-gh secret set CODEOWNER_APPROVER_TOKEN                   # Actions store
-gh secret set CODEOWNER_APPROVER_TOKEN --app dependabot  # Dependabot store (mirror)
+gh secret set AUTOMATION_PRIVATE_KEY < private-key.pem                   # Actions store
+gh secret set AUTOMATION_PRIVATE_KEY --app dependabot < private-key.pem  # Dependabot store (mirror)
 ```
+
+- **The router is the triggering actor, not the workflow.** One workflow's runs can read _different_ stores: a `pull_request` run triggered by Dependabot's own push reads the Dependabot store, while the same workflow's run triggered by a human's label event reads the Actions store. So a half-broken mirror hides — every App-actored run stays green while every Dependabot-actored one fails.
+- **Verify with an actored run, not by inspection.** Secret contents can't be read back, so the only proof the Dependabot-store copy works is a run Dependabot itself triggered (e.g. comment `@dependabot recreate` on one of its PRs and watch the mint step). A green run triggered by anything else proves only the Actions store.
 
 ## 3. Environment-scoped secrets
 
@@ -74,7 +79,7 @@ The repo-infrastructure capability owns merge-policy / settings depth; these are
 
 ## 6. Code-owner approval identity
 
-When the branch ruleset requires **code-owner review** (`branch-protection.md`, against the `CODEOWNERS` file the governance capability owns), the approving automation identity must **itself be a code-owner**. Otherwise `gh pr review --approve` exits 0 but the authoritative `reviewDecision` stays `REVIEW_REQUIRED` and nothing merges. The default `GITHUB_TOKEN` cannot approve at all, and a bot cannot approve its own PR — so an autonomous flow under code-owner rules needs a separate PAT (or App) whose identity is listed in `CODEOWNERS`.
+When the branch ruleset requires **code-owner review** (`branch-protection.md`, against the `CODEOWNERS` file the governance capability owns), the approving automation identity must **itself be a code-owner**. Otherwise `gh pr review --approve` exits 0 but the authoritative `reviewDecision` stays `REVIEW_REQUIRED` and nothing merges. The default `GITHUB_TOKEN` cannot approve at all, and a bot cannot approve its own PR. The hard edge: `CODEOWNERS` accepts only users and teams — an App can be a code-owner only through an org team, and **never on a personal-account repo**. The two ways through (a code-owner PAT, or reshaping the rule so App approvals suffice) are a maintainer decision weighed in `automation-identity.md` § "Code-owner review and automation" — provision whichever was chosen; don't assume the PAT.
 
 ## Prerequisites by autonomy rung
 
