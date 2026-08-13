@@ -14,7 +14,7 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 
 ## Scoped identity (L2+)
 
-For a **plain** required-review count with no bot event that must cascade, the default token is the least-privilege choice — approve with `GITHUB_TOKEN` under `permissions: { pull-requests: write }`, with the repo's "Allow GitHub Actions to create and approve pull requests" setting on. Mint an **App** token instead only when an authored event must trigger a downstream required check, or for truthful attribution (code-owner review is neither — a separate PAT/ruleset remedy):
+For a **plain** required-review count with no bot event that must cascade, **and where the approver did not author the PR** (a bot can't approve its own PR — a Dependabot PR qualifies, a `github-actions[bot]`-authored one needs a distinct App/PAT), the default token is the least-privilege choice — approve with `GITHUB_TOKEN` under `permissions: { pull-requests: write }`, with the repo's "Allow GitHub Actions to create and approve pull requests" setting on. Mint an **App** token instead only when an authored event must trigger a downstream required check, or for truthful attribution (code-owner review is neither — a separate PAT/ruleset remedy):
 
 ```yaml
       # App path (cascade / attribution). For a plain review, DROP this step AND
