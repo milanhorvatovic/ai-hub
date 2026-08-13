@@ -22,7 +22,17 @@ Prefer rulesets for new setups; recognize **either** as satisfying a protection 
 | Block force-push and deletion | history can't be rewritten or the branch removed |
 | Restrict who can push / bypass | least privilege on the protected branch |
 
-**Solo-maintainer note:** requiring ≥1 approval blocks a sole maintainer (no one to approve). For solo repos, gate on status checks + block force-push + linear history, and add review requirements when collaborators join.
+**Solo-maintainer note:** requiring ≥1 approval blocks a sole maintainer (no one to approve). For solo repos, gate on status checks + block force-push + linear history, and add review requirements when collaborators join. Where automation approves (the pr-autonomy ladder's L2+), a review requirement becomes satisfiable again — but **code-owner** review interacts with automation identity in a way worth deciding deliberately: see `automation-identity.md` § "Code-owner review and automation".
+
+## Required-check context names
+
+The `required status checks` list matches on **context names**, and three registration rules routinely produce a required context that never reports (blocking every merge):
+
+- Contexts register from the **job**, not the workflow: a job `test:` with no `name:` override registers as `test` — never `<workflow> / test`.
+- **Matrix** jobs, in the _required status checks_ rule, register one context per leg with a parenthesized suffix — `pytest (ubuntu-latest, py3.12)` — and each must be listed; a job that sets `name:` registers that evaluated string instead. (Don't confuse this with the newer _required workflows_ rule, which matches the workflow file and ignores matrix legs — a different feature.) In every case the registered check-run name is the only authority; read it, don't infer it.
+- A job that **calls a reusable workflow** reports as `caller-job / callee-job` — so extracting a job into a reusable workflow silently renames its context, and the ruleset must be updated in the same change.
+
+Never infer a context name from the workflow file or from docs — push a PR and read the **registered** names with `gh pr checks <pr> --json name` (not `--required`, which filters to the already-required set and hides exactly the new or renamed context being discovered). Copy those exact strings, whatever they contain. Then mind the difference between two kinds of "optional" when choosing what to require: a check gated at the **workflow** level (an `on:` `paths`/`branches` filter) never registers on a PR it skips, so requiring it blocks that PR's merge forever — don't require those. A check gated at the **job** level (a job-level `if:`) is the opposite: a skipped job reports `skipped`, which GitHub counts as a _passing_ required check, so a conditional job is safe to require (it won't block — though a job that skipped also did no work, which is why a job that must _act_, like the disarm job, runs unconditionally and branches internally). Confirm the chosen set with `--required` afterward.
 
 ## Tag protection
 

@@ -43,8 +43,9 @@ First-party `actions/*` are lower risk but still better pinned. Tools like `ratc
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true   # cancel superseded runs
-# per job:
-    timeout-minutes: 15        # cap stuck runs
+# and on every runner-backed job (a `uses:` caller can't declare one — cap
+# inside the called workflow):
+#   timeout-minutes: 15      # cap stuck runs
 ```
 
 ## Fork-PR safety (the "pwn request" guard)

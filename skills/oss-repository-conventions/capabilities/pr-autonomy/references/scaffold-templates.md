@@ -12,15 +12,22 @@ gh api -X PUT repos/{owner}/{repo}/branches/{default}/protection \
 gh repo edit {owner}/{repo} --enable-auto-merge
 ```
 
-## Scoped identity (L2+): mint a least-privilege App token
+## Scoped identity (L2+)
+
+For a **plain** required-review count with no bot event that must cascade, **and where the approver did not author the PR** (a bot can't approve its own PR — a Dependabot PR qualifies, a `github-actions[bot]`-authored one needs a distinct App/PAT), the default token is the least-privilege choice — approve with `GITHUB_TOKEN` under `permissions: { pull-requests: write }`, with the repo's "Allow GitHub Actions to create and approve pull requests" setting on. Mint an **App** token instead only when an authored event must trigger a downstream required check, or for truthful attribution (code-owner review is neither — a separate PAT/ruleset remedy):
 
 ```yaml
+      # App path (cascade / attribution / merge-queue enqueue). For a plain review
+      # with a direct squash-merge, DROP this step AND set GH_TOKEN: ${{ github.token }}
+      # in the L2/L3 steps below (not steps.app-token.outputs.token). Permissions:
+      # { pull-requests: write } for the L2 approve; L3 `gh pr merge --auto` also needs
+      # contents: write. KEEP the App/PAT if the target branch uses a merge queue —
+      # the built-in token cannot enqueue.
       - id: app-token
-        uses: actions/create-github-app-token@<sha>   # v2
+        uses: actions/create-github-app-token@<sha>   # v3.2.0
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
-      # use steps.app-token.outputs.token for gh review/merge — NOT GITHUB_TOKEN
 ```
 
 ## Eligibility gate + hard stops (all rungs above L1)
@@ -32,7 +39,11 @@ gh repo edit {owner}/{repo} --enable-auto-merge
         name: Decide eligibility
         run: |
           # ELIGIBLE: bot author AND patch|minor AND path allowlist AND size cap
-          # HARD STOP (require human): major | security | breaking | touches CI/release/secrets
+          # HARD STOP (require human): major | security | breaking | human CI/release/secret edit
+          #   | a bump of an action a PRIVILEGED PR job runs (its pin runs pre-review
+          #   —> bar from bot updates or trusted-ref def, NOT a mere hold; a
+          #   post-merge-only privileged action may be held)
+          #   (an unprivileged action bump may be eligible — see pr-autonomy hard-stops)
           echo "eligible=true" >> "$GITHUB_OUTPUT"     # write false on a hard stop
 ```
 
@@ -40,7 +51,9 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 
 ```yaml
       - if: steps.gate.outputs.eligible == 'true'
-        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr review --approve "$PR_URL"
 ```
 
@@ -48,7 +61,9 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 
 ```yaml
       - if: steps.gate.outputs.eligible == 'true'
-        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr merge --squash --auto "$PR_URL"   # lands only when required checks pass
 ```
 
@@ -85,12 +100,22 @@ concurrency:
 #   `workflow_run` is required because a GITHUB_TOKEN-driven merge's push:main is anti-loop-suppressed
 #   (see automation-identity.md) — so a push:main trigger alone would miss it.
 
-# escape hatch: gate the whole flow behind a repo variable
-on: ...
+# escape hatch: gate the flow behind a repo variable — checked in the STEPS, with
+# an always-run step logging the resolved state (a skipped job can't report that
+# the switch is off, or distinguish off from not-resolving). Gating future steps is
+# only half a stop: a variable change fires no event, so an ALREADY-armed PR still
+# merges. Pair the flip with a reconciler dispatch whose disabled mode disarms and
+# verifies every in-flight PR (see the dependency recipe's reconciler).
 jobs:
   autonomy:
-    if: vars.AUTONOMY_ENABLED == 'true'   # flip to 'false' to stop everything
-    ...
+    runs-on: ubuntu-latest
+    timeout-minutes: 10       # runner-backed job: cap it (workflow-invariants)
+    steps:
+      - env:
+          ENABLED: ${{ vars.AUTONOMY_ENABLED }}
+        run: echo "AUTONOMY_ENABLED='${ENABLED:-<unset>}'"   # unset fails safe
+      - if: vars.AUTONOMY_ENABLED == 'true'
+        run: echo "…the autonomous steps, each gated on the switch…"
   # also: a step that disables auto-merge when a security review is requested
 ```
 

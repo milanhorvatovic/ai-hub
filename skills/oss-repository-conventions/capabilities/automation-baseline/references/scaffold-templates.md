@@ -93,7 +93,8 @@ jobs:
     steps:
       - uses: actions/checkout@<sha>                  # v4
       - uses: github/codeql-action/init@<sha>         # v3
-        with: { languages: ${{ matrix.language }} }
+        with:
+          languages: ${{ matrix.language }}
       # autobuild works for interpreted langs (Python/JS/Ruby). For compiled
       # CodeQL langs (Swift/Go/Java/Kotlin/C/C++) it often fails — replace with
       # the project's real build commands. (Rust isn't a CodeQL language; skip

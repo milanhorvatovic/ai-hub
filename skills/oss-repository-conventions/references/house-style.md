@@ -24,6 +24,10 @@ Seen consistently across the more-developed repos (e.g. the GitHub Action and th
 | Repo hygiene | `.gitignore` and `.gitattributes` both present. |
 | CI layout | `.github/workflows/` plus supporting `.github/scripts/`, `.github/instructions/`, sometimes `.github/actions/`. |
 | Docs/extras | `docs/`, `examples/`, `scripts/`, `.markdown-link-check.json`. |
+| Automation identity | Per-run App tokens via `actions/create-github-app-token`, split into a release App and a routine-automation App by blast radius; no standing PATs. Decision records in `docs/adr/`. (Store the key exactly as downloaded — a recommendation, not an observed fact: secret bytes are write-only.) |
+| Dependency autonomy | Tiered Dependabot auto-merge (eligible / held / veto) behind a fail-safe kill-switch variable, hard-stop labels with reactive disarm, and a scheduled reconciler. |
+| Action pinning | Full-SHA pins with a trailing `# vX.Y.Z` comment, enforced by a default-branch-judged PR gate. |
+| Workflow invariants | Pinned by the repo's own test suite — per-job timeouts, read-only permission floors, pin format, and the PR-trigger trust guards fail CI when widened. |
 
 ## Recurring gaps to flag
 
