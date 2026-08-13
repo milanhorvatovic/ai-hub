@@ -23,7 +23,7 @@
   "oss-repository-conventions": {
     "discovery_bytes": 12440,
     "skill_md_bytes": 18114,
-    "load_bytes": 266287,
+    "load_bytes": 255313,
     "files": 51,
     "version": "1.0.0"
   }
