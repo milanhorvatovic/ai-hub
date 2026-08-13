@@ -19,7 +19,8 @@ For a **plain** required-review count with no bot event that must cascade, **and
 ```yaml
       # App path (cascade / attribution). For a plain review, DROP this step AND
       # set GH_TOKEN: ${{ github.token }} in the L2/L3 steps below (not
-      # steps.app-token.outputs.token), with permissions: { pull-requests: write }.
+      # steps.app-token.outputs.token). Permissions: { pull-requests: write } for the
+      # L2 approve; L3 `gh pr merge --auto` also needs contents: write.
       - id: app-token
         uses: actions/create-github-app-token@<sha>   # v3.2.0
         with:
