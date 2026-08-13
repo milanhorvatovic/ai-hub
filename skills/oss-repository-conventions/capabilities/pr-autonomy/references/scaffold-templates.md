@@ -17,10 +17,12 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 For a **plain** required-review count with no bot event that must cascade, **and where the approver did not author the PR** (a bot can't approve its own PR — a Dependabot PR qualifies, a `github-actions[bot]`-authored one needs a distinct App/PAT), the default token is the least-privilege choice — approve with `GITHUB_TOKEN` under `permissions: { pull-requests: write }`, with the repo's "Allow GitHub Actions to create and approve pull requests" setting on. Mint an **App** token instead only when an authored event must trigger a downstream required check, or for truthful attribution (code-owner review is neither — a separate PAT/ruleset remedy):
 
 ```yaml
-      # App path (cascade / attribution). For a plain review, DROP this step AND
-      # set GH_TOKEN: ${{ github.token }} in the L2/L3 steps below (not
-      # steps.app-token.outputs.token). Permissions: { pull-requests: write } for the
-      # L2 approve; L3 `gh pr merge --auto` also needs contents: write.
+      # App path (cascade / attribution / merge-queue enqueue). For a plain review
+      # with a direct squash-merge, DROP this step AND set GH_TOKEN: ${{ github.token }}
+      # in the L2/L3 steps below (not steps.app-token.outputs.token). Permissions:
+      # { pull-requests: write } for the L2 approve; L3 `gh pr merge --auto` also needs
+      # contents: write. KEEP the App/PAT if the target branch uses a merge queue —
+      # the built-in token cannot enqueue.
       - id: app-token
         uses: actions/create-github-app-token@<sha>   # v3.2.0
         with:
