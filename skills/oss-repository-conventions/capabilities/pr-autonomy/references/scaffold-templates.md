@@ -108,6 +108,8 @@ concurrency:
 # verifies every in-flight PR (see the dependency recipe's reconciler).
 jobs:
   autonomy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10       # runner-backed job: cap it (workflow-invariants)
     steps:
       - env:
           ENABLED: ${{ vars.AUTONOMY_ENABLED }}
