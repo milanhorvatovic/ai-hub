@@ -13,7 +13,7 @@ The out-of-band wiring an automation needs before its workflows can run at all. 
 | 3 | Environment-scoped secrets | `gh api repos/{o}/{r}/environments` | secret out of scope, or a per-leg approval stall |
 | 4 | Gating labels the automation reads | `gh label list` | required label-check fails; hard stops can't be set |
 | 5 | Repo settings (auto-merge, merge methods, default token) | `gh api repos/{o}/{r}` | `gh pr merge --auto` fails; over-privileged token |
-| 6 | Code-owner review satisfied (identity **or** ruleset reshape) | `gh api .../branches/{def}/protection` **and** `.../rulesets` (a rulesets repo 404s the legacy path) + `CODEOWNERS` | approval posts but `reviewDecision` stays `REVIEW_REQUIRED` |
+| 6 | Code-owner review satisfied (identity **or** ruleset reshape) | `gh api .../branches/{def}/protection` **and** `.../rulesets` (the legacy path 404s only when the branch has no classic protection resource — e.g. ruleset-only — so a 404 there is not proof code-owner review is absent) + `CODEOWNERS` | approval posts but `reviewDecision` stays `REVIEW_REQUIRED` |
 
 ## 1. Bot identity
 
