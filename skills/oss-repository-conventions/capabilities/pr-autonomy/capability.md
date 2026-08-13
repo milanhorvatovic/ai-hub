@@ -102,7 +102,7 @@ Report per `../../references/output-format.md`: scan emits the current rung + gu
 ## Anti-patterns
 
 - Don't raise the rung past what the guardrails support — prerequisites first.
-- Don't auto-approve/merge with the default `GITHUB_TOKEN` or an over-scoped PAT.
+- Don't auto-approve/merge with an over-scoped PAT, or with the default `GITHUB_TOKEN` where the flow needs an App (an event that must cascade, truthful attribution) or where the token would approve its own PR — a plain, distinct-author approval on the default token is fine.
 - Don't auto-merge major, security-flagged, or breaking changes — hard-stop them.
 - Don't apply branch protection or repo settings automatically — propose the commands.
 - Don't review or merge a specific PR's content here — that's the change-narration domain.
