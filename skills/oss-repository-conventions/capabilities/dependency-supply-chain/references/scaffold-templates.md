@@ -84,7 +84,7 @@ A near-hands-off flow that labels, approves, and merges Dependabot PRs and recon
 
 **The load-bearing implementation properties** — an adopted reference workflow must have these; a hand-rolled one is not done without them:
 
-- **Author + same-repo guard, not `github.actor`** — match `dependabot[bot]` _or_ `app/dependabot` on an in-repo head, so a maintainer's reopen or an App's `update-branch` re-fire is not skipped.
+- **Author + same-repo guard, not `github.actor`** — match `dependabot[bot]` _or_ `app/dependabot` on an in-repo head, so a maintainer's reopen or an App's `update-branch` re-fire is not skipped. But this is metadata, not provenance: a write-access collaborator can push to the bot's branch without changing the author, and `pull_request` loads the modified workflow from that head — so pair it with branch rules that restrict who may push to those branches, or take the secret-bearing job's definition from a trusted ref.
 - **Asymmetric failure posture, by authorization outcome** — a step that _grants_ autonomy (approve/arm) denies on failure (warn, leave the PR manual); a step that _revokes_ it (disarm/dismiss) blocks on failure (red, behind a required context, unless confirmed), and every such check reads its own result rather than trusting a command substitution that is empty on failure.
 - **Live re-reads** — the event payload is a stale snapshot; re-read the veto label immediately before approving or arming, and dismiss a stale automation approval before arming a held PR.
 - **Fail-safe kill switch** — a repo variable that reads as _disabled_ when unset, logged every run; switching it off must also dispatch the reconciler to disarm in-flight PRs, since a variable change fires no event.
