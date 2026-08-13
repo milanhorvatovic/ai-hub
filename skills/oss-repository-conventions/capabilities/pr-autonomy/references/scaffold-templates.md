@@ -40,7 +40,9 @@ For a **plain** required-review count with no bot event that must cascade, **and
         run: |
           # ELIGIBLE: bot author AND patch|minor AND path allowlist AND size cap
           # HARD STOP (require human): major | security | breaking | human CI/release/secret edit
-          #   | a bump of an action that runs in a secret-bearing/write-scoped job
+          #   | a bump of an action a PRIVILEGED PR job runs (its pin runs pre-review
+          #   —> bar from bot updates or trusted-ref def, NOT a mere hold; a
+          #   post-merge-only privileged action may be held)
           #   (an unprivileged action bump may be eligible — see pr-autonomy hard-stops)
           echo "eligible=true" >> "$GITHUB_OUTPUT"     # write false on a hard stop
 ```
