@@ -6,7 +6,7 @@ Which identity an automation acts as — the most consequential choice for any C
 
 | Identity | Scope | Triggers downstream workflows? | Can approve PRs? | Rotation | Audited as |
 | --- | --- | --- | --- | --- | --- |
-| **Default `GITHUB_TOKEN`** | the workflow's repo, per-job `permissions:` | No (anti-recursion) | Only if the Actions-can-approve setting is on; never code-owner | auto, per-run | `github-actions[bot]` |
+| **Default `GITHUB_TOKEN`** | the workflow's repo, per-job `permissions:` | Not its own events (anti-recursion); explicit `workflow_dispatch`/`repository_dispatch` still start runs | Only if the Actions-can-approve setting is on; never code-owner | auto, per-run | `github-actions[bot]` |
 | **Fine-grained PAT** | selectable repos + scoped permissions | Yes | Yes | manual expiry | the user who created it |
 | **Classic PAT** | broad (every repo the user can access) | Yes | Yes | manual | the user |
 | **Custom GitHub App** | installed repos, fine-grained perms, short-lived (~1h) installation token | Yes | Yes | auto | the App's own identity |
@@ -14,7 +14,7 @@ Which identity an automation acts as — the most consequential choice for any C
 
 ## Choosing
 
-- **Default `GITHUB_TOKEN` first** — least privilege, no secret to manage. Only reach past it for its two hard limits: it **can't approve PRs** unless the repo's "Allow GitHub Actions to create and approve pull requests" setting is on (off by default — and even on, never code-owner review), and its pushes/events **don't trigger** other workflows (a bot commit won't kick CI).
+- **Default `GITHUB_TOKEN` first** — least privilege, no secret to manage. Only reach past it for its two hard limits: it **can't approve PRs** unless the repo's "Allow GitHub Actions to create and approve pull requests" setting is on (off by default — and even on, never code-owner review), and its own pushes/PR events **don't automatically trigger** other workflows (a bot commit won't kick CI) — only an explicit `workflow_dispatch` / `repository_dispatch` call does, so automatic cascading is what needs a non-default identity.
 - **To trigger downstream workflows or approve PRs** (the autonomy ladder's L2+): a **GitHub App** installation token (preferred) or a tightly-scoped **fine-grained PAT**. Never a classic PAT.
 - **For git-only push** (e.g. pushing built artifacts): a **deploy key** beats a PAT — no API surface.
 - **Verified commits:** a GitHub App or the GitHub API (`createCommitOnBranch`) produces **verified** commits without managing signing keys; a PAT pushing over HTTPS does not (see `commit-signing.md`).

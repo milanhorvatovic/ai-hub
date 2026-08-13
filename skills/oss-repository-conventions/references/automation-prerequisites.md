@@ -13,7 +13,7 @@ The out-of-band wiring an automation needs before its workflows can run at all. 
 | 3 | Environment-scoped secrets | `gh api repos/{o}/{r}/environments` | secret out of scope, or a per-leg approval stall |
 | 4 | Gating labels the automation reads | `gh label list` | required label-check fails; hard stops can't be set |
 | 5 | Repo settings (auto-merge, merge methods, default token) | `gh api repos/{o}/{r}` | `gh pr merge --auto` fails; over-privileged token |
-| 6 | Code-owner approval identity | `gh api .../branches/{def}/protection` + `CODEOWNERS` | approval posts but `reviewDecision` stays `REVIEW_REQUIRED` |
+| 6 | Code-owner review satisfied (identity **or** ruleset reshape) | `gh api .../branches/{def}/protection` + `CODEOWNERS` | approval posts but `reviewDecision` stays `REVIEW_REQUIRED` |
 
 ## 1. Bot identity
 
@@ -78,9 +78,9 @@ gh label create "security-review-required" --color B60205
 
 The repo-infrastructure capability owns merge-policy / settings depth; these are the automation-relevant ones. Propose; never apply.
 
-## 6. Code-owner approval identity
+## 6. Code-owner review satisfied (identity or ruleset reshape)
 
-When the branch ruleset requires **code-owner review** (`branch-protection.md`, against the `CODEOWNERS` file the governance capability owns), the approving automation identity must **itself be a code-owner**. Otherwise `gh pr review --approve` exits 0 but the authoritative `reviewDecision` stays `REVIEW_REQUIRED` and nothing merges. The default `GITHUB_TOKEN` can post an approval only when the "Allow GitHub Actions to create and approve pull requests" setting is on (off by default), can never satisfy code-owner review, and a bot cannot approve its own PR. The hard edge: `CODEOWNERS` resolves to users and teams, and an App is neither a user nor a possible team member — **an App can never be a code-owner, in any repository**. The two ways through (a code-owner PAT, or reshaping the rule so App approvals suffice) are a maintainer decision weighed in `automation-identity.md` § "Code-owner review and automation" — provision whichever was chosen; don't assume the PAT.
+When the branch ruleset requires **code-owner review** (`branch-protection.md`, against the `CODEOWNERS` file the governance capability owns), the approving automation identity must **itself be a code-owner**. Otherwise `gh pr review --approve` exits 0 but the authoritative `reviewDecision` stays `REVIEW_REQUIRED` and nothing merges. The default `GITHUB_TOKEN` can post an approval only when the "Allow GitHub Actions to create and approve pull requests" setting is on (off by default), can never satisfy code-owner review, and a bot cannot approve its own PR. The hard edge: `CODEOWNERS` resolves to users and teams, and an App is neither a user nor a possible team member — **an App can never be a code-owner, in any repository**. The two ways through (a code-owner PAT, or reshaping the rule so App approvals suffice) are a maintainer decision weighed in `automation-identity.md` § "Code-owner review and automation" — provision whichever was chosen, and audit this surface as satisfied by **either**: a repo that deliberately reshaped its ruleset is not missing an identity.
 
 ## Prerequisites by autonomy rung
 
@@ -89,7 +89,7 @@ Pairs with the autonomy ladder (the pr-autonomy capability); install a rung's pr
 | Rung | Adds these prerequisites |
 | --- | --- |
 | L1 assisted | CI on `pull_request` (no identity / secrets yet) |
-| L2 auto-approve | bot identity (§1); gating labels for eligibility (§4); code-owner identity if the ruleset requires it (§6) |
+| L2 auto-approve | bot identity (§1); gating labels for eligibility (§4); code-owner review satisfied — a code-owner identity **or** a reshaped ruleset — if the ruleset requires it (§6) |
 | L3 auto-merge | `allow_auto_merge` + required checks (§5); the Dependabot-store mirror when the flow is Dependabot-triggered (§2) |
 | L4 full autonomous | reconciler / escape-hatch wiring — a gating **variable** to disable the flow, plus any reconciler token (§1–2) |
 
