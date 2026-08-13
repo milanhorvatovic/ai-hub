@@ -70,16 +70,16 @@ A near-hands-off mechanism that labels, approves, and merges Dependabot PRs, wit
 
 **Prerequisites**
 
-- A **GitHub App token** (`actions/create-github-app-token`) or a bot PAT — the default `GITHUB_TOKEN` triggers no downstream required checks and approves only behind the off-by-default Actions-can-approve setting.
+- A **GitHub App token** (`actions/create-github-app-token`); the default `GITHUB_TOKEN` triggers no downstream required checks and approves only behind the off-by-default Actions-can-approve setting. This recipe is written **App-only** — its review-dismissal steps filter on `user.type == "Bot"`; on the bot-PAT alternative the automation's reviews are `User`, so replace those filters with `select(.user.login == "<automation-account>")` throughout.
 - **Branch protection** on `main` with required status checks **and at least one required approving review** — the checks make auto-merge land only green PRs, and the review requirement is what makes the held tier hold anything. Without it, arming a held PR is merging it: leave held updates unarmed instead.
 - **The `disarm-on-veto` job made a required status context** — a red disarm run only _blocks_ the armed merge if branch protection waits on it; otherwise the PR still lands once the unrelated required checks pass. Make the veto job always report (run unconditionally, succeed when there is nothing to disarm) and add its context to the required set.
 - **The policy job's own actions barred from bot updates** in the Dependabot config (`ignore:` entries for the metadata and token-minting actions): on `pull_request` events the workflow definition comes from the PR head, so a bot PR bumping one of these executes the PR-selected action code with the App key in scope **before** any tier logic runs — their pin changes must arrive as human PRs.
 - **Every label the workflows compute, created first** — the labeler derives `release:patch` / `release:minor` / `release:major`, and `gh pr edit --add-label` fails on a label that does not exist: `for t in patch minor major; do gh label create "release:$t"; done` (matching the no-space form the workflow writes).
 
-**a) Label by update type — `.github/workflows/dependabot-release-label.yaml`** (on `pull_request: [opened, reopened, synchronize]` — `synchronize` because an App's `update-branch` re-fires it; relabeling is idempotent)
+**a) Label by update type — `.github/workflows/dependabot-release-label.yaml`** (on `pull_request: [opened, reopened, synchronize]` — `synchronize` because an App's `update-branch` re-fires it)
 
 ```yaml
-permissions: { contents: read, pull-requests: write }
+permissions: { contents: read, pull-requests: read }   # writes go through the App token; keep the default token on the read-only floor
 jobs:
   add-release-label:
     # Gate on the PR's AUTHOR and an in-repo head, not github.actor: a maintainer's
@@ -107,11 +107,14 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
         # update-type is "version-update:semver-{patch,minor,major}"; the label is
-        # its last word.
-        run: gh pr edit "$PR_URL" --add-label "release:${UPDATE_TYPE##*semver-}"
+        # its last word. Remove any stale release:* first — synchronize re-fires
+        # this, and --add-label alone would let a PR accumulate two release labels.
+        run: |
+          gh pr edit "$PR_URL" --remove-label release:patch --remove-label release:minor --remove-label release:major || true
+          gh pr edit "$PR_URL" --add-label "release:${UPDATE_TYPE##*semver-}"
 ```
 
-**b) Tiered approve + auto-merge — `.github/workflows/dependabot-auto-merge.yaml`** (on `pull_request: [opened, reopened, synchronize, labeled]`)
+**b) Tiered approve + auto-merge — `.github/workflows/dependabot-auto-merge.yaml`** (on `pull_request: [opened, reopened, synchronize, labeled, unlabeled]` — `unlabeled` so removing the veto re-runs the required disarm context, which otherwise stays red on the head)
 
 ```yaml
 permissions: { contents: read, pull-requests: read }
@@ -253,9 +256,6 @@ jobs:
           # can sit past page one), then VERIFY none remain — the verify carries the
           # fail-closed guarantee, since a failed substitution feeds a loop nothing
           # and exits green.
-          # This recipe posts approvals AS THE APP (type Bot). On the PAT
-          # alternative the automation's reviews are type User — match its login
-          # instead: select(.user.login == "<automation-account>").
           gh api --paginate "repos/${{ github.repository }}/pulls/$PR/reviews" \
             --jq '.[] | select(.user.type == "Bot" and .state == "APPROVED") | .id' \
           | while read -r id; do
