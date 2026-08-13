@@ -17,8 +17,9 @@ gh repo edit {owner}/{repo} --enable-auto-merge
 For a **plain** required-review count with no bot event that must cascade, the default token is the least-privilege choice — approve with `GITHUB_TOKEN` under `permissions: { pull-requests: write }`, with the repo's "Allow GitHub Actions to create and approve pull requests" setting on. Mint an **App** token instead only when an authored event must trigger a downstream required check, or for truthful attribution (code-owner review is neither — a separate PAT/ruleset remedy):
 
 ```yaml
-      # App path (cascade / attribution). For a plain review, drop this and use
-      # GITHUB_TOKEN with pull-requests: write.
+      # App path (cascade / attribution). For a plain review, DROP this step AND
+      # set GH_TOKEN: ${{ github.token }} in the L2/L3 steps below (not
+      # steps.app-token.outputs.token), with permissions: { pull-requests: write }.
       - id: app-token
         uses: actions/create-github-app-token@<sha>   # v3.2.0
         with:
