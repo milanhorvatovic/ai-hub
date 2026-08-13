@@ -93,7 +93,10 @@ concurrency:
 
 # escape hatch: gate the flow behind a repo variable — checked in the STEPS, with
 # an always-run step logging the resolved state (a skipped job can't report that
-# the switch is off, or distinguish off from not-resolving)
+# the switch is off, or distinguish off from not-resolving). Gating future steps is
+# only half a stop: a variable change fires no event, so an ALREADY-armed PR still
+# merges. Pair the flip with a reconciler dispatch whose disabled mode disarms and
+# verifies every in-flight PR (see the dependency recipe's reconciler).
 jobs:
   autonomy:
     steps:

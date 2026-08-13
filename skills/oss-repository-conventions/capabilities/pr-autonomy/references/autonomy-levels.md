@@ -23,7 +23,7 @@ Bots/tools _open_ PRs (Dependabot, release-please); CI runs on every PR. A human
 
 Automation _approves_ eligible PRs so they satisfy required review; a human (or L3) still merges.
 
-- **Prerequisites:** a least-privilege **App token** (the default `GITHUB_TOKEN` approves only behind the off-by-default Actions-can-approve setting, never code-owner review); an **eligibility gate**.
+- **Prerequisites:** an approving identity — the default `GITHUB_TOKEN` suffices for a plain review count (Actions-can-approve setting on) with no cascade; a least-privilege **App token** when an event must cascade, code-owner review is required, or for truthful attribution — and an **eligibility gate**.
 - **Guardrails:** eligibility gate, hard stops, scoped identity.
 - **Approaches:** App-token `gh pr review --approve`; a dedicated approval Action.
 - **Risk:** approval without merge gating can normalize rubber-stamping — pair with required checks so approval alone never lands a change.

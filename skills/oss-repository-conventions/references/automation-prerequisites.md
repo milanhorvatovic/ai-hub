@@ -45,7 +45,7 @@ gh secret set AUTOMATION_PRIVATE_KEY --app dependabot < private-key.pem  # Depen
 ```
 
 - **The delivering event routes the store, not the workflow file.** One workflow's runs can read _different_ stores: a `pull_request` run delivered to Dependabot's own push reads the Dependabot store, while the same workflow's run from a human's label event reads the Actions store. So a half-broken mirror hides — every Actions-store run stays green while every Dependabot-delivered one fails.
-- **Verify with an actored run, not by inspection.** Secret contents can't be read back, so the only proof the Dependabot-store copy works is a run Dependabot itself triggered (e.g. comment `@dependabot recreate` on one of its PRs and watch the mint step). A green run triggered by anything else proves only the Actions store.
+- **Verify with an actored run, not by inspection.** Secret contents can't be read back, so the only proof the Dependabot-store copy works is a run in the _Dependabot context_ — one Dependabot itself triggered (e.g. comment `@dependabot recreate` and watch the mint step), or a **manual rerun of a Dependabot-initiated run**, which keeps the original restricted Dependabot privileges even when a human clicks it. A run from a genuinely fresh non-Dependabot event (a human push, a schedule) proves only the Actions store.
 
 ## 3. Environment-scoped secrets
 

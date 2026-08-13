@@ -15,7 +15,7 @@ Which identity an automation acts as — the most consequential choice for any C
 ## Choosing
 
 - **Default `GITHUB_TOKEN` first** — least privilege, no secret to manage. Only reach past it for its two hard limits: it **can't approve PRs** unless the repo's "Allow GitHub Actions to create and approve pull requests" setting is on (off by default — and even on, never code-owner review), and its own pushes/PR events **don't automatically trigger** other workflows (a bot commit won't kick CI) — only an explicit `workflow_dispatch` / `repository_dispatch` call does, so automatic cascading is what needs a non-default identity.
-- **To trigger downstream workflows or approve PRs** (the autonomy ladder's L2+): a **GitHub App** installation token (preferred) or a tightly-scoped **fine-grained PAT**. Never a classic PAT.
+- **To make a bot's event cascade** (its push/PR must trigger a downstream workflow), **or for code-owner review, or for truthful attribution** (the autonomy ladder's L2+): a **GitHub App** installation token (preferred) or a tightly-scoped **fine-grained PAT**, never a classic PAT. Plain PR approval alone does not need this — the default token approves behind the Actions-can-approve setting; reach for the App when one of those three needs applies.
 - **For git-only push** (e.g. pushing built artifacts): a **deploy key** beats a PAT — no API surface.
 - **Verified commits:** a GitHub App or the GitHub API (`createCommitOnBranch`) produces **verified** commits without managing signing keys; a PAT pushing over HTTPS does not (see `commit-signing.md`).
 
