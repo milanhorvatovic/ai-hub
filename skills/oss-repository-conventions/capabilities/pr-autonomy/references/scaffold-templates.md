@@ -12,15 +12,18 @@ gh api -X PUT repos/{owner}/{repo}/branches/{default}/protection \
 gh repo edit {owner}/{repo} --enable-auto-merge
 ```
 
-## Scoped identity (L2+): mint a least-privilege App token
+## Scoped identity (L2+)
+
+For a **plain** required-review count with no bot event that must cascade, the default token is the least-privilege choice — approve with `GITHUB_TOKEN` under `permissions: { pull-requests: write }`, with the repo's "Allow GitHub Actions to create and approve pull requests" setting on. Mint an **App** token instead only when an authored event must trigger a downstream required check, or for truthful attribution (code-owner review is neither — a separate PAT/ruleset remedy):
 
 ```yaml
+      # App path (cascade / attribution). For a plain review, drop this and use
+      # GITHUB_TOKEN with pull-requests: write.
       - id: app-token
         uses: actions/create-github-app-token@<sha>   # v3.2.0
         with:
           client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
           private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
-      # use steps.app-token.outputs.token for gh review/merge — NOT GITHUB_TOKEN
 ```
 
 ## Eligibility gate + hard stops (all rungs above L1)
