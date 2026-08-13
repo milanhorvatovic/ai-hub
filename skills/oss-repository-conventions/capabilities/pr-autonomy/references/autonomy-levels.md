@@ -51,7 +51,7 @@ End-to-end with no human on the safe path: open → label → approve → merge 
 | Guardrail | L2 | L3 | L4 |
 | --- | --- | --- | --- |
 | Eligibility gate (who qualifies) | ✅ | ✅ | ✅ |
-| Hard stops (major / security / breaking / CI-touching → human) | ✅ | ✅ | ✅ |
+| Hard stops (major / security / breaking / human-authored CI edits + privileged-action bumps → human) | ✅ | ✅ | ✅ |
 | Scoped App-token identity (least privilege) | ✅ | ✅ | ✅ |
 | Required checks are the merge gate | — | ✅ | ✅ |
 | Concurrency control (serialize per PR; singleton reconciler) | — | ✅ | ✅ |

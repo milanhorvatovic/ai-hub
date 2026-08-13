@@ -22,8 +22,8 @@
   },
   "oss-repository-conventions": {
     "discovery_bytes": 12440,
-    "skill_md_bytes": 18114,
-    "load_bytes": 257307,
+    "skill_md_bytes": 18155,
+    "load_bytes": 257982,
     "files": 51,
     "version": "1.0.0"
   }

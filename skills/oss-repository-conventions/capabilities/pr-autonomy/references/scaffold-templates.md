@@ -32,7 +32,9 @@ gh repo edit {owner}/{repo} --enable-auto-merge
         name: Decide eligibility
         run: |
           # ELIGIBLE: bot author AND patch|minor AND path allowlist AND size cap
-          # HARD STOP (require human): major | security | breaking | touches CI/release/secrets
+          # HARD STOP (require human): major | security | breaking | human CI/release/secret edit
+          #   | a bump of an action that runs in a secret-bearing/write-scoped job
+          #   (an unprivileged action bump may be eligible — see pr-autonomy hard-stops)
           echo "eligible=true" >> "$GITHUB_OUTPUT"     # write false on a hard stop
 ```
 
