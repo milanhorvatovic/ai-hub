@@ -23,9 +23,9 @@ Bots/tools _open_ PRs (Dependabot, release-please); CI runs on every PR. A human
 
 Automation _approves_ eligible PRs so they satisfy required review; a human (or L3) still merges.
 
-- **Prerequisites:** a least-privilege **App token** (the default `GITHUB_TOKEN` cannot approve PRs); an **eligibility gate**.
+- **Prerequisites:** an approving identity — the default `GITHUB_TOKEN` suffices for a plain review count (Actions-can-approve on) with no cascade _and only when it did not author the PR_ (a bot can't self-approve; a self-authored PR needs a distinct App/PAT); a least-privilege **App token** when an event must cascade or for truthful attribution; a code-owner PAT or a reshaped ruleset where code-owner review is required (no App satisfies it) — and an **eligibility gate**.
 - **Guardrails:** eligibility gate, hard stops, scoped identity.
-- **Approaches:** App-token `gh pr review --approve`; a dedicated approval Action.
+- **Approaches:** default-token `gh pr review --approve` (plain review, distinct author); App-token approval where an event must cascade or for attribution; a dedicated approval Action.
 - **Risk:** approval without merge gating can normalize rubber-stamping — pair with required checks so approval alone never lands a change.
 
 ### L3 — Auto-merge
@@ -51,8 +51,8 @@ End-to-end with no human on the safe path: open → label → approve → merge 
 | Guardrail | L2 | L3 | L4 |
 | --- | --- | --- | --- |
 | Eligibility gate (who qualifies) | ✅ | ✅ | ✅ |
-| Hard stops (major / security / breaking / CI-touching → human) | ✅ | ✅ | ✅ |
-| Scoped App-token identity (least privilege) | ✅ | ✅ | ✅ |
+| Hard stops (major / security / breaking / human CI edits → human; a privileged **PR-job** action bump → bar or trusted-ref, not a hold; a post-merge privileged action → hold) | ✅ | ✅ | ✅ |
+| Scoped approving identity (default token for a plain distinct-author approval; App for cascade/attribution) | ✅ | ✅ | ✅ |
 | Required checks are the merge gate | — | ✅ | ✅ |
 | Concurrency control (serialize per PR; singleton reconciler) | — | ✅ | ✅ |
 | Reconciler / scheduled catch-up | — | optional | ✅ |

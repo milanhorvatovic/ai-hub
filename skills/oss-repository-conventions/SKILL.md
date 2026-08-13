@@ -148,7 +148,7 @@ Each row routes to a self-sufficient capability; the path column is the file to 
 | `references/maturity-benchmarks.md` | Maps the rubric to recognized external benchmarks (OpenSSF Best Practices Badge, Scorecard, GitHub community profile, SLSA, CNCF/Apache maturity) for the audit roll-up |
 | `references/branch-protection.md` | Branch/tag protection + ruleset depth: required checks/reviews/signatures/linear history, tag protection, deployment environments, merge queue |
 | `references/automation-identity.md` | Automation identity trade-offs — default GITHUB_TOKEN vs fine-grained PAT vs classic PAT vs custom GitHub App vs deploy keys |
-| `references/automation-prerequisites.md` | The out-of-band provisioning automation needs before its workflows run — bot-identity setup, the Actions/Dependabot secret stores, environment-scoped secrets, gating labels, the required repo settings, and the code-owner approval identity |
+| `references/automation-prerequisites.md` | The out-of-band provisioning automation needs before its workflows run — bot-identity setup, the Actions/Dependabot secret stores, environment-scoped secrets, gating labels, the required repo settings, and code-owner review satisfied (a code-owner identity or a reshaped ruleset) |
 | `references/automation-playbooks.md` | Ordered end-to-end setup flows (one per automation type — CI baseline, dependency updates, CI hardening, releases, PR autonomy, autonomous Dependabot) that chain prerequisites → artifacts → enable → verify; the guided path scaffold follows for a "set up X" request |
 | `references/commit-signing.md` | Commit/tag signing for developers and automations (GPG/SSH/gitsign), the Verified badge, and requiring signatures |
 

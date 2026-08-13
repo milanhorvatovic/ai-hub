@@ -15,6 +15,12 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    # If an auto-merge policy job runs on pull_request, bar the actions IT runs
+    # from bot updates — a bot PR bumping one executes PR-head code with the App
+    # key in scope before any tier logic. Their pins arrive as human PRs.
+    ignore:
+      - dependency-name: "dependabot/fetch-metadata"
+      - dependency-name: "actions/create-github-app-token"
 
   # One block per package ecosystem present (npm / pip / cargo / gomod / bundler …)
   - package-ecosystem: <npm|pip|cargo|gomod|bundler>
@@ -45,6 +51,7 @@ updates:
 ```yaml
   dependency-review:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@<sha>                  # v4
       - uses: actions/dependency-review-action@<sha>  # v4
@@ -59,72 +66,29 @@ gh api -X PUT repos/{owner}/{repo}/automated-security-fixes
 
 ## Autonomous Dependabot recipe
 
-A near-hands-off mechanism that labels, approves, and merges Dependabot PRs, with a reconciler to catch dropped events. Three workflows plus a token.
+A near-hands-off flow that labels, approves, and merges Dependabot PRs and reconciles dropped events, on a three-tier policy. **This section is the shape and the reasons, not a paste-ready implementation** — the production version is dense with concurrency, TOCTOU, fail-closed, and required-context handling that a trimmed snippet cannot carry honestly. The **load-bearing properties** below _are_ the contract; implement them in your own workflow. A public example to start from and check against this list is [`milanhorvatovic/ai-hub`'s `dependabot-auto-merge.yaml`](https://github.com/milanhorvatovic/ai-hub/blob/main/.github/workflows/dependabot-auto-merge.yaml) — read it as a worked example to adapt, not a drop-in: it is `pull_request`-triggered (not a `workflow_call` reusable workflow), and a given revision may not yet satisfy every property here, so verify each against the running code before relying on it. Once a maintained **reusable** workflow exists, consuming it at a pinned SHA — rather than recopying YAML — is itself the identity/supply-chain doctrine this skill teaches, **with one caveat**: a `pull_request`-triggered policy caller takes its `uses:` pin from the PR head, so a bot bump of that callee runs newly-selected remote workflow code with the App secrets before any tier check — the same PR-head hazard as the actions the job runs. Bar the reusable workflow's pin from bot updates too (add it to the Dependabot `ignore` set), or trigger the caller from a non-`pull_request` context, so the pin can only change by a human PR.
 
-**Prerequisites**
+**The three tiers** (one policy workflow classifies each bot PR):
 
-- A **GitHub App token** (`actions/create-github-app-token`) or a bot PAT — the default `GITHUB_TOKEN` cannot approve PRs or trigger the downstream required checks.
-- **Branch protection** on `main` with required status checks (so auto-merge only lands green PRs).
+- **Eligible** — patch/minor of an unprivileged dependency, no veto label → the App approves and arms auto-merge; it lands hands-off once required checks pass.
+- **Held** — a major, or a privileged dependency → arm auto-merge but never approve, so one human review is the only missing ingredient. This holds only where branch protection **requires an approving review**; without that rule, arming is merging, so leave held PRs unarmed instead.
+- **Veto** — a hard-stop label (`security-review-required`) → disarm any armed auto-merge **and dismiss any standing bot approval** (disarming alone leaves the approval able to satisfy the review rule if the PR re-arms later — a gap worth checking in any example workflow you adopt).
 
-**a) Label by update type — `.github/workflows/dependabot-release-label.yaml`** (on `pull_request: [opened, reopened]`)
+**Prerequisites — the wiring the shape depends on:**
 
-```yaml
-permissions: { contents: read, pull-requests: write }
-jobs:
-  add-release-label:
-    if: github.actor == 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: dependabot/fetch-metadata@<sha>   # v2  -> outputs.update-type
-      - run: gh pr edit "$PR" --add-label "release:${LABEL}"   # map update-type -> label
-```
+- A **GitHub App token** (`actions/create-github-app-token`). The default `GITHUB_TOKEN` can satisfy a plain required-review count (Actions-can-approve setting on, `pull-requests: write`) and can even list and dismiss reviews — but never code-owner review. The reasons to prefer the App here are the ones the default token genuinely can't do: an unattended event cascade (its own events don't fire the downstream required checks hands-off — a token-authored PR's runs, where they exist, wait for approval) and truthful bot attribution. The recipe's dismissal filters assume the App identity (`user.type == "Bot"`); match a PAT/default-token approver by login instead. Stand it up per the capability's automation-prerequisites reference (dual secret stores, PKCS-agnostic key handling, verify with an actored run).
+- **Branch protection** with required status checks, a required approving review, **and stale-review dismissal on push** — the checks gate merge on green, the review requirement is what the held tier holds on, and dismissal stops a post-approval Dependabot rebase from merging an unreviewed commit on the old approval. (Do _not_ substitute the required-latest-push-approval rule here: it requires an approver other than the latest pusher, and in this single-App recipe the App is the pusher — its own approval would then never count. Latest-push-approval only fits when a separate approver identity exists.)
+- **The veto/disarm job made a required, always-reporting status context** — a red disarm run only blocks the merge if branch protection waits on it; otherwise the PR lands once unrelated checks pass.
+- **The actions the policy job itself runs** (metadata, token-minting) **kept off the PR-head path** — on `pull_request` the workflow definition comes from the PR head, so a bot PR bumping one runs PR-selected code with the App key in scope _before_ any tier logic. The house default bars them from bot updates in the Dependabot config (their pins arrive as human PRs); equivalently, take the job's definition from a trusted ref (a non-`pull_request` trigger) so the PR-head pin can't take effect. One of the two is required, not both.
+- **The `release:*` labels the flow computes, created first** — `gh pr edit --add-label` errors on a label that does not exist, so create `release:patch` / `release:minor` / `release:major` up front.
 
-**b) Approve + auto-merge safe updates — `.github/workflows/dependabot-auto-merge.yaml`** (on `pull_request`)
+**The load-bearing implementation properties** — an adopted reference workflow must have these; a hand-rolled one is not done without them:
 
-```yaml
-permissions: { contents: read, pull-requests: read }
-jobs:
-  # For a built artifact (e.g. dist/): rebuild, then commit it AS THE APP via the
-  # GraphQL createCommitOnBranch mutation — that lands a Verified commit and the
-  # resulting `synchronize` re-triggers required checks. A plain `git push` with
-  # GITHUB_TOKEN lands Unverified AND is anti-loop-suppressed, so checks never
-  # re-run and the PR strands. A `built-artifact-verified` CI gate (ci-automation)
-  # backstops a missed rebuild.
-  auto-merge:
-    if: github.actor == 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    steps:
-      - id: app-token
-        uses: actions/create-github-app-token@<sha>   # v2
-        with:
-          client-id: ${{ vars.AUTOMATION_CLIENT_ID }}
-          private-key: ${{ secrets.AUTOMATION_PRIVATE_KEY }}
-      - id: meta
-        uses: dependabot/fetch-metadata@<sha>   # v2
-      - name: Approve and enable auto-merge for patch/minor
-        if: contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.meta.outputs.update-type)
-        env: { GH_TOKEN: ${{ steps.app-token.outputs.token }} }
-        run: |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --squash --auto "$PR_URL"
-      # Major and security-flagged PRs are intentionally left for human review.
-```
-
-**c) Reconciler — `.github/workflows/dependabot-reconciler.yaml`** (on `schedule: hourly cron` + `workflow_run` + `workflow_dispatch`)
-
-```yaml
-permissions: { contents: read, pull-requests: read }
-jobs:
-  reconcile:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Re-drive open Dependabot PRs (catch dropped events)
-        run: |
-          # for each open dependabot PR: re-apply label, re-enable auto-merge,
-          # update-branch if behind. The hourly cron backstops missed webhooks.
-```
-
-Pin every action to a SHA; mint the bot token per job; never auto-merge major or security-flagged updates unattended.
+- **Author + same-repo guard, not `github.actor`** — match `dependabot[bot]` _or_ `app/dependabot` on an in-repo head, so a maintainer's reopen or an App's `update-branch` re-fire is not skipped. But this is metadata, not provenance: a write-access collaborator can push to the bot's branch without changing the author, and `pull_request` loads the modified workflow from that head — so pair it with branch rules that restrict who may push to those branches, or take the secret-bearing job's definition from a trusted ref.
+- **Asymmetric failure posture, by authorization outcome** — a step that _grants_ autonomy (approve/arm) denies on failure (warn, leave the PR manual); a step that _revokes_ it (disarm/dismiss) blocks on failure (red, behind a required context, unless confirmed), and every such check reads its own result rather than trusting a command substitution that is empty on failure.
+- **Live re-reads** — the event payload is a stale snapshot; re-read the veto label immediately before approving or arming, and dismiss a stale automation approval before arming a held PR.
+- **Fail-safe kill switch** — a repo variable that reads as _disabled_ when unset, logged every run; switching it off must also dispatch the reconciler to disarm in-flight PRs, since a variable change fires no event.
+- **A reconciler** (cron + `workflow_run` + dispatch) that re-drives stuck PRs, skips veto-labeled ones, and runs in reverse (disarming) while the switch is off.
 
 ## Autonomous Renovate (alternative to the recipe above)
 
