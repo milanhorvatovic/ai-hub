@@ -6,28 +6,23 @@
   "packages": {
     "skills/behavior-coach": {
       "component": "behavior-coach",
-      "extra-files": [{ "type": "generic", "path": "SKILL.md" }],
-      "release-as": "1.0.0"
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
     },
     "skills/coding-principles": {
       "component": "coding-principles",
-      "extra-files": [{ "type": "generic", "path": "SKILL.md" }],
-      "release-as": "1.0.0"
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
     },
     "skills/docs-steward": {
       "component": "docs-steward",
-      "extra-files": [{ "type": "generic", "path": "SKILL.md" }],
-      "release-as": "1.0.0"
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
     },
     "skills/git-toolkit": {
       "component": "git-toolkit",
-      "extra-files": [{ "type": "generic", "path": "SKILL.md" }],
-      "release-as": "1.0.0"
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
     },
     "skills/oss-repository-conventions": {
       "component": "oss-repository-conventions",
-      "extra-files": [{ "type": "generic", "path": "SKILL.md" }],
-      "release-as": "1.0.0"
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
     }
   }
 }
