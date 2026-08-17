@@ -43,8 +43,10 @@ def test_scope_boundary_forbids_training_transfer(skill_md: Path) -> None:
     assert start != -1, "Scope boundaries section missing from SKILL.md"
     end = text.find("\n## ", start + 1)
     section = text[start : end if end != -1 else len(text)]
-    assert "fine-tune" in section, "no-fine-tuning boundary missing"
-    assert "training dataset" in section, "training-data boundary missing"
+    assert "does not fine-tune" in section, "no-fine-tuning boundary missing"
+    assert "does not generate training datasets" in section, (
+        "training-data boundary missing"
+    )
 
 
 @pytest.mark.parametrize(

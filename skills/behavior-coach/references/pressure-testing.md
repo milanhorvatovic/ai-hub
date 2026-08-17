@@ -23,7 +23,7 @@ Once all probes pass, three adversarial passes over the skill _text_. Run each a
 
 ## Convergence
 
-The skill ships when, in a single iteration:
+The loop has converged when, in a single iteration:
 
 - every probe passes on **two consecutive** GREEN runs (guards against single-run luck), and
 - the loophole hunter finds nothing new, and

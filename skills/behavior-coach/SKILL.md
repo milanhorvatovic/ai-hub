@@ -47,7 +47,7 @@ Execute the stages in order. Each stage's reference file carries the full proced
 | 2. Capture | Run the probe battery against the source; collect verbatim transcripts | `references/probe-battery.md` |
 | 3. Baseline | Run the same probes on the bare target (no skill); record failures and verbatim rationalizations — this is RED | `references/probe-battery.md` |
 | 4. Extract | Diff source vs baseline per dimension; classify each delta portable / partial / non-portable | `references/delta-extraction.md` |
-| 5. Author | Write the output skill from portable deltas only, under the portability rules | `references/portability-rules.md` |
+| 5. Author | Write the output skill from the surviving deltas — portable rows, plus partials with a mechanical trigger attached — under the portability rules | `references/portability-rules.md` |
 | 6. Pressure-test | Re-run the baseline probes with the skill loaded (GREEN), then attack the text with three critics (REFACTOR); iterate to convergence | `references/pressure-testing.md` |
 
 A worked end-to-end pass — distilling Claude Fable 5's execution behavior into an Opus-class target — is in `references/worked-example.md`.
@@ -67,7 +67,7 @@ Every produced skill must carry a short **honest-limits note** naming what was _
 ## Operating modes
 
 - **Live source access** (preferred): the source model is still reachable — run the full probe battery against it, and also commission a **source-authored draft** of the output skill (the probe battery describes the commission). The source's expensive reasoning is spent once at capture time and amortized across every cheap run of the target. When access is time-boxed (pricing change, deprecation, preview ending), run Capture first and completely; every other stage can happen after access ends.
-- **Archival**: the source is gone or unaffordable. Substitute existing transcripts, the vendor's published behavioral and migration guidance, and community observations. Mark every trait's provenance (`observed` / `vendor-documented` / `community-reported`) in the extraction table; traits with only community provenance need corroboration from a second source before encoding.
+- **Archival**: the source is gone or unaffordable. Substitute existing transcripts, the vendor's published behavioral and migration guidance, and community observations. Mark every trait's provenance (`observed` / `vendor-documented` / `community-reported`) in the extraction table; traits with only community provenance need corroboration from a second source before encoding. Pairing degrades deliberately here, because the identical-prompts rule binds live capture: an existing transcript whose prompt and fixtures survive is re-run on the target for a true paired diff, while a documented trait with no reproducible prompt enters as a hypothesis — probe the bare target with baseline probes designed to elicit it, and diff at the trait level, documented versus observed, never transcript against transcript.
 
 ## Output contract
 
