@@ -18,14 +18,14 @@
     "skill_md_bytes": 11495,
     "load_bytes": 62250,
     "files": 7,
-    "version": "1.1.0"
+    "version": "1.0.0"
   },
   "git-toolkit": {
     "discovery_bytes": 9590,
     "skill_md_bytes": 21839,
     "load_bytes": 309963,
     "files": 36,
-    "version": "1.1.0"
+    "version": "1.0.0"
   },
   "oss-repository-conventions": {
     "discovery_bytes": 12440,
