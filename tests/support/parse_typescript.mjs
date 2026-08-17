@@ -1,38 +1,45 @@
 // Syntax-checks TypeScript samples handed to it as JSON on stdin.
 //
 // Parsing, not typechecking: the samples are fragments naming types and helpers
-// defined nowhere (`OrderSchema`, `PublicUser`), so a `tsc` run would report
-// resolution errors on content that is correct as an illustration.
-// `createSourceFile` populates `parseDiagnostics` and resolves nothing, which is
-// exactly the line this lane wants to hold.
+// defined nowhere (`OrderSchema`, `PublicUser`), so a full compile would report
+// resolution errors on content that is correct as an illustration. The lane asks
+// the compiler for syntactic diagnostics only, which is exactly the line it
+// wants to hold.
+//
+// The pinned compiler is TypeScript 7, the native port. Its npm package ships no
+// in-process compiler API; what it ships is a bridge (`typescript/unstable/async`)
+// that spawns the bundled Go binary and speaks to it over stdio. The bridge
+// addresses files rather than strings, so the fragments are written to a
+// temporary project first. The `unstable/` path segment is the vendor's own
+// churn warning — the exact version pin plus the control samples the caller
+// sends with every batch are what turn a future shape change into a red check
+// instead of a silent pass.
 //
 // stdin:  [{ "id": "<path>:<line>", "source": "<fence body>" }, ...]
 // stdout: { "checked": <n>, "problems": [{ "id", "line", "message" }, ...] }
-// exit 3: the pinned typescript is not installed (the caller skips rather than fails)
+// exit 3: the pinned typescript is not usable here (the caller skips rather than fails)
 
-let ts;
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+let API;
 try {
-  // `.default` is the CJS interop shape the pinned 5.x publishes; an ESM-only
-  // package would put the compiler on the namespace instead. Falling back costs
-  // one `??` and keeps a shape change reporting as "no usable compiler" rather
-  // than as a TypeError thrown while building that very message.
-  const imported = await import("typescript");
-  ts = imported.default ?? imported;
+  // Older majors publish neither the subpath nor the class, so both a missing
+  // package and a wrong-major package land on the same exit: "no usable
+  // compiler", reported before any work is attempted rather than as a
+  // TypeError halfway through it.
+  ({ API } = await import("typescript/unstable/async"));
 } catch {
-  process.stderr.write("typescript is not installed; run `npm ci`\n");
+  process.stderr.write(
+    "typescript with the unstable/async API is not installed (this lane needs the pinned 7.x); run `npm ci`\n",
+  );
   process.exit(3);
 }
-
-// The compiler API this lane uses belongs to the 5.x line. TypeScript 7's npm
-// package is the native port and exports only `version`, so a blind major bump
-// lands here rather than somewhere subtle.
-if (!ts || typeof ts.createSourceFile !== "function") {
-  // `ts?.version` because the condition above admits a falsy `ts`, and reading
-  // through it here would throw while building the message that exists to
-  // report exactly that — the crash-instead-of-diagnostic this guard prevents,
-  // reintroduced one line below the guard.
-  const found = ts?.version ? `typescript ${ts.version}` : "the installed typescript";
-  process.stderr.write(`${found} exposes no createSourceFile; this lane needs the 5.x compiler API\n`);
+if (typeof API !== "function") {
+  process.stderr.write(
+    "the installed typescript exports no unstable/async API class; this lane needs the 7.x bridge\n",
+  );
   process.exit(3);
 }
 
@@ -40,28 +47,53 @@ const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
 const samples = JSON.parse(Buffer.concat(chunks).toString("utf8"));
 
-const problems = [];
-for (const { id, source } of samples) {
-  // `ScriptKind.TS` states the intent; it does not change what is reported here,
-  // because TypeScript runs one parser for both kinds and the rules that differ
-  // are checker-level. Verified rather than assumed — a mutation to `ScriptKind.JS`
-  // produces byte-identical diagnostics on every construct these samples use.
-  const parsed = ts.createSourceFile(id, source, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
-  // `parseDiagnostics` is internal — present at runtime, absent from the public
-  // types. The public route to syntactic diagnostics is a Program, which wants a
-  // CompilerHost and a filesystem to check fragments that belong to neither. The
-  // reason this is safe to depend on is not that it is stable: it is that the
-  // caller sends a deliberately broken control sample with every batch and fails
-  // when it comes back clean. If this property ever disappears, `?? []` reports
-  // everything as fine and that control is what notices.
-  for (const diagnostic of parsed.parseDiagnostics ?? []) {
-    const { line } = parsed.getLineAndCharacterOfPosition(diagnostic.start ?? 0);
-    problems.push({
-      id,
-      line: line + 1,
-      message: ts.flattenDiagnosticMessageText(diagnostic.messageText, "; "),
-    });
-  }
+// Sample ids are `<path>:<line>` labels, not usable filenames; each fragment
+// gets an index-named file and the index maps diagnostics back to the id.
+const dir = mkdtempSync(path.join(tmpdir(), "ts-sample-lane-"));
+const fileFor = (index) => path.join(dir, `sample_${index}.ts`);
+writeFileSync(
+  path.join(dir, "tsconfig.json"),
+  JSON.stringify({ compilerOptions: { noEmit: true }, include: ["*.ts"] }),
+);
+for (const [index, { source }] of samples.entries()) writeFileSync(fileFor(index), source);
+
+let api;
+const cleanup = async () => {
+  await api?.close().catch(() => {});
+  rmSync(dir, { recursive: true, force: true });
+};
+
+let program;
+try {
+  api = new API({ cwd: dir });
+  const snapshot = await api.updateSnapshot({ openProjects: [path.join(dir, "tsconfig.json")] });
+  program = snapshot.getProjects()[0]?.program;
+} catch (error) {
+  // Startup is availability, not verdict: a platform without a bundled binary,
+  // or a bridge that cannot spawn, is the same "cannot run here" the missing
+  // package is. Anything after startup is a real failure and propagates.
+  await cleanup();
+  process.stderr.write(`the typescript API bridge failed to start: ${error?.message ?? error}\n`);
+  process.exit(3);
 }
 
-process.stdout.write(JSON.stringify({ checked: samples.length, problems }));
+try {
+  if (!program) throw new Error(`the temporary project at ${dir} produced no program`);
+
+  const problems = [];
+  for (const [index, { id, source }] of samples.entries()) {
+    for (const diagnostic of await program.getSyntacticDiagnostics(fileFor(index))) {
+      problems.push({
+        id,
+        // Diagnostic positions are offsets into the file this process wrote, so
+        // the line is recovered from the source it holds in memory.
+        line: source.slice(0, diagnostic.pos ?? 0).split("\n").length,
+        message: diagnostic.text.replace(/\r?\n\s*/g, "; "),
+      });
+    }
+  }
+
+  process.stdout.write(JSON.stringify({ checked: samples.length, problems }));
+} finally {
+  await cleanup();
+}
