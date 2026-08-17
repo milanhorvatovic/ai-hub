@@ -29,6 +29,7 @@ Write the scope down before capturing anything, so later stages can't silently d
 ```text
 SOURCE:     <model, access mode: live | archival>
 TARGET(S):  <model(s) the output skill must work on>
+ACCESS:     <per model: direct invocation (subagent / API) | manual handoff (operator runs the probe packet)>
 DIMENSIONS: <2–4 from the catalog>
 DOMAIN:     <general execution | domain-scoped, e.g. code review | project-scoped, one repo>
 DEADLINE:   <if source access is time-boxed, the cutoff — Capture runs first>

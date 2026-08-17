@@ -97,4 +97,4 @@ The produced skill directory must contain, at minimum:
 
 ## Output behavior
 
-When invoked with a distillation request, confirm source, target(s), and dimensions (stage 1), then execute the pipeline. When invoked bare via `/behavior-coach`, respond with: _"Loaded. Which model's behavior are we distilling, and into what?"_ — nothing more.
+When invoked with a distillation request, confirm source, target(s), dimensions, and how each model is reached from this session (stage 1), then execute the pipeline. A probe's model may not be invocable from the current harness — never simulate it: emit the probe packet (prompts, fixtures, pressure framing, run count) and wait for the operator to return verbatim transcripts before continuing. When invoked bare via `/behavior-coach`, respond with: _"Loaded. Which model's behavior are we distilling, and into what?"_ — nothing more.
