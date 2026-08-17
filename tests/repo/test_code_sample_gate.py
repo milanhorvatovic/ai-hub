@@ -49,18 +49,20 @@ def test_typescript_is_pinned_to_an_exact_version() -> None:
 
 
 def test_the_pinned_major_still_ships_a_compiler_api() -> None:
-    """TypeScript 7 is the native port: its npm package exports `version` and
-    nothing else, so the parser this lane calls does not exist there. The bump
-    is a rewrite rather than a version change, and Dependabot raises majors as
+    """TypeScript 7 is the native port: its root export carries only `version`,
+    and the compiler this lane rides lives behind the `typescript/unstable/async`
+    bridge, which spawns the bundled Go binary. That path segment is the
+    vendor's own churn warning, so a major bump is a decision about whether the
+    surface survived, not a version change — and Dependabot raises majors as
     standalone PRs precisely so a human decides one. Failing here says which
     decision is owed; without it the failure is an unexplained parse error."""
     declared = json.loads(_read(_PACKAGE_JSON))["devDependencies"]["typescript"]
 
-    assert declared.startswith("5."), (
-        f"typescript is pinned to {declared}; the lane calls `ts.createSourceFile`,"
-        " which the 5.x compiler exports and the 7.x native port does not."
-        " Moving off 5.x means porting tests/support/parse_typescript.mjs to the"
-        " new API, not just taking the bump"
+    assert declared.startswith("7."), (
+        f"typescript is pinned to {declared}; the lane imports"
+        " `typescript/unstable/async`, the 7.x bridge to the native compiler."
+        " Moving majors means re-verifying that surface in"
+        " tests/support/parse_typescript.mjs, not just taking the bump"
     )
 
 
