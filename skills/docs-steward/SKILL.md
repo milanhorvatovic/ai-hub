@@ -16,7 +16,7 @@ description: >
   auto-installs tools.
 allowed-tools: Bash Read Grep Edit Write
 metadata:
-  version: "1.1.0" # x-release-please-version
+  version: "1.0.0" # x-release-please-version
 ---
 
 # docs-steward
