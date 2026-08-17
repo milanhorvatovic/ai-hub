@@ -27,7 +27,7 @@ The loop has converged when, in a single iteration:
 
 - every probe passes on **two consecutive** GREEN runs (guards against single-run luck), and
 - the loophole hunter finds nothing new, and
-- the dead-weight critic's deletions all stand or all reverted with a probe-anchored justification, and
+- each of the dead-weight critic's deletions either stands or is reverted with a probe-anchored justification — a mixed outcome converges too, judged deletion by deletion — and
 - the format reviewer is clean.
 
 If the loop hasn't converged after roughly three full iterations, the usual cause is upstream: too many dimensions in scope (split the distillation) or PARTIAL deltas encoded without real mechanical triggers (reclassify them as non-portable and move them to the honest-limits note).
