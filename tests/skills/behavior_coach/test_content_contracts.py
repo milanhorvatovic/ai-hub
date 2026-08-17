@@ -34,10 +34,17 @@ def test_pipeline_lists_all_six_stages_in_order(skill_md: Path) -> None:
 
 def test_scope_boundary_forbids_training_transfer(skill_md: Path) -> None:
     """The skill is prompt-level only; the no-fine-tuning / no-training-data
-    boundary is a policy anchor, not stylistic prose."""
+    boundary is a policy anchor, not stylistic prose. Anchored inside the
+    Scope boundaries section, because stray mentions elsewhere ("the target
+    wasn't trained on") would keep a whole-file substring check green after
+    the actual prohibitions were removed."""
     text = skill_md.read_text(encoding="utf-8")
-    assert "fine-tune" in text, "no-fine-tuning boundary missing"
-    assert "training" in text, "training-data boundary missing"
+    start = text.find("## Scope boundaries")
+    assert start != -1, "Scope boundaries section missing from SKILL.md"
+    end = text.find("\n## ", start + 1)
+    section = text[start : end if end != -1 else len(text)]
+    assert "fine-tune" in section, "no-fine-tuning boundary missing"
+    assert "training dataset" in section, "training-data boundary missing"
 
 
 @pytest.mark.parametrize(

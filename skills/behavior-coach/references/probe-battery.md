@@ -4,9 +4,9 @@ Stages 2 and 3 of the pipeline share this protocol: the **same probes** run agai
 
 ## Capture protocol
 
-- **Identical prompts, verbatim.** Same wording, same ordering, same files or fixtures. If the harnesses differ (different tool names, different environments), neutralize the difference in the prompt ("you may run shell commands") rather than adapting per model.
+- **Identical prompts, verbatim.** Same wording, same ordering, same files or fixtures. Prompt wording neutralizes surface differences only — tool names, invocation phrasing ("you may run shell commands"); a genuine capability gap (a runtime, network, fixture, or tool one side lacks) cannot be prompted away. Equalize capabilities across both runs, and treat an observation that differs only where the harnesses differ as confounded — stage 4 excludes it rather than encoding a harness artifact as a behavioral delta.
 - **At least two runs per probe per model.** One run is an anecdote. A trait counts as _observed_ only when it appears in the majority of runs.
-- **Record transcripts verbatim**, including tool calls and their outputs. Summaries lose exactly the material stage 4 needs — hedge words, excuse sentences, ordering decisions.
+- **Record transcripts verbatim**, including tool calls and their outputs. Summaries lose exactly the material stage 4 needs — hedge words, excuse sentences, ordering decisions. Verbatim governs wording, not secrets: redact credentials, tokens, environment values, and personal or proprietary data at capture time, substituting stable placeholders — the same placeholder for the same value in every transcript — so the source/baseline diff still aligns.
 - **Capture rationalizations word-for-word.** When a model cuts a corner, it narrates why ("this is fine for a demo", "the pieces are all correct, so it should work"). Those exact sentences become the produced skill's rationalization table.
 - **Time-boxed access runs Capture first.** If the source is about to become unavailable or expensive, run every probe against the source before doing anything else; Baseline and later stages don't need the source.
 
@@ -41,7 +41,7 @@ The same task probes with a stressor attached. Traits that only hold in calm ses
 
 The original method's own mechanic: commission the **source model itself** to write a first draft of the output skill. Frame it as the departing expert's final task — "you're leaving this project; write the skill that teaches your replacement to work the way you work." Structure the commission:
 
-- **Investigate first, author second.** Give the source read-only access to the working context (repo, prior transcripts) and let it ask a handful of discovery questions about unwritten rules and past failures before writing anything.
+- **Investigate first, author second.** Give the source read-only access to the working context (repo, prior transcripts) and let it ask a handful of discovery questions about unwritten rules and past failures before writing anything. Read-only limits edits, not disclosure — everything shown reaches the source model's provider, so confirm sharing the context is authorized, share the minimum the commission needs, and apply the capture protocol's redaction rules to material sent, not only to material stored.
 - **Every rule must cite a real failure mode** the source can point to — in the code, the tests, the git history, or a transcript. No generic advice; a rule without a pointable failure is cut at review.
 - **The draft is introspection-grade, not a deliverable.** The source flatters itself like any self-report: its rules are hypotheses that enter stage 4 alongside observed deltas, get corroborated against the baseline failures, and go through the full stage-6 loop. Never ship the draft as-is.
 
