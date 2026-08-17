@@ -12,7 +12,7 @@ DOMAIN:     general execution (multi-step engineering tasks)
 DEADLINE:   Capture must complete before the pricing cutoff
 ```
 
-Communication and scope-&-boundaries were observed as strong Fable dimensions too, but were cut from this pass — three dimensions was already the top of the budget. That cut is recorded so the honest-limits note can say so.
+Communication and scope-and-boundaries were observed as strong Fable dimensions too, but were cut from this pass — three dimensions was already the top of the budget. That cut is recorded so the honest-limits note can say so.
 
 ## Stage 2 — Capture (what Fable observably does)
 
@@ -49,7 +49,7 @@ Sample classified rows (the full table had ~12 portable rows):
 
 The authored skill encoded the portable rows as decision-point rules (a plan contract, three-bucket reporting, an after-every-checkpoint procedure) sequenced into an explicit decision loop — decompose, execute the subtask that retires the most risk per minute, run the checkpoint, branch on pass and surprise, verify — with a done-observation gate at the exit, quoted the six rationalizations back in a two-column table, and closed with red flags ("a hedge inside a done/works claim", "a Verified line with nothing pasted under it"). GREEN re-ran the six scenarios with the skill loaded: all baseline failures stopped recurring. REFACTOR ran the three critics — the loophole hunter forced one tightening (weakening a checkpoint after it fails is itself a red checkpoint, reportable as a plan change); the dead-weight critic deleted every rule that merely re-taught what the bare target already did.
 
-A public MIT-licensed artifact of this exact pass exists — an `executing-hard-tasks` skill carrying the pressure scenarios, rationalization table, and red flags described above, produced against Opus-class targets with model-agnostic rules.
+A public MIT-licensed artifact of this exact pass exists — a gerund-named execution skill carrying the pressure scenarios, rationalization table, and red flags described above, produced against Opus-class targets with model-agnostic rules.
 
 ## The honest-limits note it shipped with
 
