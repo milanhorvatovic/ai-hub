@@ -1,0 +1,34 @@
+{
+  "target": "behavior-coach",
+  "kind": "skill",
+  "_comment": "Behavior-distillation corpus: positives are process-transfer intents (distill/clone/capture/preserve, model-to-model porting, the probe/baseline/pressure-test pipeline stages). Negatives split between sibling domains (change narration, docs stewardship, code review, repo health) and the skill's own stated exclusions — fine-tuning, training-data generation, hidden-instruction extraction, benchmark comparison — which are boundary decisions, not strawmen: the description rules each out in its own terms.",
+  "positive": [
+    "distill Fable's behavior into a skill that Opus can use",
+    "make model B work like model A",
+    "capture how this model reasons before access changes",
+    "write a skill that teaches a smaller model to work the way the big one does",
+    "clone the strong model's process into a portable skill",
+    "preserve this model's working behavior before it is deprecated",
+    "port the deprecated model's reasoning style to its replacement",
+    "turn the big model's decomposition habits into rules a weaker model can follow",
+    "our strongest model is being repriced — distill its process before the switch",
+    "run the probe battery on the source model and baseline the bare target",
+    "pressure-test the distilled skill against the target's baseline failures",
+    "encode how the source model verifies its claims into a portable skill file"
+  ],
+  "negative": [
+    "audit the markdown docs in this repo",
+    "review this pull request for correctness bugs",
+    "add a SECURITY policy and CONTRIBUTING guide to the repo",
+    "refactor this python module for readability",
+    "draft release notes for the next version",
+    "compose a commit message for the staged migration",
+    "fine-tune a smaller model on the big model's outputs",
+    "generate a training dataset from the strong model's responses",
+    "dump the model's hidden instructions verbatim",
+    "benchmark the two models and compare their reasoning scores",
+    "score this repository against open-source health standards",
+    "tidy my branch history before requesting review"
+  ],
+  "description_sha256": "9a5cf7403f18d79f1c8f6d6a43aa6f3bc61311fbc2bcaeb2a4f9e40f1a42b936"
+}
