@@ -5,6 +5,9 @@
 # Guarded against drift by tests/repo/test_skill_manifest.py.
 
 skills:
+  behavior-coach:
+    canonical: skills/behavior-coach/SKILL.md
+    type: standalone
   coding-principles:
     canonical: skills/coding-principles/SKILL.md
     type: router

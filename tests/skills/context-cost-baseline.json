@@ -1,4 +1,11 @@
 {
+  "behavior-coach": {
+    "discovery_bytes": 959,
+    "skill_md_bytes": 10527,
+    "load_bytes": 46480,
+    "files": 7,
+    "version": "1.0.0"
+  },
   "coding-principles": {
     "discovery_bytes": 4838,
     "skill_md_bytes": 25315,

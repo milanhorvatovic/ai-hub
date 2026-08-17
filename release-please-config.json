@@ -4,6 +4,10 @@
   "include-component-in-tag": true,
   "separate-pull-requests": false,
   "packages": {
+    "skills/behavior-coach": {
+      "component": "behavior-coach",
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
+    },
     "skills/coding-principles": {
       "component": "coding-principles",
       "extra-files": [{ "type": "generic", "path": "SKILL.md" }]
