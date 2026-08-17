@@ -59,4 +59,4 @@ Stage 3 is this same battery against the bare target, no skill loaded. For each 
 2. **Failure shape** — _how_ it failed, in dimension terms (end-loaded testing, hedged done-claim, silent scope decision, third patch on a wrong diagnosis…).
 3. **Verbatim rationalizations** — the excuse sentences, exactly.
 
-The baseline failure list is the contract for stage 6: the produced skill is done only when **every** baseline failure stops recurring under the same probes.
+The baseline failure list feeds the stage-6 contract, scoped by extraction: the failures the encoded rules address — the PORTABLE and mechanically triggered PARTIAL rows — must stop recurring under the same probes. Failures the source shares, or that ride on capability the target lacks, are honest-limits material the skill cannot owe; holding the loop to them would keep a valid distillation from ever converging.

@@ -4,11 +4,11 @@ Stage 4: turn two transcript sets (source, baseline) into a short list of classi
 
 ## The diff
 
-For each scoped dimension, lay the source and baseline transcripts side by side and ask one question: **what did the source do here that the baseline didn't, and did it change the outcome?**
+For each scoped dimension, lay the source and baseline transcripts side by side and ask one question: **what did the source do here that the baseline didn't, and did it move anything a scoped dimension observes — the evidence trail, the failure shape, the final result?**
 
 - Same behavior in both → discard. The target already does it; encoding it is dead weight.
-- Different behavior, no effect on outcome → discard. Style, not process.
-- Different behavior, outcome changed → a candidate delta. Record it.
+- Different behavior, no change to any scoped observable → discard. Style, not process.
+- Different behavior that changes a scoped observable or the failure shape → a candidate delta. Record it — a matching final task result does not disqualify it: a target that guesses its way to the same working endpoint the source verified still carries the verification gap, and luck is not process.
 
 Record each candidate as one row:
 

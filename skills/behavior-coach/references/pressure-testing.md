@@ -1,6 +1,6 @@
 # Pressure Testing
 
-Stage 6: prove the produced skill against the same probes that defined the problem, then attack its text. The method is skill-TDD — the stage-3 baseline failures are the failing tests; the skill is done when they all pass and nothing in the text is dead weight.
+Stage 6: prove the produced skill against the same probes that defined the problem, then attack its text. The method is skill-TDD — the stage-3 baseline failures the extraction retained (the portable and mechanically triggered partial rows) are the failing tests; the loop is done when they all pass and nothing in the text is dead weight. Failures extraction set aside — shared with the source, or riding on non-portable capability — are honest-limits material, not tests the skill can pass.
 
 ## GREEN — re-run the baseline
 
