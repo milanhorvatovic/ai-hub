@@ -19,7 +19,7 @@ Once all probes pass, three adversarial passes over the skill _text_. Run each a
 
 1. **Loophole hunter.** Role-plays a pressured, corner-cutting agent that has read the skill and wants to comply in letter while defecting in spirit. Mandate: find wording a motivated reader can negotiate with ("I'll weaken the checkpoint since it keeps failing", "self-review counts as an observation"). Every found loophole gets the wording tightened, then GREEN re-runs.
 2. **Dead-weight critic.** Mandate: for each rule, ask whether the stage-3 baseline _already_ exhibited the behavior. Any rule not anchored to a recorded baseline failure is provisionally deleted; GREEN re-runs without it. No regression → the deletion stands. This is empirical, not editorial — the arbiter is the probe outcome, not taste. Expect deletions to stick: independent replications of this method found that rules targeting behavior the target already does well test as pure overhead, and had to rewrite or drop them.
-3. **Format reviewer.** Mandate: spec compliance (frontmatter validity, name/directory match, description length and trigger quality, body ≤ 500 lines), the output-contract sections present (rationalization table, red flags, honest-limits note), and no vendor/harness-specific wording per the portability rules.
+3. **Format reviewer.** Mandate: spec compliance (frontmatter validity, name/directory match, description length and trigger quality, body within the spec's size guidance — under 500 lines and roughly 5,000 tokens), the output-contract sections present (rationalization table, red flags, honest-limits note), and no vendor/harness-specific wording per the portability rules.
 
 ## Convergence
 

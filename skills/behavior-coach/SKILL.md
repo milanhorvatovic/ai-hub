@@ -50,7 +50,7 @@ Execute the stages in order. Each stage's reference file carries the full proced
 | 5. Author | Write the output skill from the surviving deltas — portable rows, plus partials with a mechanical trigger attached — under the portability rules | `references/portability-rules.md` |
 | 6. Pressure-test | Re-run the baseline probes with the skill loaded (GREEN), then attack the text with three critics (REFACTOR); iterate to convergence | `references/pressure-testing.md` |
 
-A worked end-to-end pass — distilling Claude Fable 5's execution behavior into an Opus-class target — is in `references/worked-example.md`.
+A stage-by-stage worked example — distilling Claude Fable 5's execution behavior into an Opus-class target — is in `references/worked-example.md`; its historical record ends before the full convergence contract, and the file marks where.
 
 ## What transfers, what doesn't
 
@@ -73,7 +73,7 @@ Every produced skill must carry a short **honest-limits note** naming what was _
 
 The produced skill directory must contain, at minimum:
 
-- Valid frontmatter — `name` matching its directory (lowercase + hyphens), a trigger-bearing `description` ≤ 1024 chars, body ≤ 500 lines.
+- Valid frontmatter — `name` matching its directory (lowercase + hyphens), a trigger-bearing `description` ≤ 1024 chars, and a body inside the spec's progressive-disclosure guidance: under 500 lines and roughly 5,000 tokens, longer material split into references.
 - **Rules as observables** — every rule checkable from the transcript alone.
 - **A rationalization table** — the baseline's verbatim excuses on the left, the counter on the right. This is the highest-leverage section: the target model will produce those exact sentences under pressure, and a rule that names the excuse defuses it.
 - **A red-flags list** — self-check signals the target can pattern-match against its own draft output.
