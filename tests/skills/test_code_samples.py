@@ -83,8 +83,15 @@ _UNCHECKED_SPELLINGS = frozenset(
 # `enum` deliberately: it is the construct node's built-in type stripper rejects
 # as unsupported, so swapping this lane for the cheaper tool fails here instead
 # of quietly reclassifying valid samples as defects.
+#
+# The broken control also pins the parser's offset semantics. `ééé` is three
+# characters but six bytes, and the error sits closer to the newline than that
+# difference: if the bridge ever started reporting byte offsets instead of
+# UTF-16 code units, the computed line would cross into line 2, and the
+# line-number assertion below catches the drift on content built to expose it
+# rather than on whichever real sample fails first with a wrong location.
 _CONTROLS = {
-    "control://must-fail": "const broken: number = ;",
+    "control://must-fail": "const broken: ééé = ;\nconst after = 1;",
     "control://must-pass": "enum Direction { Up, Down }\nnamespace N { export const x = 1; }",
 }
 
@@ -306,6 +313,12 @@ def test_typescript_samples_parse() -> None:
         "the valid control was flagged; a parser rejecting `enum` or `namespace`"
         " is a type stripper rather than a compiler, and would report valid"
         " samples as defects"
+    )
+    must_fail_lines = {p["line"] for p in result["problems"] if p["id"] == "control://must-fail"}
+    assert 1 in must_fail_lines, (
+        f"the broken control's error is on line 1 but the parser reported {sorted(must_fail_lines)};"
+        " the control's multibyte prefix is built so byte-based offsets cross the"
+        " newline, so this is the offset-semantics drift the control exists to catch"
     )
 
     problems = [

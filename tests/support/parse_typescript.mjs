@@ -63,11 +63,10 @@ const cleanup = async () => {
   rmSync(dir, { recursive: true, force: true });
 };
 
-let program;
+let snapshot;
 try {
   api = new API({ cwd: dir });
-  const snapshot = await api.updateSnapshot({ openProjects: [path.join(dir, "tsconfig.json")] });
-  program = snapshot.getProjects()[0]?.program;
+  snapshot = await api.updateSnapshot({ openProjects: [path.join(dir, "tsconfig.json")] });
 } catch (error) {
   // Startup is availability, not verdict: a platform without a bundled binary,
   // or a bridge that cannot spawn, is the same "cannot run here" the missing
@@ -78,7 +77,18 @@ try {
 }
 
 try {
-  if (!program) throw new Error(`the temporary project at ${dir} produced no program`);
+  // Exactly the one project this process opened; matching by count rather than
+  // by config path sidesteps the bridge's own path normalization, and a bridge
+  // that starts surfacing extra projects (say, an inferred one) fails here as
+  // the protocol change it is instead of as diagnostics quietly run against
+  // the wrong project.
+  const projects = snapshot.getProjects();
+  if (projects.length !== 1) {
+    throw new Error(
+      `the temporary project at ${dir} resolved to ${projects.length} projects instead of exactly one`,
+    );
+  }
+  const { program } = projects[0];
 
   const problems = [];
   for (const [index, { id, source }] of samples.entries()) {
