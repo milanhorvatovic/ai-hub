@@ -1,6 +1,6 @@
 # Worked Example — Distilling Claude Fable 5
 
-The pass that motivated this skill: in July 2026, Claude Fable 5 left standard Claude plans for pay-per-use credits ($10/$50 per MTok — double Opus 4.8), giving users a hard deadline to capture its working behavior while access was still flat-rate. The community response — "write a SKILL.md that teaches a smaller model to work the way Fable works" — is this pipeline in action. This file replays it stage by stage as the canonical illustration: a historical pass whose record ends before the full convergence contract, with stages 5–6 marking where.
+The pass that motivated this skill: in July 2026, Anthropic announced Fable 5 would leave included plan usage for pay-per-use credits ($10/$50 per MTok — double Opus 4.8) with a July 7 cutoff, giving users a hard deadline to capture its working behavior while access was still flat-rate. The deadline later slid to July 20 and some plan tiers kept included access, but the pass ran against the cutoff as announced — which is why its scope block below reads 2026-07-07. The community response — "write a SKILL.md that teaches a smaller model to work the way Fable works" — is this pipeline in action. This file replays it stage by stage as the canonical illustration: a historical pass whose record ends before the full convergence contract, with stages 5–6 marking where.
 
 ## Stage 1 — Scope
 
