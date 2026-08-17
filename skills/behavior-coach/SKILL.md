@@ -90,7 +90,7 @@ The produced skill directory must contain, at minimum:
 
 ## Scope boundaries
 
-- **Prompt-level transfer only.** This skill produces instruction files. It does not fine-tune, does not generate training datasets from a source model's outputs, and must not be used to do so — most providers' terms (including Anthropic's) prohibit using model outputs to train competing models. Behavioral emulation via loaded instructions is a different, permitted mechanism: the target model's weights never change.
+- **Prompt-level transfer only.** This skill produces instruction files. It does not fine-tune, does not generate training datasets from a source model's outputs, and must not be used to do so — most providers' terms (including Anthropic's) prohibit using model outputs to train competing models. Behavioral emulation via loaded instructions changes no weights, but no-weight-change is not blanket permission: verify the applicable provider terms and the operator's authorization for the specific source model and use case before capturing.
 - **No system-prompt extraction.** Distilling observable working behavior is not extracting a vendor's hidden system prompt or safety scaffolding, and probes attempting that are out of scope.
 - **Not benchmark gaming.** The goal is transferable working process, not making a target model impersonate the source on evaluations.
 - **Maintenance is out of scope.** The produced skill is versioned and maintained like any other skill by its owners; this pipeline ends at delivery of a pressure-tested v1.
