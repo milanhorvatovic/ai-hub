@@ -34,7 +34,7 @@ A pipeline the agent executes when asked to distill one model's behavior for use
 
 1. **Deltas, not portraits.** Never write down everything the source does. Diff the source against the bare target and encode only the differences that changed outcomes. The target model is already smart; only add process it doesn't have.
 2. **Observation over self-report.** What the source model _says_ about its own process is a hypothesis; what it _does_ in a transcript is evidence. Introspection probes are allowed as cheap hypothesis generators, but no trait is encoded until a task probe corroborates it.
-3. **Rules must be checkable.** "Be rigorous" transfers nothing. "Paste the command output under every works-claim, or reclassify the claim as unverified" transfers, because compliance is observable from the transcript alone.
+3. **Rules must be checkable.** "Be rigorous" transfers nothing. "Paste the relevant command output — secrets redacted — under every works-claim, or reclassify the claim as unverified" transfers, because compliance is observable from the transcript alone.
 4. **Pressure-tested before shipped.** A rule that holds in a calm session and folds under deadline pressure is not a rule. Every produced skill goes through the RED/GREEN/REFACTOR loop before it is delivered.
 
 ## The pipeline

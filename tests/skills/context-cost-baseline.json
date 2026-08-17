@@ -1,8 +1,8 @@
 {
   "behavior-coach": {
     "discovery_bytes": 959,
-    "skill_md_bytes": 10399,
-    "load_bytes": 44809,
+    "skill_md_bytes": 10433,
+    "load_bytes": 45124,
     "files": 7,
     "version": "1.0.0"
   },

@@ -16,7 +16,7 @@ Communication and scope-and-boundaries were observed as strong Fable dimensions 
 
 ## Stage 2 — Capture (what Fable observably does)
 
-Task and pressure probes against Fable, corroborated by the vendor's own published guidance — Anthropic's Fable 5 migration and prompting documentation describes several of these traits explicitly, strong provenance in archival mode; the passage-level citations the provenance gate requires live in that pass's distillation notes, which are not shipped with this file. The recurring observations:
+Stage 2 ran task and pressure probes against Fable, corroborated by the vendor's own published guidance: Anthropic's Fable 5 migration and prompting documentation describes several of these traits explicitly — strong provenance in archival mode. The passage-level citations the provenance gate requires live in that pass's distillation notes, which do not ship with this file. The recurring observations:
 
 - **Decomposition:** states what "done" looks like as a checkable observation before starting; builds the thinnest end-to-end slice through the riskiest integration path first rather than completing layers in isolation; surfaces user-visible choices as explicit decision lines instead of picking silently; runs a cheap spike before building on an unproven architecture.
 - **Verification:** separates what has been _observed_ from what is merely _believed_; pastes the output that could have falsified a claim before making it; treats hedges ("should work", "once X is done") as automatic downgrades out of the verified pile; grounds progress reports in tool results from the session — vendor-documented almost verbatim ("before reporting progress, audit each claim against a tool result").
