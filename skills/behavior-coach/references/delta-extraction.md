@@ -1,10 +1,10 @@
 # Delta Extraction
 
-Stage 4: turn two transcript sets (source, baseline) into a short list of classified deltas. This is the filter that keeps the produced skill lean — everything downstream is authored from this table and nothing else.
+Stage 4: turn the two evidence sets (source, baseline) into a short list of classified deltas. Live capture yields paired transcripts; in archival mode the source side is documented traits and whatever transcripts survive, diffed at the trait level against bare-target observations per the router's archival branch. This is the filter that keeps the produced skill lean — everything downstream is authored from this table and nothing else.
 
 ## The diff
 
-For each scoped dimension, lay the source and baseline transcripts side by side and ask one question: **what did the source do here that the baseline didn't, and did it move anything a scoped dimension observes — the evidence trail, the failure shape, the final result?**
+For each scoped dimension, lay the source and baseline evidence side by side — transcripts when capture was live, the documented trait standing in for the source transcript when it was not — and ask one question: **what did the source do here that the baseline didn't, and did it move anything a scoped dimension observes — the evidence trail, the failure shape, the final result?**
 
 - Same behavior in both → discard. The target already does it; encoding it is dead weight.
 - Different behavior, no change to any scoped observable → discard. Style, not process.
