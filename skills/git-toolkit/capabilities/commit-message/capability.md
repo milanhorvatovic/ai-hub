@@ -125,7 +125,7 @@ Do NOT add trailers automatically. If the user has set up DCO and explicitly ask
 
 Scan the proposed subject + body against `../../references/secret-patterns.md`. On match → redact + warn + ask the user before including.
 
-Scan the same text against `../../references/publication-audience.md`. A commit message is read by people who have the diff and nothing else, so a name the diff does not carry and no link resolves is a dead end for every future reader. On match → `WARN` naming the span, with a rewrite that says what the diff shows; never paste the private content in to resolve it.
+Scan the same text against `../../references/publication-audience.md`. A commit message is read by people who have the diff and nothing else, so a name the diff does not carry and no link resolves is a dead end for every future reader. On match → surface the finding at the grade it carries — `WARN` for a heuristic, `error` where the repository declares the pattern, which holds the proposal until the span is rewritten — with a rewrite that says what the diff shows. Never paste the private content in to resolve it.
 
 ### 7. Issue references
 

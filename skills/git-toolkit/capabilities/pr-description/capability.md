@@ -203,7 +203,7 @@ Per `../../references/format-pr.md`:
 ## Output (both modes)
 
 1. **Secret scan** per `../../references/secret-patterns.md` over the proposed body before it is displayed or written to the mktemp file. On match → redact + WARN. Never include detected secrets — on screen or on disk.
-2. **Audience scan** per `../../references/publication-audience.md` over the same body, at the same moment. On match → `WARN` naming the span and a rewrite that resolves it from the diff or a public link; never paste the private content in to make the sentence resolve. In WRITE mode a match means the input rule above was crossed; in SYNC mode it is a finding like any other and feeds the verdict per S2b.
+2. **Audience scan** per `../../references/publication-audience.md` over the same body **and over any title this capability proposes** — a suggested title is published text with the same defect surface, and the squash edge case below is where one gets drafted. On match → name the span and propose a rewrite that resolves it from the diff or a public link, at the grade the match carries; never paste the private content in to make the sentence resolve. In WRITE mode a match means the input rule above was crossed; in SYNC mode it is a finding like any other and feeds the verdict per S2b, where a repository-declared `error` forces a rewrite.
 3. **Body length check** — GitHub's PR body limit is 65,536 chars. If the proposal is >~65,000 → warn, suggest trimming.
 4. Show the proposal INLINE AND write it to a `mktemp` file. The user can either copy from the terminal or pass the file path to `gh pr edit`.
 5. **Apply command** — `gh pr edit <num> --body-file <path>` with the **resolved PR number explicitly**, never a branch name. Never run `gh pr edit` automatically.

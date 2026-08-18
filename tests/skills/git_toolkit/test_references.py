@@ -428,6 +428,10 @@ def test_publication_audience_reference_is_the_single_home(
         # The declaration trust model: a change cannot supply the judge that
         # grades it, so this one is a security property rather than wording.
         "Read declarations from the base branch",
+        # Severity has to survive the trip to each consumer, or a declaration
+        # that raises a finding to `error` buys nothing at the surface that
+        # actually publishes the text.
+        "Every consumer passes the grade through",
     ):
         assert needle in text, f"publication-audience.md missing: {needle!r}"
 
@@ -453,10 +457,10 @@ def test_publishing_capabilities_link_publication_audience(
 AUDIENCE_PATTERN_PROBES = {
     "definite_reference": ("as the plan says", "the retry cap is 3"),
     "session_deixis": ("as discussed, cap at 3", "the cap is 3"),
-    # The miss probe is `#`-prefixed on purpose: a digits-only issue ref never
-    # matched the pattern in the first place, so probing one proves the
-    # exemption holds when nothing was testing it.
-    "track_code": ("finding Z9 covers it", "closes #Q14"),
+    # The miss probe is a longer token, not an issue reference: `#482` never
+    # matched the letter-prefixed pattern anyway, so probing one proves
+    # nothing, while `HTTP2` is the real risk the lookbehind exists to stop.
+    "track_code": ("finding Z9 covers it", "HTTP2 traffic only"),
     "private_path": (r"see C:\Users\dev\notes.md", "see docs/adr/0001-x.md"),
 }
 

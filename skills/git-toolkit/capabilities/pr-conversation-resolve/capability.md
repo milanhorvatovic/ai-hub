@@ -118,7 +118,7 @@ PR #42 — 3 unresolved threads of 7 total
 
 Secret scan per `../../references/secret-patterns.md` over every drafted reply before it is displayed or embedded in a surfaced apply command. On match → redact + WARN. Never include detected secrets — in the draft or in the command the user will run. Replies are published text the moment the user posts them; commit-matching context makes it easy to quote a leaked value without noticing.
 
-Audience scan per `../../references/publication-audience.md` over the same drafts, for the same reason read the other way: a reply is written inside the session that just did the work, so the thing it points at ("the plan", a track code, a path on the author's disk) is vivid to the drafter and invisible to the reviewer reading it in the thread. On match → `WARN` with a rewrite that names what the diff or a public link shows.
+Audience scan per `../../references/publication-audience.md` over the same drafts, for the same reason read the other way: a reply is written inside the session that just did the work, so the thing it points at ("the plan", a track code, a path on the author's disk) is vivid to the drafter and invisible to the reviewer reading it in the thread. On match → a rewrite that names what the diff or a public link shows, surfaced at the grade the match carries; a repository-declared `error` holds the reply rather than offering it with a note attached.
 
 Always:
 
