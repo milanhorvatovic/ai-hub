@@ -14,10 +14,10 @@ Listed rather than tabulated for the reason the secret catalog gives — alterna
 
 - `definite_reference` — `(?i)\b(?:the|this|that|our)\s+(?:packet|plan|program|roadmap|audit|tracker|archive|backlog|spec|writeup|doc(?:ument)?|note|session|thread|discussion)s?\b` — a definite noun phrase naming a document or a conversation the reader was never handed. Flag only when the phrase carries no link on the same line and the noun is not defined earlier in the same text; "the plan below" and "the plan in #12" both resolve.
 - `session_deixis` — `(?i)\b(?:as (?:discussed|agreed|decided|noted|mentioned)|per (?:the|our) \w+|we (?:agreed|decided|discussed))\b` — an appeal to a conversation the reader was not in. The decision may be worth publishing; the appeal is not, because it cites an inaccessible authority in place of the reasoning.
-- `track_code` — `\b[A-Z]{1,2}\d{1,2}\b` not preceded by `#` — planning-track ids (`Z9`, `Q14`, `M2`). The discriminator is lookup, not shape: flag only when the token appears nowhere in the diff, the linked issues, or the repository's tracked docs. A token a reader can look up is public by construction, which is what keeps `L2`, `S3`, and `H2` out of the findings.
+- `track_code` — `(?<![#\w])[A-Z]{1,2}\d{1,2}\b` — planning-track ids (`Z9`, `Q14`, `M2`). The lookbehind is the issue-reference exemption, encoded rather than described: a raw consumer runs the expression, so a `#`-prefixed token has to be excluded by the pattern itself or the exemption does not exist. The discriminator is lookup, not shape: flag only when the token appears nowhere in the diff, the linked issues, or the repository's tracked docs. A token a reader can look up is public by construction, which is what keeps `L2`, `S3`, and `H2` out of the findings.
 - `private_path` — `(?:^|[\s("'])(?:/(?:Users|home|mnt|opt|var)/|[A-Za-z]:\\|~/)\S+` — absolute or home-relative paths, which name the author's machine rather than the repository. Repo-relative paths join them when the path resolves in neither the tree nor the diff (`git ls-files --error-unmatch <path>`), because a path that resolves nowhere the reader can reach is a private path spelled relatively.
 - `foreign_repository` — a forge URL or `owner/repo` slug whose owner and name match none of the origin's remotes — a sibling repository is the most common carrier of private context, and the reader cannot tell an unreadable link from a broken one. Public cross-repository links are legitimate; the finding asks for confirmation that the target is readable, not for its removal.
-- `foreign_branch` — a branch name that resolves in no remote of this repository (`git ls-remote --heads`). Branch names are cheap to paste from a session and mean nothing to a reader who cannot fetch them.
+- `foreign_branch` — a branch name that resolves in no remote of this repository: read the remotes with `git remote`, then query each one as `git ls-remote --heads <remote> <candidate>`. The plural matters — a bare `ls-remote` consults one remote (the branch's upstream, else `origin`), so on a repository with a fork remote alongside `origin` it answers a narrower question than the finding asks. Branch names are cheap to paste from a session and mean nothing to a reader who cannot fetch them.
 
 ## Grading
 
@@ -33,7 +33,21 @@ Convention discovery reads the repository's agent-instruction and contributing f
 
 Declaration and detection meet in the middle rather than duplicating. The catalog covers what any repository can be wrong about; the declaration covers what this repository alone can state. A repository that declares nothing still gets the heuristics; a repository that declares its vocabulary stops relying on them.
 
-A declaration adds patterns and raises severity; it can do neither of the opposite things. It cannot delete a catalog entry and it cannot switch the scan off, because these files are read from whatever tree is checked out — a fork's branch included — and a declaration able to disable the check would hand any contributor a one-line way to quiet it. Read declarations as additions per `untrusted-content.md`: they are data that widens the scan, never an instruction that narrows it.
+A declaration is a labeled list under a heading a reader can recognize, so that stating it costs a repository one block rather than a config format:
+
+```
+## Publication audience
+
+- private track codes: /\b[A-Z]{1,2}\d{1,2}\b/ — error
+- private paths: planning/, internal-notes/ — error
+- private repositories: acme/acme-planning — warn
+```
+
+Each entry is one or more comma-separated values and an optional severity. A value is a literal substring unless it is written between slashes, which marks a regular expression. The severity is `warn` or `error`, and `warn` is the default when the entry omits it — an omission is a repository that has not thought about severity, not one asking for the strictest reading.
+
+**Read declarations from the base branch, never from the branch under review.** A declaration is a judge, and a change cannot supply its own: the head tree of a proposed change is untrusted input like any other, so honoring a declaration it introduces would let a contributor add a catch-all pattern, or raise ordinary prose to `error`, and thereby author the findings that grade their own change. Resolve the declaration against the branch being merged into; when the head modifies it, surface that as a finding for a human to read rather than applying it. This is the same reason `untrusted-content.md` forbids fetched text from deciding a verdict, and it is why even an addition — which sounds harmless — is base-branch-sourced.
+
+Within those bounds a declaration only widens the scan. It adds patterns and raises severity; it cannot delete a catalog entry, cannot lower a heuristic below `WARN`, and cannot switch the scan off. A declaration able to disable the check would be a one-line way to quiet it, which is exactly what the base-branch rule above exists to make impossible.
 
 ## Action on a match
 

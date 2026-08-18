@@ -110,6 +110,7 @@ Run `../../references/publication-audience.md` over the existing body and grade 
 Self-containment enters the verdict as its own dimension rather than another escalator, because the fix is usually one sentence:
 
 - Matches only in supporting detail — a stray track code, a path, an "as discussed" — cap the verdict at **MINOR-UPDATE** and patch those sentences. `IN-SYNC` is wrong for them: the body needs an edit, and no other dimension will ask for it.
+- A match against a pattern the repository declares at `error` — **MAJOR-REWRITE**, wherever in the body it sits. Severity is the one thing a declaration is for: the repository has said this reference must not ship, and a section-level patch that leaves the rest of the body carrying the same habit answers a smaller question than the one asked. Heuristic matches stay `warn` and take the two rules around this one.
 - A match that carries the headline meaning — the Summary's only statement of _why_ is a pointer the reader cannot follow — is a **MAJOR-REWRITE**, on the same reasoning as any missing claim: the body's load-bearing content is absent for its audience.
 - Findings here never lower a verdict another dimension raised.
 
@@ -155,7 +156,7 @@ Report in this order:
 | Only `covered` (trivial gaps OK), no S2b findings | No | `IN-SYNC` |
 | Small fraction (≤~20%) `missing` or 1 `partial`, no `inverted` / `stale` | No | `MINOR-UPDATE` |
 | Self-containment findings (S2b) in supporting detail only | No | `MINOR-UPDATE` |
-| A self-containment finding carrying the body's headline meaning | — | `MAJOR-REWRITE` |
+| A self-containment finding carrying the body's headline meaning, or matching a repo-declared `error` pattern | — | `MAJOR-REWRITE` |
 | Any `inverted`, or higher-fraction `missing` / `stale` | — | `MAJOR-REWRITE` |
 | Any findings at all touching schema / security / public API / deps / CI / user-visible behavior | Yes | `MAJOR-REWRITE` |
 

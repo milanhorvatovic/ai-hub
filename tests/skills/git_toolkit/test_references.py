@@ -425,6 +425,9 @@ def test_publication_audience_reference_is_the_single_home(
         "`WARN`",
         "private-context-ref",
         "secret-patterns.md",
+        # The declaration trust model: a change cannot supply the judge that
+        # grades it, so this one is a security property rather than wording.
+        "Read declarations from the base branch",
     ):
         assert needle in text, f"publication-audience.md missing: {needle!r}"
 
@@ -450,7 +453,10 @@ def test_publishing_capabilities_link_publication_audience(
 AUDIENCE_PATTERN_PROBES = {
     "definite_reference": ("as the plan says", "the retry cap is 3"),
     "session_deixis": ("as discussed, cap at 3", "the cap is 3"),
-    "track_code": ("finding Z9 covers it", "closes #482"),
+    # The miss probe is `#`-prefixed on purpose: a digits-only issue ref never
+    # matched the pattern in the first place, so probing one proves the
+    # exemption holds when nothing was testing it.
+    "track_code": ("finding Z9 covers it", "closes #Q14"),
     "private_path": (r"see C:\Users\dev\notes.md", "see docs/adr/0001-x.md"),
 }
 
