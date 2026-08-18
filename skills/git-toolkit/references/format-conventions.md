@@ -14,6 +14,8 @@ Repo conventions override these defaults. Check in order:
 
 If multiple sources conflict, the order above wins.
 
+The same sources carry a second axis. Where a repository declares its private surface — a track-code series, private path prefixes, repositories it keeps unreadable — `publication-audience.md` matches those declarations exactly rather than heuristically, at the severity the declaration states. Read both axes in one pass over these files: a capability that opens `AGENTS.md` for format alone reads it twice and honors it once.
+
 ### Fresh-repo fallback
 
 When none of the precedence sources are present and `git log --pretty=format:'%s'` shows fewer than ~5 prior commits, there is no observable convention. The capability should:

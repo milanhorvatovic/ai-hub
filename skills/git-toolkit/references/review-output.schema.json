@@ -35,6 +35,7 @@
         "embedded-trailer",
         "mixed-scope",
         "repeated-fix",
+        "private-context-ref",
         "manual-revert",
         "conventional-commits-prefix",
         "body-wrap",

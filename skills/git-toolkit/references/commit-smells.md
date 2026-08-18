@@ -6,7 +6,7 @@ Findings emitted from this catalog should use the `rule` ids defined here verbat
 
 ## Rule selectivity (optional `rules:` filter)
 
-By default every rule the consuming capability implements runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case ids from the rule-id registry in `review-output.md`, catalog smells and check ids alike, e.g. `rules: imperative-mood,trailing-period,body-wrap` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in the registry") but do not halt the run. The consuming capability's output preamble must list the active subset so the reader knows what was _not_ checked: `Active rule subset: imperative-mood, trailing-period, body-wrap (3 of 38 registry rules)`.
+By default every rule the consuming capability implements runs. When the user passes a `rules:` argument — a comma-separated list of kebab-case ids from the rule-id registry in `review-output.md`, catalog smells and check ids alike, e.g. `rules: imperative-mood,trailing-period,body-wrap` — only those rules are evaluated. Unmatched rule ids are surfaced as a warning ("`rules: ehubble-quirky` not in the registry") but do not halt the run. The consuming capability's output preamble must list the active subset so the reader knows what was _not_ checked: `Active rule subset: imperative-mood, trailing-period, body-wrap (3 of 39 registry rules)`.
 
 The NDJSON output shape from `review-output.md` is unchanged — findings still carry their `rule` id; the only change is which rules contribute. Useful in CI contexts where a repo has accepted some smells as out-of-scope but wants to enforce others on every run.
 
@@ -203,6 +203,21 @@ Good: Move the fix record to a run-scoped artifact
 **Pattern**: three or more consecutive commits where the subject contains `fix` and shares >50% token overlap (`typo`, `lint`, `format`, `style`).
 
 **Fix**: squash via `rebase-cleanup` (autosquash) or `commit-fixup` if caught mid-work.
+
+### `private-context-ref` — text names something only its author can reach
+
+Published text — a commit body, a PR description, a release note, a review reply — cites an artifact that is neither visible in the diff nor linkable by the reader: a planning-track code, a path on the author's machine, a branch in another repository, or a definite article pointing at a document the reader was never handed ("per the plan", "as discussed"). Nothing confidential need be involved; the sentence simply resolves for one person and dead-ends for everyone else, permanently.
+
+**Pattern**: the catalog in `publication-audience.md`, whose entries carry the regexes and the lookup discriminators (a token that appears in the diff or a linked issue is public by construction). Unresolved antecedents and private references fold under this one id — they are the same defect seen from two angles, and separating them would double the vocabulary without changing a single fix.
+
+**Fix**: rewrite from what the reader can see — the diff, a public link, or a definition in the text itself. Never resolve the reference by pasting in the private content, which converts a dead end into a leak.
+
+**Example**:
+
+```
+Bad:  Take the approach from the plan, per the audit's finding Z9.
+Good: Scan drafted text for references that resolve only in a private workspace, and warn instead of failing.
+```
 
 ### `manual-revert` — commit semantically undoes earlier work without using `git revert`
 

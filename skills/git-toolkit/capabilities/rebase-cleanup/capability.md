@@ -74,6 +74,7 @@ For every `reword` and `squash` (which generates a new combined message), draft 
 - Combined body explaining the merged intent, not the sequence of edits
 - **Preserve existing trailers verbatim** per `../../references/trailer-semantics.md` — including `Co-authored-by:`, `Signed-off-by:`, etc. **Never add new trailers** as part of cleanup.
 - **Secret scan** — run every drafted message through `../../references/secret-patterns.md` before it enters the plan. On match → redact + warn + ask the user before including; the rewrite is the moment to redact, not re-leak.
+- **Audience scan** — run the same messages through `../../references/publication-audience.md`. A squash body is assembled from several commits' worth of context, which is exactly where a reference to something only the author can open survives the merge into permanent history. On match → `WARN` with a self-contained rewrite; the plan proceeds either way, since the finding is about wording rather than safety.
 
 ### 5. Output
 

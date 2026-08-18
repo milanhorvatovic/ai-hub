@@ -54,7 +54,7 @@ When in doubt, surface the choices and let the user pick rather than guessing.
 - **`--delete-branch`** — include by default if branch is a feature branch (`fix/` / `feature/` prefix). Skip for `main`/`master`/`develop`.
 - **`--auto`** — only when user explicitly requests "merge when checks pass" / "auto-merge".
 - **`--admin`** — never include automatically. If user asks for admin override, surface the flag with a strong warning.
-- **`--subject` / `--body`** — only when the user wants to override the commit message. Override text drafted here becomes the permanent default-branch commit message: scan it per `../../references/secret-patterns.md` before it is displayed or embedded in the surfaced command; on match → redact + WARN. For `sm == "PR_BODY"` repos, this is unnecessary (body is auto-used).
+- **`--subject` / `--body`** — only when the user wants to override the commit message. Override text drafted here becomes the permanent default-branch commit message: scan it per `../../references/secret-patterns.md` and `../../references/publication-audience.md` before it is displayed or embedded in the surfaced command; on match → redact + WARN for a secret, `WARN` plus a self-contained rewrite for a private reference. For `sm == "PR_BODY"` repos, this is unnecessary (body is auto-used).
 
 ### 4. Output
 

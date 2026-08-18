@@ -121,9 +121,11 @@ Body format per `../../references/format-body.md`: blank line after subject, the
 
 Do NOT add trailers automatically. If the user has set up DCO and explicitly asks for sign-off → `Signed-off-by: <name> <email>` at the end (use `git config user.name` / `user.email`). For `Co-authored-by:`, only on explicit request — see `../../references/trailer-semantics.md`.
 
-### 6. Run secret scan
+### 6. Run the pre-publication scans
 
 Scan the proposed subject + body against `../../references/secret-patterns.md`. On match → redact + warn + ask the user before including.
+
+Scan the same text against `../../references/publication-audience.md`. A commit message is read by people who have the diff and nothing else, so a name the diff does not carry and no link resolves is a dead end for every future reader. On match → `WARN` naming the span, with a rewrite that says what the diff shows; never paste the private content in to resolve it.
 
 ### 7. Issue references
 
@@ -260,6 +262,7 @@ For each commit in the range, run `git show <sha> --no-patch --format='%H%n%s%n%
 | Trailer position | `trailer-position` | Trailers at end only, after blank line | `warn` |
 | Trailer format | `trailer-format` | Each trailer matches `^[A-Z][A-Za-z-]*: .+$` | `warn` |
 | Secret scan | `secret-leak` | No matches from `../../references/secret-patterns.md` | `error` |
+| Publication audience | `private-context-ref` | No matches from `../../references/publication-audience.md` — every artifact the message names is diff-visible, publicly linkable, or defined in the message | `warn`, or the severity a repo declaration states for its own patterns |
 | Closing-keyword sanity | `dangling-issue-ref` | If commit body has `Closes #N`, verify N exists (`gh issue view N`) — best-effort | `warn` |
 | Bot commit | — | Skip entirely (not an error, just excluded) | — |
 | Merge commit | — | Skip default merge commits (`Merge branch ...`) unless the user explicitly asks; check the merged commits instead | — |

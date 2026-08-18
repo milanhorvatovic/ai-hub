@@ -53,13 +53,13 @@ Keys:
 
 The schema is also published as JSON Schema at `review-output.schema.json` (Draft 2020-12). Consumers can validate NDJSON streams with any standards-compliant validator (`ajv-cli`, `check-jsonschema`, etc.). The schema enforces: `scope=commit` requires `sha`; `scope=branch/range/pr` requires `ref`; `FAIL` and `MOSTLY-PASS` results require a `fix` string; and the `rule` enum enforces registry membership — a finding with an id outside the registry fails validation.
 
-A worked example stream lives at `review-output.example.ndjson` — 14 findings covering PASS / MOSTLY-PASS / FAIL / N/A across commit / branch / pr / range scopes, including aggregate PASS counts, single-commit FAIL findings with `fix` imperatives, a PR-body MOSTLY-PASS with an excerpt, and a final verdict aggregate. Tests can use this file as a schema-validation fixture; new consumers can read it to see the schema applied to realistic findings rather than reading the schema in isolation.
+A worked example stream lives at `review-output.example.ndjson` — 15 findings covering PASS / MOSTLY-PASS / FAIL / N/A across commit / branch / pr / range scopes, including aggregate PASS counts, single-commit FAIL findings with `fix` imperatives, a PR-body MOSTLY-PASS with an excerpt, an audience finding whose `fix` is a rewrite rather than a redaction, and a final verdict aggregate. Tests can use this file as a schema-validation fixture; new consumers can read it to see the schema applied to realistic findings rather than reading the schema in isolation.
 
 ## Rule-id registry
 
 Every `rule` id in a stream resolves to a single registry with two halves:
 
-1. **Smell ids** — every `` ### `<id>` `` entry in `commit-smells.md` (25 rules). Detection patterns, fixes, and before/after examples live there.
+1. **Smell ids** — every `` ### `<id>` `` entry in `commit-smells.md` (26 rules). Detection patterns, fixes, and before/after examples live there.
 2. **Check and meta ids** — the table below: checks that grade a format property rather than detect a smell, plus the meta rows a report carries. They have no catalog entry; this table is their definition.
 
 | Id | Class | Meaning |
