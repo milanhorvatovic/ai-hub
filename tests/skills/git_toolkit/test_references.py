@@ -455,13 +455,19 @@ def test_publishing_capabilities_link_publication_audience(
 # spelling in the file, and a compile-only check passes an over-escaped form
 # that matches nothing real — the shape this test was written after.
 AUDIENCE_PATTERN_PROBES = {
-    "definite_reference": ("as the plan says", "the retry cap is 3"),
-    "session_deixis": ("as discussed, cap at 3", "the cap is 3"),
+    "definite_reference": (("as the plan says",), ("the retry cap is 3",)),
+    "session_deixis": (("as discussed, cap at 3",), ("the cap is 3",)),
     # The miss probe is a longer token, not an issue reference: `#482` never
     # matched the letter-prefixed pattern anyway, so probing one proves
     # nothing, while `HTTP2` is the real risk the lookbehind exists to stop.
-    "track_code": ("finding Z9 covers it", "HTTP2 traffic only"),
-    "private_path": (r"see C:\Users\dev\notes.md", "see docs/adr/0001-x.md"),
+    "track_code": (("finding Z9 covers it",), ("HTTP2 traffic only",)),
+    # Three roots, one of them outside any home directory: the pattern claims
+    # absolute paths, and a probe set drawn only from /Users and /home would
+    # let it narrow back to a root list without anything going red.
+    "private_path": (
+        (r"see C:\Users\dev\notes.md", "see /tmp/design.md", "see ~/notes.md"),
+        ("see docs/adr/0001-x.md", "see https://example.com/x"),
+    ),
 }
 
 
@@ -477,13 +483,15 @@ def test_audience_patterns_match_what_they_claim(
         f"publication-audience.md declares no regex for {pattern_name!r}"
     )
     expression = re.compile(catalog[pattern_name])
-    hit, miss = probes
-    assert expression.search(hit), (
-        f"{pattern_name} no longer matches {hit!r} — the guard has gone quiet"
-    )
-    assert not expression.search(miss), (
-        f"{pattern_name} matches {miss!r}, which is ordinary published text"
-    )
+    hits, misses = probes
+    for hit in hits:
+        assert expression.search(hit), (
+            f"{pattern_name} no longer matches {hit!r} — the guard has gone quiet"
+        )
+    for miss in misses:
+        assert not expression.search(miss), (
+            f"{pattern_name} matches {miss!r}, which is ordinary published text"
+        )
 
 
 def test_write_mode_authors_from_public_inputs(capabilities_dir: Path) -> None:
