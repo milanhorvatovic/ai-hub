@@ -437,6 +437,10 @@ def test_publication_audience_reference_is_the_single_home(
         # "as discussed in #12" and keep warning about the spelling below.
         "sentence-level exemption",
         "See #12 for the plan",
+        # Presence of a `#N` is not resolution: a dangling issue or an
+        # intranet link looks like an antecedent and hands the reader nothing,
+        # so the exemption has to verify rather than pattern-match.
+        "Presence is not resolution",
     ):
         assert needle in text, f"publication-audience.md missing: {needle!r}"
 
@@ -536,6 +540,21 @@ def test_write_mode_authors_from_public_inputs(capabilities_dir: Path) -> None:
             "pr-description WRITE mode lost its public-inputs rule "
             f"({needle!r}) — the scan would become the only line"
         )
+
+
+def test_merge_readiness_gate_covers_self_containment(capabilities_dir: Path) -> None:
+    """The readiness gate delegates its description check to the SYNC
+    workflow, and a dimension the delegate grades while the gate stays silent
+    about it is a dimension that cannot block a merge — including a
+    repository-declared `error`, which in a body-as-commit-message repo lands
+    in permanent history on the way through."""
+    text = (capabilities_dir / "merge-readiness" / "capability.md").read_text(
+        encoding="utf-8"
+    )
+    assert "private-context-ref" in text, (
+        "merge-readiness's description gate no longer names the "
+        "self-containment dimension it delegates"
+    )
 
 
 def test_branch_name_bans_private_codes_in_the_slug(capabilities_dir: Path) -> None:

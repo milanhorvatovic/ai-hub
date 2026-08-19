@@ -21,7 +21,9 @@ Listed rather than tabulated for the reason the secret catalog gives — alterna
 
 ### The sentence-level exemption
 
-`definite_reference` and `session_deixis` find candidates rather than deliver verdicts. After a match, read the sentence it sits in and drop the finding when that sentence carries an issue reference (`#\d+`) or a link (`https?://`): the reference resolves the phrase from either side of it, so "See #12 for the plan" and "as discussed in #12" are both clean, while a bare "the plan" is not.
+`definite_reference` and `session_deixis` find candidates rather than deliver verdicts. After a match, read the sentence it sits in and drop the finding when that sentence carries a reference that **resolves for the publication audience and names the thing the phrase points at** — an issue or pull request in this repository, or a link on a host anyone can reach. So "See #12 for the plan" and "as discussed in #12" are clean once `#12` exists, while a bare "the plan" is not.
+
+Presence is not resolution, and this is where the exemption is easiest to get wrong. A dangling issue number, an unrelated link two clauses away, or a URL on an intranet host all look like references and hand the reader nothing, so none of them clears the finding: verify the target the way the contract asks — the issue resolves, the host is public — and keep the warning when verification is unavailable rather than reading an unchecked `#N` as proof. A guard that accepts any `#`-shaped token as an antecedent has been talked out of its own rule by punctuation.
 
 It is a step rather than part of the expressions because it cannot be part of them. A trailing lookahead inspects only what follows the phrase, so it clears the reference-after spelling and flags the reference-before one, and no regular expression can look backward by an unbounded amount to even that out. An exemption holding for half its cases is worse than one stated plainly, since the half it misses is a warning on text that already met the contract — and a reader of the pattern alone would never know which half they had.
 
