@@ -455,8 +455,18 @@ def test_publishing_capabilities_link_publication_audience(
 # spelling in the file, and a compile-only check passes an over-escaped form
 # that matches nothing real — the shape this test was written after.
 AUDIENCE_PATTERN_PROBES = {
-    "definite_reference": (("as the plan says",), ("the retry cap is 3",)),
-    "session_deixis": (("as discussed, cap at 3",), ("the cap is 3",)),
+    # Both entries carry a lookahead for a link or issue reference in the same
+    # sentence, which is the resolvable case. The misses probe exactly that:
+    # a mandatory warning that fires on "per the diff" or on a reference the
+    # reader can open is a false positive with a guard's authority.
+    "definite_reference": (
+        ("as the plan says",),
+        ("the retry cap is 3", "see the plan in #12"),
+    ),
+    "session_deixis": (
+        ("as discussed, cap at 3",),
+        ("the cap is 3", "per the diff", "as discussed in #12"),
+    ),
     # The miss probe is a longer token, not an issue reference: `#482` never
     # matched the letter-prefixed pattern anyway, so probing one proves
     # nothing, while `HTTP2` is the real risk the lookbehind exists to stop.
@@ -465,8 +475,13 @@ AUDIENCE_PATTERN_PROBES = {
     # absolute paths, and a probe set drawn only from /Users and /home would
     # let it narrow back to a root list without anything going red.
     "private_path": (
-        (r"see C:\Users\dev\notes.md", "see /tmp/design.md", "see ~/notes.md"),
-        ("see docs/adr/0001-x.md", "see https://example.com/x"),
+        (
+            r"see C:\Users\dev\notes.md",
+            "see /tmp/design.md",
+            "see ~/notes.md",
+            "see `/home/dev/plan.md`",
+        ),
+        ("see docs/adr/0001-x.md", "see https://example.com/x", "see `https://x.dev/a`"),
     ),
 }
 
