@@ -477,6 +477,11 @@ AUDIENCE_PATTERN_PROBES = {
     "private_path": (
         (
             r"see C:\Users\dev\notes.md",
+            # Windows accepts either separator, and a UNC path opens with two
+            # backslashes; a POSIX author picturing only `C:\` leaves both of
+            # these ordinary spellings unflagged.
+            "see C:/Users/dev/notes.md",
+            r"see \\server\share\notes.md",
             "see /tmp/design.md",
             "see ~/notes.md",
             "see `/home/dev/plan.md`",
