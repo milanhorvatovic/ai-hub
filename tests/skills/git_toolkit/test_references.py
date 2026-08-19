@@ -432,6 +432,11 @@ def test_publication_audience_reference_is_the_single_home(
         # that raises a finding to `error` buys nothing at the surface that
         # actually publishes the text.
         "Every consumer passes the grade through",
+        # The exemption is a sentence-level step because a lookahead can only
+        # see forward: folding it back into the expressions would clear
+        # "as discussed in #12" and keep warning about the spelling below.
+        "sentence-level exemption",
+        "See #12 for the plan",
     ):
         assert needle in text, f"publication-audience.md missing: {needle!r}"
 
@@ -455,17 +460,14 @@ def test_publishing_capabilities_link_publication_audience(
 # spelling in the file, and a compile-only check passes an over-escaped form
 # that matches nothing real — the shape this test was written after.
 AUDIENCE_PATTERN_PROBES = {
-    # Both entries carry a lookahead for a link or issue reference in the same
-    # sentence, which is the resolvable case. The misses probe exactly that:
-    # a mandatory warning that fires on "per the diff" or on a reference the
-    # reader can open is a false positive with a guard's authority.
-    "definite_reference": (
-        ("as the plan says",),
-        ("the retry cap is 3", "see the plan in #12"),
-    ),
+    # These two entries are candidate finders: the link/issue-reference
+    # exemption is a sentence-level step, not part of the expression, so the
+    # misses here are only what the pattern itself must never match. The
+    # exemption has its own guard below.
+    "definite_reference": (("as the plan says",), ("the retry cap is 3",)),
     "session_deixis": (
         ("as discussed, cap at 3",),
-        ("the cap is 3", "per the diff", "as discussed in #12"),
+        ("the cap is 3", "per the diff", "per the API docs"),
     ),
     # The miss probe is a longer token, not an issue reference: `#482` never
     # matched the letter-prefixed pattern anyway, so probing one proves
@@ -485,6 +487,10 @@ AUDIENCE_PATTERN_PROBES = {
             "see /tmp/design.md",
             "see ~/notes.md",
             "see `/home/dev/plan.md`",
+            # A path in a description is usually a flag or variable value, so
+            # a delimiter list drawn from prose habits misses the common case.
+            "run --config=/home/dev/plan.md",
+            "HOME=~/workspace",
         ),
         ("see docs/adr/0001-x.md", "see https://example.com/x", "see `https://x.dev/a`"),
     ),
