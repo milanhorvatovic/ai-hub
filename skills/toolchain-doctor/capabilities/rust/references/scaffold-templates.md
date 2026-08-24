@@ -12,7 +12,6 @@ unsafe_code = "forbid" # drop this line for a crate that legitimately needs unsa
 
 [lints.clippy]
 all = "deny"
-pedantic = "warn" # a reading list, not a gate — promote individual lints as they earn it
 ```
 
 In a workspace, declare once at the root and inherit:
@@ -27,7 +26,17 @@ all = "deny"
 workspace = true
 ```
 
-`pedantic = "warn"` rather than `"deny"` is deliberate. The pedantic set contains genuinely useful lints and genuinely arguable ones; denying it wholesale on an existing crate produces hundreds of findings and the reliable outcome is that someone disables the whole thing.
+`pedantic` is deliberately absent from the gated configuration, and it cannot be added back as `"warn"` to make it advisory. The CI step below denies warnings, which promotes every enabled warn-level lint to an error — so a "reading list" set here would gate exactly as hard as `all = "deny"` while claiming not to, and the reliable outcome of hundreds of pedantic findings on an existing crate is that someone switches the whole thing off.
+
+Read the pedantic set with a second, non-gating invocation instead, where the claim and the behaviour match:
+
+```yaml
+    - name: clippy pedantic (advisory)
+      run: cargo clippy --workspace --all-targets -- -W clippy::pedantic
+      continue-on-error: true
+```
+
+That step is the one place `continue-on-error` belongs in this template: it is advisory by design and says so, rather than being a gate that quietly cannot fail.
 
 ## `rustfmt.toml`
 

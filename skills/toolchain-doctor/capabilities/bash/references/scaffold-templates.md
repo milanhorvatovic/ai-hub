@@ -54,19 +54,23 @@ The list comes from the inventory, not a glob. This is the shape that reaches th
 set -euo pipefail
 
 # Tracked files that are shell: by extension, or by shebang.
-mapfile -t files < <(
-  {
-    git ls-files -z '*.sh' '*.bash' | tr '\0' '\n'
-    git grep -lIz --untracked -e '' -- . 2>/dev/null | tr '\0' '\n' |
-      while IFS= read -r f; do
-        [ -f "$f" ] || continue
-        head -n 1 -- "$f" | grep -Eq '^#!.*\b(ba)?sh\b' && printf '%s\n' "$f"
-      done
-  } | sort -u
-)
-
-printf '%s\n' "${files[@]}"
+{
+  git ls-files -z '*.sh' '*.bash' | tr '\0' '\n'
+  git ls-files -z | tr '\0' '\n' |
+    while IFS= read -r f; do
+      [ -f "$f" ] || continue
+      if head -n 1 -- "$f" | grep -Eq '^#!.*\b(ba)?sh\b'; then
+        printf '%s\n' "$f"
+      fi
+    done
+} | sort -u
 ```
+
+Two details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
+
+And the shebang test is an `if` rather than `cmd && printf`. With `&&`, the last file examined decides the loop's exit status, so a script that printed a correct list would still exit non-zero whenever the final tracked file was not shell — which under `set -e`, or as a CI step, is a failure on a run that worked.
+
+Tracked files only, and the reason is the CI step this feeds. An untracked script exists on the machine that ran the discovery and nowhere else, so copying it into a workflow's file list produces a job that fails on a path absent from the checkout — a scaffold that works for its author and for no one else. `git ls-files` is also what makes the shebang pass finite: it walks what the repository contains rather than everything under the working directory, so ignored build output and vendored trees never reach the `head` check.
 
 Run it once and read the output before wiring it into CI. The list is the audit's evidence, and a maintainer looking at it will spot both a missing script and a wrongly included one faster than any heuristic here can.
 
@@ -79,11 +83,13 @@ shell:
     - uses: actions/checkout@<40-char-sha> # <the version this sha is>
     - name: install shellcheck and shfmt
       run: |
+        mkdir -p "$RUNNER_TEMP/bin"
         curl -fsSL "https://github.com/koalaman/shellcheck/releases/download/v<pinned>/shellcheck-v<pinned>.linux.x86_64.tar.xz" \
-          | tar -xJ --strip-components=1 -C /usr/local/bin "shellcheck-v<pinned>/shellcheck"
-        curl -fsSL -o /usr/local/bin/shfmt \
+          | tar -xJ -C "$RUNNER_TEMP/bin" --strip-components=1 "shellcheck-v<pinned>/shellcheck"
+        curl -fsSL -o "$RUNNER_TEMP/bin/shfmt" \
           "https://github.com/mvdan/sh/releases/download/v<pinned>/shfmt_v<pinned>_linux_amd64"
-        chmod +x /usr/local/bin/shfmt
+        chmod +x "$RUNNER_TEMP/bin/shfmt"
+        echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
     - name: shellcheck
       run: |
         shopt -s globstar
@@ -91,6 +97,8 @@ shell:
     - name: shfmt
       run: shfmt -d <the same file list>
 ```
+
+The binaries land in a runner-writable directory and reach the later steps through `GITHUB_PATH`, rather than being written straight into a system path. A job runs as an unprivileged user, so a scaffold that assumes it can write to `/usr/local/bin` risks failing before either check runs — and failing in the install step, where the error says nothing about shell linting.
 
 `shfmt` is the reason this job needs an install step at all. `shellcheck` is preinstalled on the common hosted Ubuntu images and `shfmt` is not, so a job that assumes both fails on a fresh runner with `shfmt: command not found` — a scaffold that cannot run is worse than the gap it closes. A pinned setup action for either tool works equally well; the point is that both arrive deliberately.
 

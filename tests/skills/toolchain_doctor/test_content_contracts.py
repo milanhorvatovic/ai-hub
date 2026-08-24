@@ -71,7 +71,7 @@ def _prose(path: Path) -> str:
 # violation, and a check that ignored inline code would be blind to exactly it.
 # What separates an instruction from a citation is the imperative in front,
 # not the formatting around it.
-_IMPERATIVE = r"(?:\b(?:run|execute|invoke|call|then)\b[^.\n]{0,30}?)"
+_IMPERATIVE = r"(?:\b(?:run|execute|invoke|call|then|install|use|add)\b[^.\n]{0,30}?)"
 
 
 def _instructs(prose: str, command: str) -> bool:
@@ -276,7 +276,16 @@ def test_the_consent_check_can_tell_an_order_from_a_citation() -> None:
     """
     assert _instructs("Run `pip install foo` first.", "pip install")
     assert _instructs("Then execute pip install ruff before the scan.", "pip install")
+    # The verbs that read least like orders are the ones a violation reaches
+    # for: nobody writes "run cargo install", they write "install it with".
+    assert _instructs("Install it with `pip install ruff`.", "pip install")
+    assert _instructs("Use `cargo install cargo-deny` to get it.", "cargo install")
+    assert _instructs("Add it with `brew install shfmt` before scanning.", "brew install")
     assert not _instructs(
         "A CI step reading `pip install ruff` is a `floating` finding.", "pip install"
     )
     assert not _instructs("The floor forbids `pip install` into a global interpreter.", "pip install")
+    assert not _instructs(
+        "Where the project declares one and CI reaches for a bare `pip install` instead.",
+        "pip install",
+    )
