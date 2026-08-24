@@ -329,7 +329,7 @@ def test_the_templates_still_carry_what_their_capability_requires(
     )
 
 
-@pytest.mark.parametrize("doc", _ALL_SKILL_DOCS, ids=lambda p: str(p.relative_to(_SKILL)))
+@pytest.mark.parametrize("doc", _ALL_SKILL_DOCS, ids=lambda p: p.relative_to(_SKILL).as_posix())
 def test_only_inventoried_files_name_an_install_command(doc: Path) -> None:
     """The consent model, pinned by inventory rather than by reading intent.
 
@@ -340,7 +340,10 @@ def test_only_inventoried_files_name_an_install_command(doc: Path) -> None:
     one fails: the check is exact, and the judgement moves to whoever adds the
     citation.
     """
-    relative = str(doc.relative_to(_SKILL))
+    # `as_posix()`, not `str()`: on Windows the latter yields backslashes and
+    # every nested key in the inventory misses, which is how this landed red on
+    # two runners while passing locally.
+    relative = doc.relative_to(_SKILL).as_posix()
     found = _install_citations(doc)
     if not found:
         return
@@ -357,6 +360,14 @@ def test_the_citation_inventory_describes_this_tree() -> None:
     notice granting."""
     stale = [name for name in _ALLOWED_CITATIONS if not _install_citations(_SKILL / name)]
     assert not stale, f"inventory lists files that no longer cite an install form: {stale}"
+
+    # The keys are compared against `as_posix()` output, so a backslash in one
+    # can only ever miss. Pinning the spelling here fails on every platform
+    # rather than only on the runners that use the other separator.
+    windows_style = [name for name in _ALLOWED_CITATIONS if "\\" in name]
+    assert not windows_style, (
+        f"inventory keys must be posix-form paths; these carry backslashes: {windows_style}"
+    )
 
 
 def test_the_install_detector_reads_forms_not_tool_names() -> None:
