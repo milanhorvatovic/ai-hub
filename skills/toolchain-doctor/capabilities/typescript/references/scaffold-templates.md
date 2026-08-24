@@ -74,6 +74,8 @@ The TypeScript config is not optional decoration here. `@eslint/js` alone brings
 
 The scripts come first, and CI calls them — not because it is tidier, but because a CI step invoking a tool directly runs a different thing from what contributors run, and one of the two will drift without anyone noticing.
 
+`actions/setup-node` supplies Node and `npm` and nothing further. Its `cache` input names a manager's store to restore; it does not install that manager, so a scaffold adapted to pnpm or a modern yarn relies on whatever happens to be global on the runner, and one adapted to bun has no path through `setup-node` at all. Bootstrap first, then cache — that order is the constraint, because the cache step resolves a store the manager has to be present to describe.
+
 The script runner is the project's own, for the same reason the install command is: a template that discovers the package manager for setup and then hardcodes `npm run` contradicts itself, and breaks outright on a setup like Yarn Plug'n'Play that requires its own runner to resolve anything.
 
 The dependency and script blocks come from whichever route the audit picked, not from a default. The `typescript` dependency and the `typecheck` script below belong to a project that has TypeScript in it: where the lane ran on a JavaScript-only repository and marked the compiler rows `N/A`, they come out, because scaffolding a compiler into a project that has no TypeScript adds a tool nothing asked for and a script that checks nothing. Route A:
@@ -138,6 +140,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+      # Bootstrap the package manager BEFORE setup-node: the cache input below
+      # resolves the manager's store and needs the manager to already exist.
+      # npm needs nothing here; pnpm and modern yarn come from corepack or a
+      # pinned setup action; bun needs its own and does not use setup-node.
+      - name: bootstrap <the project's package manager>
+        uses: <that manager's pinned setup action>@<40-char-sha> # <the version this sha is>
       - uses: actions/setup-node@<40-char-sha> # <the version this sha is>
         with:
           node-version: "<the project's version>"
