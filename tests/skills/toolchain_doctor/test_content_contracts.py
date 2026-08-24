@@ -29,6 +29,7 @@ _CAPABILITIES = sorted(_SKILL.glob("capabilities/*/capability.md"))
 _GRADE_TABLE_HEADER = "| Grade | Means | Example |"
 _TABLE_ROW = re.compile(r"^\| `([a-z]+)` \|", re.M)
 _FENCE = re.compile(r"```.*?```", re.S)
+_INLINE_CODE = re.compile(r"`[^`\n]*`")
 
 # Two narrow frames the skill's prose uses to attach a grade to a finding.
 # Narrow on purpose: a loose frame sweeps up tool names sitting near the word
@@ -54,6 +55,19 @@ def _prose(path: Path) -> str:
     """File text with fenced blocks removed — a template's contents illustrate a
     file the user writes, and are not the skill speaking."""
     return _FENCE.sub("", path.read_text(encoding="utf-8"))
+
+
+def _instructions(path: Path) -> str:
+    """Prose with inline code removed as well: only what the skill says in its
+    own voice.
+
+    A capability has to name the commands it detects — an unconstrained
+    `pip install` in a CI step is the evidence behind a whole finding — and a
+    check that cannot tell a quoted command from an instruction forces that
+    finding to be described in circumlocutions. Inline code in this skill is
+    always quoted material; an instruction to the skill itself is plain prose.
+    """
+    return _INLINE_CODE.sub("", _prose(path))
 
 
 def _registered_grades() -> set[str]:
@@ -87,22 +101,18 @@ def test_every_capability_reaches_the_three_contracts_it_runs_on() -> None:
         for ref in required
         if ref not in path.read_text(encoding="utf-8")
     ]
-    assert not missing, "capabilities not wired to a shared contract:\n" + "\n".join(
-        missing
-    )
+    assert not missing, "capabilities not wired to a shared contract:\n" + "\n".join(missing)
 
 
 def test_no_capability_defines_a_grade_of_its_own() -> None:
     """One home for the vocabulary. A capability that grows its own grade table
     is how two files start disagreeing about what `wiring` means."""
     offenders = [
-        path.parent.name
-        for path in _CAPABILITIES
-        if _GRADE_TABLE_HEADER in _prose(path)
+        path.parent.name for path in _CAPABILITIES if _GRADE_TABLE_HEADER in _prose(path)
     ]
-    assert (
-        not offenders
-    ), f"{offenders} open a grade table; grades live in references/diagnosis-grading.md"
+    assert offenders == [], (
+        f"{offenders} open a grade table; grades live in references/diagnosis-grading.md"
+    )
 
 
 def test_every_grade_a_capability_assigns_is_registered() -> None:
@@ -121,9 +131,7 @@ def test_every_grade_a_capability_assigns_is_registered() -> None:
         "grades assigned but not declared in references/diagnosis-grading.md:\n"
         + "\n".join(unregistered)
     )
-    assert (
-        used
-    ), "no capability assigns a grade in a recognized frame — check the frames"
+    assert used, "no capability assigns a grade in a recognized frame — check the frames"
 
 
 @pytest.mark.parametrize("grade", sorted(_registered_grades()))
@@ -170,10 +178,11 @@ def test_the_consent_model_still_names_what_it_forbids() -> None:
 def test_no_capability_instructs_an_install(capability: Path) -> None:
     """Fenced templates may show an install command — a CI step the user applies
     is the user installing, which is the whole point of prescribing rather than
-    performing. The capability's own prose may not, because prose is the skill
-    telling itself what to do.
+    performing. Quoted commands may appear inline, because naming what the audit
+    detects is the capability's job. What may not appear is an install in the
+    skill's own voice, which is the skill telling itself what to do.
     """
-    prose = _prose(capability)
+    prose = _instructions(capability)
     found = [command for command in _INSTALL_COMMANDS if command in prose]
     assert not found, (
         f"{capability.parent.name} instructs {found} outside a template fence; "

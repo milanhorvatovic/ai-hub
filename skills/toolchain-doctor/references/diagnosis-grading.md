@@ -10,8 +10,13 @@ Every audit finding carries a grade. The vocabulary is small on purpose, and all
 | `wiring` | Declared but not running — the config exists and nothing executes it | `ruff` configured in `pyproject.toml`, no CI job calls it |
 | `conflict` | Two declarations that cannot both be honored | `prettier` and `biome` both formatting the same files |
 | `drift` | The same fact declared twice, differently | Language version pinned in CI and floated in the manifest |
+| `floating` | Running, at whatever version resolved today | `pip install ruff` in CI with no version constraint |
 | `unknown` | Detection could not reach the answer | CI calls a task runner whose config the scan could not read |
 | `decision` | A floor row the repo has deliberately declined | An explicit lower language pin, with the pin cited |
+
+`floating` is separate from `gap` because the tool is there and working: the floor row is satisfied, and what is unfixed is which version satisfies it. The cost lands somewhere else entirely — on an unrelated pull request, on the morning the linter releases a new rule, as a red build nobody's change caused. That is the failure that teaches a team to reach for `continue-on-error`, and a check that cannot fail is worth less than the one they started with.
+
+It is also the grade most likely to be a `decision` in disguise. A repository that floats deliberately, to catch upstream changes early, has chosen the trade rather than missed it; say so where the choice is visible, and grade it `floating` only where nothing suggests anyone decided.
 
 `decision` is a grade rather than a silence so the report stays complete: a maintainer reading it should see every floor row accounted for, including the ones they themselves opted out of, because a row that simply vanishes reads as a row nobody checked.
 

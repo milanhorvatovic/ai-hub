@@ -36,9 +36,10 @@ Read-only. Consumes the scan's facts and grades them against `tooling-floors.md`
 
 1. **Grade each floor row** for the language: satisfied, gap, or unknown, and where a row is satisfied by a non-floor tool the repo has chosen deliberately, say so and grade it satisfied.
 2. **Grade the wiring** — a declared tool CI never runs is its own finding, and typically the most valuable one in the report.
-3. **Grade the internal contradictions** — two tools claiming one job, a version pinned in one file and floated in another, a config disabling the rule its own CI step exists to enforce.
-4. **Name the prescription with each finding.** A finding without a concrete next step is an observation; this skill's whole purpose is the next step.
-5. **Record the opt-outs.** A repository that declared its way out of a floor row gets that recorded as a decision, not re-litigated.
+3. **Grade the version fixity** — for each tool that does run, whether anything fixes which version runs. A constraint in the install step, a lock file, a pinned container, or a task runner that resolves one all count; nothing at all is `floating`. Grade the tool, not the language: an interpreter or toolchain version belongs to the floor row that declares it.
+4. **Grade the internal contradictions** — two tools claiming one job, a version pinned in one file and floated in another, a config disabling the rule its own CI step exists to enforce.
+5. **Name the prescription with each finding.** A finding without a concrete next step is an observation; this skill's whole purpose is the next step.
+6. **Record the opt-outs.** A repository that declared its way out of a floor row gets that recorded as a decision, not re-litigated.
 
 The audit never blocks anything and never speaks as though it could. See `diagnosis-grading.md` for why every grade here is advisory and what that costs when a finding is genuinely serious.
 

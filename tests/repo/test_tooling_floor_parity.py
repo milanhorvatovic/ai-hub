@@ -26,9 +26,7 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_FLOORS = (
-    _REPO_ROOT / "skills" / "toolchain-doctor" / "references" / "tooling-floors.md"
-)
+_FLOORS = _REPO_ROOT / "skills" / "toolchain-doctor" / "references" / "tooling-floors.md"
 _RULEBOOK = _REPO_ROOT / "skills" / "coding-principles" / "capabilities"
 
 # The heading that opens each language's floor in the rulebook. bash states its
@@ -129,12 +127,8 @@ def test_the_floor_is_not_empty(language: str) -> None:
     """An extraction that finds nothing agrees with an extraction that finds
     nothing, so the comparison above passes loudest exactly when it has stopped
     reading either file. This is what stands between that and a green suite."""
-    assert _doctor_floor(
-        language
-    ), f"extracted no tools from the doctor's {language} floor"
-    assert _rulebook_floor(
-        language
-    ), f"extracted no tools from the rulebook's {language} floor"
+    assert _doctor_floor(language), f"extracted no tools from the doctor's {language} floor"
+    assert _rulebook_floor(language), f"extracted no tools from the rulebook's {language} floor"
 
 
 def test_the_doctor_covers_every_language_the_rulebook_floors() -> None:
@@ -160,15 +154,8 @@ def test_the_extractor_rejects_what_is_not_a_tool() -> None:
     in config filenames and compiler options, and with them too aggressive it
     quietly drops a real tool. Both failure modes look like a passing test, so
     the shapes are asserted directly rather than inferred from a green run."""
-    rejected = [
-        "pyproject.toml",
-        '"strict": true',
-        "noUncheckedIndexedAccess",
-        "pip install",
-    ]
-    assert (
-        _tool_names(rejected) == set()
-    ), f"filters let through: {_tool_names(rejected)}"
+    rejected = ["pyproject.toml", '"strict": true', "noUncheckedIndexedAccess", "pip install"]
+    assert _tool_names(rejected) == set(), f"filters let through: {_tool_names(rejected)}"
 
     kept = ["ruff", "cargo clippy -- -D warnings", "shfmt -i 2 -ci", "tsc --noEmit"]
     assert _tool_names(kept) == {"ruff", "cargo clippy", "shfmt", "tsc"}

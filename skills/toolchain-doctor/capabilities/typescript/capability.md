@@ -46,6 +46,7 @@ This ecosystem produces overlap more than absence, so the checks that pay off he
 - **A linter carrying formatting rules.** `eslint` with stylistic rules enabled beside `prettier` is the same conflict wearing different clothes, and it produces the specific misery of a lint error that the formatter reintroduces on save. The prescription is to disable the stylistic rule set, not to remove either tool.
 - **`strict` defeated downstream.** A config that enables `strict` and then disables one of its constituent flags is not strict, and grading it from the `strict` line alone reports a project as satisfying the floor when it does not.
 - **A build that is not a typecheck.** Where the only type-adjacent CI step is a bundler invocation, the typecheck row is a `gap` even though the project's types compile every day — nothing has ever checked them.
+- **Tools reached through `npx` rather than the dependency tree.** `npx eslint` in a CI step resolves whatever version is current unless the package is a declared dependency, which makes it a `floating` finding — and a quiet one, because locally the same command usually finds the installed copy and agrees with everyone. A devDependency plus a tracked lock file fixes it; where both already exist, the finding is not fixity but the step bypassing them.
 
 ## Scaffold
 

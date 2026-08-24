@@ -14,7 +14,7 @@ Each row's **Verify with** column is the command a maintainer runs to confirm th
 | `mypy` _or_ `pyright` | static types | One of them checks the public surface — module-level functions, class methods, dataclass fields | `mypy <pkg>` |
 | `uv` _or_ `poetry` _or_ `pip-tools` _or_ `hatch` | environment | The project manages its environment with one of them rather than installing into a global interpreter | the project's own lock or sync command |
 
-Language version: target a Python still receiving security fixes — 3.10 or later at the time of writing, and the floor rises as releases age out — unless the project deliberately pins lower in `pyproject.toml`, `setup.cfg`, or `python_requires`. A deliberate lower pin is a decision, not a gap; an _undeclared_ version is a gap, because nothing then holds contributors to the same interpreter.
+Language version: target a Python still receiving security fixes, which is a moving line rather than a number this file can hold — read it from the upstream support schedule at audit time, not from memory. A project that deliberately pins below it in `pyproject.toml`, `setup.cfg`, or `python_requires` has made a decision, not left a gap; an _undeclared_ version is a gap, because nothing then holds contributors to the same interpreter. State the version this audit read the schedule as saying, so a reader can tell a current answer from a stale one.
 
 ## typescript
 
