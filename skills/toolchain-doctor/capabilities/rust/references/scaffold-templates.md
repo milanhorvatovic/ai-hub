@@ -6,10 +6,9 @@ Shapes to fill in from what the scan found. Placeholders in angle brackets are v
 
 The manifest is the first home for lint levels, ahead of crate-root attributes: it is readable without opening source, it inherits across a workspace, and changing a level does not touch a `.rs` file.
 
-```toml
-[lints.rust]
-unsafe_code = "forbid" # drop this line for a crate that legitimately needs unsafe
+Only the clippy floor goes in. An `unsafe_code = "forbid"` line is a tempting thing to add here and does not belong: no floor row asks for it and no finding produces it, so scaffolding it would break the rule that every written change traces to something the audit said — and on a crate with legitimate `unsafe`, it breaks the build instead. It is a policy a maintainer chooses, available on request and never by default.
 
+```toml
 [lints.clippy]
 all = "deny"
 ```

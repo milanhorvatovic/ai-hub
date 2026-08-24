@@ -4,21 +4,32 @@ Shapes to fill in from what the scan found. Placeholders in angle brackets are v
 
 ## Strictness in `tsconfig.json`
 
-The floor is `strict`. The extras below it are the ones worth enabling once a project is healthy enough to absorb them — propose them separately from `strict` itself, because turning them all on at once in an existing codebase produces a diff nobody can review.
+The floor is `strict`. The extras below it are worth enabling once a project is healthy enough to absorb them, and they are proposed as their own patch — turning them all on at once in an existing codebase produces a diff nobody can review.
 
 ```json
 {
   "compilerOptions": {
     "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "noFallthroughCasesInSwitch": true,
     "module": "<the project's existing module setting>",
     "moduleResolution": "<the project's existing resolution setting>"
   },
   "include": ["<the source directory>"]
 }
 ```
+
+The three extras go in a **second** patch, offered after the first lands:
+
+```json
+{
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}
+```
+
+Separating them is the whole point rather than tidiness: each of the three produces its own class of error across an existing codebase, and a single scaffold enabling all four at once yields exactly the unreviewable diff this section warns against. A template that bundled them would be advising one thing and doing another.
 
 Where the project already extends a shared base, add the options to the project's own config rather than editing the base — a base config is usually shared with packages this audit never looked at.
 
@@ -61,7 +72,7 @@ The TypeScript config is not optional decoration here. `@eslint/js` alone brings
 
 The scripts come first, and CI calls them — not because it is tidier, but because a CI step invoking a tool directly runs a different thing from what contributors run, and one of the two will drift without anyone noticing.
 
-The dependency and script blocks come from whichever route the audit picked, not from a default. Route A:
+The dependency and script blocks come from whichever route the audit picked, not from a default. The `typescript` dependency and the `typecheck` script below belong to a project that has TypeScript in it: where the lane ran on a JavaScript-only repository and marked the compiler rows `N/A`, they come out, because scaffolding a compiler into a project that has no TypeScript adds a tool nothing asked for and a script that checks nothing. Route A:
 
 ```json
 {
@@ -96,6 +107,8 @@ Route B, where the format check is a separate script because the two tools are s
 ```
 
 Taking Route A's block into a Route B repository is the mistake this split exists to prevent: it adds the second linter the capability forbids and drops the format check entirely, so the scaffold would both create a `conflict` and leave a floor row unmet.
+
+The JavaScript-only variant is either block with the compiler removed — no `typescript` dependency, no `typecheck` script, no `tsc` step — and, on Route B, no `typescript-eslint` either. What remains is the lint and format rows, which are the only ones that applied to that repository in the first place.
 
 ```yaml
 check:

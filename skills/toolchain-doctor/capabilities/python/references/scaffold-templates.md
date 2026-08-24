@@ -29,7 +29,7 @@ files = ["<the package directory>"]
 strict = true
 ```
 
-`files` is the row that matters. A `[tool.mypy]` section with settings and no target checks whatever the invocation happens to pass it, which in CI is often nothing at all.
+`files` is the row that matters, and not because omitting it produces a green check of nothing — `mypy` with no target in the config and none on the command line exits with an error, so that failure is loud rather than silent. It matters because it fixes the scope in one place: without it, what gets checked is whatever each call site passes, so CI and a contributor's local run can cover different sets and neither notices. Naming the package here makes the scope a property of the project instead of a property of the invocation.
 
 `strict = true` is the destination, not necessarily the starting point. For an existing codebase adopting types, propose it with the escape hatch alongside — a per-module override block that relaxes the modules not yet annotated — so the first run is actionable rather than a wall:
 

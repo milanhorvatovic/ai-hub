@@ -59,14 +59,16 @@ set -euo pipefail
   git ls-files -z | tr '\0' '\n' |
     while IFS= read -r f; do
       [ -f "$f" ] || continue
-      if head -n 1 -- "$f" | grep -Eq '^#!.*\b(ba)?sh\b'; then
+      if head -n 1 -- "$f" | grep -Eq '^#!.*[/ ](sh|bash|dash|ksh|mksh|zsh)([[:space:]]|$)'; then
         printf '%s\n' "$f"
       fi
     done
 } | sort -u
 ```
 
-Two details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
+The interpreter list is the shell family `shellcheck` can actually check, not just the two spellings of Bash. A pattern matching only `sh` and `bash` silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, which reproduces the coverage under-reach this whole capability exists to find — inside the script written to prevent it. An interpreter outside the list is worth reporting by name rather than skipping quietly: `shellcheck` will refuse it, and the maintainer should hear that from the audit rather than from a red build.
+
+Two more details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
 
 And the shebang test is an `if` rather than `cmd && printf`. With `&&`, the last file examined decides the loop's exit status, so a script that printed a correct list would still exit non-zero whenever the final tracked file was not shell — which under `set -e`, or as a CI step, is a failure on a run that worked.
 
