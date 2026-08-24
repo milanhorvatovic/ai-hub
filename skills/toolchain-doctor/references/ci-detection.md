@@ -4,7 +4,9 @@ Establishing whether a declared tool actually runs. This is the half of the scan
 
 ## The question
 
-For each floor tool the scan found declared, answer one question: **does something in this repository cause it to run on a change?** The answer is `yes` with a citation, `no`, or `unknown` with a reason. Never guess between them.
+For **every** floor tool, declared or not, answer one question: **does something in this repository cause it to run on a change?** The answer is `yes` with a citation, `no`, or `unknown` with a reason. Never guess between them.
+
+Asking only about declared tools would skip the ones that run on their defaults, which is a legitimate setup and a common one — `shellcheck` invoked straight from a CI step with no config file is the example this reference reports on below. A scan gated on declaration would report that repository as having no shell linting at all, which is the opposite of true.
 
 ## Where execution can live
 

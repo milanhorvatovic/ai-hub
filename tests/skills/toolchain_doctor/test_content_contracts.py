@@ -71,7 +71,13 @@ def _prose(path: Path) -> str:
 # violation, and a check that ignored inline code would be blind to exactly it.
 # What separates an instruction from a citation is the imperative in front,
 # not the formatting around it.
-_IMPERATIVE = r"(?:\b(?:run|execute|invoke|call|then|install|use|add)\b[^.\n]{0,30}?)"
+_IMPERATIVE = r"\b(?:run|execute|invoke|call|then|install|use|add)\b"
+# The span between the verb and the command. A sentence ends the reach; a line
+# break does not, because "Run this command:\n`pip install foo`" is one
+# instruction wearing two lines.
+_REACH = r"[^.]{0,40}?"
+# A prohibition carries the same verb as an order and means the opposite.
+_NEGATION = re.compile(r"\b(?:never|not|no|forbid(?:s|den)?|without|avoid)\b", re.IGNORECASE)
 
 
 def _instructs(prose: str, command: str) -> bool:
@@ -80,10 +86,23 @@ def _instructs(prose: str, command: str) -> bool:
     A capability has to name the commands it detects — an unconstrained
     `pip install` in a CI step is the evidence behind a whole finding — so a
     flat search for the command reports every citation as a violation. The
-    discriminator is the imperative, which a citation does not carry.
+    discriminator is the imperative, minus the two ways an imperative appears
+    without being one: a prohibition ("never run …") carries the same verb and
+    means the opposite, and an order can span the line break between "Run this
+    command:" and the command itself.
+
+    This stays a heuristic over prose, and it has been wrong three times now —
+    once too broad, once blind to code formatting, once to both of these. It
+    catches the shapes below and no more; treat a green run as "none of these
+    spellings appear", not as proof the skill never tells itself to install.
     """
-    pattern = _IMPERATIVE + r"`?" + re.escape(command)
-    return re.search(pattern, prose, re.IGNORECASE) is not None
+    for match in re.finditer(_IMPERATIVE + _REACH + r"`?" + re.escape(command), prose, re.IGNORECASE):
+        # Look back to the start of the sentence: the negation often sits
+        # before the verb rather than between it and the command.
+        sentence_start = prose.rfind(".", 0, match.start()) + 1
+        if not _NEGATION.search(prose[sentence_start : match.end()]):
+            return True
+    return False
 
 
 def _registered_grades() -> set[str]:
@@ -289,3 +308,9 @@ def test_the_consent_check_can_tell_an_order_from_a_citation() -> None:
         "Where the project declares one and CI reaches for a bare `pip install` instead.",
         "pip install",
     )
+    # An order can span the line break between the lead-in and the command.
+    assert _instructs("Run this command:\n`pip install ruff`.", "pip install")
+    # A prohibition carries the same verb and means the opposite; flagging it
+    # would reject the clearest way a capability can state the rule.
+    assert not _instructs("Never run `pip install` on the user's behalf.", "pip install")
+    assert not _instructs("The skill does not run `pip install` for them.", "pip install")

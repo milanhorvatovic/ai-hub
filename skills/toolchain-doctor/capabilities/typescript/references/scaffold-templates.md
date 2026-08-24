@@ -108,7 +108,16 @@ Route B, where the format check is a separate script because the two tools are s
 
 Taking Route A's block into a Route B repository is the mistake this split exists to prevent: it adds the second linter the capability forbids and drops the format check entirely, so the scaffold would both create a `conflict` and leave a floor row unmet.
 
-The JavaScript-only variant is either block with the compiler removed — no `typescript` dependency, no `typecheck` script, no `tsc` step — and, on Route B, no `typescript-eslint` either. What remains is the lint and format rows, which are the only ones that applied to that repository in the first place.
+The JavaScript-only variant is either block with the compiler removed — no `typescript` dependency, no `typecheck` script, no `tsc` step. What remains is the lint and format rows, which are the only ones that applied to that repository in the first place.
+
+On Route B the config file changes with it, and dropping the dependency alone is not enough: the flat config above imports `typescript-eslint` and calls `tseslint.config(...)`, so removing the package while leaving those lines produces a config that cannot load. The JavaScript form is the plain array:
+
+```typescript
+import js from "@eslint/js";
+import prettier from "eslint-config-prettier";
+
+export default [js.configs.recommended, prettier];
+```
 
 ```yaml
 check:
