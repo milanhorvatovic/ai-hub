@@ -101,9 +101,22 @@ Build a two-way mapping. Mark each entry:
 
 **Cap output:** omit `covered` rows unless they directly justify the verdict.
 
+### S2b. Grade self-containment
+
+S2 asks whether the body is true; this asks whether it resolves. The two are independent — a claim can map perfectly onto the diff and still point at something only its author can open — so a body that passes S2 with nothing but `covered` rows can still be an unusable description for the reviewer who arrives without the session that wrote it.
+
+Run `../../references/publication-audience.md` over the existing body **and over the title as fetched**, and grade each match as a finding alongside S2's rows, under the `private-context-ref` rule id. The title needs saying explicitly because the scan that covers proposed titles never sees this one: a title that is accurate needs no replacement, so nothing is proposed, and an accurate title carrying a private code stays untouched all the way into the squash subject where `st == "PR_TITLE"`. A finding on the title takes the same verdict rules below as one in the body. Where the repo declares its own private surface, its patterns are matched exactly and carry the severity it states; everything else grades `WARN`.
+
+Self-containment enters the verdict as its own dimension rather than another escalator, because the fix is usually one sentence:
+
+- Matches only in supporting detail — a stray track code, a path, an "as discussed" — cap the verdict at **MINOR-UPDATE** and patch those sentences. `IN-SYNC` is wrong for them: the body needs an edit, and no other dimension will ask for it.
+- A match against a pattern the repository declares at `error` — **MAJOR-REWRITE**, wherever in the body it sits. Severity is the one thing a declaration is for: the repository has said this reference must not ship, and a section-level patch that leaves the rest of the body carrying the same habit answers a smaller question than the one asked. Heuristic matches stay `warn` and take the two rules around this one.
+- A match that carries the headline meaning — the Summary's only statement of _why_ is a pointer the reader cannot follow — is a **MAJOR-REWRITE**, on the same reasoning as any missing claim: the body's load-bearing content is absent for its audience.
+- Findings here never lower a verdict another dimension raised.
+
 ### S3. Classify the verdict
 
-- **IN-SYNC** — all claims `covered`, no findings above trivial threshold.
+- **IN-SYNC** — all claims `covered`, no findings above trivial threshold, and no self-containment findings per S2b.
 - **MINOR-UPDATE** — small fraction (≤~20%) `missing` or one `partial`; no escalator. Output: **section-level patch**.
 - **MAJOR-REWRITE** — any `inverted`, or `missing` / `stale` changing headline meaning, or any escalator below fires. Output: **full proposed body**.
 - **HANDOFF-TO-WRITE** — body is empty / WIP / one-liner / unfilled-template. Output: the verdict, then the WRITE-mode draft (same invocation).
@@ -127,7 +140,7 @@ Borderline MINOR vs MAJOR → prefer MAJOR. Rewrite is cheaper than misleading a
 Report in this order:
 
 1. **Verdict** — one of the five labels, one sentence justifying it. Note sampling or missing-data caveats.
-2. **Findings** — table sorted `inverted` → `stale` → `missing` → `partial` (omit `covered` unless explanatory).
+2. **Findings** — table sorted `inverted` → `stale` → `missing` → `partial` (omit `covered` unless explanatory), then the S2b self-containment findings under `private-context-ref`, each naming its span. They sort last because they are about the reader rather than the diff, and a reviewer checks the claims first.
 3. **Title note** — only if title-stale.
 4. **Proposed description** (MINOR / MAJOR only) — full markdown or section-level patch per S3. Preserve every trailer per `../../references/trailer-semantics.md`.
 5. **Apply command** — per the shared output rules below.
@@ -140,12 +153,16 @@ Report in this order:
 | --- | --- | --- |
 | `changedFiles == 0` | — | `EMPTY-DIFF` |
 | Body empty / WIP / one-liner / unfilled template | — | `HANDOFF-TO-WRITE` |
-| Only `covered` (trivial gaps OK) | No | `IN-SYNC` |
+| Only `covered` (trivial gaps OK), no S2b findings | No | `IN-SYNC` |
 | Small fraction (≤~20%) `missing` or 1 `partial`, no `inverted` / `stale` | No | `MINOR-UPDATE` |
+| Self-containment findings (S2b) in supporting detail only | No | `MINOR-UPDATE` |
+| A self-containment finding carrying the body's headline meaning, or matching a repo-declared `error` pattern | — | `MAJOR-REWRITE` |
 | Any `inverted`, or higher-fraction `missing` / `stale` | — | `MAJOR-REWRITE` |
 | Any findings at all touching schema / security / public API / deps / CI / user-visible behavior | Yes | `MAJOR-REWRITE` |
 
 ## WRITE mode
+
+**Author from public inputs only.** The draft is built from the `base..head` diff, the branch's commits, the repo's template, and links that resolve publicly (issues, pull requests, commits, released documents). Session knowledge — what the author and the agent discussed, a plan held elsewhere, a private tracker — may steer emphasis and ordering, but a named artifact that is neither diff-visible nor publicly linkable does not enter the draft. This is the cheaper half of the audience guard: the scan in the Output section catches what slips past a tired author, while this rule means most drafts have nothing to catch. Every claim needs a public source behind it — the diff, the commits, or a link anyone can open. Where session context is the only source, leave the claim out or ask the author for a public source to cite; do not rephrase it into self-sufficiency. Rephrasing removes the reference and keeps the information, which is the worse half: the text now reads as self-contained, the scan has nothing to match, and no later stage can recover what the session put there. A body is allowed to say less than the author knows.
 
 ### W0. First-time contributor heuristic
 
@@ -185,10 +202,11 @@ Per `../../references/format-pr.md`:
 
 ## Output (both modes)
 
-1. **Secret scan** per `../../references/secret-patterns.md` over the proposed body before it is displayed or written to the mktemp file. On match → redact + WARN. Never include detected secrets — on screen or on disk.
-2. **Body length check** — GitHub's PR body limit is 65,536 chars. If the proposal is >~65,000 → warn, suggest trimming.
-3. Show the proposal INLINE AND write it to a `mktemp` file. The user can either copy from the terminal or pass the file path to `gh pr edit`.
-4. **Apply command** — `gh pr edit <num> --body-file <path>` with the **resolved PR number explicitly**, never a branch name. Never run `gh pr edit` automatically.
+1. **Secret scan** per `../../references/secret-patterns.md` over the proposed body **and over the title — the one this capability proposes, or the existing one when it proposes none**, before either is displayed or written to the mktemp file. On match → redact + WARN. Never include detected secrets — on screen or on disk. Both stages of the pass take the same input, so a title that skips one skips the wrong half by accident.
+2. **Audience scan** per `../../references/publication-audience.md` over the same body **and over the title — the one this capability proposes, or the existing one when it proposes none** — a suggested title is published text with the same defect surface, and the squash edge case below is where one gets drafted. On match → name the span and propose a rewrite that resolves it from the diff or a public link, at the grade the match carries; never paste the private content in to make the sentence resolve. In WRITE mode a match means the input rule above was crossed; in SYNC mode it is a finding like any other and feeds the verdict per S2b, where a repository-declared `error` forces a rewrite.
+3. **Body length check** — GitHub's PR body limit is 65,536 chars. If the proposal is >~65,000 → warn, suggest trimming.
+4. Show the proposal INLINE AND write it to a `mktemp` file. The user can either copy from the terminal or pass the file path to `gh pr edit`.
+5. **Apply command** — `gh pr edit <num> --body-file <path>` with the **resolved PR number explicitly**, never a branch name. Never run `gh pr edit` automatically. When a title rewrite is proposed, write it to its own `mktemp` file and surface the detected lane's title-edit command beside the body one, per `../../references/forge-adapters.md` — the GitHub worked example is `gh api repos/{owner}/{repo}/pulls/<num> -X PATCH -F title=@<path>`, and the other lanes have their own row there, including the Bitbucket round trip that must echo the fields it is not changing. A body-only command silently leaves a flagged title exactly as it was, and a scan whose fix cannot be applied is a scan that reports for nothing. The title goes through a file rather than into the command text: an ordinary title containing an apostrophe (`don't drop the retry`) breaks a single-quoted argument, and what follows the break is read by the shell as syntax rather than text. Where an unresolved `error` finding stands against either surface, no apply command for that surface is shown at all: the rewrite is proposed and the command follows once the span is gone, per the shared contract. The title still moves only by the user's hand, which is the standing rule here and is unaffected by having a command to hand them.
 
 ```
 Proposed PR description for #<num>:   (WRITE)
@@ -226,6 +244,7 @@ Apply with:
 - Don't invent test-plan items. Use `Verification pending — to be confirmed by author` when unknown; if an existing plan is wrong, mark it `stale` and replace it the same way.
 - Don't strip context the user added (motivation, design links, screenshots) — carry forward unless now wrong.
 - Don't publish secrets from diffs into the proposed body — run the pre-display secret scan.
+- Don't name an artifact the reader cannot reach. A body that cites a document only the author can open is not self-contained however accurate it is, and the repair is a rewrite from the diff — never pasting the private content in to make the sentence resolve.
 - Don't run `gh pr edit` without confirmation, even on "fix it" — show the proposal first.
 - Don't classify on file count alone — one inverted claim or one escalator outweighs ten covered ones.
 - Don't auto-edit the PR title even on title-stale — flag and let the user decide.

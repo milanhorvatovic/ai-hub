@@ -143,9 +143,11 @@ Format rules:
 - Authors credited via `@<github-handle>` from PR author in the "Contributors" section. **NEVER add `Co-authored-by:` trailers to the release notes** — the contributor list provides credit.
 - Match repo emoji convention by checking prior release notes; default to no emoji headings unless they're already established.
 
-### 5. Secret scan
+### 5. Pre-publication scans
 
 Run `../../references/secret-patterns.md` over the proposed notes. Release notes are public AND archived; redaction matters most here. On any match → WARN and refuse to include the bullet without user confirmation.
+
+Run `../../references/publication-audience.md` over the same notes. Notes are drafted from commit text, so whatever private context survived into a commit body arrives here — and this is the surface with the widest audience and the least context, read by people who have neither the diff nor the repository. On match → name the bullet and propose a rewrite that states the change on its own terms, at the grade the match carries; a repository-declared `error` keeps that bullet out of the draft until it is rewritten, the same posture this step already takes on a secret. One of the catalog's discriminators does not transfer here: it counts a reference as resolved when the accompanying diff carries it, which assumes a reader holding the change. Notes have no such reader, so in this capability a reference resolves only when it is publicly linked or defined in the note itself, and diff-visibility alone is not enough to clear it.
 
 ### 6. Body length / output
 

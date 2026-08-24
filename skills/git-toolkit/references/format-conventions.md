@@ -14,6 +14,10 @@ Repo conventions override these defaults. Check in order:
 
 If multiple sources conflict, the order above wins.
 
+The first two sources above carry a second axis — the agent-instruction files and `CONTRIBUTING.md`, and only those, matching the narrower set the audience reference defines. A commit-lint config or a PR template is not a place to declare a private surface, and reading one as though it were would let template prose become policy. Where a repository declares its private surface — a track-code series, private path prefixes, repositories it keeps unreadable — `publication-audience.md` matches those declarations exactly rather than heuristically, at the severity the declaration states.
+
+The two axes read the same files from different places, and the difference is load-bearing. Format conventions come from the working tree, which is what everything above assumes: a branch may legitimately change how this repository writes commit subjects, and the change should apply to the commits being written on it. Publication-audience declarations resolve against the base ref instead, per that reference's own rule — a declaration decides what a scan flags and how hard, so honoring one the branch under review introduced would let a change author the rules that grade it. Read the format axis from the checkout and fetch the declaration block from the base; a single pass over the working tree would be cheaper and would quietly cross the boundary.
+
 ### Fresh-repo fallback
 
 When none of the precedence sources are present and `git log --pretty=format:'%s'` shows fewer than ~5 prior commits, there is no observable convention. The capability should:

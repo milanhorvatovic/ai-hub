@@ -132,6 +132,8 @@ applying. Never run gh pr edit automatically.)
 
 Secret scan per `../../references/secret-patterns.md` over the proposed body before it is displayed or written to the mktemp file. On match → redact + WARN. Never include detected secrets — on screen or on disk.
 
+Audience scan per `../../references/publication-audience.md` over the same body. This capability adds references for a living, so it is the one most likely to add one that resolves only for its author: a `Refs #N` naming an issue in this repository is the publicly-linkable form the contract asks for, while a bare mention of a private tracker item is the form it forbids.
+
 Always:
 
 - Verify each proposal with `gh issue view` — don't propose closing an issue you haven't read

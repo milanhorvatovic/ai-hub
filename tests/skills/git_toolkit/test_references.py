@@ -339,6 +339,13 @@ SECRET_SCAN_CAPABILITIES = [
     "merge-execute",
 ]
 
+# The audience guard's consumer class is the same one, derived rather than
+# restated: SKILL.md defines a single "drafts text for publication" class whose
+# members run both scans over the same text in the same pass. Two literal lists
+# could drift apart, and the drift would read as a deliberate exemption — one
+# guard covering less than the other with nothing saying why.
+PUBLICATION_AUDIENCE_CAPABILITIES = SECRET_SCAN_CAPABILITIES
+
 # Capabilities whose input guards decide "is this author a bot?" — to skip
 # (format-mutating: a rewrite would be overwritten on the bot's next run), to
 # mention-and-proceed (read-only carve-out), or to run the standard sequence's
@@ -391,6 +398,223 @@ def test_publishing_capabilities_link_secret_patterns(
     )
 
 
+def test_publication_audience_reference_is_the_single_home(
+    references_dir: Path,
+) -> None:
+    """publication-audience.md must exist and carry the detections consumers
+    rely on: the contract, every pattern name, the WARN grade, and the
+    registry id findings report under. Deleting a pattern to quiet a false
+    positive fails here by name instead of removing a check silently."""
+    ref = references_dir / "publication-audience.md"
+    assert ref.is_file(), "references/publication-audience.md not found"
+    text = ref.read_text(encoding="utf-8")
+    for needle in (
+        "diff-visible, publicly linkable, or defined",
+        "definite_reference",
+        "session_deixis",
+        "track_code",
+        "private_path",
+        "foreign_repository",
+        "foreign_branch",
+        "`WARN`",
+        "private-context-ref",
+        "secret-patterns.md",
+        # The declaration trust model: a change cannot supply the judge that
+        # grades it, so this one is a security property rather than wording.
+        "Read declarations from the base branch",
+        # Severity has to survive the trip to each consumer, or a declaration
+        # that raises a finding to `error` buys nothing at the surface that
+        # actually publishes the text.
+        "Every consumer passes the grade through",
+        # The exemption is a sentence-level step because a lookahead can only
+        # see forward: folding it back into the expressions would clear
+        # "as discussed in #12" and keep warning about the spelling below.
+        "sentence-level exemption",
+        "See #12 for the plan",
+        # Presence of a `#N` is not resolution: a dangling issue or an
+        # intranet link looks like an antecedent and hands the reader nothing,
+        # so the exemption has to verify rather than pattern-match.
+        "Presence is not resolution",
+        # A root-relative markdown destination matches the path expression and
+        # is a public link, so it is resolved rather than matched — another
+        # step the pattern cannot carry on its own.
+        "as a link first",
+    ):
+        assert needle in text, f"publication-audience.md missing: {needle!r}"
+
+
+@pytest.mark.parametrize("cap_name", PUBLICATION_AUDIENCE_CAPABILITIES)
+def test_publishing_capabilities_link_publication_audience(
+    cap_name: str, capabilities_dir: Path
+) -> None:
+    """The audience half of the pre-publication pass has no transitive carrier
+    either, so every drafting capability links it literally — a body can be
+    free of secrets and still unreadable to everyone but its author."""
+    text = (capabilities_dir / cap_name / "capability.md").read_text(encoding="utf-8")
+    assert "../../references/publication-audience.md" in text, (
+        f"{cap_name} drafts text for publication but does not link "
+        "../../references/publication-audience.md (pre-publication audience check)"
+    )
+
+
+# One string each pattern must match and one it must not. Literal on purpose:
+# the catalog is consumed as raw text, so a pattern is only as good as its
+# spelling in the file, and a compile-only check passes an over-escaped form
+# that matches nothing real — the shape this test was written after.
+AUDIENCE_PATTERN_PROBES = {
+    # These two entries are candidate finders: the link/issue-reference
+    # exemption is a sentence-level step, not part of the expression, so the
+    # misses here are only what the pattern itself must never match. The
+    # exemption has its own guard below.
+    "definite_reference": (("as the plan says",), ("the retry cap is 3",)),
+    "session_deixis": (
+        ("as discussed, cap at 3",),
+        ("the cap is 3", "per the diff", "per the API docs"),
+    ),
+    # The miss probe is a longer token, not an issue reference: `#482` never
+    # matched the letter-prefixed pattern anyway, so probing one proves
+    # nothing, while `HTTP2` is the real risk the lookbehind exists to stop.
+    "track_code": (("finding Z9 covers it",), ("HTTP2 traffic only",)),
+    # Three roots, one of them outside any home directory: the pattern claims
+    # absolute paths, and a probe set drawn only from /Users and /home would
+    # let it narrow back to a root list without anything going red.
+    "private_path": (
+        (
+            r"see C:\Users\dev\notes.md",
+            # Windows accepts either separator, and a UNC path opens with two
+            # backslashes; a POSIX author picturing only `C:\` leaves both of
+            # these ordinary spellings unflagged.
+            "see C:/Users/dev/notes.md",
+            r"see \\server\share\notes.md",
+            "see /tmp/design.md",
+            "see ~/notes.md",
+            "see `/home/dev/plan.md`",
+            # A path in a description is usually a flag or variable value, so
+            # a delimiter list drawn from prose habits misses the common case.
+            "run --config=/home/dev/plan.md",
+            "HOME=~/workspace",
+        ),
+        ("see docs/adr/0001-x.md", "see https://example.com/x", "see `https://x.dev/a`"),
+    ),
+    # A relative path is a candidate, not a finding — the tree-and-diff
+    # resolution decides. Both probes are candidates for that reason: the
+    # existing one clears at the resolution step, which a regex cannot do,
+    # while ordinary prose with a slash must never reach the step at all.
+    "unresolved_relative_path": (
+        ("see private-notes/plan.md", "see docs/adr/0001-x.md"),
+        ("and/or both", "see /tmp/design.md", "see https://example.com/x"),
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    ("pattern_name", "probes"), sorted(AUDIENCE_PATTERN_PROBES.items())
+)
+def test_audience_patterns_match_what_they_claim(
+    pattern_name: str, probes: tuple[str, str], references_dir: Path
+) -> None:
+    text = (references_dir / "publication-audience.md").read_text(encoding="utf-8")
+    catalog = dict(re.findall(r"^- `(\w+)` — `([^`]+)`", text, flags=re.MULTILINE))
+    assert pattern_name in catalog, (
+        f"publication-audience.md declares no regex for {pattern_name!r}"
+    )
+    expression = re.compile(catalog[pattern_name])
+    hits, misses = probes
+    for hit in hits:
+        assert expression.search(hit), (
+            f"{pattern_name} no longer matches {hit!r} — the guard has gone quiet"
+        )
+    for miss in misses:
+        assert not expression.search(miss), (
+            f"{pattern_name} matches {miss!r}, which is ordinary published text"
+        )
+
+
+def test_write_mode_authors_from_public_inputs(capabilities_dir: Path) -> None:
+    """The input rule is the cheap half of the audience guard — it keeps
+    private context out of the draft, where the scan can only catch it after
+    the fact. It is prose, so nothing but this test stands between it and a
+    tidy-up that deletes it as redundant with the scan."""
+    text = (capabilities_dir / "pr-description" / "capability.md").read_text(
+        encoding="utf-8"
+    )
+    for needle in (
+        "Author from public inputs only",
+        "does not enter the draft",
+    ):
+        assert needle in text, (
+            "pr-description WRITE mode lost its public-inputs rule "
+            f"({needle!r}) — the scan would become the only line"
+        )
+
+
+def test_merge_readiness_gate_covers_self_containment(capabilities_dir: Path) -> None:
+    """The readiness gate delegates its description check to the SYNC
+    workflow, and a dimension the delegate grades while the gate stays silent
+    about it is a dimension that cannot block a merge — including a
+    repository-declared `error`, which in a body-as-commit-message repo lands
+    in permanent history on the way through."""
+    text = (capabilities_dir / "merge-readiness" / "capability.md").read_text(
+        encoding="utf-8"
+    )
+    assert "private-context-ref" in text, (
+        "merge-readiness's description gate no longer names the "
+        "self-containment dimension it delegates"
+    )
+
+
+def test_branch_name_bans_private_codes_in_the_slug(capabilities_dir: Path) -> None:
+    """A branch name is published on push, so it carries the same defect the
+    drafting capabilities scan for. It stays out of the audience consumer
+    class — it drafts no prose and runs no scan — so this one line is the
+    whole guard, and prose with nothing holding it is what rots first."""
+    text = (capabilities_dir / "branch-name" / "capability.md").read_text(
+        encoding="utf-8"
+    )
+    assert "private planning code in the slug" in text, (
+        "branch-name lost its anti-pattern against private codes in a slug"
+    )
+
+
+def test_commit_message_review_table_grades_the_audience_rule(
+    capabilities_dir: Path,
+) -> None:
+    """Scoped to the grading row rather than the file: the id appears in prose
+    elsewhere, so a whole-file substring check stays green while the row that
+    does the grading is deleted — a test describing a mutation it cannot
+    detect."""
+    text = (capabilities_dir / "commit-message" / "capability.md").read_text(
+        encoding="utf-8"
+    )
+    row = next(
+        (ln for ln in text.splitlines() if ln.startswith("| Publication audience |")),
+        None,
+    )
+    assert row is not None, (
+        "commit-message's REVIEW table lost its Publication audience row"
+    )
+    assert "`private-context-ref`" in row, (
+        "the Publication audience row no longer carries the registry id its "
+        f"findings must report under: {row!r}"
+    )
+
+
+def test_pr_description_sync_dimension_grades_the_audience_rule(
+    capabilities_dir: Path,
+) -> None:
+    text = (capabilities_dir / "pr-description" / "capability.md").read_text(
+        encoding="utf-8"
+    )
+    section = text.split("### S2b", 1)
+    assert len(section) == 2, "pr-description lost its S2b self-containment section"
+    body = section[1].split("\n### ", 1)[0]
+    for needle in ("../../references/publication-audience.md", "private-context-ref"):
+        assert needle in body, (
+            f"S2b no longer names {needle!r} — the section grades the dimension, "
+            "so a mention anywhere else in the file is not the same claim"
+        )
+
+
 @pytest.mark.parametrize("cap_name", BOT_GUARD_CAPABILITIES)
 def test_bot_guard_capabilities_reach_bot_signatures(
     cap_name: str, capabilities_dir: Path
@@ -431,6 +655,7 @@ def test_every_capability_is_classified(capabilities_dir: Path) -> None:
     safety_classes = set(
         INGESTION_CAPABILITIES
         + SECRET_SCAN_CAPABILITIES
+        + PUBLICATION_AUDIENCE_CAPABILITIES
         + BOT_GUARD_CAPABILITIES
         + FLAGGED_OPERATION_PROPOSERS
     )

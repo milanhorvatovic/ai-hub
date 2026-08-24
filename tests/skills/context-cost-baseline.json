@@ -22,9 +22,9 @@
   },
   "git-toolkit": {
     "discovery_bytes": 9590,
-    "skill_md_bytes": 21839,
-    "load_bytes": 309963,
-    "files": 36,
+    "skill_md_bytes": 22792,
+    "load_bytes": 350302,
+    "files": 37,
     "version": "1.0.0"
   },
   "oss-repository-conventions": {

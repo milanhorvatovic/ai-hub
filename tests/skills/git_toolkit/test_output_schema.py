@@ -136,6 +136,53 @@ def test_fixture_ids_resolve_to_the_registry(references_dir: Path) -> None:
     )
 
 
+def test_fixture_verdict_tallies_the_findings_it_closes(
+    references_dir: Path,
+) -> None:
+    """The verdict's excerpt tallies rule results, and the failing ones are
+    all visible by contract: a FAIL or MOSTLY-PASS rule emits one object per
+    offending target, while aggregate PASS objects may be elided. So those two
+    counts are checkable against the stream and were both wrong — a summary
+    line that miscounts the findings above it teaches the shape wrongly to
+    every consumer reading the fixture to learn it."""
+    lines = [
+        json.loads(ln)
+        for ln in (references_dir / "review-output.example.ndjson")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if ln.strip()
+    ]
+    verdict = [obj for obj in lines if obj["rule"] == "verdict"]
+    assert len(verdict) == 1, "the stream must close with exactly one verdict"
+    assert lines[-1]["rule"] == "verdict", (
+        "the verdict must be the last object in the stream, not merely the "
+        "only one — a verdict in the middle satisfies uniqueness and still "
+        "teaches consumers an invalid shape"
+    )
+    excerpt = verdict[0]["details"]["excerpt"]
+    # The excerpt tallies rules, the stream carries targets: one rule failing
+    # on three commits is three objects and one FAIL, and a rule with both a
+    # FAIL and a MOSTLY-PASS target aggregates to FAIL under the documented
+    # precedence. Counting objects would agree with the current fixture by
+    # accident and disagree with the contract the moment a rule repeats.
+    worst: dict[str, str] = {}
+    for obj in lines:
+        if obj["rule"] == "verdict":
+            continue
+        rank = {"FAIL": 2, "MOSTLY-PASS": 1}
+        current = worst.get(obj["rule"])
+        if current is None or rank.get(obj["result"], 0) > rank.get(current, 0):
+            worst[obj["rule"]] = obj["result"]
+    for result in ("FAIL", "MOSTLY-PASS"):
+        claimed = re.search(rf"(\d+) {re.escape(result)}\b", excerpt)
+        assert claimed, f"verdict excerpt does not tally {result}: {excerpt!r}"
+        actual = sum(1 for aggregate in worst.values() if aggregate == result)
+        assert int(claimed.group(1)) == actual, (
+            f"verdict claims {claimed.group(1)} {result} rules; the stream "
+            f"aggregates to {actual}"
+        )
+
+
 def _jsonl_blocks(text: str) -> list[str]:
     return re.findall(r"```jsonl\r?\n(.*?)```", text, flags=re.DOTALL)
 

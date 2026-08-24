@@ -79,5 +79,6 @@ If repo convention disagrees with the user's stated preference (e.g. repo uses i
 - Don't use vague verbs (`update`, `change`, `improve`, `fix-stuff`) — pick the specific noun.
 - Don't run `git checkout -b` automatically — surface the command.
 - Don't include author / date / version / environment metadata in the slug.
+- Don't encode a private planning code in the slug (`feature/z9-audience-guard` ❌). A branch name is published the moment it is pushed — it shows on the pull request and often survives into the merge subject — and a code that resolves only in the author's workspace tells a reader nothing. Name the change instead.
 - Don't propose a branch name when there's nothing to base it on (no staged changes + no description). Ask first.
 - Don't suggest renaming branches that have been pushed without warning about `git push origin :<old>` cleanup and the impact on open PRs.

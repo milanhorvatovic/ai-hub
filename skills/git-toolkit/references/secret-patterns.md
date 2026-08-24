@@ -2,6 +2,8 @@
 
 Load this whenever a capability is about to display or write text that will be published — a commit message, PR body, release note, or review reply. Run every pattern; on match, redact the surrounding context with `[REDACTED: <pattern_name>]` and surface a `WARN: potential secret in proposal — <pattern_name> at line N` line above the proposal.
 
+This is the confidentiality half of a two-stage pre-publication pass. The other stage, `publication-audience.md`, runs over the same text and asks the other question — whether it resolves for a reader who holds only the published artifact. Neither catches the other's defect: a leaked credential is unmistakable and never an antecedent problem, and an unresolvable reference matches no pattern below.
+
 ## Pattern catalog
 
 Listed rather than tabulated on purpose: alternation pipes (`|`) must stay literal in the raw source. A markdown table would force `\|` escaping, and a reader that consumes the raw file (not the rendered HTML) would treat `\|` as a literal pipe — breaking the alternation in engines like Python `re`. Each entry is `name` — `regex` — what it catches.
