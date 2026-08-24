@@ -72,7 +72,7 @@ git ls-files -z |
         ;;
       *)
         case "$f" in
-          *.sh | *.bash) printf '%s\0' "$f" ;;
+          *.sh | *.bash | *.bats) printf '%s\0' "$f" ;;
         esac
         ;;
     esac
@@ -92,6 +92,10 @@ The interpreter list is what `shellcheck` actually accepts, established by runni
 `ash` is the interesting exclusion. `shellcheck` checks it — as Dash — but warns `SC2187` while doing so and exits non-zero, so an un-annotated ash script reddens the job just as surely as an unsupported one. Its fix is a directive rather than a removal: `# shellcheck shell=dash` at the top of the file silences the warning and keeps the script checked.
 
 Report the shells left out — `mksh`, `ash`, `zsh` — by name as outside the generated job's reach, with ash's directive named as its remedy. Dropping them silently, or feeding them to a tool that will refuse them, are the two failures this list exists between.
+
+`.bats` is in the extension fallback because Bats files legitimately carry no shebang: the runner supplies the interpreter, so the shebang branch never sees them and an extension list of `.sh` and `.bash` alone leaves a repository's whole test suite unchecked.
+
+**One list, two tools, and their dialect support is not the same.** This inventory is written against what `shellcheck` accepts, and `shfmt` recognizes a different set — it knows `bats`, which shellcheck also takes, and it does not have a `ksh` grammar. A path this list emits with a `ksh` or `oksh` shebang therefore reaches `shfmt` as something it will format by another dialect's rules, silently. Resolve the two lists separately when adapting this: feed `shellcheck` what shellcheck accepts, feed `shfmt` what it accepts, and report the difference rather than letting one tool inherit the other's list. The exact sets are worth checking against the versions a repository pins rather than taken from here — shellcheck's was measured, shfmt's was not.
 
 Two more details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
 

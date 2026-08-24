@@ -85,13 +85,20 @@ def _prose(path: Path) -> str:
 # Every install-or-modify form of every package manager this skill discusses.
 # Subcommands rather than manager names: `cargo fmt` and `npm run` invoke checks,
 # and forbidding those would flag the tools the floors are built from.
-_INSTALL_FORMS = re.compile(
-    r"\b(?:pip install|pipx install|uv add|uv sync|uv pip install|poetry add"
-    r"|poetry install|pipenv install|pipenv sync|hatch env create|npm i\b|npm ci"
-    r"|npm install|pnpm add|pnpm install|yarn add|yarn install|bun add|bun install"
-    r"|cargo install|rustup component add|rustup toolchain install|brew install"
-    r"|apt-get install)"
+_MANAGER = r"(?:pip|pipx|uv|poetry|pipenv|hatch|npm|pnpm|yarn|bun|cargo|rustup|brew|apt-get)"
+# Options sit between a manager and its subcommand more often than the literal
+# forms suggest — `pip --require-virtualenv install`, `npm --prefix web install`
+# — and a pattern demanding they be adjacent misses every one of those.
+_MANAGER_OPTIONS = r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*"
+# The subcommands that install or mutate an environment. `check`, `run`, `fmt`,
+# and `clippy` are deliberately absent: those are the tools the floors are made
+# of, and matching them would flag the skill for naming its own subject.
+_INSTALL_SUBCOMMAND = (
+    r"(?:install|add|sync|ci|i\b|tool install|env create|component add"
+    r"|toolchain install|pip install)"
 )
+_INSTALL_FORMS = re.compile(rf"\b{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND}")
+
 
 # The sites allowed to name one, each with the reason it is there.
 #
@@ -399,6 +406,13 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("run `uv sync` first")
     assert _INSTALL_FORMS.search("then `npm ci`")
     assert _INSTALL_FORMS.search("`poetry install`")
+    # Options between the manager and the subcommand are the shape a literal
+    # alternation misses, and the one an instruction most plausibly carries.
+    assert _INSTALL_FORMS.search("`pip --require-virtualenv install ruff`")
+    assert _INSTALL_FORMS.search("`npm --prefix web install`")
+    assert _INSTALL_FORMS.search("`uv tool install ruff`")
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")
+    assert not _INSTALL_FORMS.search("`cargo check`")
+    assert not _INSTALL_FORMS.search("`poetry run pytest`")

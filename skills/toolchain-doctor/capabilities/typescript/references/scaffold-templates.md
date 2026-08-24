@@ -152,7 +152,11 @@ jobs:
           cache: "<npm, pnpm, or yarn>"
       - run: <the project's install command, resolving the tracked lock file>
       - run: <the project's script runner> typecheck
-      - run: <the project's script runner> <check on Route A; lint and format:check on Route B>
+      # Route A: one script covers both jobs.
+      - run: <the project's script runner> check
+      # Route B replaces the step above with these two.
+      - run: <the project's script runner> lint
+      - run: <the project's script runner> format:check
 ```
 
 The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
@@ -160,5 +164,7 @@ The trigger and the permission floor are part of the scaffold, not context aroun
 What fixes the version is an exact constraint or the tracked lock file, not the shape of the invocation and not the declaration on its own. `npx eslint` resolves the project's own installed copy whenever `eslint` is a declared dependency, so the command is not the problem; a caret range with no committed lock is, because the next clean install can resolve a different version with nothing in the repository having changed. Pin the devDependencies and commit the lock, then reach them however the project prefers. Where a repository does use `npx`, `npx --no-install` is the form worth recommending: it restricts resolution to the local copy and fails loudly when dependencies have not been installed, instead of quietly falling back to whatever is on `PATH`.
 
 `typecheck` is its own script for a reason worth stating in the pull request that adds it: the build already compiles this code, and compiling is not checking. A bundler that strips types will build a project whose types have never once been verified, and the failure surfaces at runtime in a shape that looks nothing like a type error.
+
+Route B needs two steps and not one with two names after it: a package manager reads `run lint format:check` as the `lint` script called with an argument, so the format gate would never fire and the job would stay green without it. One step per script.
 
 Keep the script names honest about what they invoke, which is why Route A's script is `check` and not `lint`. `biome check` lints and formats, so calling it `lint` is precisely the naming defect this audit reports on the next run — the scaffold would have created the finding it exists to close. Route B keeps `lint` and `format:check` separate because there the two jobs really are two tools.
