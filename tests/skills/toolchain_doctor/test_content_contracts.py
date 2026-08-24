@@ -20,6 +20,11 @@ import pytest
 
 _SKILL = Path(__file__).resolve().parents[3] / "skills" / "toolchain-doctor"
 _CAPABILITIES = sorted(_SKILL.glob("capabilities/*/capability.md"))
+# Every markdown file the skill ships. The consent contract is a promise about
+# the whole skill, and the router and shared references are loaded instructions
+# exactly as capabilities are — an imperative dropped into one of those would
+# have left a capability-only check green.
+_ALL_SKILL_DOCS = sorted(_SKILL.rglob("*.md"))
 
 # Grades are declared as the first column of the vocabulary table, in the one
 # file that owns them. The table is anchored by its header rather than by row
@@ -303,8 +308,8 @@ def test_the_templates_still_carry_what_their_capability_requires(
     )
 
 
-@pytest.mark.parametrize("capability", _CAPABILITIES, ids=lambda p: p.parent.name)
-def test_no_capability_instructs_an_install(capability: Path) -> None:
+@pytest.mark.parametrize("doc", _ALL_SKILL_DOCS, ids=lambda p: str(p.relative_to(_SKILL)))
+def test_no_shipped_file_instructs_an_install(doc: Path) -> None:
     """Fenced templates may show an install command — a CI step the user applies
     is the user installing, which is the whole point of prescribing rather than
     performing. Citations may appear in prose, because naming what the audit
@@ -315,11 +320,15 @@ def test_no_capability_instructs_an_install(capability: Path) -> None:
     test stripped inline code before searching, which cleared the citations and
     also cleared "Run `pip install foo` first" — the most natural spelling of
     the violation, since markdown code-formats commands by default.
+
+    Scope is every shipped markdown file, not the capabilities alone. The router
+    and the shared references are loaded instructions too, so a capability-only
+    check would have been green with an imperative sitting in either.
     """
-    prose = _prose(capability)
+    prose = _prose(doc)
     found = [command for command in _INSTALL_COMMANDS if _instructs(prose, command)]
     assert not found, (
-        f"{capability.parent.name} instructs {found} outside a template fence; "
+        f"{doc.relative_to(_SKILL)} instructs {found} outside a template fence; "
         "the skill prescribes installs, it does not perform them"
     )
 

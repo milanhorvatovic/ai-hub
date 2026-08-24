@@ -56,25 +56,27 @@ The list comes from the inventory, not a glob. This is the shape that reaches th
 set -euo pipefail
 
 # Every tracked file, classified once: the shebang decides, and only a file
-# without one falls back to its extension.
-git ls-files -z | tr '\0' '\n' |
-  while IFS= read -r f; do
+# without one falls back to its extension. NUL in, NUL out.
+git ls-files -z |
+  while IFS= read -r -d '' f; do
     [ -f "$f" ] || continue
     first=$(head -n 1 -- "$f")
     case "$first" in
       '#!'*)
         if printf '%s\n' "$first" | grep -Eq '[/ ](sh|bash|dash|ksh|oksh|bats)([[:space:]]|$)'; then
-          printf '%s\n' "$f"
+          printf '%s\0' "$f"
         fi
         ;;
       *)
         case "$f" in
-          *.sh | *.bash) printf '%s\n' "$f" ;;
+          *.sh | *.bash) printf '%s\0' "$f" ;;
         esac
         ;;
     esac
-  done | sort -u
+  done
 ```
+
+NUL delimiters end to end, because a path is not a line. Git emits `-z` for a reason: a filename may legally contain a newline, and converting to newlines on the way in splits one such path into two bogus entries — then hands them to a linter as two files that do not exist. Reading with `read -d ''` and emitting with a trailing NUL keeps the list usable as arguments, which is what the CI step below consumes it as.
 
 One pass, not two. An earlier shape emitted every `*.sh` and `*.bash` file directly and ran the shebang test only over the rest, which meant a zsh script named `deploy.sh` went straight into the list the generated job feeds to `shellcheck` — the unsupported-shell failure this section promises to keep out, arriving through the branch that never checked. The shebang is the authority wherever there is one; the extension answers only for a file that declares nothing, and `shellcheck` reads those as `sh`, which is the right default.
 
@@ -112,11 +114,9 @@ shell:
         install -m 0755 shfmt bin/shfmt
         echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
     - name: shellcheck
-      run: |
-        shopt -s globstar
-        shellcheck <the inventory's files, or the discovery command above>
+      run: <the discovery command above> | xargs -0 --no-run-if-empty shellcheck
     - name: shfmt
-      run: shfmt -d <the same file list>
+      run: <the discovery command above> | xargs -0 --no-run-if-empty shfmt -d
 ```
 
 Both downloads are checksum-verified before anything is extracted or made executable, and the digests are recorded here rather than fetched alongside the artifact. A version tag is not an identity: a release asset can be replaced without its URL changing, so a pinned version alone leaves the job executing whatever is behind that link today. The version pins which release the job wants; the digest is what makes the job refuse a different one. Fetching the checksums from the same host at the same time would verify only that the download was not corrupted in transit, which is not the question.
