@@ -435,6 +435,10 @@ def test_publication_audience_reference_is_the_single_home(
         # intranet link looks like an antecedent and hands the reader nothing,
         # so the exemption has to verify rather than pattern-match.
         "Presence is not resolution",
+        # A root-relative markdown destination matches the path expression and
+        # is a public link, so it is resolved rather than matched — another
+        # step the pattern cannot carry on its own.
+        "as a link first",
     ):
         assert needle in text, f"publication-audience.md missing: {needle!r}"
 
