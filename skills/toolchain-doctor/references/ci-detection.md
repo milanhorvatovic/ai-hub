@@ -29,7 +29,7 @@ Grade each **invocation** first, then grade the tool by the **strongest** invoca
 
 Per invocation:
 
-- **Runs**: fires on pull requests, with a failing exit status that fails the job.
+- **Runs**: fires on pull requests, with a failing exit status that fails the job, **and actually reaches the change**. The last clause is the one most easily assumed. A workflow `paths` filter, a job or step `if:` condition, or a matrix leg that excludes the files in question can all leave a pull-request-triggered job green without the tool ever seeing what changed. `pull_request_target` deserves naming separately: it checks out the base revision by default, so a job wired that way can run the linter faithfully against code that does not include the proposed change. Confirm the trigger's scope covers the tool's files and that the revision checked is the head, or grade the invocation weakly and say which of the two could not be confirmed.
 - **Runs, weakly**: cannot fail a change that would break it. Either the failure is swallowed — `|| true`, `continue-on-error: true`, a step marked non-blocking — or it never fires where the change is reviewed: hook-only, schedule-only, or a trigger that excludes pull requests. A job that fires only on pushes to the default branch belongs here: it does run, and it runs after review rather than during it, so a break is caught once already merged.
 
 Then, for the tool:

@@ -2,7 +2,11 @@
 
 Shapes to fill in from what the scan found. Placeholders in angle brackets are values the scan already established — and for this language the most important of them is the file list, which comes from the inventory rather than from a glob.
 
-## `.shellcheckrc`
+## `.shellcheckrc` — only when a finding needs one
+
+**A repository with no `.shellcheckrc` is not missing anything.** `shellcheck`'s defaults are the floor, no audit rule produces a missing-config finding, and scaffolding a file to hold settings nobody asked for changes how the tool resolves sources for a repository whose only finding was that the linter did not run. Close that finding with the CI step; leave the config absent.
+
+Where a concrete finding does need a setting — a repository whose scripts source each other and whose report is dominated by unfollowed-source warnings — write only that setting, with the reason beside it:
 
 ```ini
 # Follow sourced files rather than warning about them; source paths are
@@ -30,7 +34,6 @@ The section headers come from the inventory, not from `*.sh`. This is the same t
 indent_style = space
 indent_size = 2
 switch_case_indent = true
-binary_next_line = true
 
 # One section per extensionless path the inventory found; EditorConfig matches
 # on path patterns, so these cannot be folded into the glob above.
@@ -38,10 +41,9 @@ binary_next_line = true
 indent_style = space
 indent_size = 2
 switch_case_indent = true
-binary_next_line = true
 ```
 
-`switch_case_indent` and `binary_next_line` are the `-ci` and `-bn` flags spelled as settings. When the repository already invokes `shfmt` with flags somewhere, translate the flags it uses rather than imposing these — a reformat of every script is a large diff to hand someone who asked for a config file.
+`switch_case_indent` is the `-ci` flag spelled as a setting, and it is here because the floor names it. `binary_next_line` — `-bn` — is deliberately absent: the floor does not ask for it, and it reflows every continued command in the repository, which is a large unrequested diff handed to someone who asked for a config file. Carry it over only where the scan found `shfmt` already invoked with `-bn`. The same rule governs the rest: when the repository already invokes `shfmt` with flags somewhere, translate the flags it uses rather than imposing these.
 
 Where the inventory's extensionless paths are too many or too scattered to enumerate, the honest alternative is to skip `.editorconfig` for them and pass one explicit flag set to every `shfmt` invocation instead. That loses the editor half of the deal and should be said out loud; what it does not do is leave half the repository formatted by a policy nobody chose.
 

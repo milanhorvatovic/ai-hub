@@ -17,7 +17,7 @@ The floor is `strict`. The extras below it are worth enabling once a project is 
 }
 ```
 
-The three extras go in a **second** patch, offered after the first lands:
+The three extras are **not** scaffolded. They are recommendations, no floor row asks for them, and no finding produces them — so writing them, even as a follow-up patch, is the scaffold choosing a policy the audit never called for. Name them in the report as options; write them only when the user asks for them by name, and then as their own patch:
 
 ```json
 {
@@ -29,7 +29,7 @@ The three extras go in a **second** patch, offered after the first lands:
 }
 ```
 
-Separating them is the whole point rather than tidiness: each of the three produces its own class of error across an existing codebase, and a single scaffold enabling all four at once yields exactly the unreviewable diff this section warns against. A template that bundled them would be advising one thing and doing another.
+Keeping them separate is the whole point rather than tidiness: each produces its own class of error across an existing codebase, and enabling all four at once yields a diff nobody can review.
 
 Where the project already extends a shared base, add the options to the project's own config rather than editing the base — a base config is usually shared with packages this audit never looked at.
 
