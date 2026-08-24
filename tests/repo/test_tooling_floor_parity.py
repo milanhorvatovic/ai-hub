@@ -29,15 +29,29 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _FLOORS = _REPO_ROOT / "skills" / "toolchain-doctor" / "references" / "tooling-floors.md"
 _RULEBOOK = _REPO_ROOT / "skills" / "coding-principles" / "capabilities"
 
-# The heading that opens each language's floor in the rulebook. bash states its
-# tooling under a different heading than the other three, which is a fact about
-# that capability's layout rather than a naming inconsistency worth fixing.
-_FLOOR_HEADINGS = {
-    "python": "## Floor",
-    "typescript": "## Floor",
-    "rust": "## Floor",
-    "bash": "## Tooling",
-}
+# The heading that opens each language's floor in the rulebook, discovered
+# rather than listed. bash states its tooling under a different heading than the
+# other three, which is a fact about that capability's layout rather than a
+# naming inconsistency worth fixing — so the discovery accepts either.
+#
+# Listing them would quietly exclude a fifth language from every comparison
+# below: the set test at the bottom would go green the moment both skills gained
+# it, while its tools and flags were never once compared. Parametrizing over
+# what is on disk is what makes a synchronized addition arrive fully checked.
+_FLOOR_HEADING = re.compile(r"^## (Floor|Tooling)$", re.M)
+
+
+def _discover_floor_headings() -> dict[str, str]:
+    found = {}
+    for path in sorted(_RULEBOOK.glob("*/capability.md")):
+        match = _FLOOR_HEADING.search(path.read_text(encoding="utf-8"))
+        if match:
+            found[path.parent.name] = f"## {match.group(1)}"
+    assert found, "no floor headings found in the rulebook — has its layout moved?"
+    return found
+
+
+_FLOOR_HEADINGS = _discover_floor_headings()
 
 # Backticked spans that are not tools, kept as an explicit list because their
 # shape alone does not give them away. `pip install` is named by the floor to

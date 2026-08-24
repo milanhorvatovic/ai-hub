@@ -59,16 +59,18 @@ set -euo pipefail
   git ls-files -z | tr '\0' '\n' |
     while IFS= read -r f; do
       [ -f "$f" ] || continue
-      if head -n 1 -- "$f" | grep -Eq '^#!.*[/ ](sh|bash|dash|ksh|mksh)([[:space:]]|$)'; then
+      if head -n 1 -- "$f" | grep -Eq '^#!.*[/ ](sh|bash|dash|ksh|oksh|bats)([[:space:]]|$)'; then
         printf '%s\n' "$f"
       fi
     done
 } | sort -u
 ```
 
-The interpreter list is exactly what `shellcheck` accepts — `sh`, `bash`, `dash`, `ksh`, `mksh` — and it is that list for a reason worth stating in both directions. Matching only the two spellings of Bash silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, which reproduces the coverage under-reach this capability exists to find. Matching more than the tool supports is the opposite failure and the worse one: `zsh` is deliberately absent, because feeding a zsh script to `shellcheck` produces `SC1071` — an unsupported-shell error, not a lint result — so one such file in a repository turns the whole job red with a message about nothing the scaffold can fix.
+The interpreter list is what `shellcheck` actually accepts, established by running it rather than by reading its error message: `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` exit clean, while `mksh`, `ash`, and `zsh` do not. Both directions of getting this list wrong cost something. Too narrow — matching only the two spellings of Bash — silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, reproducing the coverage under-reach this capability exists to find. Too wide is worse, because the extra file does not go unchecked, it turns the job red: `zsh` raises `SC1071`, `mksh` raises `SC1008`, and neither is a lint result the scaffold can act on.
 
-Report zsh scripts by name as outside the audit's reach, rather than dropping them silently or feeding them to a tool that will refuse them. That is the honest answer for a file this floor cannot cover.
+`ash` is the interesting exclusion. `shellcheck` checks it — as Dash — but warns `SC2187` while doing so and exits non-zero, so an un-annotated ash script reddens the job just as surely as an unsupported one. Its fix is a directive rather than a removal: `# shellcheck shell=dash` at the top of the file silences the warning and keeps the script checked.
+
+Report the shells left out — `mksh`, `ash`, `zsh` — by name as outside the generated job's reach, with ash's directive named as its remedy. Dropping them silently, or feeding them to a tool that will refuse them, are the two failures this list exists between.
 
 Two more details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
 

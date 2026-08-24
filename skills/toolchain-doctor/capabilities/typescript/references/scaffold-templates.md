@@ -64,6 +64,8 @@ export default tseslint.config(
 );
 ```
 
+Every package the config imports is declared, `@eslint/js` included. Relying on it arriving transitively through `eslint` works under a flat `node_modules` and fails under a strict package manager, where a config cannot resolve what the project does not declare — so the scaffold that lints cleanly on one machine is unloadable on another.
+
 The TypeScript config is not optional decoration here. `@eslint/js` alone brings no TypeScript parser, so `eslint .` walks the JavaScript it can parse and leaves the `.ts` and `.tsx` sources the project is actually written in unlinted — a scaffold that satisfies the lint floor on paper while checking almost none of the code. Add `typescript-eslint` as a devDependency alongside `eslint` when taking this route; a JavaScript-only repository is the one case that can drop it, and it should say so rather than inherit the omission.
 
 `eslint-config-prettier` goes last. It exists to disable every rule that would fight the formatter, and a config that lists it before the rule sets it is meant to neutralize has it backwards — the later entry wins, so the stylistic rules come back on.
@@ -94,6 +96,7 @@ Route B, where the format check is a separate script because the two tools are s
   "devDependencies": {
     "typescript": "<pinned>",
     "eslint": "<pinned>",
+    "@eslint/js": "<pinned>",
     "typescript-eslint": "<pinned>",
     "prettier": "<pinned>",
     "eslint-config-prettier": "<pinned>"
