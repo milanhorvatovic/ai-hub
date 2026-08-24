@@ -155,15 +155,26 @@ def test_fixture_verdict_tallies_the_findings_it_closes(
     verdict = [obj for obj in lines if obj["rule"] == "verdict"]
     assert len(verdict) == 1, "the stream must close with exactly one verdict"
     excerpt = verdict[0]["details"]["excerpt"]
+    # The excerpt tallies rules, the stream carries targets: one rule failing
+    # on three commits is three objects and one FAIL, and a rule with both a
+    # FAIL and a MOSTLY-PASS target aggregates to FAIL under the documented
+    # precedence. Counting objects would agree with the current fixture by
+    # accident and disagree with the contract the moment a rule repeats.
+    worst: dict[str, str] = {}
+    for obj in lines:
+        if obj["rule"] == "verdict":
+            continue
+        rank = {"FAIL": 2, "MOSTLY-PASS": 1}
+        current = worst.get(obj["rule"])
+        if current is None or rank.get(obj["result"], 0) > rank.get(current, 0):
+            worst[obj["rule"]] = obj["result"]
     for result in ("FAIL", "MOSTLY-PASS"):
         claimed = re.search(rf"(\d+) {re.escape(result)}\b", excerpt)
         assert claimed, f"verdict excerpt does not tally {result}: {excerpt!r}"
-        actual = sum(
-            1 for obj in lines if obj["rule"] != "verdict" and obj["result"] == result
-        )
+        actual = sum(1 for aggregate in worst.values() if aggregate == result)
         assert int(claimed.group(1)) == actual, (
-            f"verdict claims {claimed.group(1)} {result} findings; the stream "
-            f"carries {actual}"
+            f"verdict claims {claimed.group(1)} {result} rules; the stream "
+            f"aggregates to {actual}"
         )
 
 
