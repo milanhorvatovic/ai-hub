@@ -37,7 +37,7 @@ Then, for the tool:
 - Any invocation grading **Runs** makes the tool **Runs**, whatever else exists beside it. A proper PR job is not weakened by a hook sitting next to it.
 - Otherwise, any invocation grading **Runs, weakly** makes the tool **Runs, weakly** — name which invocation and why it is weak.
 - Otherwise, if some path could not be resolved, **Unknown**, naming the path. This is the last resort rather than the first: an unreadable reusable workflow beside a direct PR invocation says nothing about the direct one, and reporting the tool as unknown would discard evidence the scan already has.
-- Otherwise, **Does not run**: declared in config, invoked nowhere the scan could find, after resolving indirection, with no unresolved path left to explain the absence.
+- Otherwise, **Does not run**: invoked nowhere the scan could find, after resolving indirection, with no unresolved path left to explain the absence. Whether the tool is declared has no bearing on this state — the two columns are separate facts, and a tool that is undeclared and unwired needs an execution answer as much as a configured one does. A state conditioned on declaration would leave that case matching none of the four.
 
 The order matters in exactly one direction. Strength aggregates upward — the best invocation wins — while `unknown` only applies when nothing better is known, because it is a statement about the scan rather than about the repository.
 

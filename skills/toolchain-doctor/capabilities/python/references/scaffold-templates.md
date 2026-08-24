@@ -4,21 +4,16 @@ Shapes to fill in from what the scan found, not files to copy verbatim. Every pl
 
 ## `ruff` in `pyproject.toml`
 
-The floor wants both jobs configured. Rule selection starts conservative because a first `ruff` adoption that reports four hundred findings gets reverted.
+The floor wants both jobs configured, and that is all this writes. Everything else `ruff` can express — line length, which rule families are selected, formatter preferences — is style the floor does not speak to and the grading reference lists as never a finding, so choosing it here would hand a repository whose only finding was "no linter configured" a set of decisions it never asked anyone to make.
 
 ```toml
 [tool.ruff]
 target-version = "<py3XX matching requires-python>"
-line-length = <the project's existing width, or 100>
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]   # errors, pyflakes, imports, pyupgrade, bugbear
-
-[tool.ruff.format]
-docstring-code-format = true
 ```
 
-`I` earns its place on adoption day: import sorting is the change most likely to conflict with an existing tool, so its presence here is what surfaces a leftover `isort` config as a `conflict` on the next audit rather than a merge conflict later.
+Carry over any `line-length`, `select`, or formatter settings the scan found in a tool being replaced — a leftover `isort` section, a `flake8` config — because preserving an existing choice is not inventing one. Where the repository has expressed nothing, leave the keys out: `ruff`'s defaults are a considered set, and a scaffold that adopts them silently is smaller to review than one that restates them as though they were decisions.
+
+Rule families beyond the default set are worth naming in the report as options — import sorting in particular, since adopting it is what surfaces a leftover `isort` config — and worth writing only when asked for.
 
 ## `mypy` in `pyproject.toml`
 
@@ -26,12 +21,13 @@ docstring-code-format = true
 [tool.mypy]
 python_version = "<3.XX matching requires-python>"
 files = ["<the package directory>"]
-strict = true
 ```
 
 `files` is the row that matters, and not because omitting it produces a green check of nothing — `mypy` with no target in the config and none on the command line exits with an error, so that failure is loud rather than silent. It matters because it fixes the scope in one place: without it, what gets checked is whatever each call site passes, so CI and a contributor's local run can cover different sets and neither notices. Naming the package here makes the scope a property of the project instead of a property of the invocation.
 
-`strict = true` is the destination, not necessarily the starting point. For an existing codebase adopting types, propose it with the escape hatch alongside — a per-module override block that relaxes the modules not yet annotated — so the first run is actionable rather than a wall:
+`strict = true` is deliberately not here. The floor asks that a checker cover the public surface, not that it run at maximum strictness, and defaulting to strict turns a scaffold meant to close "no type checker configured" into a CI job failing across an existing codebase for policies the audit never reported. Name it in the report as the destination; write it when the user asks.
+
+When they do, an existing codebase wants the escape hatch alongside it — a per-module override block relaxing the modules not yet annotated — so the first run is actionable rather than a wall:
 
 ```toml
 [[tool.mypy.overrides]]

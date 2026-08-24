@@ -27,7 +27,7 @@ workspace = true
 
 `pedantic` is deliberately absent from the gated configuration, and it cannot be added back as `"warn"` to make it advisory. The CI step below denies warnings, which promotes every enabled warn-level lint to an error — so a "reading list" set here would gate exactly as hard as `all = "deny"` while claiming not to, and the reliable outcome of hundreds of pedantic findings on an existing crate is that someone switches the whole thing off.
 
-Read the pedantic set with a second, non-gating invocation instead, where the claim and the behaviour match:
+Where a maintainer asks to read the pedantic set, a second non-gating invocation is the shape where the claim and the behaviour match — offered on the same terms as the lint table above, never written by default:
 
 ```yaml
     - name: clippy pedantic (advisory)

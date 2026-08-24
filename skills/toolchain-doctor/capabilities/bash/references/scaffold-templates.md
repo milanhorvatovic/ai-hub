@@ -31,19 +31,19 @@ The section headers come from the inventory, not from `*.sh`. This is the same t
 
 ```ini
 [*.{sh,bash}]
-indent_style = space
-indent_size = 2
+indent_style = <the project's existing style>
+indent_size = <the project's existing width>
 switch_case_indent = true
 
 # One section per extensionless path the inventory found; EditorConfig matches
 # on path patterns, so these cannot be folded into the glob above.
 [{.githooks/*,bin/deploy,bin/release}]
-indent_style = space
-indent_size = 2
+indent_style = <the project's existing style>
+indent_size = <the project's existing width>
 switch_case_indent = true
 ```
 
-`switch_case_indent` is the `-ci` flag spelled as a setting, and it is here because the floor names it. `binary_next_line` — `-bn` — is deliberately absent: the floor does not ask for it, and it reflows every continued command in the repository, which is a large unrequested diff handed to someone who asked for a config file. Carry it over only where the scan found `shfmt` already invoked with `-bn`. The same rule governs the rest: when the repository already invokes `shfmt` with flags somewhere, translate the flags it uses rather than imposing these.
+The indentation values come from the scripts the inventory found, not from a default: picking a width would reformat every line of every script for a repository whose finding was that nothing formatted them at all. `switch_case_indent` is the `-ci` flag spelled as a setting, and it is here because the floor names it. `binary_next_line` — `-bn` — is deliberately absent: the floor does not ask for it, and it reflows every continued command in the repository, which is a large unrequested diff handed to someone who asked for a config file. Carry it over only where the scan found `shfmt` already invoked with `-bn`. The same rule governs the rest: when the repository already invokes `shfmt` with flags somewhere, translate the flags it uses rather than imposing these.
 
 Where the inventory's extensionless paths are too many or too scattered to enumerate, the honest alternative is to skip `.editorconfig` for them and pass one explicit flag set to every `shfmt` invocation instead. That loses the editor half of the deal and should be said out loud; what it does not do is leave half the repository formatted by a policy nobody chose.
 
@@ -55,18 +55,28 @@ The list comes from the inventory, not a glob. This is the shape that reaches th
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Tracked files that are shell: by extension, or by shebang.
-{
-  git ls-files -z '*.sh' '*.bash' | tr '\0' '\n'
-  git ls-files -z | tr '\0' '\n' |
-    while IFS= read -r f; do
-      [ -f "$f" ] || continue
-      if head -n 1 -- "$f" | grep -Eq '^#!.*[/ ](sh|bash|dash|ksh|oksh|bats)([[:space:]]|$)'; then
-        printf '%s\n' "$f"
-      fi
-    done
-} | sort -u
+# Every tracked file, classified once: the shebang decides, and only a file
+# without one falls back to its extension.
+git ls-files -z | tr '\0' '\n' |
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    first=$(head -n 1 -- "$f")
+    case "$first" in
+      '#!'*)
+        if printf '%s\n' "$first" | grep -Eq '[/ ](sh|bash|dash|ksh|oksh|bats)([[:space:]]|$)'; then
+          printf '%s\n' "$f"
+        fi
+        ;;
+      *)
+        case "$f" in
+          *.sh | *.bash) printf '%s\n' "$f" ;;
+        esac
+        ;;
+    esac
+  done | sort -u
 ```
+
+One pass, not two. An earlier shape emitted every `*.sh` and `*.bash` file directly and ran the shebang test only over the rest, which meant a zsh script named `deploy.sh` went straight into the list the generated job feeds to `shellcheck` — the unsupported-shell failure this section promises to keep out, arriving through the branch that never checked. The shebang is the authority wherever there is one; the extension answers only for a file that declares nothing, and `shellcheck` reads those as `sh`, which is the right default.
 
 The interpreter list is what `shellcheck` actually accepts, established by running it rather than by reading its error message: `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` exit clean, while `mksh`, `ash`, and `zsh` do not. Both directions of getting this list wrong cost something. Too narrow — matching only the two spellings of Bash — silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, reproducing the coverage under-reach this capability exists to find. Too wide is worse, because the extra file does not go unchecked, it turns the job red: `zsh` raises `SC1071`, `mksh` raises `SC1008`, and neither is a lint result the scaffold can act on.
 
