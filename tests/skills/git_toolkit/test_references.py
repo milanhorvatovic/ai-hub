@@ -496,6 +496,14 @@ AUDIENCE_PATTERN_PROBES = {
         ),
         ("see docs/adr/0001-x.md", "see https://example.com/x", "see `https://x.dev/a`"),
     ),
+    # A relative path is a candidate, not a finding — the tree-and-diff
+    # resolution decides. Both probes are candidates for that reason: the
+    # existing one clears at the resolution step, which a regex cannot do,
+    # while ordinary prose with a slash must never reach the step at all.
+    "unresolved_relative_path": (
+        ("see private-notes/plan.md", "see docs/adr/0001-x.md"),
+        ("and/or both", "see /tmp/design.md", "see https://example.com/x"),
+    ),
 }
 
 
