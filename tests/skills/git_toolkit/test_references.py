@@ -346,12 +346,6 @@ SECRET_SCAN_CAPABILITIES = [
 # guard covering less than the other with nothing saying why.
 PUBLICATION_AUDIENCE_CAPABILITIES = SECRET_SCAN_CAPABILITIES
 
-# Capabilities that grade an audience finding rather than only running the scan:
-# commit-message's REVIEW table and pr-description's SYNC dimension both report
-# under the registry id, and a row silently dropped from either is a rule the
-# capability claims to check and does not.
-AUDIENCE_GRADING_CAPABILITIES = ["commit-message", "pr-description"]
-
 # Capabilities whose input guards decide "is this author a bot?" — to skip
 # (format-mutating: a rewrite would be overwritten on the bot's next run), to
 # mention-and-proceed (read-only carve-out), or to run the standard sequence's
@@ -570,15 +564,43 @@ def test_branch_name_bans_private_codes_in_the_slug(capabilities_dir: Path) -> N
     )
 
 
-@pytest.mark.parametrize("cap_name", AUDIENCE_GRADING_CAPABILITIES)
-def test_audience_graders_report_under_the_registry_id(
-    cap_name: str, capabilities_dir: Path
+def test_commit_message_review_table_grades_the_audience_rule(
+    capabilities_dir: Path,
 ) -> None:
-    text = (capabilities_dir / cap_name / "capability.md").read_text(encoding="utf-8")
-    assert "private-context-ref" in text, (
-        f"{cap_name} grades self-containment but never names the "
-        "`private-context-ref` registry id its findings must carry"
+    """Scoped to the grading row rather than the file: the id appears in prose
+    elsewhere, so a whole-file substring check stays green while the row that
+    does the grading is deleted — a test describing a mutation it cannot
+    detect."""
+    text = (capabilities_dir / "commit-message" / "capability.md").read_text(
+        encoding="utf-8"
     )
+    row = next(
+        (ln for ln in text.splitlines() if ln.startswith("| Publication audience |")),
+        None,
+    )
+    assert row is not None, (
+        "commit-message's REVIEW table lost its Publication audience row"
+    )
+    assert "`private-context-ref`" in row, (
+        "the Publication audience row no longer carries the registry id its "
+        f"findings must report under: {row!r}"
+    )
+
+
+def test_pr_description_sync_dimension_grades_the_audience_rule(
+    capabilities_dir: Path,
+) -> None:
+    text = (capabilities_dir / "pr-description" / "capability.md").read_text(
+        encoding="utf-8"
+    )
+    section = text.split("### S2b", 1)
+    assert len(section) == 2, "pr-description lost its S2b self-containment section"
+    body = section[1].split("\n### ", 1)[0]
+    for needle in ("../../references/publication-audience.md", "private-context-ref"):
+        assert needle in body, (
+            f"S2b no longer names {needle!r} — the section grades the dimension, "
+            "so a mention anywhere else in the file is not the same claim"
+        )
 
 
 @pytest.mark.parametrize("cap_name", BOT_GUARD_CAPABILITIES)

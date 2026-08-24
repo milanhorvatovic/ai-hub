@@ -154,6 +154,11 @@ def test_fixture_verdict_tallies_the_findings_it_closes(
     ]
     verdict = [obj for obj in lines if obj["rule"] == "verdict"]
     assert len(verdict) == 1, "the stream must close with exactly one verdict"
+    assert lines[-1]["rule"] == "verdict", (
+        "the verdict must be the last object in the stream, not merely the "
+        "only one — a verdict in the middle satisfies uniqueness and still "
+        "teaches consumers an invalid shape"
+    )
     excerpt = verdict[0]["details"]["excerpt"]
     # The excerpt tallies rules, the stream carries targets: one rule failing
     # on three commits is three objects and one FAIL, and a rule with both a
