@@ -61,6 +61,8 @@ The TypeScript config is not optional decoration here. `@eslint/js` alone brings
 
 The scripts come first, and CI calls them — not because it is tidier, but because a CI step invoking a tool directly runs a different thing from what contributors run, and one of the two will drift without anyone noticing.
 
+The dependency and script blocks come from whichever route the audit picked, not from a default. Route A:
+
 ```json
 {
   "devDependencies": {
@@ -74,6 +76,27 @@ The scripts come first, and CI calls them — not because it is tidier, but beca
 }
 ```
 
+Route B, where the format check is a separate script because the two tools are separate:
+
+```json
+{
+  "devDependencies": {
+    "typescript": "<pinned>",
+    "eslint": "<pinned>",
+    "typescript-eslint": "<pinned>",
+    "prettier": "<pinned>",
+    "eslint-config-prettier": "<pinned>"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format:check": "prettier --check ."
+  }
+}
+```
+
+Taking Route A's block into a Route B repository is the mistake this split exists to prevent: it adds the second linter the capability forbids and drops the format check entirely, so the scaffold would both create a `conflict` and leave a floor row unmet.
+
 ```yaml
 check:
   runs-on: ubuntu-latest
@@ -86,9 +109,10 @@ check:
     - run: <the project's install command, resolving the tracked lock file>
     - run: npm run typecheck
     - run: npm run lint
+    - run: npm run format:check # Route B only; Route A's lint script covers both
 ```
 
-The tools are devDependencies rather than `npx` invocations, and that is the whole difference between a pinned toolchain and a floating one. `npx eslint` in a CI step resolves whatever is current when nothing in the tree declares the package, so a rule added upstream arrives as a red build on an unrelated change — and it does it quietly, because the same command locally finds the installed copy and behaves. A declared dependency plus a tracked lock file is what fixes which version runs.
+What fixes the version is the declaration plus the tracked lock file, not the shape of the invocation. `npx eslint` resolves the project's own installed copy whenever `eslint` is a declared dependency, so a step written that way is pinned; it floats only where nothing in the tree declares the package and `npx` fetches whatever is current. Where a repository does reach tools through `npx`, `npx --no-install` is the form worth recommending: it restricts resolution to the local copy and fails loudly when dependencies have not been installed, instead of quietly falling back to whatever is on `PATH`.
 
 `typecheck` is its own script for a reason worth stating in the pull request that adds it: the build already compiles this code, and compiling is not checking. A bundler that strips types will build a project whose types have never once been verified, and the failure surfaces at runtime in a shape that looks nothing like a type error.
 

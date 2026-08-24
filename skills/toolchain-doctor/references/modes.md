@@ -11,9 +11,11 @@ Detection is manifest-first, extension-second, because a manifest is a declarati
 | Language | Manifest evidence | Extension evidence |
 | --- | --- | --- |
 | python | `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile` | `*.py` |
-| typescript | `package.json`, `tsconfig*.json`, `deno.json` | `*.ts`, `*.tsx`, `*.mts`, `*.cts` |
+| typescript | `package.json`, `tsconfig*.json`, `deno.json` | `*.ts`, `*.tsx`, `*.mts`, `*.cts`, and the JavaScript forms `*.js`, `*.jsx`, `*.mjs`, `*.cjs` |
 | rust | `Cargo.toml` | `*.rs` |
 | bash | none — shell has no manifest | `*.sh`, `*.bash`, plus extensionless files whose first line is a shell shebang |
+
+The JavaScript extensions sit on the typescript row because that lane covers both. Leaving them off would report a JavaScript-only repository with no manifest as containing no language this skill knows, which is the one repository shape most likely to have no tooling at all.
 
 A language with manifest evidence is present. A language with extension evidence alone is present too, and worth naming as such in the report — a repository with twelve `.py` files and no `pyproject.toml` is exactly the case where the audit has something to say. A language with neither is absent, and the report says which languages were looked for, not only which were found: a reader cannot tell "no Rust here" from "Rust was never checked" unless the report distinguishes them.
 
@@ -34,7 +36,7 @@ Every reported fact cites the file it came from, with a line number where the fi
 
 Read-only. Consumes the scan's facts and grades them against `tooling-floors.md` using the vocabulary in `diagnosis-grading.md`.
 
-1. **Grade each floor row** for the language: satisfied, gap, or unknown, and where a row is satisfied by a non-floor tool the repo has chosen deliberately, say so and grade it satisfied.
+1. **Grade each floor row** for the language, using the vocabulary in `diagnosis-grading.md` rather than a shorter list — satisfied, `gap`, `unknown`, and `decision` for a row the repository has explicitly declined, which is the one an abbreviated list drops and thereby forces to be mislabelled as one of the others. Where a row is satisfied by a non-floor tool the repo chose deliberately, say so and grade it satisfied.
 2. **Grade the wiring** — a declared tool CI never runs is its own finding, and typically the most valuable one in the report.
 3. **Grade the version fixity** — for each tool that does run, whether anything fixes which version runs. A constraint in the install step, a lock file, a pinned container, or a task runner that resolves one all count; nothing at all is `floating`. Grade the tool, not the language: an interpreter or toolchain version belongs to the floor row that declares it.
 4. **Grade the internal contradictions** — two tools claiming one job, a version pinned in one file and floated in another, a config disabling the rule its own CI step exists to enforce.

@@ -63,11 +63,13 @@ lint:
     - uses: actions/setup-python@<40-char-sha> # <the version this sha is>
       with:
         python-version: "<3.XX>"
-    - run: pip install ruff==<pinned> <the project's type checker>==<pinned>
-    - run: ruff check .
-    - run: ruff format --check .
-    - run: <the project's type-checker command>
+    - run: <the project's locked dev-environment install — uv sync, poetry install, pip-sync, hatch env create>
+    - run: <the project's runner prefix> ruff check .
+    - run: <the project's runner prefix> ruff format --check .
+    - run: <the project's runner prefix> <the project's type-checker command>
 ```
+
+The install step is the project's environment manager, not a bare `pip install` of the two tools. The floor already asks for a managed environment with a tracked lock, and a CI job that sidesteps it installs unpinned tools into whatever interpreter the runner provides and — the part that actually breaks — never installs the project or its dependencies, so a type checker reaches the first third-party import and reports errors about the environment rather than the code. Declare the tools in the project's own dev-dependency group, install through the lock, and let the runner prefix (`uv run`, `poetry run`, or nothing where the environment is already active) be whatever the repository uses elsewhere.
 
 The type-checker rows are placeholders because the floor admits two tools and the repository has already picked one. Filling them with `mypy` regardless is how a `pyright` project asking for a missing CI step gets handed a second type checker instead — two tools disagreeing about the same code, which is a `conflict` finding on the next audit and a worse position than the wiring gap it was meant to close. Read the choice off the scan: `mypy` for a repository that declares it, `pyright` for one that declares that, and only where neither exists does the audit's alternatives line get to recommend either.
 

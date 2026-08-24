@@ -56,7 +56,7 @@ check:
   runs-on: ubuntu-latest
   steps:
     - uses: actions/checkout@<40-char-sha> # <the version this sha is>
-    - uses: <rust setup action>@<40-char-sha>
+    - uses: <rust setup action>@<40-char-sha> # <the version this sha is>
       with:
         components: rustfmt, clippy
     - run: cargo fmt --all --check

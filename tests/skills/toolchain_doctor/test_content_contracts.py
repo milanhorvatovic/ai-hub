@@ -195,9 +195,16 @@ def test_the_consent_model_still_names_what_it_forbids() -> None:
 # not prescribe. Each entry pairs the shape with a phrase from the audit bullet
 # that flags it, so the pin cannot drift into forbidding something the skill
 # does not actually grade — the anchor is asserted alongside the shape.
+#
+# A pin has to name a shape that is wrong on its own, not one that is wrong in
+# some contexts. `npx <tool>` was pinned here and should not have been: it
+# resolves a declared dependency's own binary, so the command is only a defect
+# when the package is undeclared, and the blanket ban would have rejected the
+# `npx --no-install` form this repository itself relies on. A conditional rule
+# belongs in the capability's prose, where the condition can be stated.
 _SELF_CONTRADICTIONS = (
-    ("typescript", "npx ", "Tools reached through `npx`"),
     ("rust", "cargo check", "`cargo check` standing in for `clippy`"),
+    ("python", "pip install", "A CI job that installs past the environment manager"),
 )
 
 

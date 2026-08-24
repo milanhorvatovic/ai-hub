@@ -126,7 +126,24 @@ def test_both_skills_state_the_same_floor(language: str) -> None:
 # binary, `--all-targets -- -D warnings` says what the floor actually asks of
 # it. Comparing names alone lets that half drift on either side while both
 # sets stay identical, which is the gap this pair of tests closes.
-_FLAG = re.compile(r"(?<![\w-])(--?[A-Za-z][\w-]*)")
+_FLAG = re.compile(r"^--?[A-Za-z][\w-]*$")
+# A flag's argument carries the requirement as often as the flag does: `-D`
+# alone is "deny something", and only `-D warnings` is the floor. Paths and the
+# `--` separator are not arguments, so they never attach.
+_ARGUMENT = re.compile(r"^[A-Za-z0-9][\w.=-]*$")
+
+
+def _requirements(command: str) -> set[str]:
+    """The flags of one invocation, each carrying its argument where it has one."""
+    tokens = command.split()
+    out: set[str] = set()
+    for index, token in enumerate(tokens):
+        if not _FLAG.match(token):
+            continue
+        following = tokens[index + 1] if index + 1 < len(tokens) else ""
+        takes_argument = bool(following) and not _FLAG.match(following) and bool(_ARGUMENT.match(following))
+        out.add(f"{token} {following}" if takes_argument else token)
+    return out
 
 
 def _flags_for(text: str, tool: str) -> set[str]:
@@ -144,7 +161,7 @@ def _flags_for(text: str, tool: str) -> set[str]:
         for part in span.split("&&"):
             part = part.strip()
             if part.startswith(tool):
-                flags.update(_FLAG.findall(part))
+                flags.update(_requirements(part))
     return flags
 
 
@@ -203,9 +220,16 @@ def test_the_flag_reader_sees_what_it_claims_to() -> None:
     because the suite is green.
     """
     sample = "run `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check`"
-    assert _flags_for(sample, "cargo clippy") == {"--all-targets", "-D"}
+    assert _flags_for(sample, "cargo clippy") == {"--all-targets", "-D warnings"}
     assert _flags_for(sample, "cargo fmt") == {"--check"}
     assert _flags_for(sample, "shellcheck") == set()
+
+    # The argument is half the requirement: a bare `-D` matches any deny, so
+    # reading the flag alone would let the floor's `warnings` become anything.
+    assert _flags_for("`cargo clippy -- -D deprecated`", "cargo clippy") == {"-D deprecated"}
+    # A path is not an argument, or `-ci .` and `-ci` would read as different
+    # requirements and two sides stating the same floor would disagree.
+    assert _flags_for("`shfmt -i 2 -ci .`", "shfmt") == {"-i 2", "-ci"}
 
 
 @pytest.mark.parametrize("language", sorted(_FLOOR_HEADINGS))
