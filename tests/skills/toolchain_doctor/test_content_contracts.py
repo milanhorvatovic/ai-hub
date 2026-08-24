@@ -65,17 +65,25 @@ def _prose(path: Path) -> str:
     return _FENCE.sub("", path.read_text(encoding="utf-8"))
 
 
-def _instructions(path: Path) -> str:
-    """Prose with inline code removed as well: only what the skill says in its
-    own voice.
+# An imperative reaching for one of the forbidden commands. Backticks are
+# optional in the pattern on purpose: markdown normally code-formats a command,
+# so "Run `pip install foo` first" is the *most* natural way to write the
+# violation, and a check that ignored inline code would be blind to exactly it.
+# What separates an instruction from a citation is the imperative in front,
+# not the formatting around it.
+_IMPERATIVE = r"(?:\b(?:run|execute|invoke|call|then)\b[^.\n]{0,30}?)"
+
+
+def _instructs(prose: str, command: str) -> bool:
+    """True when the prose tells someone to run `command`, rather than citing it.
 
     A capability has to name the commands it detects — an unconstrained
-    `pip install` in a CI step is the evidence behind a whole finding — and a
-    check that cannot tell a quoted command from an instruction forces that
-    finding to be described in circumlocutions. Inline code in this skill is
-    always quoted material; an instruction to the skill itself is plain prose.
+    `pip install` in a CI step is the evidence behind a whole finding — so a
+    flat search for the command reports every citation as a violation. The
+    discriminator is the imperative, which a citation does not carry.
     """
-    return _INLINE_CODE.sub("", _prose(path))
+    pattern = _IMPERATIVE + r"`?" + re.escape(command)
+    return re.search(pattern, prose, re.IGNORECASE) is not None
 
 
 def _registered_grades() -> set[str]:
@@ -241,13 +249,34 @@ def test_no_template_prescribes_what_its_own_audit_flags(
 def test_no_capability_instructs_an_install(capability: Path) -> None:
     """Fenced templates may show an install command — a CI step the user applies
     is the user installing, which is the whole point of prescribing rather than
-    performing. Quoted commands may appear inline, because naming what the audit
-    detects is the capability's job. What may not appear is an install in the
-    skill's own voice, which is the skill telling itself what to do.
+    performing. Citations may appear in prose, because naming what the audit
+    detects is the capability's job. What may not appear is an imperative: the
+    skill telling itself to run one.
+
+    The discriminator is the verb, not the backticks. An earlier version of this
+    test stripped inline code before searching, which cleared the citations and
+    also cleared "Run `pip install foo` first" — the most natural spelling of
+    the violation, since markdown code-formats commands by default.
     """
-    prose = _instructions(capability)
-    found = [command for command in _INSTALL_COMMANDS if command in prose]
+    prose = _prose(capability)
+    found = [command for command in _INSTALL_COMMANDS if _instructs(prose, command)]
     assert not found, (
         f"{capability.parent.name} instructs {found} outside a template fence; "
         "the skill prescribes installs, it does not perform them"
     )
+
+
+def test_the_consent_check_can_tell_an_order_from_a_citation() -> None:
+    """Both halves of the discriminator, asserted directly.
+
+    Each failure mode of this check looks like a passing test: too loose and
+    every capability trips on the commands it exists to detect, too tight and
+    the check reports nothing it was written to catch. Neither shows up in a
+    green run, so both are exercised here.
+    """
+    assert _instructs("Run `pip install foo` first.", "pip install")
+    assert _instructs("Then execute pip install ruff before the scan.", "pip install")
+    assert not _instructs(
+        "A CI step reading `pip install ruff` is a `floating` finding.", "pip install"
+    )
+    assert not _instructs("The floor forbids `pip install` into a global interpreter.", "pip install")

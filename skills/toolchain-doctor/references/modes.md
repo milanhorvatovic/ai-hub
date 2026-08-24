@@ -13,9 +13,11 @@ Detection is manifest-first, extension-second, because a manifest is a declarati
 | python | `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt`, `Pipfile` | `*.py` |
 | typescript | `package.json`, `tsconfig*.json`, `deno.json` | `*.ts`, `*.tsx`, `*.mts`, `*.cts`, and the JavaScript forms `*.js`, `*.jsx`, `*.mjs`, `*.cjs` |
 | rust | `Cargo.toml` | `*.rs` |
-| bash | none — shell has no manifest | `*.sh`, `*.bash`, plus extensionless files whose first line is a shell shebang |
+| bash | none — shell has no manifest | `*.sh`, `*.bash`, extensionless files whose first line is a shell shebang, and embedded shell: multi-line `run:` blocks in workflows, `Makefile` recipes, Dockerfile shell-form `RUN` instructions |
 
 The JavaScript extensions sit on the typescript row because that lane covers both. Leaving them off would report a JavaScript-only repository with no manifest as containing no language this skill knows, which is the one repository shape most likely to have no tooling at all.
+
+Embedded shell is on the bash row for the same reason, and it is the case detection would otherwise miss most often: plenty of repositories contain no shell file at all and a great deal of shell, all of it inside workflow `run:` blocks and Dockerfiles. A stage-0 rule that only globs files routes that repository to no lane, and the capability built to find exactly those locations never gets loaded.
 
 A language with manifest evidence is present. A language with extension evidence alone is present too, and worth naming as such in the report — a repository with twelve `.py` files and no `pyproject.toml` is exactly the case where the audit has something to say. A language with neither is absent, and the report says which languages were looked for, not only which were found: a reader cannot tell "no Rust here" from "Rust was never checked" unless the report distinguishes them.
 
@@ -36,9 +38,9 @@ Every reported fact cites the file it came from, with a line number where the fi
 
 Read-only. Consumes the scan's facts and grades them against `tooling-floors.md` using the vocabulary in `diagnosis-grading.md`.
 
-1. **Grade each floor row** for the language, using the vocabulary in `diagnosis-grading.md` rather than a shorter list — satisfied, `gap`, `unknown`, and `decision` for a row the repository has explicitly declined, which is the one an abbreviated list drops and thereby forces to be mislabelled as one of the others. Where a row is satisfied by a non-floor tool the repo chose deliberately, say so and grade it satisfied.
+1. **Grade each floor row** for the language. A row either needs nothing said about it — it is satisfied, which is a state and not a grade — or it carries one of the grades `diagnosis-grading.md` defines, and the enumeration here stays open to all of them rather than naming a convenient few: `gap` where nothing satisfies it, `unknown` where detection could not reach, `decision` where the repository declined it deliberately, and the rest as they apply. An abbreviated list is how a row that deserves `decision` gets filed as satisfied. Where a row is satisfied by a non-floor tool the repo chose deliberately, say so; that is still satisfied, and the note is what keeps the report honest about how.
 2. **Grade the wiring** — a declared tool CI never runs is its own finding, and typically the most valuable one in the report.
-3. **Grade the version fixity** — for each tool that does run, whether anything fixes which version runs. A constraint in the install step, a lock file, a pinned container, or a task runner that resolves one all count; nothing at all is `floating`. Grade the tool, not the language: an interpreter or toolchain version belongs to the floor row that declares it.
+3. **Grade the version fixity** — for each tool that does run, whether anything decides which version runs. Only two things do: an **exact** pin, or a tracked lock file that resolves one. A range is not a pin — `>=0.5` and `^9` both resolve whatever matches on the day of the install, so a repository can declare a dependency, install it, and still get a different linter next week; declaring a package fixes _which_ tool runs, never _which version_ of it. A pinned container or a task runner that resolves an exact version counts, on the same test. Anything else is `floating`. Grade the tool, not the language: an interpreter or toolchain version belongs to the floor row that declares it.
 4. **Grade the internal contradictions** — two tools claiming one job, a version pinned in one file and floated in another, a config disabling the rule its own CI step exists to enforce.
 5. **Name the prescription with each finding.** A finding without a concrete next step is an observation; this skill's whole purpose is the next step.
 6. **Record the opt-outs.** A repository that declared its way out of a floor row gets that recorded as a decision, not re-litigated.

@@ -26,9 +26,11 @@ This is the step that distinguishes a useful shell audit from a decorative one, 
 | `*.sh`, `*.bash` | Found by everyone; the easy case |
 | Extensionless files with a shell shebang | `bin/deploy`, `scripts/release` — invisible to an extension glob, and usually the most consequential scripts in the repository |
 | `.githooks/`, `.husky/` | Hooks are scripts, run on every commit, and routinely unlinted |
-| CI `run:` blocks | Multi-line `run:` in a workflow is a shell script living in YAML; linting it needs the block extracted first |
+| CI `run:` blocks | Multi-line `run:` in a workflow is a shell script living in YAML |
 | `Makefile` recipes | Each recipe line is shell, with its own quoting hazards and its own tab-sensitivity |
 | Dockerfile `RUN` lines | Shell, executed at build time, and frequently the least reviewed lines in the repository |
+
+**Files and embedded shell are reported separately, and only files are in the coverage contract.** `shellcheck` takes paths, so a `run:` block, a recipe, and a `RUN` line cannot be handed to it as they stand — which means a coverage finding against them would be one the scaffold has no prescription able to close, and a report full of those teaches a reader to ignore the section. Embedded shell is reported as an **observation** naming where it lives and roughly how much there is, with one prescription when the volume justifies it: move the block into a script file, which brings it inside the inventory and under the same linting as everything else. Repositories that keep a hundred lines of shell in a workflow step usually did it by accretion, and the observation is how they find out.
 
 Report the inventory before the grade. A repository that lints `scripts/*.sh` and has never looked at its hooks is not partially covered — it is uncovered in the place where an error runs on every developer's machine.
 
@@ -50,14 +52,14 @@ The first-line check is the reliable one for the extensionless case: a file whos
 2. **`shellcheck` presence and severity handling** — whether it runs, and whether its findings fail anything.
 3. **Suppression directives** — every `# shellcheck disable=` in the tree, with whether each carries a reason. The floor asks for a one-line reason per suppression, and a bare disable is the thing this row exists to find.
 4. **`shfmt` presence and flags** — including whether `.editorconfig` and the invocation agree.
-5. **Coverage gaps** — scripts found by the inventory that the linter's invocation does not reach. A `shellcheck scripts/*.sh` step in a repository with hooks and a `bin/` directory covers a fraction of its shell and reports success.
+5. **Coverage gaps** — script **files** found by the inventory that the linter's invocation does not reach; embedded shell sits outside this row, per the note above. A `shellcheck scripts/*.sh` step in a repository with hooks and a `bin/` directory covers a fraction of its shell and reports success.
 
 ## Audit specifics
 
 - **Undocumented suppressions.** A `# shellcheck disable=SC2086` with no reason is a `gap` against the floor's stated bar, graded per instance rather than in aggregate so the report names the files. A suppression with a reason is a `decision` and is left alone.
-- **Coverage under-reach.** Where the invocation's glob does not reach the inventory, that is a `wiring` finding: the linter runs, and not over the code. This is the most common real defect in this language and the least visible, because the job is green.
+- **Coverage under-reach.** Where the invocation's glob does not reach every script file in the inventory, that is a `wiring` finding: the linter runs, and not over the code. This is the most common real defect in this language and the least visible, because the job is green.
 - **Dialect declared twice, differently.** A `#!/bin/sh` script linted by an invocation that passes `-s bash`, or a `.shellcheckrc` setting `shell=bash` over a tree of `sh` scripts, is a `conflict`: the shebang says the script must be portable and the linter has been told to allow the constructs that break that promise, so the check most worth having is the one switched off. Compare the declarations — shebang, `-s` flag, `.shellcheckrc` — and grade their disagreement. What this row does **not** do is read the script body looking for bash-only syntax: that is a finding about the code, which `shellcheck` itself reports once it is pointed at the right dialect, and this skill audits whether the tooling is set up rather than what it would say.
-- **Tools taken from whatever the runner ships.** `shellcheck` is preinstalled on the common hosted runners, which is why this floor is cheap to adopt and also why its version is the image's. That makes it a `floating` finding whenever the repository depends on the result being stable: the image updates, a new check fires, and a pull request goes red without touching a script. The fix is small — a pinned action or an explicit version in the install step — and worth proposing only where the repository has actually been bitten, since the alternative is pinning a linter to keep it from finding things.
+- **Tools taken from whatever the runner ships.** `shellcheck` is preinstalled on the common hosted runners, which is why this floor is cheap to adopt and also why its version is the image's. That is a `floating` finding like any other: the image updates, a new check fires, and a pull request goes red without touching a script. `shfmt` is the opposite problem on the same runners — absent, so a job that assumes it fails outright — and since closing that gap means an install step anyway, pinning both costs nothing and is what the scaffold prescribes.
 - **Size.** A script well past a few hundred lines, with subcommands and structured output, has outgrown the language. Report it as an observation, never a finding — rewriting a working script is a decision far above a tooling audit, and the floor's own position is that no amount of linting fixes the size problem.
 
 ## Scaffold

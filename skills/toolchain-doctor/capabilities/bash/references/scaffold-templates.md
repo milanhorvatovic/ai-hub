@@ -5,13 +5,12 @@ Shapes to fill in from what the scan found. Placeholders in angle brackets are v
 ## `.shellcheckrc`
 
 ```ini
-# Dialect for files whose shebang does not declare one.
-shell=bash
-
 # Follow sourced files rather than warning about them; source paths are
 # relative to the invocation, so keep CI and local invocations in one place.
 external-sources=true
 ```
+
+**No `shell=` line.** It reads like a fallback for files without a shebang and is not one: it overrides shebang detection for every file checked, so on a repository holding both `sh` and Bash scripts it silently grades the portable ones by Bash's rules — the exact dialect conflict this capability's audit reports, created by its own scaffold. Shebangs already declare the dialect per file, and they declare it where the script runs rather than only where it is linted. Set `shell=` only for a repository whose scripts genuinely all share one dialect and whose shebangs are missing, and say why in a comment when you do.
 
 Do not scaffold a `disable=` line here. A repository-wide suppression turns off a check for every script including the ones written next year, and the floor's position is that a suppression carries a one-line reason at the site it applies to. Where an audit found a rule that genuinely does not fit the repository, propose the per-file directive with its reason instead:
 
@@ -78,6 +77,13 @@ shell:
   runs-on: ubuntu-latest
   steps:
     - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+    - name: install shellcheck and shfmt
+      run: |
+        curl -fsSL "https://github.com/koalaman/shellcheck/releases/download/v<pinned>/shellcheck-v<pinned>.linux.x86_64.tar.xz" \
+          | tar -xJ --strip-components=1 -C /usr/local/bin "shellcheck-v<pinned>/shellcheck"
+        curl -fsSL -o /usr/local/bin/shfmt \
+          "https://github.com/mvdan/sh/releases/download/v<pinned>/shfmt_v<pinned>_linux_amd64"
+        chmod +x /usr/local/bin/shfmt
     - name: shellcheck
       run: |
         shopt -s globstar
@@ -86,8 +92,10 @@ shell:
       run: shfmt -d <the same file list>
 ```
 
-`shellcheck` is preinstalled on GitHub's Ubuntu runners, so this step needs no install — one of the few places where the floor costs nothing to adopt. `shfmt -d` prints a diff and exits non-zero when a file would change, which is the check-mode behavior; `shfmt -w` writes, and belongs nowhere near CI.
+`shfmt` is the reason this job needs an install step at all. `shellcheck` is preinstalled on the common hosted Ubuntu images and `shfmt` is not, so a job that assumes both fails on a fresh runner with `shfmt: command not found` — a scaffold that cannot run is worse than the gap it closes. A pinned setup action for either tool works equally well; the point is that both arrive deliberately.
 
-The version that comes free is the image's, so this shape is deliberately the floating one, and the audit will say so on the next run. That is the right trade on adoption day: a repository with no shell linting at all gains more from a step that exists than from a pinned step it has to maintain, and the pin is a small edit — a pinned setup action, or an explicit version in an install step — worth making once a runner image update has actually cost the team a red build. Prescribe it then, not before.
+Pinning both versions here is what keeps the scaffold consistent with what the router promises and with the scaffold contract that an addressed row re-audits clean. Taking `shellcheck` from the image is the cheaper-looking option and it is the one that produces a `floating` finding on the very next run — prescribing a shape the audit then reports is the contradiction this skill has now made six times, and there is no reason to make it a seventh when the install step already exists for `shfmt`.
+
+`shfmt -d` prints a diff and exits non-zero when a file would change, which is the check-mode behavior; `shfmt -w` writes, and belongs nowhere near CI.
 
 Hooks are the case worth being explicit about. If the inventory found `.githooks/` or `.husky/`, they are in the list — they run on every commit on every contributor's machine, which makes them the shell in the repository with the widest blast radius and, almost always, the least review.

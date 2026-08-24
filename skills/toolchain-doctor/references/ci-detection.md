@@ -23,14 +23,21 @@ Stop and grade `unknown` when the chain leaves the repository — a step that ca
 
 ## What counts as running
 
-Four states, and they are decided in this order so the same evidence cannot produce two reports. Take the first that matches:
+Grade each **invocation** first, then grade the tool by the **strongest** invocation found. A repository routinely has several — a CI job and a hook, or two workflows — and the tool's guarantee is the best of them, not the first one the scan happened to read.
 
-1. **Unknown**: the chain left the repository, or a file the chain needs could not be read. Nothing below can be judged, so this wins outright.
-2. **Runs, weakly**: the invocation cannot fail a change that would break it. Either its failure is swallowed — `|| true`, `continue-on-error: true`, a step marked non-blocking — or it never fires on the changes it is meant to guard: hook-only, schedule-only, or on a trigger that excludes pull requests.
-3. **Runs**: fires on pull requests with a failing exit status that fails the job.
-4. **Does not run**: declared in config, invoked nowhere the scan could find, after resolving indirection.
+Per invocation:
 
-The ordering resolves the case that would otherwise match twice. A job that fires only on pushes to the default branch does run, and it runs after review rather than during it, so a change that breaks the tool is caught once it is already merged. That is state 2 — reported as running, with the trigger named — and stating the rule as an ordered list is what keeps it from also being read as state 3.
+- **Runs**: fires on pull requests, with a failing exit status that fails the job.
+- **Runs, weakly**: cannot fail a change that would break it. Either the failure is swallowed — `|| true`, `continue-on-error: true`, a step marked non-blocking — or it never fires where the change is reviewed: hook-only, schedule-only, or a trigger that excludes pull requests. A job that fires only on pushes to the default branch belongs here: it does run, and it runs after review rather than during it, so a break is caught once already merged.
+
+Then, for the tool:
+
+- Any invocation grading **Runs** makes the tool **Runs**, whatever else exists beside it. A proper PR job is not weakened by a hook sitting next to it.
+- Otherwise, any invocation grading **Runs, weakly** makes the tool **Runs, weakly** — name which invocation and why it is weak.
+- Otherwise, if some path could not be resolved, **Unknown**, naming the path. This is the last resort rather than the first: an unreadable reusable workflow beside a direct PR invocation says nothing about the direct one, and reporting the tool as unknown would discard evidence the scan already has.
+- Otherwise, **Does not run**: declared in config, invoked nowhere the scan could find, after resolving indirection, with no unresolved path left to explain the absence.
+
+The order matters in exactly one direction. Strength aggregates upward — the best invocation wins — while `unknown` only applies when nothing better is known, because it is a statement about the scan rather than about the repository.
 
 The swallowed-failure case deserves the extra attention. A CI step that runs the linter and cannot fail looks green forever and reads, in every summary anyone glances at, exactly like a repository whose linter passes. It is the single most misleading configuration in this whole subject area, and it is easy to introduce by accident while getting a pipeline to pass.
 
