@@ -313,9 +313,12 @@ def test_the_templates_still_carry_what_their_capability_requires(
         f"{language}'s capability no longer states the rule behind {required!r} — "
         "drop this pin or restore the rule, but do not pin a template to nothing"
     )
-    assert required in templates.read_text(encoding="utf-8"), (
-        f"{language}'s templates no longer carry {required!r}, which its own "
-        "capability requires — a scaffolded repo would not re-audit clean"
+    fenced = "\n".join(_FENCE.findall(templates.read_text(encoding="utf-8")))
+    assert required in fenced, (
+        f"{language}'s templates no longer carry {required!r} in a fence, which "
+        "its own capability requires — a scaffolded repo would not re-audit clean. "
+        "Prose mentioning it is not the scaffold; only the fenced content is what "
+        "a user receives."
     )
 
 

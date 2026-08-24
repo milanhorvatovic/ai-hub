@@ -27,7 +27,7 @@ files = ["<the package directory>"]
 
 No enforcement setting is scaffolded, and the reason is a gap in what the tools can express. The floor asks for annotations on the **public** surface and explicitly lets obvious internal helpers go untyped; `mypy` has no setting scoped that way. `disallow_untyped_defs` is the nearest lever and it reaches every definition in the package, so scaffolding it to close a public-surface finding would gate legacy internals the floor never asked about — trading an under-enforcing default for an over-enforcing one.
 
-So the audit checks the public surface by reading the checker's missing-annotation diagnostics, and the report names `disallow_untyped_defs` as the available lever together with what it costs. Write it when the user accepts that scope.
+So the audit reads the enforcement settings the repository declares, and the report names `disallow_untyped_defs` as the available lever together with what it costs. Write it when the user accepts that scope.
 
 `strict = true` is deliberately not here. The floor asks that a checker cover the public surface, not that it run at maximum strictness, and defaulting to strict turns a scaffold meant to close "no type checker configured" into a CI job failing across an existing codebase for policies the audit never reported. Name it in the report as the destination; write it when the user asks.
 
