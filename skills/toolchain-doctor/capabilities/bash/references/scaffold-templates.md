@@ -59,6 +59,9 @@ set -euo pipefail
 # without one falls back to its extension. NUL in, NUL out.
 git ls-files -z |
   while IFS= read -r -d '' f; do
+    # A symlink is never read: a tracked link can point anywhere the runner can
+    # reach, and the tools this list feeds would open the target, not the repo.
+    [ -L "$f" ] && continue
     [ -f "$f" ] || continue
     first=$(head -n 1 -- "$f")
     case "$first" in
@@ -93,6 +96,8 @@ Report the shells left out — `mksh`, `ash`, `zsh` — by name as outside the g
 Two more details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
 
 And the shebang test is an `if` rather than `cmd && printf`. With `&&`, the last file examined decides the loop's exit status, so a script that printed a correct list would still exit non-zero whenever the final tracked file was not shell — which under `set -e`, or as a CI step, is a failure on a run that worked.
+
+Symlinks are dropped before anything is read, and `[ -f ]` alone does not do that — it follows the link and answers about the target. A pull request can add a tracked `deploy.sh` pointing at a file outside the checkout, and the list this produces is fed straight to `shellcheck` and `shfmt`, which would open whatever it names on the runner. Rejecting links costs a line and closes that.
 
 Tracked files only, and the reason is the CI step this feeds. An untracked script exists on the machine that ran the discovery and nowhere else, so copying it into a workflow's file list produces a job that fails on a path absent from the checkout — a scaffold that works for its author and for no one else. `git ls-files` is also what makes the shebang pass finite: it walks what the repository contains rather than everything under the working directory, so ignored build output and vendored trees never reach the `head` check.
 
