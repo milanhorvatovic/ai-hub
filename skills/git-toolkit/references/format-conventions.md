@@ -14,7 +14,9 @@ Repo conventions override these defaults. Check in order:
 
 If multiple sources conflict, the order above wins.
 
-The same sources carry a second axis. Where a repository declares its private surface — a track-code series, private path prefixes, repositories it keeps unreadable — `publication-audience.md` matches those declarations exactly rather than heuristically, at the severity the declaration states. Read both axes in one pass over these files: a capability that opens `AGENTS.md` for format alone reads it twice and honors it once.
+The same sources carry a second axis. Where a repository declares its private surface — a track-code series, private path prefixes, repositories it keeps unreadable — `publication-audience.md` matches those declarations exactly rather than heuristically, at the severity the declaration states.
+
+The two axes read the same files from different places, and the difference is load-bearing. Format conventions come from the working tree, which is what everything above assumes: a branch may legitimately change how this repository writes commit subjects, and the change should apply to the commits being written on it. Publication-audience declarations resolve against the base ref instead, per that reference's own rule — a declaration decides what a scan flags and how hard, so honoring one the branch under review introduced would let a change author the rules that grade it. Read the format axis from the checkout and fetch the declaration block from the base; a single pass over the working tree would be cheaper and would quietly cross the boundary.
 
 ### Fresh-repo fallback
 

@@ -136,6 +136,37 @@ def test_fixture_ids_resolve_to_the_registry(references_dir: Path) -> None:
     )
 
 
+def test_fixture_verdict_tallies_the_findings_it_closes(
+    references_dir: Path,
+) -> None:
+    """The verdict's excerpt tallies rule results, and the failing ones are
+    all visible by contract: a FAIL or MOSTLY-PASS rule emits one object per
+    offending target, while aggregate PASS objects may be elided. So those two
+    counts are checkable against the stream and were both wrong — a summary
+    line that miscounts the findings above it teaches the shape wrongly to
+    every consumer reading the fixture to learn it."""
+    lines = [
+        json.loads(ln)
+        for ln in (references_dir / "review-output.example.ndjson")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if ln.strip()
+    ]
+    verdict = [obj for obj in lines if obj["rule"] == "verdict"]
+    assert len(verdict) == 1, "the stream must close with exactly one verdict"
+    excerpt = verdict[0]["details"]["excerpt"]
+    for result in ("FAIL", "MOSTLY-PASS"):
+        claimed = re.search(rf"(\d+) {re.escape(result)}\b", excerpt)
+        assert claimed, f"verdict excerpt does not tally {result}: {excerpt!r}"
+        actual = sum(
+            1 for obj in lines if obj["rule"] != "verdict" and obj["result"] == result
+        )
+        assert int(claimed.group(1)) == actual, (
+            f"verdict claims {claimed.group(1)} {result} findings; the stream "
+            f"carries {actual}"
+        )
+
+
 def _jsonl_blocks(text: str) -> list[str]:
     return re.findall(r"```jsonl\r?\n(.*?)```", text, flags=re.DOTALL)
 
