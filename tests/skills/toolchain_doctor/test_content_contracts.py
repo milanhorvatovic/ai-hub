@@ -264,6 +264,45 @@ def test_no_template_prescribes_what_its_own_audit_flags(
     )
 
 
+# The other half of template drift: not a shape that must be absent, but one
+# that must be present. Each entry is a defect this suite has already let
+# through once — the eslint route shipping without a TypeScript parser, the
+# editorconfig covering one of the two extensions its inventory collects — and
+# each names the capability text that makes it required, so the pin cannot
+# outlive the rule.
+_TEMPLATE_MUST_CARRY = (
+    ("typescript", "typescript-eslint", "a scaffolded linter must parse the language"),
+    ("bash", "[*.{sh,bash}]", "a scaffolded policy covers every path the inventory collects"),
+)
+
+
+@pytest.mark.parametrize(
+    ("language", "required", "anchor"), _TEMPLATE_MUST_CARRY, ids=lambda v: str(v)[:24]
+)
+def test_the_templates_still_carry_what_their_capability_requires(
+    language: str, required: str, anchor: str
+) -> None:
+    """A scaffold can fail its audit by omission as easily as by commission.
+
+    The forbidden-shape pins next to this one only catch a template that adds
+    something wrong. These catch one that drops something needed, which is the
+    direction two real defects took: an eslint config with no TypeScript parser
+    lints almost none of a TypeScript project while appearing to satisfy the
+    floor, and an editorconfig keyed to a single extension leaves half the
+    inventory on the formatter's defaults.
+    """
+    capability = _SKILL / "capabilities" / language / "capability.md"
+    templates = _SKILL / "capabilities" / language / "references" / "scaffold-templates.md"
+    assert anchor in capability.read_text(encoding="utf-8"), (
+        f"{language}'s capability no longer states the rule behind {required!r} — "
+        "drop this pin or restore the rule, but do not pin a template to nothing"
+    )
+    assert required in templates.read_text(encoding="utf-8"), (
+        f"{language}'s templates no longer carry {required!r}, which its own "
+        "capability requires — a scaffolded repo would not re-audit clean"
+    )
+
+
 @pytest.mark.parametrize("capability", _CAPABILITIES, ids=lambda p: p.parent.name)
 def test_no_capability_instructs_an_install(capability: Path) -> None:
     """Fenced templates may show an install command — a CI step the user applies

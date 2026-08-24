@@ -41,7 +41,7 @@ The first-line check is the reliable one for the extensionless case: a file whos
 | Tool | Config locations |
 | --- | --- |
 | `shellcheck` | `.shellcheckrc`, per-file `# shellcheck` directives, CLI flags in whatever invokes it |
-| `shfmt` | `.editorconfig` (`[*.sh]` section), or flags in the invocation — `shfmt` has no config file of its own |
+| `shfmt` | `.editorconfig` — the sections matching the inventory's paths, not `[*.sh]` alone — or flags in the invocation; `shfmt` has no config file of its own |
 | dialect | The shebang per file, plus any `shellcheck -s` flag; `sh` and `bash` are graded against different rules |
 
 `shfmt` having no config file matters for the audit: its settings live wherever it is invoked, so establishing them means reading the CI step, the task runner, or the hook — not looking for a dotfile that will never exist. A repository with `shfmt` in CI and no `.editorconfig` is formatting to whatever flags that one call site passes, and a contributor's editor will disagree.
@@ -66,4 +66,4 @@ The first-line check is the reliable one for the extensionless case: a file whos
 
 Templates: `references/scaffold-templates.md` in this directory.
 
-The scaffold rule specific to shell is about scope rather than content: the CI step's file list is scaffolded from the inventory the scan produced, not from a glob. A `*.sh` glob is what produced the coverage gap in the first place, and prescribing it again closes the finding on paper while leaving the hooks unlinted.
+Both scaffold rules specific to shell are about scope rather than content, and they apply to the linter and the formatter alike: **a scaffolded policy covers every path the inventory collects**. The CI step's file list is scaffolded from the inventory the scan produced, not from a glob. A `*.sh` glob is what produced the coverage gap in the first place, and prescribing it again closes the finding on paper while leaving the hooks unlinted. The formatter's configuration is held to the same rule: a section keyed to one of the two extensions the inventory collects leaves the rest on the tool's defaults, which is the same split policy arriving by a different route.

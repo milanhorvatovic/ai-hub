@@ -10,7 +10,7 @@ Asking only about declared tools would skip the ones that run on their defaults,
 
 ## Where execution can live
 
-Check these in order; stop at the first that answers definitively, but keep looking when the answer is "not here" rather than "no".
+Check all of these, and collect every invocation found rather than stopping at the first. The grading rule below takes the strongest invocation, which it cannot do from a search that halted at whichever one came first — a non-blocking hook read before a blocking pull-request job would otherwise decide the verdict by reading order. The one safe early exit is an invocation already grading **Runs**, since nothing outranks it.
 
 1. **Workflow files** — `.github/workflows/*.yml` **and** `*.yaml` (both are accepted, and reading only one spelling misses whole pipelines and reports their tools as unwired), `.gitlab-ci.yml`, `.circleci/config.yml`, `azure-pipelines.yml`, `Jenkinsfile`. Read the `run:` / `script:` blocks and look for the tool's invocation. A workflow that runs on `push` to a single branch and never on pull requests grades "runs, weakly" below — the tool runs, but not where review happens.
 2. **Task runners** — `Makefile`, `justfile`, `Taskfile.yml`, `noxfile.py`, `tox.ini`, `package.json` scripts, `mise.toml` tasks, `cargo-make`. CI frequently calls one of these rather than the tool directly, so a workflow step reading `make lint` is an indirection to resolve, not an answer.
