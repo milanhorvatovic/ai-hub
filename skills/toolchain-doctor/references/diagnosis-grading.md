@@ -7,12 +7,14 @@ Every audit finding carries a grade. The vocabulary is small on purpose, and all
 | Grade | Means | Example |
 | --- | --- | --- |
 | `gap` | A floor row nothing satisfies | No linter configured for a language the repo contains |
-| `wiring` | Declared but not running — the config exists and nothing executes it | `ruff` configured in `pyproject.toml`, no CI job calls it |
+| `wiring` | Declared, and the execution does not cover what it claims to — nothing runs it, or what runs cannot fail, or it reaches only part of the code | `ruff` configured in `pyproject.toml` with no CI job calling it; `clippy` run without `--workspace` in a workspace |
 | `conflict` | Two declarations that cannot both be honored | `prettier` and `biome` both formatting the same files |
 | `drift` | The same fact declared twice, differently | Language version pinned in CI and floated in the manifest |
 | `floating` | Running, at whatever version resolved today | `pip install ruff` in CI with no version constraint |
 | `unknown` | Detection could not reach the answer | CI calls a task runner whose config the scan could not read |
 | `decision` | A floor row the repo has deliberately declined | An explicit lower language pin, with the pin cited |
+
+`wiring` covers absence and partial reach alike, which is deliberate: a linter nothing calls and a linter called over half the repository are the same defect from a reader's side — the report says the tool is set up, and the code it was set up for goes unchecked. The finding always names which part is uncovered, so the two are not confusable in a report even though they share a grade.
 
 `floating` is separate from `gap` because the tool is there and working: the floor row is satisfied, and what is unfixed is which version satisfies it. The cost lands somewhere else entirely — on an unrelated pull request, on the morning the linter releases a new rule, as a red build nobody's change caused. That is the failure that teaches a team to reach for `continue-on-error`, and a check that cannot fail is worth less than the one they started with.
 

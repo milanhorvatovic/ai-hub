@@ -14,6 +14,7 @@ it broke, which is why it needs a test rather than a reviewer.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -105,17 +106,36 @@ _INSTALL_FORMS = re.compile(
 # listed, and listing it is the review moment: someone has to say why the skill
 # is naming an install command, which is the judgement the regex was pretending
 # to make on its own.
-_ALLOWED_CITATIONS = {
-    "SKILL.md": "the consent model's own enumeration of what it refuses to run",
-    "capabilities/python/capability.md": "evidence for the unpinned-tool finding",
-    "capabilities/python/references/scaffold-templates.md": (
-        "the counter-example — what the CI step must not do instead of the lock"
-    ),
-    "references/diagnosis-grading.md": "the worked example of a `floating` finding",
+# Exact counts, not a set of spellings. Recording only which commands a file
+# names lets an allowlisted file gain a second occurrence — a real instruction
+# beside the citation that justified listing it — without the tally moving, so
+# the promise that "a new occurrence anywhere fails" would have held only for
+# new files. The count is what makes it true for new sentences too.
+_ALLOWED_CITATIONS: dict[str, dict[str, int]] = {
+    # The consent model's own enumeration of what it refuses to run.
+    "SKILL.md": {
+        "brew install": 1,
+        "bun add": 1,
+        "cargo install": 1,
+        "npm i": 1,
+        "pip install": 1,
+        "pipenv install": 1,
+        "pnpm add": 1,
+        "poetry add": 1,
+        "rustup component add": 1,
+        "uv add": 1,
+        "yarn add": 1,
+    },
+    # Evidence for the unpinned-tool finding, and the environment-manager one.
+    "capabilities/python/capability.md": {"pip install": 2},
+    # The counter-example — what the CI step must not do instead of the lock.
+    "capabilities/python/references/scaffold-templates.md": {"pip install": 1},
+    # The worked example of a `floating` finding.
+    "references/diagnosis-grading.md": {"pip install": 1},
 }
 
 
-def _install_citations(path: Path) -> set[str]:
+def _install_citations(path: Path) -> dict[str, int]:
     """Install forms the file names in the skill's own voice.
 
     Fences are exempt in scaffold templates and nowhere else: there a fenced
@@ -125,7 +145,7 @@ def _install_citations(path: Path) -> set[str]:
     """
     text = path.read_text(encoding="utf-8")
     body = _FENCE.sub("", text) if path.name == "scaffold-templates.md" else text
-    return set(_INSTALL_FORMS.findall(body))
+    return dict(Counter(_INSTALL_FORMS.findall(body)))
 
 
 def _registered_grades() -> set[str]:
@@ -345,12 +365,12 @@ def test_only_inventoried_files_name_an_install_command(doc: Path) -> None:
     # two runners while passing locally.
     relative = doc.relative_to(_SKILL).as_posix()
     found = _install_citations(doc)
-    if not found:
-        return
-    assert relative in _ALLOWED_CITATIONS, (
-        f"{relative} names {sorted(found)} outside a template fence and is not in "
-        "the citation inventory. If the skill is citing the command, add the file "
-        "with its reason; if it is instructing one, the contract is breaking."
+    expected = _ALLOWED_CITATIONS.get(relative, {})
+    assert found == expected, (
+        f"{relative} names {found} outside a template fence; the inventory expects "
+        f"{expected or 'none'}. A file citing an install command is listed with the "
+        "exact forms and counts it carries — if the skill is citing one more, record "
+        "it and say why; if it is instructing one, the contract is breaking."
     )
 
 

@@ -161,14 +161,15 @@ def _requirements(command: str) -> set[str]:
 
 
 def _flags_for(text: str, tool: str) -> set[str]:
-    """Every flag the text attaches to `tool`, across all its invocations.
+    """Every flag the text attaches to `tool` in the span it is given.
 
-    The union rather than any single command on purpose: both sides quote weak
-    forms as counter-examples — `cargo check` where clippy belongs, clippy
-    without `--all-targets` — and a rule keyed to one command would have to
-    guess which quotation is the requirement. A flag that disappears from every
-    invocation has left the floor; a flag quoted once as a bad example is still
-    named by the side that names it.
+    The two sides are given different spans, and that asymmetry is the point.
+    The rulebook's is its whole floor section, unioned: it states requirements in
+    prose and quoting a weak form there does not weaken the bar. The doctor's is
+    its floor table alone, because that is where its requirements live — a flag
+    deleted from the table would otherwise survive in the paragraph warning
+    against deleting it, and the comparison would pass while the graded bar had
+    dropped. That direction is the one this whole check exists for.
     """
     flags: set[str] = set()
     for span in _BACKTICKED.findall(text):
@@ -190,10 +191,21 @@ def _rulebook_text(language: str) -> str:
 
 
 def _doctor_text(language: str) -> str:
+    """The doctor's floor **table** for a language, not the prose around it.
+
+    Only the table states requirements; the paragraphs beside it explain them,
+    and they do that partly by quoting the weak forms — `cargo check` where
+    clippy belongs, clippy without `--all-targets`. Unioning flags across the
+    whole section would let a requirement be deleted from the table and survive
+    in the counter-example that warns against dropping it, which is the one
+    direction this comparison exists to catch.
+    """
     text = _FLOORS.read_text(encoding="utf-8")
     section = re.search(rf"^## {language}$(.*?)(?=^## |\Z)", text, re.S | re.M)
     assert section, f"tooling-floors.md has no `## {language}` section"
-    return section.group(1)
+    rows = [line for line in section.group(1).splitlines() if line.startswith("| `")]
+    assert rows, f"no floor table rows under `## {language}`"
+    return "\n".join(rows)
 
 
 @pytest.mark.parametrize("language", sorted(_FLOOR_HEADINGS))

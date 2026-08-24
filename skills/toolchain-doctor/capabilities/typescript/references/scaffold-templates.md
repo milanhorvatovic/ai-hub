@@ -9,9 +9,7 @@ The floor is `strict`. The extras below it are worth enabling once a project is 
 ```json
 {
   "compilerOptions": {
-    "strict": true,
-    "module": "<the project's existing module setting>",
-    "moduleResolution": "<the project's existing resolution setting>"
+    "strict": true
   },
   "include": ["<the source directory>"]
 }
@@ -30,6 +28,8 @@ The three extras are **not** scaffolded. They are recommendations, no floor row 
 ```
 
 Keeping them separate is the whole point rather than tidiness: each produces its own class of error across an existing codebase, and enabling all four at once yields a diff nobody can review.
+
+Module settings are deliberately absent. The common case for this template is a project with no `tsconfig.json` at all, where there is no existing `module` or `moduleResolution` to carry over and the rule against inventing policy forbids picking one — a placeholder nobody can fill is worse than an omission, because it ships to the user as a blank to guess at. Where the project has a config already, its settings stay untouched; where it has none, ask which module system the project targets rather than assuming.
 
 Where the project already extends a shared base, add the options to the project's own config rather than editing the base — a base config is usually shared with packages this audit never looked at.
 
@@ -88,7 +88,7 @@ The dependency and script blocks come from whichever route the audit picked, not
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "biome check ."
+    "check": "biome check ."
   }
 }
 ```
@@ -152,8 +152,7 @@ jobs:
           cache: "<npm, pnpm, or yarn>"
       - run: <the project's install command, resolving the tracked lock file>
       - run: <the project's script runner> typecheck
-      - run: <the project's script runner> lint
-      - run: <the project's script runner> format:check # Route B only
+      - run: <the project's script runner> <check on Route A; lint and format:check on Route B>
 ```
 
 The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
@@ -162,4 +161,4 @@ What fixes the version is an exact constraint or the tracked lock file, not the 
 
 `typecheck` is its own script for a reason worth stating in the pull request that adds it: the build already compiles this code, and compiling is not checking. A bundler that strips types will build a project whose types have never once been verified, and the failure surfaces at runtime in a shape that looks nothing like a type error.
 
-Keep the script names honest about what they invoke. A `lint` script that runs the formatter, or a `format` script that also lints, is the naming defect this audit reports on the next run — and with `biome` covering both jobs, one `lint` script is the accurate shape rather than two names for the same call.
+Keep the script names honest about what they invoke, which is why Route A's script is `check` and not `lint`. `biome check` lints and formats, so calling it `lint` is precisely the naming defect this audit reports on the next run — the scaffold would have created the finding it exists to close. Route B keeps `lint` and `format:check` separate because there the two jobs really are two tools.
