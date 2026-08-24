@@ -26,7 +26,7 @@ run_tool $FLAGS
 The section headers come from the inventory, not from `*.sh`. This is the same trap as the linter's file list: the scan exists to find the shell that no extension glob matches, and a config keyed only to `[*.sh]` then formats the hooks and `bin/` scripts with `shfmt`'s defaults instead — one repository, two formatting policies, and the files with the widest blast radius on the wrong one.
 
 ```ini
-[*.sh]
+[*.{sh,bash}]
 indent_style = space
 indent_size = 2
 switch_case_indent = true
@@ -59,14 +59,16 @@ set -euo pipefail
   git ls-files -z | tr '\0' '\n' |
     while IFS= read -r f; do
       [ -f "$f" ] || continue
-      if head -n 1 -- "$f" | grep -Eq '^#!.*[/ ](sh|bash|dash|ksh|mksh|zsh)([[:space:]]|$)'; then
+      if head -n 1 -- "$f" | grep -Eq '^#!.*[/ ](sh|bash|dash|ksh|mksh)([[:space:]]|$)'; then
         printf '%s\n' "$f"
       fi
     done
 } | sort -u
 ```
 
-The interpreter list is the shell family `shellcheck` can actually check, not just the two spellings of Bash. A pattern matching only `sh` and `bash` silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, which reproduces the coverage under-reach this whole capability exists to find — inside the script written to prevent it. An interpreter outside the list is worth reporting by name rather than skipping quietly: `shellcheck` will refuse it, and the maintainer should hear that from the audit rather than from a red build.
+The interpreter list is exactly what `shellcheck` accepts — `sh`, `bash`, `dash`, `ksh`, `mksh` — and it is that list for a reason worth stating in both directions. Matching only the two spellings of Bash silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, which reproduces the coverage under-reach this capability exists to find. Matching more than the tool supports is the opposite failure and the worse one: `zsh` is deliberately absent, because feeding a zsh script to `shellcheck` produces `SC1071` — an unsupported-shell error, not a lint result — so one such file in a repository turns the whole job red with a message about nothing the scaffold can fix.
+
+Report zsh scripts by name as outside the audit's reach, rather than dropping them silently or feeding them to a tool that will refuse them. That is the honest answer for a file this floor cannot cover.
 
 Two more details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
 
@@ -86,11 +88,14 @@ shell:
     - name: install shellcheck and shfmt
       run: |
         mkdir -p "$RUNNER_TEMP/bin"
-        curl -fsSL "https://github.com/koalaman/shellcheck/releases/download/v<pinned>/shellcheck-v<pinned>.linux.x86_64.tar.xz" \
-          | tar -xJ -C "$RUNNER_TEMP/bin" --strip-components=1 "shellcheck-v<pinned>/shellcheck"
-        curl -fsSL -o "$RUNNER_TEMP/bin/shfmt" \
-          "https://github.com/mvdan/sh/releases/download/v<pinned>/shfmt_v<pinned>_linux_amd64"
-        chmod +x "$RUNNER_TEMP/bin/shfmt"
+        cd "$RUNNER_TEMP"
+        curl -fsSLO "https://github.com/koalaman/shellcheck/releases/download/v<pinned>/shellcheck-v<pinned>.linux.x86_64.tar.xz"
+        curl -fsSLo shfmt "https://github.com/mvdan/sh/releases/download/v<pinned>/shfmt_v<pinned>_linux_amd64"
+        printf '%s  %s\n' "<shellcheck sha256>" "shellcheck-v<pinned>.linux.x86_64.tar.xz" > sums
+        printf '%s  %s\n' "<shfmt sha256>" "shfmt" >> sums
+        sha256sum -c sums
+        tar -xJf "shellcheck-v<pinned>.linux.x86_64.tar.xz" -C bin --strip-components=1 "shellcheck-v<pinned>/shellcheck"
+        install -m 0755 shfmt bin/shfmt
         echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
     - name: shellcheck
       run: |
@@ -99,6 +104,8 @@ shell:
     - name: shfmt
       run: shfmt -d <the same file list>
 ```
+
+Both downloads are checksum-verified before anything is extracted or made executable, and the digests are recorded here rather than fetched alongside the artifact. A version tag is not an identity: a release asset can be replaced without its URL changing, so a pinned version alone leaves the job executing whatever is behind that link today. The version pins which release the job wants; the digest is what makes the job refuse a different one. Fetching the checksums from the same host at the same time would verify only that the download was not corrupted in transit, which is not the question.
 
 The binaries land in a runner-writable directory and reach the later steps through `GITHUB_PATH`, rather than being written straight into a system path. A job runs as an unprivileged user, so a scaffold that assumes it can write to `/usr/local/bin` risks failing before either check runs — and failing in the install step, where the error says nothing about shell linting.
 

@@ -69,12 +69,13 @@ check:
         components: rustfmt, clippy
     - run: cargo fmt --all --check
     - run: cargo clippy --workspace --all-targets -- -D warnings
-    - run: cargo test --workspace
 ```
 
 Every element of the `clippy` line is load-bearing, and two of them answer different questions. `--all-targets` brings tests, benches, and examples into scope, which is where a surprising share of a crate's code lives. `--workspace` decides which _packages_ get looked at, and it is the one most often assumed rather than written: without it Cargo lints the default selection, which a workspace declaring `default-members` can narrow to a subset — so a job reading `clippy --all-targets` can look exhaustive and never touch a member. On a single-crate repository the flag is harmless surplus; in a workspace its absence is the gap. `-- -D warnings` is what turns output into a gate; without it the job passes while printing the findings it was added to catch. And `clippy` rather than `check` is the difference between "does this compile" and "is this right" — a pipeline running `cargo check` here is the most common way this floor row goes unmet while looking met.
 
-`cargo fmt --all` and `cargo test --workspace` carry the same package-selection reasoning; the spellings differ because `fmt` predates the `--workspace` flag and kept `--all` as its name for it.
+`cargo fmt --all` carries the same package-selection reasoning as clippy's `--workspace`; the spellings differ because `fmt` predates that flag and kept `--all` as its name for it.
+
+There is no test step here, deliberately. Testing is not a row of the tooling floor and no audit finding produces it, so adding one would be the scaffold deciding what the project should run rather than closing something the report named. Where a repository already has a test command, it stays when this template is adapted — the rule is that the doctor does not introduce one.
 
 ## Testing the MSRV you declare
 
@@ -86,4 +87,4 @@ strategy:
     rust: ["<the declared rust-version>", "stable"]
 ```
 
-Run only the build and test steps on the older toolchain — `clippy` lints move between releases, so pinning lint results to an MSRV toolchain produces failures about the linter's age rather than the code's correctness.
+Run whatever build or test commands the project already has on the older toolchain, and not the lint steps above — `clippy` lints move between releases, so holding lint results to an MSRV toolchain produces failures about the linter's age rather than the code's correctness.
