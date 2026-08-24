@@ -65,7 +65,7 @@ Run it once and read the output before wiring it into CI. The list is the audit'
 shell:
   runs-on: ubuntu-latest
   steps:
-    - uses: actions/checkout@<40-char-sha> # v5
+    - uses: actions/checkout@<40-char-sha> # <the version this sha is>
     - name: shellcheck
       run: |
         shopt -s globstar
@@ -75,5 +75,7 @@ shell:
 ```
 
 `shellcheck` is preinstalled on GitHub's Ubuntu runners, so this step needs no install — one of the few places where the floor costs nothing to adopt. `shfmt -d` prints a diff and exits non-zero when a file would change, which is the check-mode behavior; `shfmt -w` writes, and belongs nowhere near CI.
+
+The version that comes free is the image's, so this shape is deliberately the floating one, and the audit will say so on the next run. That is the right trade on adoption day: a repository with no shell linting at all gains more from a step that exists than from a pinned step it has to maintain, and the pin is a small edit — a pinned setup action, or an explicit version in an install step — worth making once a runner image update has actually cost the team a red build. Prescribe it then, not before.
 
 Hooks are the case worth being explicit about. If the inventory found `.githooks/` or `.husky/`, they are in the list — they run on every commit on every contributor's machine, which makes them the shell in the repository with the widest blast radius and, almost always, the least review.

@@ -52,32 +52,37 @@ export default [js.configs.recommended, prettier];
 
 ## The CI steps
 
-```yaml
-check:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@<40-char-sha> # v5
-    - uses: actions/setup-node@<40-char-sha> # v6
-      with:
-        node-version: "<the project's version>"
-        cache: "<npm, pnpm, or yarn>"
-    - run: <the project's install command>
-    - run: npx tsc --noEmit
-    - run: <npx biome check . | npx eslint . && npx prettier --check .>
-```
-
-`tsc --noEmit` is its own step for a reason worth stating in the pull request that adds it: the build already compiles this code, and compiling is not checking. A bundler that strips types will build a project whose types have never once been verified, and the failure surfaces at runtime in a shape that looks nothing like a type error.
-
-Where the repository routes through `package.json` scripts, add the commands there and have CI call the scripts, so contributors and CI run the same thing:
+The scripts come first, and CI calls them — not because it is tidier, but because a CI step invoking a tool directly runs a different thing from what contributors run, and one of the two will drift without anyone noticing.
 
 ```json
 {
+  "devDependencies": {
+    "typescript": "<pinned>",
+    "@biomejs/biome": "<pinned>"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "biome check .",
-    "format:check": "biome check ."
+    "lint": "biome check ."
   }
 }
 ```
 
-A `lint` script that runs the formatter, or a `format` script that also lints, is the naming defect this audit reports on the next run — keep the script names honest about what they invoke.
+```yaml
+check:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+    - uses: actions/setup-node@<40-char-sha> # <the version this sha is>
+      with:
+        node-version: "<the project's version>"
+        cache: "<npm, pnpm, or yarn>"
+    - run: <the project's install command, resolving the tracked lock file>
+    - run: npm run typecheck
+    - run: npm run lint
+```
+
+The tools are devDependencies rather than `npx` invocations, and that is the whole difference between a pinned toolchain and a floating one. `npx eslint` in a CI step resolves whatever is current when nothing in the tree declares the package, so a rule added upstream arrives as a red build on an unrelated change — and it does it quietly, because the same command locally finds the installed copy and behaves. A declared dependency plus a tracked lock file is what fixes which version runs.
+
+`typecheck` is its own script for a reason worth stating in the pull request that adds it: the build already compiles this code, and compiling is not checking. A bundler that strips types will build a project whose types have never once been verified, and the failure surfaces at runtime in a shape that looks nothing like a type error.
+
+Keep the script names honest about what they invoke. A `lint` script that runs the formatter, or a `format` script that also lints, is the naming defect this audit reports on the next run — and with `biome` covering both jobs, one `lint` script is the accurate shape rather than two names for the same call.

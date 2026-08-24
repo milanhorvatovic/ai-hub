@@ -59,8 +59,8 @@ Two things separate a real lint job from a decorative one: it runs on pull reque
 lint:
   runs-on: ubuntu-latest
   steps:
-    - uses: actions/checkout@<40-char-sha> # v5
-    - uses: actions/setup-python@<40-char-sha> # v6
+    - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+    - uses: actions/setup-python@<40-char-sha> # <the version this sha is>
       with:
         python-version: "<3.XX>"
     - run: pip install ruff==<pinned> mypy==<pinned>

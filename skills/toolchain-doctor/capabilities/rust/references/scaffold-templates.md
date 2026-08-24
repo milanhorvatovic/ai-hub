@@ -55,7 +55,7 @@ Listing the components is what makes a fresh checkout able to run the floor's co
 check:
   runs-on: ubuntu-latest
   steps:
-    - uses: actions/checkout@<40-char-sha> # v5
+    - uses: actions/checkout@<40-char-sha> # <the version this sha is>
     - uses: <rust setup action>@<40-char-sha>
       with:
         components: rustfmt, clippy

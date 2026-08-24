@@ -174,6 +174,45 @@ def test_the_consent_model_still_names_what_it_forbids() -> None:
     assert not missing, f"the never-installs principle no longer names: {missing}"
 
 
+# Shapes a capability's audit calls out, which its own templates must therefore
+# not prescribe. Each entry pairs the shape with a phrase from the audit bullet
+# that flags it, so the pin cannot drift into forbidding something the skill
+# does not actually grade — the anchor is asserted alongside the shape.
+_SELF_CONTRADICTIONS = (
+    ("typescript", "npx ", "Tools reached through `npx`"),
+    ("rust", "cargo check", "`cargo check` standing in for `clippy`"),
+)
+
+
+@pytest.mark.parametrize(
+    ("language", "shape", "anchor"), _SELF_CONTRADICTIONS, ids=lambda v: str(v)[:24]
+)
+def test_no_template_prescribes_what_its_own_audit_flags(
+    language: str, shape: str, anchor: str
+) -> None:
+    """The doctor has to agree with itself.
+
+    A scaffold exists to close a finding, so a template that hands the user a
+    shape the same capability grades as a defect leaves the repository failing
+    an audit it just passed — and the contradiction is invisible from either
+    file alone, because each one reads as sensible advice. This caught a real
+    one: the typescript CI template prescribed `npx` invocations on the same
+    day the capability started grading them as unpinned.
+    """
+    capability = _SKILL / "capabilities" / language / "capability.md"
+    assert anchor in capability.read_text(encoding="utf-8"), (
+        f"{language}'s audit no longer flags {shape!r} — drop this pin or "
+        "restore the finding, but do not leave a template pinned to nothing"
+    )
+
+    templates = _SKILL / "capabilities" / language / "references" / "scaffold-templates.md"
+    fenced = "\n".join(_FENCE.findall(templates.read_text(encoding="utf-8")))
+    assert shape not in fenced, (
+        f"{language}'s templates prescribe {shape!r}, which its own audit grades "
+        "as a finding — a scaffolded repo would not re-audit clean"
+    )
+
+
 @pytest.mark.parametrize("capability", _CAPABILITIES, ids=lambda p: p.parent.name)
 def test_no_capability_instructs_an_install(capability: Path) -> None:
     """Fenced templates may show an install command — a CI step the user applies
