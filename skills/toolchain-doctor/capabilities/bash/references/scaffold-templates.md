@@ -76,7 +76,7 @@ git ls-files -z |
   done
 ```
 
-The `--` before the appended paths is not decoration. A tracked file may legally be named `-deploy.sh`, and `xargs` appends it as an argument like any other, so the tool reads it as a bundle of options: `shellcheck -deploy.sh` answers `unrecognized option \`-d'`and the job fails on a filename rather than on a script. The terminator was checked against`shellcheck`directly;`shfmt` takes it by the same convention, which is stated here rather than claimed as tested.
+The `--` before the appended paths is not decoration. A tracked file may legally be named `-deploy.sh`, and `xargs` appends it as an argument like any other, so the tool reads it as a bundle of options and reports an unrecognized option — the job then fails on a filename rather than on a script. The terminator was checked against `shellcheck` directly; `shfmt` takes it by the same convention, which is stated here rather than claimed as tested.
 
 NUL delimiters end to end, because a path is not a line. Git emits `-z` for a reason: a filename may legally contain a newline, and converting to newlines on the way in splits one such path into two bogus entries — then hands them to a linter as two files that do not exist. Reading with `read -d ''` and emitting with a trailing NUL keeps the list usable as arguments, which is what the CI step below consumes it as.
 

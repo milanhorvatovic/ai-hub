@@ -21,12 +21,13 @@ Rule families beyond the default set are worth naming in the report as options �
 [tool.mypy]
 python_version = "<3.XX matching requires-python>"
 files = ["<the package directory>"]
-disallow_untyped_defs = true
 ```
 
 `files` is the row that matters, and not because omitting it produces a green check of nothing — `mypy` with no target in the config and none on the command line exits with an error, so that failure is loud rather than silent. It matters because it fixes the scope in one place: without it, what gets checked is whatever each call site passes, so CI and a contributor's local run can cover different sets and neither notices. Naming the package here makes the scope a property of the project instead of a property of the invocation.
 
-`disallow_untyped_defs` is here because it is the floor rather than above it: the floor asks for annotations on the public surface, and a checker left at its defaults accepts a package with none. Scaffolding the scope without it produces a job that traverses everything and requires nothing.
+No enforcement setting is scaffolded, and the reason is a gap in what the tools can express. The floor asks for annotations on the **public** surface and explicitly lets obvious internal helpers go untyped; `mypy` has no setting scoped that way. `disallow_untyped_defs` is the nearest lever and it reaches every definition in the package, so scaffolding it to close a public-surface finding would gate legacy internals the floor never asked about — trading an under-enforcing default for an over-enforcing one.
+
+So the audit checks the public surface by reading the checker's missing-annotation diagnostics, and the report names `disallow_untyped_defs` as the available lever together with what it costs. Write it when the user accepts that scope.
 
 `strict = true` is deliberately not here. The floor asks that a checker cover the public surface, not that it run at maximum strictness, and defaulting to strict turns a scaffold meant to close "no type checker configured" into a CI job failing across an existing codebase for policies the audit never reported. Name it in the report as the destination; write it when the user asks.
 
@@ -40,15 +41,13 @@ disallow_untyped_defs = false
 
 ## `pyright` in `pyrightconfig.json`
 
-The alternative to `mypy`, not an addition to it. Scaffold this only when the project already leans on it or asks for it. The two diagnostics carry the same weight as `disallow_untyped_defs` does on the other route — `standard` mode alone does not require complete public annotations, so without them this config checks types wherever they exist and never asks for the ones that do not.
+The alternative to `mypy`, not an addition to it. Scaffold this only when the project already leans on it or asks for it. `reportMissingParameterType` and `reportMissingReturnType` are this route's equivalent of `disallow_untyped_defs`, and they are left out for the same reason: both report on internal functions as readily as on the public surface, so enabling them by default gates more than the floor requires. Name them in the report with their scope stated; write them on request.
 
 ```json
 {
   "include": ["<the package directory>"],
   "pythonVersion": "<3.XX>",
-  "typeCheckingMode": "standard",
-  "reportMissingParameterType": "error",
-  "reportMissingReturnType": "error"
+  "typeCheckingMode": "standard"
 }
 ```
 

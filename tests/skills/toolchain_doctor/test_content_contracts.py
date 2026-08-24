@@ -55,9 +55,20 @@ _GRADE_USES = (
 
 # The commands the router's consent model promises never to run. Listed here so
 # a principle that quietly loses one fails rather than reads the same.
+#
+# The list covers the package managers this skill actually discusses, because
+# the router's promise is about any of them and a detector holding five names
+# pins a much smaller promise than the one written. The managers named in the
+# floors are the ones a reader is most likely to be told to reach for.
 _INSTALL_COMMANDS = (
     "pip install",
+    "uv add",
+    "poetry add",
+    "pipenv install",
     "npm i",
+    "pnpm add",
+    "yarn add",
+    "bun add",
     "cargo install",
     "brew install",
     "rustup component add",
