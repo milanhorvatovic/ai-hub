@@ -26,9 +26,11 @@ This is the step that distinguishes a useful shell audit from a decorative one, 
 | `*.sh`, `*.bash` | Found by everyone; the easy case |
 | Extensionless files with a shell shebang | `bin/deploy`, `scripts/release` — invisible to an extension glob, and usually the most consequential scripts in the repository |
 | `.githooks/`, `.husky/` | Hooks are scripts, run on every commit, and routinely unlinted |
-| CI `run:` blocks | Multi-line `run:` in a workflow is a shell script living in YAML |
-| `Makefile` recipes | Each recipe line is shell, with its own quoting hazards and its own tab-sensitivity |
-| Dockerfile `RUN` lines | Shell, executed at build time, and frequently the least reviewed lines in the repository |
+| CI `run:` blocks | Multi-line `run:` in a workflow is a shell script living in YAML — when the step's shell is a shell. A `shell:` key can select `pwsh`, `python`, or something else entirely, and the default is not the same on every runner image |
+| `Makefile` recipes | Each recipe line is shell, with its own quoting hazards and its own tab-sensitivity — unless the makefile sets `SHELL` to something that is not one |
+| Dockerfile `RUN` lines | Shell in the shell form, executed at build time, and frequently the least reviewed lines in the repository — but a `SHELL` directive can change the interpreter, the exec form is not shell at all, and a Windows base image defaults to `cmd` |
+
+**Resolve each location's interpreter before counting it.** Every row above can hold something that is not shell, and treating the location as proof of the language produces a shell audit of a repository that writes its CI steps in PowerShell — a lane that should never have loaded, reporting findings against files it has misread. Read the `shell:` key, the makefile's `SHELL`, the Dockerfile's directive and form; where the interpreter cannot be established, leave the block out and say so rather than assuming the common case.
 
 **Files and embedded shell are reported separately, and only files are in the coverage contract.** `shellcheck` takes paths, so a `run:` block, a recipe, and a `RUN` line cannot be handed to it as they stand — which means a coverage finding against them would be one the scaffold has no prescription able to close, and a report full of those teaches a reader to ignore the section. Embedded shell is reported as an **observation** naming where it lives and roughly how much there is, with one prescription when the volume justifies it: move the block into a script file, which brings it inside the inventory and under the same linting as everything else. Repositories that keep a hundred lines of shell in a workflow step usually did it by accretion, and the observation is how they find out.
 

@@ -96,6 +96,13 @@ A `rust-version` nothing builds against is a promise with no evidence. Where the
 strategy:
   matrix:
     rust: ["<the declared rust-version>", "stable"]
+steps:
+  - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+  - uses: <rust setup action>@<40-char-sha> # <the version this sha is>
+    with:
+      toolchain: ${{ matrix.rust }}
 ```
+
+The matrix value has to reach the setup action's toolchain input, which is the step this snippet exists for. A matrix that names two toolchains while the setup step installs its default gives two jobs on the same compiler — the older version is never built, and the audit would read the matrix as evidence the declared MSRV is exercised when nothing installed it.
 
 Run whatever build or test commands the project already has on the older toolchain, and not the lint steps above — `clippy` lints move between releases, so holding lint results to an MSRV toolchain produces failures about the linter's age rather than the code's correctness.
