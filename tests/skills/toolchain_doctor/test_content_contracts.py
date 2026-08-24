@@ -31,13 +31,21 @@ _TABLE_ROW = re.compile(r"^\| `([a-z]+)` \|", re.M)
 _FENCE = re.compile(r"```.*?```", re.S)
 _INLINE_CODE = re.compile(r"`[^`\n]*`")
 
-# Two narrow frames the skill's prose uses to attach a grade to a finding.
-# Narrow on purpose: a loose frame sweeps up tool names sitting near the word
-# "graded" and then reports them as unregistered vocabulary, which trains
-# whoever hits it to widen the allowlist rather than fix the text.
+# The frames the skill's prose uses to attach a grade to a finding. Both
+# registry directions read through these, so "declared" and "assigned" are the
+# same question asked twice — a presence check would pass on a sentence that
+# merely names a grade to say something is *not* one, which is a dead entry
+# wearing a citation.
+#
+# Each frame is anchored to a verb or a noun rather than to proximity: a loose
+# frame sweeps up the tool names sitting near the word "graded" and reports
+# them as unregistered vocabulary, which teaches whoever hits it to widen an
+# allowlist instead of fixing the text.
 _GRADE_USES = (
     re.compile(r"\bgraded\s+(?:an?\s+)?`([a-z]+)`"),
     re.compile(r"`([a-z]+)`\s+finding"),
+    re.compile(r"\bis an?\s+`([a-z]+)`"),
+    re.compile(r"\bgrade\s+(?:the\s+\w+(?:\s+\w+)?\s+row\s+)?(?:an?\s+)?`([a-z]+)`"),
 )
 
 # The commands the router's consent model promises never to run. Listed here so
@@ -121,8 +129,7 @@ def test_every_grade_a_capability_assigns_is_registered() -> None:
     used = {
         (path.parent.name, grade)
         for path in _CAPABILITIES
-        for frame in _GRADE_USES
-        for grade in frame.findall(_prose(path))
+        for grade in _assigned_grades(path)
     }
     unregistered = sorted(
         f"{where}: `{grade}`" for where, grade in used if grade not in registered
@@ -134,6 +141,12 @@ def test_every_grade_a_capability_assigns_is_registered() -> None:
     assert used, "no capability assigns a grade in a recognized frame — check the frames"
 
 
+def _assigned_grades(path: Path) -> set[str]:
+    """The grades a capability actually attaches to a finding."""
+    prose = _prose(path)
+    return {grade for frame in _GRADE_USES for grade in frame.findall(prose)}
+
+
 @pytest.mark.parametrize("grade", sorted(_registered_grades()))
 def test_every_registered_grade_is_used(grade: str) -> None:
     """The forward direction: vocabulary declared and never applied.
@@ -141,9 +154,13 @@ def test_every_registered_grade_is_used(grade: str) -> None:
     A grade nothing assigns is a promise the reports never keep, and it reads as
     coverage — a maintainer scanning the table has no way to tell which rows the
     skill can actually produce.
+
+    Assignment, not mention. Asking only whether the token appears lets a
+    sentence that names a grade to rule it out — "that is not a `gap`" — stand
+    in for one that produces it, so a genuinely dead entry keeps its citation
+    and the invariant this test claims to hold quietly stops holding.
     """
-    marker = f"`{grade}`"
-    users = [path.parent.name for path in _CAPABILITIES if marker in _prose(path)]
+    users = [path.parent.name for path in _CAPABILITIES if grade in _assigned_grades(path)]
     assert users, f"`{grade}` is declared but no capability ever assigns it"
 
 

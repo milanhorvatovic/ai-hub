@@ -24,8 +24,18 @@ run_tool $FLAGS
 
 `shfmt` reads `.editorconfig`, which is also what a contributor's editor reads — one declaration for both, instead of flags that live only in a CI step.
 
+The section headers come from the inventory, not from `*.sh`. This is the same trap as the linter's file list: the scan exists to find the shell that no extension glob matches, and a config keyed only to `[*.sh]` then formats the hooks and `bin/` scripts with `shfmt`'s defaults instead — one repository, two formatting policies, and the files with the widest blast radius on the wrong one.
+
 ```ini
 [*.sh]
+indent_style = space
+indent_size = 2
+switch_case_indent = true
+binary_next_line = true
+
+# One section per extensionless path the inventory found; EditorConfig matches
+# on path patterns, so these cannot be folded into the glob above.
+[{.githooks/*,bin/deploy,bin/release}]
 indent_style = space
 indent_size = 2
 switch_case_indent = true
@@ -33,6 +43,8 @@ binary_next_line = true
 ```
 
 `switch_case_indent` and `binary_next_line` are the `-ci` and `-bn` flags spelled as settings. When the repository already invokes `shfmt` with flags somewhere, translate the flags it uses rather than imposing these — a reformat of every script is a large diff to hand someone who asked for a config file.
+
+Where the inventory's extensionless paths are too many or too scattered to enumerate, the honest alternative is to skip `.editorconfig` for them and pass one explicit flag set to every `shfmt` invocation instead. That loses the editor half of the deal and should be said out loud; what it does not do is leave half the repository formatted by a policy nobody chose.
 
 ## Finding the files to check
 

@@ -19,15 +19,15 @@ Audits a Python project's toolchain configuration. Modes and their contracts com
 
 ## Where the declarations live
 
-In precedence order — the first file that declares a tool's settings owns them, and a tool declared in two of these is a `drift` finding rather than a merge:
+**Each tool's own discovery order, not one shared ranking.** The column below is ordered as the tool itself searches, and the tools disagree — a standalone file wins for `ruff` and `pyright`, while `mypy` prefers its `.ini` and reaches `pyproject.toml` only after. Reporting the first file a human would look in, rather than the first the tool would load, is how a scan cites a config that nothing reads. Where a tool has settings in more than one of its own locations, the lower-precedence one is a `drift` finding: it is not merged, it is ignored, and someone edited it expecting otherwise.
 
-| Tool | Config locations |
+| Tool | Config locations, highest precedence first |
 | --- | --- |
-| `ruff` | `pyproject.toml` `[tool.ruff]`, `ruff.toml`, `.ruff.toml` |
-| `mypy` | `pyproject.toml` `[tool.mypy]`, `mypy.ini`, `.mypy.ini`, `setup.cfg` `[mypy]`, `tox.ini` `[mypy]` |
-| `pyright` | `pyproject.toml` `[tool.pyright]`, `pyrightconfig.json` |
-| interpreter version | `pyproject.toml` `requires-python` / `[tool.ruff] target-version`, `setup.cfg` `python_requires`, `.python-version`, `mise.toml`, CI matrix entries |
-| environment | `uv.lock`, `poetry.lock`, `requirements*.txt` with a `pip-compile` header, `[tool.hatch.envs]`, `Pipfile.lock` |
+| `ruff` | `.ruff.toml`, `ruff.toml`, `pyproject.toml` `[tool.ruff]` |
+| `mypy` | `mypy.ini`, `.mypy.ini`, `pyproject.toml` `[tool.mypy]`, `setup.cfg` `[mypy]` — with `tox.ini` `[mypy]` read only when passed explicitly |
+| `pyright` | `pyrightconfig.json`, `pyproject.toml` `[tool.pyright]` |
+| interpreter version | no single owner — `pyproject.toml` `requires-python` is the project's declaration, `.python-version` and `mise.toml` bind local shells, a CI matrix binds CI, and `[tool.ruff] target-version` binds one linter's syntax rules. They are peers, and disagreement between them is the finding |
+| environment | `uv.lock`, `poetry.lock`, `requirements*.txt` with a `pip-compile` header, `[tool.hatch.envs]`, `Pipfile.lock` — a project uses one, and two is the finding |
 
 `setup.py` may carry `python_requires` as a keyword argument. Read it as a declaration when it is a literal; when it is computed, grade the version row `unknown` rather than parsing Python by eye.
 

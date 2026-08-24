@@ -122,6 +122,92 @@ def test_both_skills_state_the_same_floor(language: str) -> None:
     )
 
 
+# A flag is what turns a tool name into a requirement: `clippy` says which
+# binary, `--all-targets -- -D warnings` says what the floor actually asks of
+# it. Comparing names alone lets that half drift on either side while both
+# sets stay identical, which is the gap this pair of tests closes.
+_FLAG = re.compile(r"(?<![\w-])(--?[A-Za-z][\w-]*)")
+
+
+def _flags_for(text: str, tool: str) -> set[str]:
+    """Every flag the text attaches to `tool`, across all its invocations.
+
+    The union rather than any single command on purpose: both sides quote weak
+    forms as counter-examples — `cargo check` where clippy belongs, clippy
+    without `--all-targets` — and a rule keyed to one command would have to
+    guess which quotation is the requirement. A flag that disappears from every
+    invocation has left the floor; a flag quoted once as a bad example is still
+    named by the side that names it.
+    """
+    flags: set[str] = set()
+    for span in _BACKTICKED.findall(text):
+        for part in span.split("&&"):
+            part = part.strip()
+            if part.startswith(tool):
+                flags.update(_FLAG.findall(part))
+    return flags
+
+
+def _rulebook_text(language: str) -> str:
+    """The rulebook's floor plus the verification commands that realize it."""
+    capability = (_RULEBOOK / language / "capability.md").read_text(encoding="utf-8")
+    heading = _FLOOR_HEADINGS[language]
+    floor = re.search(rf"^{re.escape(heading)}$(.*?)(?=^## |\Z)", capability, re.S | re.M)
+    verification = re.search(r"^## Verification$(.*?)(?=^## |\Z)", capability, re.S | re.M)
+    assert floor, f"{language}: no `{heading}` section"
+    return floor.group(1) + (verification.group(1) if verification else "")
+
+
+def _doctor_text(language: str) -> str:
+    text = _FLOORS.read_text(encoding="utf-8")
+    section = re.search(rf"^## {language}$(.*?)(?=^## |\Z)", text, re.S | re.M)
+    assert section, f"tooling-floors.md has no `## {language}` section"
+    return section.group(1)
+
+
+@pytest.mark.parametrize("language", sorted(_FLOOR_HEADINGS))
+def test_the_doctor_never_asks_less_of_a_tool_than_the_rulebook(language: str) -> None:
+    """The requirements, not just the names.
+
+    `cargo clippy` satisfying the floor and `cargo clippy --all-targets -- -D
+    warnings` satisfying it are different bars, and the tool-name comparison
+    above cannot tell them apart — both sides would keep an identical set while
+    the doctor quietly graded repositories against a weaker rule than the fleet
+    states. So every flag the rulebook attaches to a shared tool must still be
+    attached on the doctor's side.
+
+    One-directional, and deliberately so. The doctor is allowed to be more
+    specific — it supplies `shfmt -d` for a check-mode run and `prettier
+    --check` where the rulebook names the tool without an invocation — so a
+    superset passes. What that does not catch is the rulebook weakening on its
+    own; the doctor then grades against the stricter of the two, which is the
+    safe direction to fail in and is worth knowing rather than assuming.
+    """
+    rulebook_text, doctor_text = _rulebook_text(language), _doctor_text(language)
+    dropped: list[str] = []
+    for tool in sorted(_doctor_floor(language) & _rulebook_floor(language)):
+        missing = _flags_for(rulebook_text, tool) - _flags_for(doctor_text, tool)
+        if missing:
+            dropped.append(f"{tool}: {sorted(missing)}")
+    assert not dropped, (
+        f"the doctor's {language} floor drops requirements the rulebook states:\n"
+        + "\n".join(dropped)
+    )
+
+
+def test_the_flag_reader_sees_what_it_claims_to() -> None:
+    """A flag reader that silently returns nothing agrees with every floor.
+
+    The superset check passes loudest when extraction has stopped working, so
+    the reader is exercised against a known invocation rather than trusted
+    because the suite is green.
+    """
+    sample = "run `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check`"
+    assert _flags_for(sample, "cargo clippy") == {"--all-targets", "-D"}
+    assert _flags_for(sample, "cargo fmt") == {"--check"}
+    assert _flags_for(sample, "shellcheck") == set()
+
+
 @pytest.mark.parametrize("language", sorted(_FLOOR_HEADINGS))
 def test_the_floor_is_not_empty(language: str) -> None:
     """An extraction that finds nothing agrees with an extraction that finds

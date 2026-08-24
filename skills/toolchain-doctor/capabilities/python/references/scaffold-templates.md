@@ -63,11 +63,13 @@ lint:
     - uses: actions/setup-python@<40-char-sha> # <the version this sha is>
       with:
         python-version: "<3.XX>"
-    - run: pip install ruff==<pinned> mypy==<pinned>
+    - run: pip install ruff==<pinned> <the project's type checker>==<pinned>
     - run: ruff check .
     - run: ruff format --check .
-    - run: mypy
+    - run: <the project's type-checker command>
 ```
+
+The type-checker rows are placeholders because the floor admits two tools and the repository has already picked one. Filling them with `mypy` regardless is how a `pyright` project asking for a missing CI step gets handed a second type checker instead — two tools disagreeing about the same code, which is a `conflict` finding on the next audit and a worse position than the wiring gap it was meant to close. Read the choice off the scan: `mypy` for a repository that declares it, `pyright` for one that declares that, and only where neither exists does the audit's alternatives line get to recommend either.
 
 Pin the tool versions. An unpinned linter turns every upstream release into a surprise red build on an unrelated pull request, which is the fastest route to a team adding `continue-on-error` and never removing it.
 

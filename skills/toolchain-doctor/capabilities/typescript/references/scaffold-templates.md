@@ -39,14 +39,21 @@ Two routes, and the audit picks between them from what the repository already ha
 }
 ```
 
-**Route B — `eslint` for lint, `prettier` for format.** Best fit for a project with an existing `eslint` rule set worth keeping. The load-bearing piece is turning off `eslint`'s stylistic rules so the two tools stop disagreeing:
+**Route B — `eslint` for lint, `prettier` for format.** Best fit for a project with an existing `eslint` rule set worth keeping.
 
 ```typescript
 import js from "@eslint/js";
+import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 
-export default [js.configs.recommended, prettier];
+export default tseslint.config(
+  js.configs.recommended,
+  tseslint.configs.recommended,
+  prettier,
+);
 ```
+
+The TypeScript config is not optional decoration here. `@eslint/js` alone brings no TypeScript parser, so `eslint .` walks the JavaScript it can parse and leaves the `.ts` and `.tsx` sources the project is actually written in unlinted — a scaffold that satisfies the lint floor on paper while checking almost none of the code. Add `typescript-eslint` as a devDependency alongside `eslint` when taking this route; a JavaScript-only repository is the one case that can drop it, and it should say so rather than inherit the omission.
 
 `eslint-config-prettier` goes last. It exists to disable every rule that would fight the formatter, and a config that lists it before the rule sets it is meant to neutralize has it backwards — the later entry wins, so the stylistic rules come back on.
 
