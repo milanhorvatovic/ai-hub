@@ -21,9 +21,12 @@ Rule families beyond the default set are worth naming in the report as options �
 [tool.mypy]
 python_version = "<3.XX matching requires-python>"
 files = ["<the package directory>"]
+disallow_untyped_defs = true
 ```
 
 `files` is the row that matters, and not because omitting it produces a green check of nothing — `mypy` with no target in the config and none on the command line exits with an error, so that failure is loud rather than silent. It matters because it fixes the scope in one place: without it, what gets checked is whatever each call site passes, so CI and a contributor's local run can cover different sets and neither notices. Naming the package here makes the scope a property of the project instead of a property of the invocation.
+
+`disallow_untyped_defs` is here because it is the floor rather than above it: the floor asks for annotations on the public surface, and a checker left at its defaults accepts a package with none. Scaffolding the scope without it produces a job that traverses everything and requires nothing.
 
 `strict = true` is deliberately not here. The floor asks that a checker cover the public surface, not that it run at maximum strictness, and defaulting to strict turns a scaffold meant to close "no type checker configured" into a CI job failing across an existing codebase for policies the audit never reported. Name it in the report as the destination; write it when the user asks.
 
@@ -37,13 +40,15 @@ disallow_untyped_defs = false
 
 ## `pyright` in `pyrightconfig.json`
 
-The alternative to `mypy`, not an addition to it. Scaffold this only when the project already leans on it or asks for it.
+The alternative to `mypy`, not an addition to it. Scaffold this only when the project already leans on it or asks for it. The two diagnostics carry the same weight as `disallow_untyped_defs` does on the other route — `standard` mode alone does not require complete public annotations, so without them this config checks types wherever they exist and never asks for the ones that do not.
 
 ```json
 {
   "include": ["<the package directory>"],
   "pythonVersion": "<3.XX>",
-  "typeCheckingMode": "standard"
+  "typeCheckingMode": "standard",
+  "reportMissingParameterType": "error",
+  "reportMissingReturnType": "error"
 }
 ```
 

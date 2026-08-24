@@ -76,6 +76,8 @@ git ls-files -z |
   done
 ```
 
+The `--` before the appended paths is not decoration. A tracked file may legally be named `-deploy.sh`, and `xargs` appends it as an argument like any other, so the tool reads it as a bundle of options: `shellcheck -deploy.sh` answers `unrecognized option \`-d'`and the job fails on a filename rather than on a script. The terminator was checked against`shellcheck`directly;`shfmt` takes it by the same convention, which is stated here rather than claimed as tested.
+
 NUL delimiters end to end, because a path is not a line. Git emits `-z` for a reason: a filename may legally contain a newline, and converting to newlines on the way in splits one such path into two bogus entries — then hands them to a linter as two files that do not exist. Reading with `read -d ''` and emitting with a trailing NUL keeps the list usable as arguments, which is what the CI step below consumes it as.
 
 One pass, not two. An earlier shape emitted every `*.sh` and `*.bash` file directly and ran the shebang test only over the rest, which meant a zsh script named `deploy.sh` went straight into the list the generated job feeds to `shellcheck` — the unsupported-shell failure this section promises to keep out, arriving through the branch that never checked. The shebang is the authority wherever there is one; the extension answers only for a file that declares nothing, and `shellcheck` reads those as `sh`, which is the right default.
@@ -114,9 +116,9 @@ shell:
         install -m 0755 shfmt bin/shfmt
         echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
     - name: shellcheck
-      run: <the discovery command above> | xargs -0 --no-run-if-empty shellcheck
+      run: <the discovery command above> | xargs -0 --no-run-if-empty shellcheck --
     - name: shfmt
-      run: <the discovery command above> | xargs -0 --no-run-if-empty shfmt -d
+      run: <the discovery command above> | xargs -0 --no-run-if-empty shfmt -d --
 ```
 
 Both downloads are checksum-verified before anything is extracted or made executable, and the digests are recorded here rather than fetched alongside the artifact. A version tag is not an identity: a release asset can be replaced without its URL changing, so a pinned version alone leaves the job executing whatever is behind that link today. The version pins which release the job wants; the digest is what makes the job refuse a different one. Fetching the checksums from the same host at the same time would verify only that the download was not corrupted in transit, which is not the question.
