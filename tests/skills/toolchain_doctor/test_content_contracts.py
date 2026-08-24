@@ -81,70 +81,51 @@ def _prose(path: Path) -> str:
     return _FENCE.sub("", path.read_text(encoding="utf-8"))
 
 
-def _consent_text(path: Path) -> str:
-    """What the skill says in its own voice, for the consent contract.
+# Every install-or-modify form of every package manager this skill discusses.
+# Subcommands rather than manager names: `cargo fmt` and `npm run` invoke checks,
+# and forbidding those would flag the tools the floors are built from.
+_INSTALL_FORMS = re.compile(
+    r"\b(?:pip install|pipx install|uv add|uv sync|uv pip install|poetry add"
+    r"|poetry install|pipenv install|pipenv sync|hatch env create|npm i\b|npm ci"
+    r"|npm install|pnpm add|pnpm install|yarn add|yarn install|bun add|bun install"
+    r"|cargo install|rustup component add|rustup toolchain install|brew install"
+    r"|apt-get install)"
+)
 
-    Fences are exempt in scaffold templates and nowhere else. There, a fenced
-    install is a CI step the user applies — the whole point of prescribing
-    rather than performing. In the router, a capability, or a shared reference,
-    a fence is still the skill talking, so exempting it everywhere let a fenced
-    order sit in a loaded instruction with the guard green.
+# The sites allowed to name one, each with the reason it is there.
+#
+# An inventory, after five rounds in which a regex trying to tell an order from
+# a citation was wrong five different ways: too broad, blind to code formatting,
+# blind to line breaks, tripped by a conditional, tripped by a neighbouring
+# clause. Every fix passed the tests written for it and failed a shape nobody
+# had thought of, which is what using the wrong instrument looks like from the
+# inside — each round felt like the last one.
+#
+# This cannot have a false negative. A new occurrence anywhere fails until it is
+# listed, and listing it is the review moment: someone has to say why the skill
+# is naming an install command, which is the judgement the regex was pretending
+# to make on its own.
+_ALLOWED_CITATIONS = {
+    "SKILL.md": "the consent model's own enumeration of what it refuses to run",
+    "capabilities/python/capability.md": "evidence for the unpinned-tool finding",
+    "capabilities/python/references/scaffold-templates.md": (
+        "the counter-example — what the CI step must not do instead of the lock"
+    ),
+    "references/diagnosis-grading.md": "the worked example of a `floating` finding",
+}
+
+
+def _install_citations(path: Path) -> set[str]:
+    """Install forms the file names in the skill's own voice.
+
+    Fences are exempt in scaffold templates and nowhere else: there a fenced
+    install is a CI step the user applies, which is the whole point of
+    prescribing rather than performing. In the router, a capability, or a shared
+    reference, a fence is still the skill talking.
     """
     text = path.read_text(encoding="utf-8")
-    return _FENCE.sub("", text) if path.name == "scaffold-templates.md" else text
-
-
-# An imperative reaching for one of the forbidden commands. Backticks are
-# optional in the pattern on purpose: markdown normally code-formats a command,
-# so "Run `pip install foo` first" is the *most* natural way to write the
-# violation, and a check that ignored inline code would be blind to exactly it.
-# What separates an instruction from a citation is the imperative in front,
-# not the formatting around it.
-_IMPERATIVE = r"\b(?:run|execute|invoke|call|then|install|use|add)\b"
-# The span between the verb and the command. A sentence ends the reach; a line
-# break does not, because "Run this command:\n`pip install foo`" is one
-# instruction wearing two lines.
-_REACH = r"[^.]{0,40}?"
-# A prohibition carries the same verb as an order and means the opposite.
-_NEGATION = re.compile(r"\b(?:never|not|no|forbid(?:s|den)?|without|avoid)\b", re.IGNORECASE)
-# ...unless the negation belongs to a condition rather than to the verb. "If
-# ruff is not installed, run pip install ruff" negates the state and orders the
-# command, so the negation must not be read as a prohibition there. Anchoring
-# the negation to the verb instead was tried and fails the router's own list,
-# where the single "No" governs eleven commands across one long sentence.
-_CONDITIONAL = re.compile(r"\b(?:if|unless|when|where|whenever)\b", re.IGNORECASE)
-
-
-def _instructs(prose: str, command: str) -> bool:
-    """True when the prose tells someone to run `command`, rather than citing it.
-
-    A capability has to name the commands it detects — an unconstrained
-    `pip install` in a CI step is the evidence behind a whole finding — so a
-    flat search for the command reports every citation as a violation. The
-    discriminator is the imperative, minus the two ways an imperative appears
-    without being one: a prohibition ("never run …") carries the same verb and
-    means the opposite, and an order can span the line break between "Run this
-    command:" and the command itself.
-
-    This stays a heuristic over prose, and it has been wrong three times now —
-    once too broad, once blind to code formatting, once to both of these. It
-    catches the shapes below and no more; treat a green run as "none of these
-    spellings appear", not as proof the skill never tells itself to install.
-    """
-    for match in re.finditer(_IMPERATIVE + _REACH + r"`?" + re.escape(command), prose, re.IGNORECASE):
-        verb_start = match.start()
-        sentence_start = prose.rfind(".", 0, verb_start) + 1
-        clause = prose[sentence_start:verb_start]
-        negation = _NEGATION.search(clause)
-        conditional = _CONDITIONAL.search(clause)
-        # A negation governs the verb unless a condition opened before it, in
-        # which case the negation belongs to the condition.
-        negated = negation is not None and not (
-            conditional is not None and conditional.start() < negation.start()
-        )
-        if not negated:
-            return True
-    return False
+    body = _FENCE.sub("", text) if path.name == "scaffold-templates.md" else text
+    return set(_INSTALL_FORMS.findall(body))
 
 
 def _registered_grades() -> set[str]:
@@ -349,59 +330,44 @@ def test_the_templates_still_carry_what_their_capability_requires(
 
 
 @pytest.mark.parametrize("doc", _ALL_SKILL_DOCS, ids=lambda p: str(p.relative_to(_SKILL)))
-def test_no_shipped_file_instructs_an_install(doc: Path) -> None:
-    """Fenced templates may show an install command — a CI step the user applies
-    is the user installing, which is the whole point of prescribing rather than
-    performing. Citations may appear in prose, because naming what the audit
-    detects is the capability's job. What may not appear is an imperative: the
-    skill telling itself to run one.
+def test_only_inventoried_files_name_an_install_command(doc: Path) -> None:
+    """The consent model, pinned by inventory rather than by reading intent.
 
-    The discriminator is the verb, not the backticks. An earlier version of this
-    test stripped inline code before searching, which cleared the citations and
-    also cleared "Run `pip install foo` first" — the most natural spelling of
-    the violation, since markdown code-formats commands by default.
-
-    Scope is every shipped markdown file, not the capabilities alone. The router
-    and the shared references are loaded instructions too, so a capability-only
-    check would have been green with an imperative sitting in either.
+    The skill promises it never runs a package manager. A file naming one is
+    either citing it — as evidence, as a counter-example, or as the list of what
+    is refused — or instructing it, and nothing pattern-matching over prose has
+    reliably told those apart. So every naming site is listed and an unlisted
+    one fails: the check is exact, and the judgement moves to whoever adds the
+    citation.
     """
-    prose = _consent_text(doc)
-    found = [command for command in _INSTALL_COMMANDS if _instructs(prose, command)]
-    assert not found, (
-        f"{doc.relative_to(_SKILL)} instructs {found} outside a template fence; "
-        "the skill prescribes installs, it does not perform them"
+    relative = str(doc.relative_to(_SKILL))
+    found = _install_citations(doc)
+    if not found:
+        return
+    assert relative in _ALLOWED_CITATIONS, (
+        f"{relative} names {sorted(found)} outside a template fence and is not in "
+        "the citation inventory. If the skill is citing the command, add the file "
+        "with its reason; if it is instructing one, the contract is breaking."
     )
 
 
-def test_the_consent_check_can_tell_an_order_from_a_citation() -> None:
-    """Both halves of the discriminator, asserted directly.
+def test_the_citation_inventory_describes_this_tree() -> None:
+    """An inventory that outlives its citations stops being one — a listed file
+    that no longer names an install form is a standing permission nobody would
+    notice granting."""
+    stale = [name for name in _ALLOWED_CITATIONS if not _install_citations(_SKILL / name)]
+    assert not stale, f"inventory lists files that no longer cite an install form: {stale}"
 
-    Each failure mode of this check looks like a passing test: too loose and
-    every capability trips on the commands it exists to detect, too tight and
-    the check reports nothing it was written to catch. Neither shows up in a
-    green run, so both are exercised here.
+
+def test_the_install_detector_reads_forms_not_tool_names() -> None:
+    """Both halves of the pattern, asserted directly.
+
+    Too narrow and the guard misses `uv sync` while catching `uv add`; too broad
+    and it flags `cargo fmt`, which is a floor tool rather than an install.
     """
-    assert _instructs("Run `pip install foo` first.", "pip install")
-    assert _instructs("Then execute pip install ruff before the scan.", "pip install")
-    # The verbs that read least like orders are the ones a violation reaches
-    # for: nobody writes "run cargo install", they write "install it with".
-    assert _instructs("Install it with `pip install ruff`.", "pip install")
-    assert _instructs("Use `cargo install cargo-deny` to get it.", "cargo install")
-    assert _instructs("Add it with `brew install shfmt` before scanning.", "brew install")
-    assert not _instructs(
-        "A CI step reading `pip install ruff` is a `floating` finding.", "pip install"
-    )
-    assert not _instructs("The floor forbids `pip install` into a global interpreter.", "pip install")
-    assert not _instructs(
-        "Where the project declares one and CI reaches for a bare `pip install` instead.",
-        "pip install",
-    )
-    # An order can span the line break between the lead-in and the command.
-    assert _instructs("Run this command:\n`pip install ruff`.", "pip install")
-    # A prohibition carries the same verb and means the opposite; flagging it
-    # would reject the clearest way a capability can state the rule.
-    assert not _instructs("Never run `pip install` on the user's behalf.", "pip install")
-    assert not _instructs("The skill does not run `pip install` for them.", "pip install")
-    # A negation inside a condition negates the condition, not the order.
-    assert _instructs("If ruff is not installed, run `pip install ruff`.", "pip install")
-    assert _instructs("When the lock is absent, use `uv add ruff` instead.", "uv add")
+    assert _INSTALL_FORMS.search("run `uv sync` first")
+    assert _INSTALL_FORMS.search("then `npm ci`")
+    assert _INSTALL_FORMS.search("`poetry install`")
+    assert not _INSTALL_FORMS.search("`cargo fmt --check`")
+    assert not _INSTALL_FORMS.search("`npm run lint`")
+    assert not _INSTALL_FORMS.search("`uv run ruff`")
