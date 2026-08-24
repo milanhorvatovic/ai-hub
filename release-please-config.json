@@ -28,6 +28,11 @@
       "component": "oss-repository-conventions",
       "extra-files": [{ "type": "generic", "path": "SKILL.md" }],
       "release-as": "1.0.0"
+    },
+    "skills/toolchain-doctor": {
+      "component": "toolchain-doctor",
+      "extra-files": [{ "type": "generic", "path": "SKILL.md" }],
+      "release-as": "1.0.0"
     }
   }
 }

@@ -1,0 +1,58 @@
+---
+name: python
+description: >
+  Examines a Python project's tooling and prescribes what is missing — reads
+  pyproject.toml, setup.cfg, tox.ini, and the standalone config files for ruff,
+  mypy, and pyright; establishes whether CI actually runs them; grades the
+  distance to the python floor (ruff for lint and format, mypy or pyright for
+  types, a managed environment, a declared interpreter version); and scaffolds
+  minimal pinned configs and CI steps on confirmation. Never installs anything.
+  Triggers on "set up ruff", "do we have a type checker", "is mypy running in
+  CI", "what should my pyproject declare", "pin our python version", or a
+  Python repository with no lint configuration at all.
+allowed-tools: Bash Read Grep Glob Write
+---
+
+# python capability
+
+Audits a Python project's toolchain configuration. Modes and their contracts come from `../../references/modes.md`; the bar is the python section of `../../references/tooling-floors.md`; grades are `../../references/diagnosis-grading.md`.
+
+## Where the declarations live
+
+In precedence order — the first file that declares a tool's settings owns them, and a tool declared in two of these is a `drift` finding rather than a merge:
+
+| Tool | Config locations |
+| --- | --- |
+| `ruff` | `pyproject.toml` `[tool.ruff]`, `ruff.toml`, `.ruff.toml` |
+| `mypy` | `pyproject.toml` `[tool.mypy]`, `mypy.ini`, `.mypy.ini`, `setup.cfg` `[mypy]`, `tox.ini` `[mypy]` |
+| `pyright` | `pyproject.toml` `[tool.pyright]`, `pyrightconfig.json` |
+| interpreter version | `pyproject.toml` `requires-python` / `[tool.ruff] target-version`, `setup.cfg` `python_requires`, `.python-version`, `mise.toml`, CI matrix entries |
+| environment | `uv.lock`, `poetry.lock`, `requirements*.txt` with a `pip-compile` header, `[tool.hatch.envs]`, `Pipfile.lock` |
+
+`setup.py` may carry `python_requires` as a keyword argument. Read it as a declaration when it is a literal; when it is computed, grade the version row `unknown` rather than parsing Python by eye.
+
+## What the scan reports
+
+Per `../../references/modes.md`, configuration and execution are separate columns. For this language the rows worth carrying are:
+
+1. **`ruff`** — declared, and whether both jobs are configured. `ruff` linting without `ruff format` (or with a separate formatter alongside) is the shape to notice; the tool does two jobs and projects routinely adopt one.
+2. **Type checker** — `mypy` or `pyright`, and what it is pointed at. A type checker configured to check nothing — no `files`, no `packages`, an empty include — passes CI while checking an empty set, and reads as coverage that does not exist.
+3. **Interpreter version** — declared where, and whether the declarations agree. The CI matrix and `requires-python` disagreeing is common and quietly means the tested versions are not the supported ones.
+4. **Environment management** — which tool, and whether a lock file is tracked. An untracked lock is a reproducibility gap rather than a tooling one; report it, grade it gently.
+5. **Warnings-as-errors** — whether CI treats tool output as fatal. `ruff check` exits non-zero on findings by default, so this row is usually about what CI does with the exit status, not about the config.
+
+## Audit specifics
+
+Beyond the floor rows, three checks are worth running for this language because they produce green pipelines that check less than they appear to:
+
+- **A type checker whose scope is empty.** Resolve what the config actually includes; when it resolves to no files, that is a `wiring` finding, not a satisfied row. The prescription names the package to point it at.
+- **`ruff` rule selection that excludes the reason it was adopted.** A config selecting only `E` and `F` is `ruff` acting as `pyflakes`; that is a legitimate choice and worth surfacing as a `decision` when it looks deliberate, and as an observation when the config reads like a default nobody revisited.
+- **A second formatter alongside `ruff format`.** `black` and `ruff format` in one repository is a `conflict` — they agree on most files and disagree on enough to produce a formatting war in review.
+
+The version row deserves a note on tone. A project pinned to an interpreter that no longer receives security fixes is a real fact with real consequences, and it is still graded `decision` when the pin is deliberate and cited. The report states what the pin costs; it does not escalate. Where no version is declared anywhere, that is a `gap`: nothing holds contributors to a common interpreter, and the failure shows up as a bug reproducible on one machine.
+
+## Scaffold
+
+Templates: `references/scaffold-templates.md` in this directory. Each is filled against what the scan found — the project's declared interpreter version, its existing rule selection, its CI shape — and written one file per confirmation per `../../references/modes.md`.
+
+Never raise `requires-python` as a side effect of scaffolding a tool config. When a floor tool's own minimum exceeds the project's declared interpreter, say so and let the user choose; a config that silently drops support for an interpreter the project promises is a breaking change wearing a linter's clothes.

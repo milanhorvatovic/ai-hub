@@ -1,0 +1,34 @@
+{
+  "target": "toolchain-doctor",
+  "kind": "skill",
+  "_comment": "Tooling-setup corpus. Positives are examiner intents about a repository's toolchain configuration — what is declared, whether CI runs it, what to pin, which of two equivalent tools to keep. Negatives are the three boundaries this skill states for itself and one it inherits. First, running the tools or fixing what they report is a coding concern, not a setup one ('run ruff over the codebase', 'fix the type errors mypy is reporting'). Second, installing is outside the consent model entirely. Third, markdown formatting has its own home, which is the sharpest boundary here because the sibling corpus is full of lint-and-format vocabulary — the discriminator is the subject, repo tooling versus prose. The fourth is repo health: legal, community, and branch-protection conventions are a different audit that also says 'what is this repo missing'. One negative is deliberately adversarial rather than distant: 'summarize why this CI job failed' sits inside this skill's own vocabulary — it reads CI to establish whether tools run — and still belongs elsewhere, because interpreting a failure is change-narration work while establishing whether anything runs at all is this one's.",
+  "positive": [
+    "set up a linter and a formatter for this repo and run them in CI",
+    "what tooling is this project missing for python",
+    "is our formatter and linter setup right",
+    "add a type checker to this python package and wire it into CI",
+    "why doesn't CI run the linter we configured",
+    "pin our lint and format tool versions so builds stop drifting",
+    "our shell scripts are never linted; set up shellcheck and shfmt in CI",
+    "should this typescript repo be on biome or on eslint plus prettier",
+    "does this crate's CI actually run clippy with warnings denied or just cargo check",
+    "check whether mypy is wired into CI or only configured",
+    "prescribe the tooling setup each language in this repo is missing",
+    "prettier and biome both format our typescript in this repo"
+  ],
+  "negative": [
+    "refactor this module so the error handling is idiomatic",
+    "format the markdown docs in this repository",
+    "write a commit message for these staged changes",
+    "distill this model's reasoning style into a portable skill",
+    "run ruff over the codebase and fix everything it reports",
+    "install shellcheck and shfmt on this machine",
+    "fix the type errors mypy is reporting in the api module",
+    "explain what shellcheck rule SC2086 means",
+    "is this function's error handling correct",
+    "audit this repo's branch protection and required checks",
+    "summarize why this CI job failed",
+    "add a code of conduct and a contributing guide"
+  ],
+  "description_sha256": "de4500ba04bc8deb8e82ac79203552d0bb549496737d535150f2eb4d4652290f"
+}

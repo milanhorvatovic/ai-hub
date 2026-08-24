@@ -3,5 +3,6 @@
   "skills/coding-principles": "1.0.0",
   "skills/docs-steward": "1.0.0",
   "skills/git-toolkit": "1.0.0",
-  "skills/oss-repository-conventions": "1.0.0"
+  "skills/oss-repository-conventions": "1.0.0",
+  "skills/toolchain-doctor": "1.0.0"
 }

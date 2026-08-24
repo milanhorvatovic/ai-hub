@@ -1,0 +1,51 @@
+# Tooling floors
+
+The bar each covered language is audited against. A floor is the tooling a project needs before its other quality decisions can hold: a linter that runs, a formatter nobody argues with, types checked where the language offers them, and a version story that does not drift. Everything above the floor is preference, and this skill does not grade preference.
+
+These floors are shared with the fleet's coding rulebook and held identical to it by a test in the repository that ships both, so the doctor cannot quietly grow a floor the rulebook does not state, and the rulebook cannot move one without the doctor following. Where a floor names two tools with _or_, they are genuinely equivalent for the purpose and the repository's existing choice decides — naming both is the point, not indecision.
+
+Each row's **Verify with** column is the command a maintainer runs to confirm the tool is doing its job. The doctor never runs these; it reports whether the repository has arranged for something to run them.
+
+## python
+
+| Tool | Role | Floor | Verify with |
+| --- | --- | --- | --- |
+| `ruff` | lint and format | Configured for both jobs; warnings treated as errors in CI | `ruff check . && ruff format --check .` |
+| `mypy` _or_ `pyright` | static types | One of them checks the public surface — module-level functions, class methods, dataclass fields | `mypy <pkg>` |
+| `uv` _or_ `poetry` _or_ `pip-tools` _or_ `hatch` | environment | The project manages its environment with one of them rather than installing into a global interpreter | the project's own lock or sync command |
+
+Language version: target a Python still receiving security fixes — 3.10 or later at the time of writing, and the floor rises as releases age out — unless the project deliberately pins lower in `pyproject.toml`, `setup.cfg`, or `python_requires`. A deliberate lower pin is a decision, not a gap; an _undeclared_ version is a gap, because nothing then holds contributors to the same interpreter.
+
+## typescript
+
+| Tool | Role | Floor | Verify with |
+| --- | --- | --- | --- |
+| `tsc` | typecheck | `tsconfig.json` sets `"strict": true`, and a typecheck runs somewhere other than the bundler | `tsc --noEmit` |
+| `eslint` _or_ `biome` | lint | One linter, not two | `eslint .` or `biome check .` |
+| `prettier` _or_ `biome` | format | One formatter, not two; `biome` satisfies this row and the one above together | `prettier --check .` or `biome check .` |
+
+Beyond `strict`, the compiler options worth enabling once a project is healthy enough to absorb them are `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, and `noFallthroughCasesInSwitch`. Their absence is a recommendation, never a gap. New packages should target ESM (`"type": "module"`) unless the project is locked to CommonJS.
+
+The failure this language produces more than any other is two tools claiming the same job — `prettier` formatting alongside `biome`, or `eslint` carrying formatting rules that fight the formatter. Overlap is a finding in its own right; see `diagnosis-grading.md`.
+
+## rust
+
+| Tool | Role | Floor | Verify with |
+| --- | --- | --- | --- |
+| `cargo fmt` | format | Checked in CI, not merely available | `cargo fmt --check` |
+| `cargo clippy` | lint | Runs with warnings denied, over all targets | `cargo clippy --all-targets -- -D warnings` |
+
+`cargo check` does not satisfy the lint row: it answers whether the crate compiles, and `clippy` is what catches the things that compile and should not. A CI job running `cargo check` where `clippy` belongs is the most common shape of this gap, and it looks green while checking less than it appears to.
+
+Edition and MSRV are declarations rather than tools: prefer the latest edition the project has adopted, do not mix editions across a workspace, and respect the minimum supported Rust version `Cargo.toml` declares — a config this skill scaffolds never raises it.
+
+## bash
+
+| Tool | Role | Floor | Verify with |
+| --- | --- | --- | --- |
+| `shellcheck` | lint | The authoritative linter for shell; its warnings are errors unless a script carries a documented `# shellcheck disable=SCXXXX` with a one-line reason | `shellcheck script.sh` |
+| `shfmt` | format | Configured with the project's indentation; most projects use `-i 2 -ci` | `shfmt -d -i 2 -ci .` |
+
+The floor has a size limit rather than a third tool: past roughly 200 lines, multiple subcommands, or structured I/O, shell is the wrong language and no amount of linting fixes that. The doctor reports the threshold when it sees a script well past it, as an observation rather than a finding — rewriting a working script is a decision far above a tooling audit's pay grade.
+
+Shell has no manifest, so its scripts hide in places the other languages' tooling never has to look: `scripts/`, `.githooks/`, `bin/`, CI `run:` blocks, and files with no extension whose first line is a shell shebang. A scan that only globs `*.sh` will under-report, which reads as a clean bill of health for a repository that has never linted a hook.
