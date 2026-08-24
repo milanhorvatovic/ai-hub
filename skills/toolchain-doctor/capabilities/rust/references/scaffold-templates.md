@@ -60,16 +60,27 @@ Listing the components is what makes a fresh checkout able to run the floor's co
 ## The CI steps
 
 ```yaml
-check:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@<40-char-sha> # <the version this sha is>
-    - uses: <rust setup action>@<40-char-sha> # <the version this sha is>
-      with:
-        components: rustfmt, clippy
-    - run: cargo fmt --all --check
-    - run: cargo clippy --workspace --all-targets -- -D warnings
+on:
+  pull_request:
+  push:
+    branches: [<the default branch>]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+      - uses: <rust setup action>@<40-char-sha> # <the version this sha is>
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
 ```
+
+The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
 
 Every element of the `clippy` line is load-bearing, and two of them answer different questions. `--all-targets` brings tests, benches, and examples into scope, which is where a surprising share of a crate's code lives. `--workspace` decides which _packages_ get looked at, and it is the one most often assumed rather than written: without it Cargo lints the default selection, which a workspace declaring `default-members` can narrow to a subset — so a job reading `clippy --all-targets` can look exhaustive and never touch a member. On a single-crate repository the flag is harmless surplus; in a workspace its absence is the gap. `-- -D warnings` is what turns output into a gate; without it the job passes while printing the findings it was added to catch. And `clippy` rather than `check` is the difference between "does this compile" and "is this right" — a pipeline running `cargo check` here is the most common way this floor row goes unmet while looking met.
 

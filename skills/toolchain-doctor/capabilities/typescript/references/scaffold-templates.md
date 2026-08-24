@@ -74,6 +74,8 @@ The TypeScript config is not optional decoration here. `@eslint/js` alone brings
 
 The scripts come first, and CI calls them — not because it is tidier, but because a CI step invoking a tool directly runs a different thing from what contributors run, and one of the two will drift without anyone noticing.
 
+The script runner is the project's own, for the same reason the install command is: a template that discovers the package manager for setup and then hardcodes `npm run` contradicts itself, and breaks outright on a setup like Yarn Plug'n'Play that requires its own runner to resolve anything.
+
 The dependency and script blocks come from whichever route the audit picked, not from a default. The `typescript` dependency and the `typecheck` script below belong to a project that has TypeScript in it: where the lane ran on a JavaScript-only repository and marked the compiler rows `N/A`, they come out, because scaffolding a compiler into a project that has no TypeScript adds a tool nothing asked for and a script that checks nothing. Route A:
 
 ```json
@@ -123,19 +125,30 @@ export default [js.configs.recommended, prettier];
 ```
 
 ```yaml
-check:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@<40-char-sha> # <the version this sha is>
-    - uses: actions/setup-node@<40-char-sha> # <the version this sha is>
-      with:
-        node-version: "<the project's version>"
-        cache: "<npm, pnpm, or yarn>"
-    - run: <the project's install command, resolving the tracked lock file>
-    - run: npm run typecheck
-    - run: npm run lint
-    - run: npm run format:check # Route B only; Route A's lint script covers both
+on:
+  pull_request:
+  push:
+    branches: [<the default branch>]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+      - uses: actions/setup-node@<40-char-sha> # <the version this sha is>
+        with:
+          node-version: "<the project's version>"
+          cache: "<npm, pnpm, or yarn>"
+      - run: <the project's install command, resolving the tracked lock file>
+      - run: <the project's script runner> typecheck
+      - run: <the project's script runner> lint
+      - run: <the project's script runner> format:check # Route B only
 ```
+
+The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
 
 What fixes the version is an exact constraint or the tracked lock file, not the shape of the invocation and not the declaration on its own. `npx eslint` resolves the project's own installed copy whenever `eslint` is a declared dependency, so the command is not the problem; a caret range with no committed lock is, because the next clean install can resolve a different version with nothing in the repository having changed. Pin the devDependencies and commit the lock, then reach them however the project prefers. Where a repository does use `npx`, `npx --no-install` is the form worth recommending: it restricts resolution to the local copy and fails loudly when dependencies have not been installed, instead of quietly falling back to whatever is on `PATH`.
 

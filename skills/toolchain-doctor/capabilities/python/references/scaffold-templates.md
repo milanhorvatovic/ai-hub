@@ -56,18 +56,29 @@ The alternative to `mypy`, not an addition to it. Scaffold this only when the pr
 Two things separate a real lint job from a decorative one: it runs on pull requests, and its failure fails the job. Both are visible in the shape below.
 
 ```yaml
-lint:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@<40-char-sha> # <the version this sha is>
-    - uses: actions/setup-python@<40-char-sha> # <the version this sha is>
-      with:
-        python-version: "<3.XX>"
-    - run: <the project's locked dev-environment install — uv sync, poetry install, pipenv sync --dev, pip-sync, hatch env create>
-    - run: <the project's runner prefix> ruff check .
-    - run: <the project's runner prefix> ruff format --check .
-    - run: <the project's runner prefix> <the project's type-checker command>
+on:
+  pull_request:
+  push:
+    branches: [<the default branch>]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+      - uses: actions/setup-python@<40-char-sha> # <the version this sha is>
+        with:
+          python-version: "<3.XX>"
+      - run: <the project's locked dev-environment install — uv sync, poetry install, pipenv sync --dev, pip-sync, hatch env create>
+      - run: <the project's runner prefix> ruff check .
+      - run: <the project's runner prefix> ruff format --check .
+      - run: <the project's runner prefix> <the project's type-checker command>
 ```
+
+The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
 
 The install step is the project's environment manager, not a bare `pip install` of the two tools. The floor already asks for a managed environment with a tracked lock, and a CI job that sidesteps it installs unpinned tools into whatever interpreter the runner provides and — the part that actually breaks — never installs the project or its dependencies, so a type checker reaches the first third-party import and reports errors about the environment rather than the code. Declare the tools in the project's own dev-dependency group, install through the lock, and let the runner prefix (`uv run`, `poetry run`, `pipenv run`, or nothing where the environment is already active) be whatever the repository uses elsewhere.
 

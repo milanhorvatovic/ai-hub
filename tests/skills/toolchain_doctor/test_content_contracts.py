@@ -81,6 +81,19 @@ def _prose(path: Path) -> str:
     return _FENCE.sub("", path.read_text(encoding="utf-8"))
 
 
+def _consent_text(path: Path) -> str:
+    """What the skill says in its own voice, for the consent contract.
+
+    Fences are exempt in scaffold templates and nowhere else. There, a fenced
+    install is a CI step the user applies — the whole point of prescribing
+    rather than performing. In the router, a capability, or a shared reference,
+    a fence is still the skill talking, so exempting it everywhere let a fenced
+    order sit in a loaded instruction with the guard green.
+    """
+    text = path.read_text(encoding="utf-8")
+    return _FENCE.sub("", text) if path.name == "scaffold-templates.md" else text
+
+
 # An imperative reaching for one of the forbidden commands. Backticks are
 # optional in the pattern on purpose: markdown normally code-formats a command,
 # so "Run `pip install foo` first" is the *most* natural way to write the
@@ -94,6 +107,12 @@ _IMPERATIVE = r"\b(?:run|execute|invoke|call|then|install|use|add)\b"
 _REACH = r"[^.]{0,40}?"
 # A prohibition carries the same verb as an order and means the opposite.
 _NEGATION = re.compile(r"\b(?:never|not|no|forbid(?:s|den)?|without|avoid)\b", re.IGNORECASE)
+# ...unless the negation belongs to a condition rather than to the verb. "If
+# ruff is not installed, run pip install ruff" negates the state and orders the
+# command, so the negation must not be read as a prohibition there. Anchoring
+# the negation to the verb instead was tried and fails the router's own list,
+# where the single "No" governs eleven commands across one long sentence.
+_CONDITIONAL = re.compile(r"\b(?:if|unless|when|where|whenever)\b", re.IGNORECASE)
 
 
 def _instructs(prose: str, command: str) -> bool:
@@ -113,10 +132,17 @@ def _instructs(prose: str, command: str) -> bool:
     spellings appear", not as proof the skill never tells itself to install.
     """
     for match in re.finditer(_IMPERATIVE + _REACH + r"`?" + re.escape(command), prose, re.IGNORECASE):
-        # Look back to the start of the sentence: the negation often sits
-        # before the verb rather than between it and the command.
-        sentence_start = prose.rfind(".", 0, match.start()) + 1
-        if not _NEGATION.search(prose[sentence_start : match.end()]):
+        verb_start = match.start()
+        sentence_start = prose.rfind(".", 0, verb_start) + 1
+        clause = prose[sentence_start:verb_start]
+        negation = _NEGATION.search(clause)
+        conditional = _CONDITIONAL.search(clause)
+        # A negation governs the verb unless a condition opened before it, in
+        # which case the negation belongs to the condition.
+        negated = negation is not None and not (
+            conditional is not None and conditional.start() < negation.start()
+        )
+        if not negated:
             return True
     return False
 
@@ -339,7 +365,7 @@ def test_no_shipped_file_instructs_an_install(doc: Path) -> None:
     and the shared references are loaded instructions too, so a capability-only
     check would have been green with an imperative sitting in either.
     """
-    prose = _prose(doc)
+    prose = _consent_text(doc)
     found = [command for command in _INSTALL_COMMANDS if _instructs(prose, command)]
     assert not found, (
         f"{doc.relative_to(_SKILL)} instructs {found} outside a template fence; "
@@ -376,3 +402,6 @@ def test_the_consent_check_can_tell_an_order_from_a_citation() -> None:
     # would reject the clearest way a capability can state the rule.
     assert not _instructs("Never run `pip install` on the user's behalf.", "pip install")
     assert not _instructs("The skill does not run `pip install` for them.", "pip install")
+    # A negation inside a condition negates the condition, not the order.
+    assert _instructs("If ruff is not installed, run `pip install ruff`.", "pip install")
+    assert _instructs("When the lock is absent, use `uv add ruff` instead.", "uv add")

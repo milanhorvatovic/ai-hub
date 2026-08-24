@@ -76,6 +76,8 @@ git ls-files -z |
   done
 ```
 
+The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
+
 The `--` before the appended paths is not decoration. A tracked file may legally be named `-deploy.sh`, and `xargs` appends it as an argument like any other, so the tool reads it as a bundle of options and reports an unrecognized option — the job then fails on a filename rather than on a script. The terminator was checked against `shellcheck` directly; `shfmt` takes it by the same convention, which is stated here rather than claimed as tested.
 
 NUL delimiters end to end, because a path is not a line. Git emits `-z` for a reason: a filename may legally contain a newline, and converting to newlines on the way in splits one such path into two bogus entries — then hands them to a linter as two files that do not exist. Reading with `read -d ''` and emitting with a trailing NUL keeps the list usable as arguments, which is what the CI step below consumes it as.
@@ -99,26 +101,35 @@ Run it once and read the output before wiring it into CI. The list is the audit'
 ## The CI step
 
 ```yaml
-shell:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@<40-char-sha> # <the version this sha is>
-    - name: install shellcheck and shfmt
-      run: |
-        mkdir -p "$RUNNER_TEMP/bin"
-        cd "$RUNNER_TEMP"
-        curl -fsSLO "https://github.com/koalaman/shellcheck/releases/download/v<pinned>/shellcheck-v<pinned>.linux.x86_64.tar.xz"
-        curl -fsSLo shfmt "https://github.com/mvdan/sh/releases/download/v<pinned>/shfmt_v<pinned>_linux_amd64"
-        printf '%s  %s\n' "<shellcheck sha256>" "shellcheck-v<pinned>.linux.x86_64.tar.xz" > sums
-        printf '%s  %s\n' "<shfmt sha256>" "shfmt" >> sums
-        sha256sum -c sums
-        tar -xJf "shellcheck-v<pinned>.linux.x86_64.tar.xz" -C bin --strip-components=1 "shellcheck-v<pinned>/shellcheck"
-        install -m 0755 shfmt bin/shfmt
-        echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-    - name: shellcheck
-      run: <the discovery command above> | xargs -0 --no-run-if-empty shellcheck --
-    - name: shfmt
-      run: <the discovery command above> | xargs -0 --no-run-if-empty shfmt -d --
+on:
+  pull_request:
+  push:
+    branches: [<the default branch>]
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+      - name: install shellcheck and shfmt
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          cd "$RUNNER_TEMP"
+          curl -fsSLO "https://github.com/koalaman/shellcheck/releases/download/v<pinned>/shellcheck-v<pinned>.linux.x86_64.tar.xz"
+          curl -fsSLo shfmt "https://github.com/mvdan/sh/releases/download/v<pinned>/shfmt_v<pinned>_linux_amd64"
+          printf '%s  %s\n' "<shellcheck sha256>" "shellcheck-v<pinned>.linux.x86_64.tar.xz" > sums
+          printf '%s  %s\n' "<shfmt sha256>" "shfmt" >> sums
+          sha256sum -c sums
+          tar -xJf "shellcheck-v<pinned>.linux.x86_64.tar.xz" -C bin --strip-components=1 "shellcheck-v<pinned>/shellcheck"
+          install -m 0755 shfmt bin/shfmt
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: shellcheck
+        run: <the discovery command above> | xargs -0 --no-run-if-empty shellcheck --
+      - name: shfmt
+        run: <the discovery command above> | xargs -0 --no-run-if-empty shfmt -d --
 ```
 
 Both downloads are checksum-verified before anything is extracted or made executable, and the digests are recorded here rather than fetched alongside the artifact. A version tag is not an identity: a release asset can be replaced without its URL changing, so a pinned version alone leaves the job executing whatever is behind that link today. The version pins which release the job wants; the digest is what makes the job refuse a different one. Fetching the checksums from the same host at the same time would verify only that the download was not corrupted in transit, which is not the question.
