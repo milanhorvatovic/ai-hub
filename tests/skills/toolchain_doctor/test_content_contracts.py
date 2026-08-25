@@ -90,12 +90,15 @@ _MANAGER = r"(?:pip|pipx|uv|poetry|pipenv|hatch|npm|pnpm|yarn|bun|cargo|rustup|b
 # forms suggest — `pip --require-virtualenv install`, `npm --prefix web install`
 # — and a pattern demanding they be adjacent misses every one of those.
 _MANAGER_OPTIONS = r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*"
-# The subcommands that install or mutate an environment. `check`, `run`, `fmt`,
-# and `clippy` are deliberately absent: those are the tools the floors are made
-# of, and matching them would flag the skill for naming its own subject.
+# The subcommands that install or otherwise mutate an environment — removal and
+# upgrade included, because the promise is about invoking a package manager and
+# not about the direction the change runs. `check`, `run`, `fmt`, and `clippy`
+# are deliberately absent: those are the tools the floors are made of, and
+# matching them would flag the skill for naming its own subject.
 _INSTALL_SUBCOMMAND = (
-    r"(?:install|add|sync|ci|i\b|tool install|env create|component add"
-    r"|toolchain install|pip install)"
+    r"(?:install|uninstall|add|remove|rm|sync|update|upgrade|prune|ci|i\b"
+    r"|tool install|env create|env remove|component add|component remove"
+    r"|toolchain install|toolchain uninstall|self update|pip install)"
 )
 # Not every environment-mutating command is a manager plus a subcommand.
 # `pip-sync` is one word, and `corepack enable` provisions a manager rather than
@@ -427,8 +430,14 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # Shapes that are not manager-plus-subcommand at all.
     assert _INSTALL_FORMS.search("run `pip-sync` in CI")
     assert _INSTALL_FORMS.search("`corepack enable` first")
+    # Removal and upgrade mutate the environment as surely as installation.
+    assert _INSTALL_FORMS.search("`pip uninstall ruff`")
+    assert _INSTALL_FORMS.search("`cargo update`")
+    assert _INSTALL_FORMS.search("`brew upgrade`")
+    assert _INSTALL_FORMS.search("`rustup toolchain uninstall 1.70`")
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")
     assert not _INSTALL_FORMS.search("`cargo check`")
     assert not _INSTALL_FORMS.search("`poetry run pytest`")
+    assert not _INSTALL_FORMS.search("`ruff check .`")

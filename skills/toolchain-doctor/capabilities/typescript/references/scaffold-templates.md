@@ -50,7 +50,7 @@ Two routes, and the audit picks between them from what the repository already ha
 }
 ```
 
-**Route B — `eslint` for lint, `prettier` for format.** Best fit for a project with an existing `eslint` rule set worth keeping.
+**Route B — `eslint` for lint, `prettier` for format.** Best fit for a project with an existing `eslint` rule set worth keeping. Write it as **`eslint.config.mjs`**: the config below uses ESM imports, and scaffolded as the conventional `eslint.config.js` into a package that has not declared `"type": "module"`, Node parses it as CommonJS and ESLint fails before it lints anything. The `.mjs` extension settles that without touching the package's module type, which is the module-system failure this capability tells the audit to look for and would otherwise have created.
 
 ```typescript
 import js from "@eslint/js";
