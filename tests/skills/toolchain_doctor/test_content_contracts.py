@@ -85,7 +85,13 @@ def _prose(path: Path) -> str:
 # Every install-or-modify form of every package manager this skill discusses.
 # Subcommands rather than manager names: `cargo fmt` and `npm run` invoke checks,
 # and forbidding those would flag the tools the floors are built from.
-_MANAGER = r"(?:pip|pipx|uv|poetry|pipenv|hatch|npm|pnpm|yarn|bun|cargo|rustup|brew|apt-get)"
+# `pip` ships under versioned names on most systems — `pip3`, `pip3.12` — and a
+# pattern matching only the bare spelling is bypassed by the executable a
+# reader is most likely to have on their PATH.
+_MANAGER = (
+    r"(?:pip(?:[0-9](?:\.[0-9]+)?)?|pipx|uv|poetry|pipenv|hatch|npm|pnpm|yarn"
+    r"|bun|cargo|rustup|brew|apt-get)"
+)
 # Options sit between a manager and its subcommand more often than the literal
 # forms suggest — `pip --require-virtualenv install`, `npm --prefix web install`
 # — and a pattern demanding they be adjacent misses every one of those.
@@ -438,6 +444,9 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("`cargo update`")
     assert _INSTALL_FORMS.search("`brew upgrade`")
     assert _INSTALL_FORMS.search("`rustup toolchain uninstall 1.70`")
+    # Versioned pip executables are the ordinary spelling on most systems.
+    assert _INSTALL_FORMS.search("`pip3 install ruff`")
+    assert _INSTALL_FORMS.search("`pip3.12 uninstall ruff`")
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")

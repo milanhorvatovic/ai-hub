@@ -32,10 +32,10 @@ The failure this language produces more than any other is two tools claiming the
 
 | Tool | Role | Floor | Verify with |
 | --- | --- | --- | --- |
-| `cargo fmt` | format | Checked in CI, not merely available | `cargo fmt --check` |
-| `cargo clippy` | lint | Runs with warnings denied, over all targets | `cargo clippy --all-targets -- -D warnings` |
+| `cargo fmt` | format | Checked in CI, not merely available, over every workspace member | `cargo fmt --all --check` |
+| `cargo clippy` | lint | Runs with warnings denied, over all targets of every selected package | `cargo clippy --workspace --all-targets -- -D warnings` |
 
-`cargo check` does not satisfy the lint row: it answers whether the crate compiles, and `clippy` is what catches the things that compile and should not. A CI job running `cargo check` where `clippy` belongs is the most common shape of this gap, and it looks green while checking less than it appears to.
+The package-selection flags are part of the stated commands rather than an optional refinement, because the audit grades their absence: in a workspace whose root is itself a package, Cargo's default selection is that root alone, so a repository following a floor that omitted `--workspace` and `--all` would leave its members unchecked and collect a `wiring` finding for doing exactly what the floor told it. On a single-crate repository both flags are harmless surplus. `cargo check` does not satisfy the lint row: it answers whether the crate compiles, and `clippy` is what catches the things that compile and should not. A CI job running `cargo check` where `clippy` belongs is the most common shape of this gap, and it looks green while checking less than it appears to.
 
 Edition and MSRV are declarations rather than tools: prefer the latest edition the project has adopted, do not mix editions across a workspace, and respect the minimum supported Rust version `Cargo.toml` declares — a config this skill scaffolds never raises it.
 
