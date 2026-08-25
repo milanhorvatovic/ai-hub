@@ -119,13 +119,22 @@ Taking Route A's block into a Route B repository is the mistake this split exist
 
 The JavaScript-only variant is either block with the compiler removed — no `typescript` dependency, no `typecheck` script, no `tsc` step. What remains is the lint and format rows, which are the only ones that applied to that repository in the first place.
 
+The `files` entry is there because this lane accepts `*.jsx` at stage 0 and the linter does not: eslint's default matching covers `.js`, `.cjs`, and `.mjs`, and JSX parsing is off unless something turns it on — so a JSX project scaffolded without it would have its actual sources skipped while the job reported success, which is the same unlinted-source failure the TypeScript route was corrected for.
+
 On Route B the config file changes with it, and dropping the dependency alone is not enough: the flat config above imports `typescript-eslint` and calls `tseslint.config(...)`, so removing the package while leaving those lines produces a config that cannot load. The JavaScript form is the plain array:
 
 ```typescript
 import js from "@eslint/js";
 import prettier from "eslint-config-prettier";
 
-export default [js.configs.recommended, prettier];
+export default [
+  js.configs.recommended,
+  {
+    files: ["**/*.{js,cjs,mjs,jsx}"],
+    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+  },
+  prettier,
+];
 ```
 
 ```yaml

@@ -62,7 +62,7 @@ set -euo pipefail
 #
 # The accepted dialects are an argument, not a constant: the two tools this
 # feeds do not support the same shells, so each caller passes its own set.
-accepted=${1:?pass a shebang alternation, e.g. 'sh|bash|dash|ksh|oksh|bats'}
+accepted=${1:?pass a shebang alternation, e.g. 'sh|bash|dash|ksh|oksh|bats|ash|busybox[[:space:]]+sh'}
 
 git ls-files -z |
   while IFS= read -r -d '' f; do
@@ -97,9 +97,11 @@ One pass, not two. An earlier shape emitted every `*.sh` and `*.bash` file direc
 
 The interpreter list is what `shellcheck` actually accepts, established by running it rather than by reading its error message: `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` exit clean, while `mksh`, `ash`, and `zsh` do not. Both directions of getting this list wrong cost something. Too narrow — matching only the two spellings of Bash — silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, reproducing the coverage under-reach this capability exists to find. Too wide is worse, because the extra file does not go unchecked, it turns the job red: `zsh` raises `SC1071`, `mksh` raises `SC1008`, and neither is a lint result the scaffold can act on.
 
-`ash` is the interesting exclusion. `shellcheck` checks it — as Dash — but warns `SC2187` while doing so and exits non-zero, so an un-annotated ash script reddens the job just as surely as an unsupported one. Its fix is a directive rather than a removal: `# shellcheck shell=dash` at the top of the file silences the warning and keeps the script checked.
+`ash` belongs **in** the list, which took a measurement to settle. Left alone it exits non-zero with `SC2187` — and that diagnostic is a request rather than a refusal: it asks for `# shellcheck shell=dash` at the top of the file, and with the directive present the same file exits clean. Excluding ash therefore made its own documented remedy unreachable, because discovery dropped the file before `shellcheck` could read the directive it was asking for. Include it, and let the directive decide whether the job passes.
 
-Report the shells left out — `mksh`, `ash`, `zsh` — by name as outside the generated job's reach, with ash's directive named as its remedy. Dropping them silently, or feeding them to a tool that will refuse them, are the two failures this list exists between.
+`busybox sh` is accepted too, and only by the spellings that name the binary directly — `#!/bin/busybox sh` and `#!/usr/bin/busybox sh` pass, while routing it through `env` raises `SC1008`. It is two tokens rather than one, which is why the alternation carries a whitespace class rather than a plain name.
+
+Report the shells left out — `mksh` and `zsh`, both refused outright — by name as outside the generated job's reach. Dropping them silently, or feeding them to a tool that will refuse them, are the two failures this list exists between.
 
 The pattern is anchored to the **interpreter's own position** rather than searching the line. A leading `.*` looks harmless and is not: it lets the match slide past the real interpreter to any later word, so `#!/usr/bin/env -S python -m bash` and `#!/usr/bin/python3 -c import bash` both read as shell and the generated job hands a Python file to a shell linter, which then fails for a reason that has nothing to do with the repository's shell. The path, the optional `env`, and the interpreter are matched in sequence instead.
 
@@ -113,7 +115,7 @@ Establishing each set is a step for the **user**, not for this skill, which does
 
 One trap in doing it, and it is easy to walk into: the two questions live in different namespaces. The script matches **shebang executable names** — `sh`, `dash`, `bash` — while a formatter's help output lists **parser dialect labels**, which are not the same vocabulary and do not map one to one; a label like `posix` describes a grammar that several executables select. Copying help output straight into the alternation therefore drops ordinary `#!/bin/sh` and `#!/bin/dash` scripts, silently, which is the coverage failure this inventory exists to prevent. Ask the right question of each tool: which **shebang names** does this version accept, and route to a supported grammar. `shellcheck` answers it directly, because it names the shells it takes in the error it raises when handed one it does not.
 
-What was measured here, against `shellcheck` 0.11: `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` exit clean; `mksh` raises `SC1008`, `zsh` raises `SC1071`, and `ash` is checked as Dash with an `SC2187` warning that still exits non-zero. `shfmt` was **not** measured — it is not installed where this was written — so its set is deliberately left for the adopter to read off `--help` rather than asserted from memory. A reviewer of this template reported that current `shfmt` handles `zsh`, which is plausible and which nothing here can confirm; that is precisely why the value is a placeholder and not a list.
+What was measured here, against `shellcheck` 0.11: `sh`, `bash`, `dash`, `ksh`, `oksh`, `bats`, and `busybox sh` named by a direct path all exit clean; `ash` exits non-zero with `SC2187` until the file carries `# shellcheck shell=dash`, after which it exits clean; `mksh` raises `SC1008`, `zsh` raises `SC1071`, and `busybox sh` routed through `env` raises `SC1008`. `shfmt` was **not** measured — it is not installed where this was written — so its set is deliberately left for the adopter to read off `--help` rather than asserted from memory. A reviewer of this template reported that current `shfmt` handles `zsh`, which is plausible and which nothing here can confirm; that is precisely why the value is a placeholder and not a list.
 
 Two more details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
 
