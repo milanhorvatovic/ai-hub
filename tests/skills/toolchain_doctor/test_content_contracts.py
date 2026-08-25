@@ -124,39 +124,48 @@ _INSTALL_SUBCOMMAND = (
     r"|tool install|env create|env remove|component add|component remove"
     r"|toolchain install|toolchain uninstall|self update|pip install)\b"
 )
-# Not every environment-mutating command is a manager plus a subcommand.
+# Not every environment-mutating command is a manager plus a subcommand:
 # `pip-sync` is one word, and `corepack enable` provisions a manager rather than
-# a package — both are mechanisms this skill names, and neither fits the shape
-# above.
+# a package.
 _STANDALONE_FORMS = (
-    r"(?:\b(?:pip-sync|pip-compile"
-    r"|corepack\s+(?:enable|disable|install|prepare|use|up))"
-    # Bare `yarn` is Yarn's own alias for `yarn install`, so "run `yarn` first"
-    # installs dependencies. It is required to be backticked and followed by
-    # nothing but flags, because the word also appears throughout this skill as
-    # the name of a package manager rather than as a command to run.
-    # Flags may carry values: `yarn --cwd web` is still the install alias.
-    r"|`yarn(?:\s+--[\w-]+(?:[= ][^`\s]+)?)*`)"
+    r"(?:\bpip-sync|\bpip-compile"
+    r"|\bcorepack\s+(?:enable|disable|install|prepare|use|up))"
 )
-# `npx <tool>` and `npm exec <tool>` run a package, and when it is not already
-# installed npx fetches a temporary copy — an install the skill's own TypeScript
-# guidance points out — so the executor is install-capable and belongs in the
-# inventory like the managers. Two constraints keep it from reading prose: the
-# leading backtick, required for the same reason the bare-yarn form requires it
-# (`npx` appears throughout as a word, not only as a command), and the exemption
-# for `--no-install`, which cannot fetch and is the safe form the guidance
-# recommends. A tool token must follow, so a bare `npx` mention never matches.
-_EXECUTOR_FORMS = (
-    r"(?:(?<=`)(?:npx|npm\s+exec)(?!\s+--no-install\b)"
-    r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*\s+[\w@][\w@./-]*)"
+# Commands whose leading word also reads as prose, so they count only in command
+# position — the two ways this skill's docs present something to run: opening an
+# inline-code span, or opening a line. The line case is not hypothetical: fenced
+# blocks are stripped only in scaffold templates, so in the router, a capability,
+# or a shared reference a fenced command is retained and carries no backtick, and
+# a rule keyed to the backtick alone would let a fenced `npx eslint` or `yarn`
+# bypass the inventory it claims to be exhaustive over.
+_COMMAND_POSITION = r"(?:`|^[ \t]*(?:[$>][ \t]+)?)"
+# Bare `yarn` is Yarn's alias for `yarn install`; `npx <tool>` / `npm exec <tool>`
+# fetch a package when it is absent, an install the TypeScript guidance points
+# out. The yarn form ends at a command terminator — a closing backtick or the
+# line end — so `yarn add` is left to the manager form rather than truncated to
+# `yarn`; `--no-install` cannot fetch and is exempt; and npx needs a tool token,
+# so a bare `npx` mention never matches.
+_COMMAND_FORMS = (
+    r"(?:yarn(?:\s+--[\w-]+(?:[= ][^`\s]+)?)*(?=[ \t]*(?:`|$))"
+    r"|(?:npx|npm\s+exec)(?!\s+--no-install\b)(?:\s+--?[\w-]+(?:[= ]\S+)?)*\s+[\w@][\w@./-]*)"
 )
-# The word boundary belongs to the manager alternative alone. Applied to the
-# whole group it sits between two backticks in "`yarn`", where there is no
-# boundary to find, and the bare-yarn form silently never matches.
+# Named groups so the citation reader recovers the command a match belongs to
+# regardless of which shape hit — the command-position branch consumes a leading
+# backtick the others do not, so the whole-match text is no longer the citation.
+# MULTILINE lets `^` in the command-position anchor find a fenced line's start.
 _INSTALL_FORMS = re.compile(
-    rf"(?:\b{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND}"
-    rf"|{_STANDALONE_FORMS}|{_EXECUTOR_FORMS})"
+    rf"(?:(?P<managed>\b{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND})"
+    rf"|(?P<standalone>{_STANDALONE_FORMS})"
+    rf"|{_COMMAND_POSITION}(?P<positional>{_COMMAND_FORMS}))",
+    re.MULTILINE,
 )
+
+
+# The command a match cites, whichever of the three shapes produced it.
+def _cited_form(match: re.Match[str]) -> str:
+    return (
+        match.group("managed") or match.group("standalone") or match.group("positional")
+    )
 
 
 # The sites allowed to name one, each with the reason it is there.
@@ -229,7 +238,7 @@ def _install_citations(path: Path) -> dict[str, int]:
     """
     text = path.read_text(encoding="utf-8")
     body = _FENCE.sub("", text) if path.name == "scaffold-templates.md" else text
-    return dict(Counter(_INSTALL_FORMS.findall(body)))
+    return dict(Counter(_cited_form(m) for m in _INSTALL_FORMS.finditer(body)))
 
 
 def _registered_grades() -> set[str]:
@@ -545,18 +554,28 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("`pipx inject ruff pkg`")
     assert _INSTALL_FORMS.search("`yarn global add shfmt`")
     # `npx <tool>` fetches when the package is absent, so it is install-capable;
-    # `npm exec` is the same executor. The leading backtick is required, like
-    # bare yarn, so the word `npx` in prose does not read as a command.
+    # `npm exec` is the same executor. Command position — an inline-code span or
+    # a line — is what tells a command from the word `npx` in prose.
     assert _INSTALL_FORMS.search("`npx eslint`")
     assert _INSTALL_FORMS.search("`npx eslint .`")
     assert _INSTALL_FORMS.search("`npm exec tsc`")
     assert _INSTALL_FORMS.search("`npx --loglevel=warn create-foo`")
+    # A retained fence presents the command at a line start with no inline
+    # backtick — the bypass the backtick-only rule left open. The line case
+    # covers a bare prompt and an indent too.
+    assert _INSTALL_FORMS.search("```\nnpx eslint\n```")
+    assert _INSTALL_FORMS.search("```\nyarn\n```")
+    assert _INSTALL_FORMS.search("```sh\n$ npx create-foo\n```")
+    assert _INSTALL_FORMS.search("run this:\n\n    yarn\n")
     # `--no-install` cannot fetch — the safe form the guidance recommends — and a
     # bare `npx` naming the executor is not a command to run.
     assert not _INSTALL_FORMS.search("`npx --no-install`")
     assert not _INSTALL_FORMS.search("`npx --no-install eslint`")
     assert not _INSTALL_FORMS.search("a rule that reads `npx` as floating")
     assert not _INSTALL_FORMS.search("npm and npx are node tools")
+    # `yarn add` is the manager form, not the bare-yarn alias truncated to `yarn`.
+    assert _cited_form(_INSTALL_FORMS.search("`yarn add`")) == "yarn add"
+    assert _cited_form(_INSTALL_FORMS.search("`yarn`")) == "yarn"
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")
