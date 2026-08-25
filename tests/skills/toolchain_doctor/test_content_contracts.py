@@ -144,25 +144,33 @@ _STANDALONE_FORMS = (
 # `npx` as a command, which is the safe direction for a no-false-negative guard
 # and is what the skill's own backtick-the-command convention keeps rare.
 _COMMAND_POSITION = r"(?:`|^[ \t]*(?:(?:[-*+]|\d+\.)[ \t]+)?(?:[$>][ \t]+)?)"
-# Bare `yarn` is Yarn's alias for `yarn install`; `npx <tool>` / `npm exec <tool>`
-# fetch a package when it is absent, an install the TypeScript guidance points
-# out. The yarn form ends at a command terminator — a closing backtick or the
-# line end — so `yarn add` is left to the manager form rather than truncated to
-# `yarn`; `--no-install` cannot fetch and is exempt; and npx needs a tool token,
-# so a bare `npx` mention never matches.
+# Bare `yarn` is Yarn's alias for `yarn install`, and it ends at a command
+# terminator — a closing backtick or the line end — so `yarn add` and `yarn dlx`
+# go to the manager and executor forms rather than being truncated to `yarn`. The
+# one-shot executors below each fetch a missing package the TypeScript guidance
+# points out; what is specific to each — the `--no-install` exemption, the tool
+# token every one needs — is noted at the alternative it belongs to.
+#
+# The options a one-shot executor may carry, an optional `--` separator, then the
+# package token: `npm exec -- eslint` and `pnpm dlx --package=x foo` alike. Shared
+# because every executor ends this way; only the leading verb differs.
+_ONESHOT_TAIL = r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*(?:\s+--)?\s+[\w@][\w@./-]*"
 _COMMAND_FORMS = (
     r"(?:yarn(?:\s+--[\w-]+(?:[= ][^`\s]+)?)*(?=[ \t]*(?:`|$))"
+    # `npx` and `npm exec` carry the `--no-install` exemption — anywhere among the
+    # options, not only first: `npx --yes --no-install eslint` cannot fetch. The
+    # lookahead walks the option run non-greedily and stops at the first
+    # non-option token, so a later command's `--no-install` cannot reach back.
     r"|(?:npx|npm\s+exec)"
-    # The exemption is `--no-install` anywhere among the options, not only first:
-    # `npx --yes --no-install eslint` cannot fetch either. The lookahead walks the
-    # option run non-greedily up to the flag, and stops at the first non-option
-    # token, so a later command's `--no-install` cannot reach back and clear this
-    # one.
     r"(?!(?:\s+--?[\w-]+(?:[= ]\S+)?)*?\s+--no-install\b)"
-    # A bare `--` may separate the options from the package — `npm exec -- eslint`
-    # is the canonical form, and it fetches the same way — so it is allowed
-    # before the tool token without being mistaken for one.
-    r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*(?:\s+--)?\s+[\w@][\w@./-]*)"
+    + _ONESHOT_TAIL
+    +
+    # The rest of the one-shot executors fetch a missing package the same way and
+    # have no such exemption: pnpm's and yarn's `dlx`, bun's `bunx`, uv's `uvx`,
+    # and `pipx run`.
+    r"|(?:pnpm\s+dlx|yarn\s+dlx|bunx|uvx|pipx\s+run)"
+    + _ONESHOT_TAIL
+    + r")"
 )
 # Named groups so the citation reader recovers the command a match belongs to
 # regardless of which shape hit — the command-position branch consumes a leading
@@ -578,6 +586,15 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # The canonical `--` separator form fetches the same way.
     assert _INSTALL_FORMS.search("`npm exec -- eslint`")
     assert _INSTALL_FORMS.search("`npm exec --package=eslint -- eslint`")
+    # The other one-shot executors fetch a missing package just as `npx` does.
+    assert _INSTALL_FORMS.search("`pnpm dlx eslint`")
+    assert _INSTALL_FORMS.search("`yarn dlx prettier`")
+    assert _INSTALL_FORMS.search("`bunx eslint`")
+    assert _INSTALL_FORMS.search("`uvx ruff`")
+    assert _INSTALL_FORMS.search("`pipx run black`")
+    # Each still needs a package token, so the bare executor is not a command.
+    assert not _INSTALL_FORMS.search("`pnpm dlx`")
+    assert not _INSTALL_FORMS.search("`bunx`")
     # A retained fence presents the command at a line start with no inline
     # backtick — the bypass the backtick-only rule left open. The line case
     # covers a bare prompt and an indent too.
