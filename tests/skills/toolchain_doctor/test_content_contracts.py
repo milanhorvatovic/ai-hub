@@ -138,11 +138,24 @@ _STANDALONE_FORMS = (
     # Flags may carry values: `yarn --cwd web` is still the install alias.
     r"|`yarn(?:\s+--[\w-]+(?:[= ][^`\s]+)?)*`)"
 )
+# `npx <tool>` and `npm exec <tool>` run a package, and when it is not already
+# installed npx fetches a temporary copy — an install the skill's own TypeScript
+# guidance points out — so the executor is install-capable and belongs in the
+# inventory like the managers. Two constraints keep it from reading prose: the
+# leading backtick, required for the same reason the bare-yarn form requires it
+# (`npx` appears throughout as a word, not only as a command), and the exemption
+# for `--no-install`, which cannot fetch and is the safe form the guidance
+# recommends. A tool token must follow, so a bare `npx` mention never matches.
+_EXECUTOR_FORMS = (
+    r"(?:(?<=`)(?:npx|npm\s+exec)(?!\s+--no-install\b)"
+    r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*\s+[\w@][\w@./-]*)"
+)
 # The word boundary belongs to the manager alternative alone. Applied to the
 # whole group it sits between two backticks in "`yarn`", where there is no
 # boundary to find, and the bare-yarn form silently never matches.
 _INSTALL_FORMS = re.compile(
-    rf"(?:\b{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND}|{_STANDALONE_FORMS})"
+    rf"(?:\b{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND}"
+    rf"|{_STANDALONE_FORMS}|{_EXECUTOR_FORMS})"
 )
 
 
@@ -193,9 +206,16 @@ _ALLOWED_CITATIONS: dict[str, dict[str, int]] = {
     },
     # The worked example of a `floating` finding.
     "references/diagnosis-grading.md": {"pip install": 1},
+    # The unpinned-invocation finding names `npx eslint` as the install-capable
+    # form whose version a declaration alone does not fix.
+    "capabilities/typescript/capability.md": {"npx eslint": 1},
     # `corepack enable` named in the prose that explains why the bootstrap step
-    # must not use it — a citation of the mechanism being ruled out.
-    "capabilities/typescript/references/scaffold-templates.md": {"corepack enable": 1},
+    # must not use it — a citation of the mechanism being ruled out — and the same
+    # `npx eslint` counter-example as the capability, on the fixity paragraph.
+    "capabilities/typescript/references/scaffold-templates.md": {
+        "corepack enable": 1,
+        "npx eslint": 1,
+    },
 }
 
 
@@ -524,6 +544,19 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # Multi-token and manager-specific installing forms.
     assert _INSTALL_FORMS.search("`pipx inject ruff pkg`")
     assert _INSTALL_FORMS.search("`yarn global add shfmt`")
+    # `npx <tool>` fetches when the package is absent, so it is install-capable;
+    # `npm exec` is the same executor. The leading backtick is required, like
+    # bare yarn, so the word `npx` in prose does not read as a command.
+    assert _INSTALL_FORMS.search("`npx eslint`")
+    assert _INSTALL_FORMS.search("`npx eslint .`")
+    assert _INSTALL_FORMS.search("`npm exec tsc`")
+    assert _INSTALL_FORMS.search("`npx --loglevel=warn create-foo`")
+    # `--no-install` cannot fetch — the safe form the guidance recommends — and a
+    # bare `npx` naming the executor is not a command to run.
+    assert not _INSTALL_FORMS.search("`npx --no-install`")
+    assert not _INSTALL_FORMS.search("`npx --no-install eslint`")
+    assert not _INSTALL_FORMS.search("a rule that reads `npx` as floating")
+    assert not _INSTALL_FORMS.search("npm and npx are node tools")
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")
