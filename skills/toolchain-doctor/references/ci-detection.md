@@ -20,6 +20,10 @@ An invocation the repository owns is then graded like any other step, not downgr
 
 4. **Editor and IDE config** — `.vscode/settings.json` and friends. This is _not_ execution. A formatter enabled on save in one editor's settings is a convenience for the people using that editor, and reporting it as wiring would be the most flattering possible reading of the evidence.
 
+**Carry the effective working directory through all of this.** A step's command means different things from different places: `cargo clippy` under `working-directory: packages/a` reads that member's manifest, `npm run lint` there resolves that package's scripts, and a relative `--config` names a different file. Providers set it at more than one level — a workflow or job default, overridden per step — so the directory in force is the innermost declaration, and a scan that assumed the repository root would credit one package's coverage to the whole tree and report the others as covered when nothing looked at them.
+
+Where the directory cannot be established, say so on that invocation rather than defaulting to the root: guessing here silently converts a partial-coverage finding into a satisfied row.
+
 ## Resolving indirection
 
 A workflow step calling a task runner is answered by reading the task. `make lint` is resolved by finding the `lint` target in the `Makefile` and reading what it runs; `npm run lint` by reading `scripts.lint` in `package.json`. Follow one level of indirection at minimum, and keep following while each step resolves.

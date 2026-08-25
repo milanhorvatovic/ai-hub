@@ -30,6 +30,8 @@ Audits a TypeScript or JavaScript project's toolchain configuration. Modes and t
 
 Read the declared `eslint` version alongside the config file rather than treating the file's presence as the answer; where the version cannot be resolved, that is `unknown` on the linter row rather than a satisfied one.
 
+**An explicit selector outranks discovery here too**, and the table above lists only what discovery finds. `tsc --project`, `eslint --config`, `biome --config-path`, and `prettier --config` each name a config the tool will use whatever the conventional filenames say, so `eslint --config config/lint.mjs` is a configured, running linter that a discovery-only scan reports as undeclared — or, worse, as broken. Resolve each invocation's selector first, per call site, and fall through to the table only where none is given.
+
 `extends` chains matter here more than in any other language: a `tsconfig.json` whose visible body sets nothing can still be strict through a base config, and a config that sets `"strict": true` can have it undone by a later `"strictNullChecks": false`. Resolve the chain before grading, and when a base config lives in a package the scan cannot read, grade the strictness row `unknown` with that reason rather than reading the visible file alone.
 
 ## What the scan reports
