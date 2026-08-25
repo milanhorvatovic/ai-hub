@@ -97,7 +97,14 @@ _INSTALL_SUBCOMMAND = (
     r"(?:install|add|sync|ci|i\b|tool install|env create|component add"
     r"|toolchain install|pip install)"
 )
-_INSTALL_FORMS = re.compile(rf"\b{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND}")
+# Not every environment-mutating command is a manager plus a subcommand.
+# `pip-sync` is one word, and `corepack enable` provisions a manager rather than
+# a package — both are mechanisms this skill names, and neither fits the shape
+# above.
+_STANDALONE_FORMS = r"(?:pip-sync|pip-compile|corepack enable|corepack prepare)"
+_INSTALL_FORMS = re.compile(
+    rf"\b(?:{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND}|{_STANDALONE_FORMS})"
+)
 
 
 # The sites allowed to name one, each with the reason it is there.
@@ -133,10 +140,16 @@ _ALLOWED_CITATIONS: dict[str, dict[str, int]] = {
         "uv add": 1,
         "yarn add": 1,
     },
-    # Evidence for the unpinned-tool finding, and the environment-manager one.
-    "capabilities/python/capability.md": {"pip install": 2},
-    # The counter-example — what the CI step must not do instead of the lock.
-    "capabilities/python/references/scaffold-templates.md": {"pip install": 1},
+    # Evidence for the unpinned-tool finding and the environment-manager one,
+    # plus `pip-compile` naming the header that identifies a locked
+    # requirements file in the declaration table.
+    "capabilities/python/capability.md": {"pip install": 2, "pip-compile": 1},
+    # The counter-example — what the CI step must not do instead of the lock —
+    # and `pip-sync` among the managers a fresh runner does not carry.
+    "capabilities/python/references/scaffold-templates.md": {
+        "pip install": 1,
+        "pip-sync": 1,
+    },
     # The worked example of a `floating` finding.
     "references/diagnosis-grading.md": {"pip install": 1},
 }
@@ -321,7 +334,7 @@ def test_no_template_prescribes_what_its_own_audit_flags(
 # each names the capability text that makes it required, so the pin cannot
 # outlive the rule.
 _TEMPLATE_MUST_CARRY = (
-    ("typescript", "typescript-eslint", "a scaffolded linter must parse the language"),
+    ("typescript", "tseslint.config(", "a scaffolded linter must parse the language"),
     ("bash", "[*.{sh,bash}]", "a scaffolded policy covers every path the inventory collects"),
 )
 
@@ -411,6 +424,9 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("`pip --require-virtualenv install ruff`")
     assert _INSTALL_FORMS.search("`npm --prefix web install`")
     assert _INSTALL_FORMS.search("`uv tool install ruff`")
+    # Shapes that are not manager-plus-subcommand at all.
+    assert _INSTALL_FORMS.search("run `pip-sync` in CI")
+    assert _INSTALL_FORMS.search("`corepack enable` first")
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")

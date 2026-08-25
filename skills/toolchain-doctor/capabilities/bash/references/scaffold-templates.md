@@ -57,6 +57,11 @@ set -euo pipefail
 
 # Every tracked file, classified once: the shebang decides, and only a file
 # without one falls back to its extension. NUL in, NUL out.
+#
+# The accepted dialects are an argument, not a constant: the two tools this
+# feeds do not support the same shells, so each caller passes its own set.
+accepted=${1:?pass a shebang alternation, e.g. 'sh|bash|dash|ksh|oksh|bats'}
+
 git ls-files -z |
   while IFS= read -r -d '' f; do
     # A symlink is never read: a tracked link can point anywhere the runner can
@@ -66,7 +71,7 @@ git ls-files -z |
     first=$(head -n 1 -- "$f")
     case "$first" in
       '#!'*)
-        if printf '%s\n' "$first" | grep -Eq '[/ ](sh|bash|dash|ksh|oksh|bats)([[:space:]]|$)'; then
+        if printf '%s\n' "$first" | grep -Eq "[/ ]($accepted)([[:space:]]|\$)"; then
           printf '%s\0' "$f"
         fi
         ;;
@@ -95,7 +100,7 @@ Report the shells left out — `mksh`, `ash`, `zsh` — by name as outside the g
 
 `.bats` is in the extension fallback because Bats files legitimately carry no shebang: the runner supplies the interpreter, so the shebang branch never sees them and an extension list of `.sh` and `.bash` alone leaves a repository's whole test suite unchecked.
 
-**One list, two tools, and their dialect support is not the same.** This inventory is written against what `shellcheck` accepts, and `shfmt` recognizes a different set — it knows `bats`, which shellcheck also takes, and it does not have a `ksh` grammar. A path this list emits with a `ksh` or `oksh` shebang therefore reaches `shfmt` as something it will format by another dialect's rules, silently. Resolve the two lists separately when adapting this: feed `shellcheck` what shellcheck accepts, feed `shfmt` what it accepts, and report the difference rather than letting one tool inherit the other's list. The exact sets are worth checking against the versions a repository pins rather than taken from here — shellcheck's was measured, shfmt's was not.
+**Two tools, two lists, which is why the script takes its dialects as an argument.** Their support differs: `shellcheck` accepts `ksh` and `oksh` and refuses `mksh`; `shfmt` has no `ksh` grammar and does have `mksh`. Handing one list to both sends a `ksh` script to `shfmt` to be reformatted by another dialect's rules without saying so — which is the defect the previous version of this paragraph warned about while the CI steps below went on sharing a list anyway. Each step passes the set its own tool accepts now, and a script in neither set lands in neither list and is reported instead of silently mis-handled. Check the sets against the versions a repository actually pins rather than taking them from here: shellcheck's was measured against the binary, shfmt's was not.
 
 Two more details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
 
@@ -136,9 +141,9 @@ jobs:
           install -m 0755 shfmt bin/shfmt
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: shellcheck
-        run: <the discovery command above> | xargs -0 --no-run-if-empty shellcheck --
+        run: <discovery> 'sh|bash|dash|ksh|oksh|bats' | xargs -0 --no-run-if-empty shellcheck --
       - name: shfmt
-        run: <the discovery command above> | xargs -0 --no-run-if-empty shfmt -d --
+        run: <discovery> 'sh|bash|dash|mksh|bats' | xargs -0 --no-run-if-empty shfmt -d --
 ```
 
 Both downloads are checksum-verified before anything is extracted or made executable, and the digests are recorded here rather than fetched alongside the artifact. A version tag is not an identity: a release asset can be replaced without its URL changing, so a pinned version alone leaves the job executing whatever is behind that link today. The version pins which release the job wants; the digest is what makes the job refuse a different one. Fetching the checksums from the same host at the same time would verify only that the download was not corrupted in transit, which is not the question.
