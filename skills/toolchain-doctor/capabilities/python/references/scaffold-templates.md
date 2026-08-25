@@ -74,6 +74,8 @@ jobs:
           python-version: "<3.XX>"
       - name: bootstrap <the project's environment manager>
         uses: <that manager's pinned setup action>@<40-char-sha> # <the version this sha is>
+        with:
+          version: "<the exact manager version, not a floating default>"
       - run: <the project's locked dev-environment install — uv sync, poetry install, pipenv sync --dev, pip-sync, hatch env create>
       - run: <the project's runner prefix> ruff check .
       - run: <the project's runner prefix> ruff format --check .
@@ -82,7 +84,7 @@ jobs:
 
 The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
 
-The bootstrap step is not optional scenery. `actions/setup-python` provides an interpreter and `pip`, and nothing else: `uv`, `poetry`, `pipenv`, `pip-sync`, and `hatch` are all absent from a fresh runner, so a job that jumps straight to the locked install fails with a command not found before any check runs — a scaffold that closes a wiring finding on paper and cannot execute. Use the manager's own pinned setup action where it has one, and a pinned installer step where it does not.
+The bootstrap step is not optional scenery. `actions/setup-python` provides an interpreter and `pip`, and nothing else: `uv`, `poetry`, `pipenv`, `pip-sync`, and `hatch` are all absent from a fresh runner, so a job that jumps straight to the locked install fails with a command not found before any check runs — a scaffold that closes a wiring finding on paper and cannot execute. Use the manager's own pinned setup action where it has one, and a pinned installer step where it does not — and pin the **manager's** version through the action's input as well as the action's own SHA. This capability grades a pinned installer whose version input floats as `floating`, so a bootstrap step that pinned only the action would hand the repository the same finding on its next audit, from the scaffold written to close it.
 
 The install step is the project's environment manager, not a bare `pip install` of the two tools. The floor already asks for a managed environment with a tracked lock, and a CI job that sidesteps it installs unpinned tools into whatever interpreter the runner provides and — the part that actually breaks — never installs the project or its dependencies, so a type checker reaches the first third-party import and reports errors about the environment rather than the code. Declare the tools in the project's own dev-dependency group, install through the lock, and let the runner prefix (`uv run`, `poetry run`, `pipenv run`, or nothing where the environment is already active) be whatever the repository uses elsewhere.
 

@@ -102,7 +102,7 @@ _MANAGER_OPTIONS = r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*"
 # are deliberately absent: those are the tools the floors are made of, and
 # matching them would flag the skill for naming its own subject.
 _INSTALL_SUBCOMMAND = (
-    r"(?:install|uninstall|add|remove|rm|sync|update|upgrade|prune|ci|i\b"
+    r"(?:install|reinstall|uninstall|add|remove|rm|sync|update|upgrade|prune|bundle|ci|i\b"
     r"|tool install|env create|env remove|component add|component remove"
     r"|toolchain install|toolchain uninstall|self update|pip install)"
 )
@@ -453,6 +453,9 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # Corepack mutates the environment under more than one subcommand.
     assert _INSTALL_FORMS.search("`corepack use pnpm@9`")
     assert _INSTALL_FORMS.search("`corepack disable`")
+    # Homebrew installs under names that are neither install nor upgrade.
+    assert _INSTALL_FORMS.search("`brew bundle`")
+    assert _INSTALL_FORMS.search("`brew reinstall shfmt`")
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")
