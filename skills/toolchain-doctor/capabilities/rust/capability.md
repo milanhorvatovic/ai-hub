@@ -50,7 +50,7 @@ So the case worth checking first is the ordinary root-package workspace that set
 
 - **Lints riding a floating toolchain.** `cargo fmt` and `cargo clippy` ship with the toolchain, so their version is the channel's. A crate on `stable` therefore takes new lints the day they release, and a green pull request can redden on a change nobody made. Unlike the other languages this is the ecosystem's own default and usually a `decision` rather than a `floating` finding — the audit's job is to say it out loud, once, so a team that keeps hitting it knows the lever exists and that pinning the channel costs them the new lints.
 
-MSRV is graded `decision` whenever declared and left alone. What the audit does say is when CI does not test it: a `rust-version` nobody builds against is a promise with no evidence behind it. That is a `wiring` finding — the declaration exists and nothing exercises it — and the prescription is a CI matrix entry rather than a change to the declaration.
+A declared MSRV satisfies its row and carries no grade — the floor asks the project to declare one and respect it, so declaring it is compliance rather than a decline. Report the value among the scan's facts. What the audit does say is when CI does not test it: a `rust-version` nobody builds against is a promise with no evidence behind it. That is a `wiring` finding — the declaration exists and nothing exercises it — and the prescription is a CI matrix entry rather than a change to the declaration.
 
 ## Scaffold
 

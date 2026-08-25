@@ -20,6 +20,8 @@ Every audit finding carries a grade. The vocabulary is small on purpose, and all
 
 It is also the grade most likely to be a `decision` in disguise. A repository that floats deliberately, to catch upstream changes early, has chosen the trade rather than missed it; say so where the choice is visible, and grade it `floating` only where nothing suggests anyone decided.
 
+**`decision` requires a declined floor row, not merely a deliberate choice.** The two are easy to conflate and the difference decides whether a finding exists at all: a repository that pins an older interpreter has declined a row and earns the grade, while one that selects a narrower lint rule set, documents a suppression, or declares the minimum version the floor asked it to declare has satisfied its rows and earns nothing. Grading the second kind fills a report with entries for a repository that did what was asked, which is how a reader learns to skim the section. Where a choice is worth mentioning and no row was declined, it belongs in the scan's facts rather than the audit's findings.
+
 `decision` is a grade rather than a silence so the report stays complete: a maintainer reading it should see every floor row accounted for, including the ones they themselves opted out of, because a row that simply vanishes reads as a row nobody checked.
 
 `unknown` is a grade rather than an absence for the sharper version of the same reason. A tool the scan could not reach and a tool the repository does not have look identical in a report that only lists what it found, and the two call for opposite responses.
