@@ -111,11 +111,19 @@ _INSTALL_SUBCOMMAND = (
 # a package — both are mechanisms this skill names, and neither fits the shape
 # above.
 _STANDALONE_FORMS = (
-    r"(?:pip-sync|pip-compile"
+    r"(?:\b(?:pip-sync|pip-compile"
     r"|corepack\s+(?:enable|disable|install|prepare|use|up))"
+    # Bare `yarn` is Yarn's own alias for `yarn install`, so "run `yarn` first"
+    # installs dependencies. It is required to be backticked and followed by
+    # nothing but flags, because the word also appears throughout this skill as
+    # the name of a package manager rather than as a command to run.
+    r"|`yarn(?:\s+--[\w-]+)*`)"
 )
+# The word boundary belongs to the manager alternative alone. Applied to the
+# whole group it sits between two backticks in "`yarn`", where there is no
+# boundary to find, and the bare-yarn form silently never matches.
 _INSTALL_FORMS = re.compile(
-    rf"\b(?:{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND}|{_STANDALONE_FORMS})"
+    rf"(?:\b{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND}|{_STANDALONE_FORMS})"
 )
 
 
@@ -456,6 +464,11 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # Homebrew installs under names that are neither install nor upgrade.
     assert _INSTALL_FORMS.search("`brew bundle`")
     assert _INSTALL_FORMS.search("`brew reinstall shfmt`")
+    # Bare yarn installs; the same word as a tool name does not.
+    assert _INSTALL_FORMS.search("run `yarn` first")
+    assert _INSTALL_FORMS.search("`yarn --frozen-lockfile`")
+    assert not _INSTALL_FORMS.search("pnpm and yarn use their own setup action")
+    assert not _INSTALL_FORMS.search("`<npm, pnpm, or yarn>`")
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")

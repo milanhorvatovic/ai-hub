@@ -79,9 +79,17 @@ git ls-files -z |
         fi
         ;;
       *)
+        # No shebang: the extension implies a dialect, and that dialect faces
+        # the same accepted-set filter the shebang branch applies.
         case "$f" in
-          *.sh | *.bash | *.bats) printf '%s\0' "$f" ;;
+          *.sh) implied=sh ;;
+          *.bash) implied=bash ;;
+          *.bats) implied=bats ;;
+          *) continue ;;
         esac
+        if printf '%s\n' "$implied" | grep -Eq "^($accepted)$"; then
+          printf '%s\0' "$f"
+        fi
         ;;
     esac
   done
@@ -106,6 +114,8 @@ Report the shells left out — `mksh` and `zsh`, both refused outright — by na
 The pattern is anchored to the **interpreter's own position** rather than searching the line. A leading `.*` looks harmless and is not: it lets the match slide past the real interpreter to any later word, so `#!/usr/bin/env -S python -m bash` and `#!/usr/bin/python3 -c import bash` both read as shell and the generated job hands a Python file to a shell linter, which then fails for a reason that has nothing to do with the repository's shell. The path, the optional `env`, and the interpreter are matched in sequence instead.
 
 The `env -S` segment is optional in the pattern because it is not optional in practice: `#!/usr/bin/env -S bash -e` is the standard way to pass a flag through `env`, and a classifier that only accepted the interpreter directly after a slash would drop every script written that way — silently, from both generated tool invocations, which is the failure this inventory exists to prevent.
+
+The extension branch runs the **same** accepted-set filter as the shebang branch, which is the point of taking the dialects as an argument at all. An earlier shape emitted every known extension unconditionally, so the two per-tool lists changed nothing for files without a shebang: a `.bats` file went to a formatter whose pinned version might not accept `bats`, and the generated job failed on a file the caller had deliberately excluded. Mapping each extension to the dialect it implies puts both branches under one rule.
 
 `.bats` is in the extension fallback because Bats files legitimately carry no shebang: the runner supplies the interpreter, so the shebang branch never sees them and an extension list of `.sh` and `.bash` alone leaves a repository's whole test suite unchecked.
 
