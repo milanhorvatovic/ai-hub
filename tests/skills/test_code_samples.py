@@ -52,6 +52,16 @@ _TEXT_UTF8 = {"text": True, "encoding": "utf-8"}
 _PROBE = "# \N{RIGHTWARDS ARROW} utf-8 round-trip\ntrue\n"
 _SHELLCHECK_PROBE = "#!/usr/bin/env bash\n" + _PROBE
 
+# Errors and warnings only, which is the rule the fleet's shell guidance already
+# states and is also what keeps this lane from drifting: `shellcheck` is not
+# pinned here — it is whatever the runner ships — and its `info` and `style`
+# tiers move between releases. The first run of this lane proved the point by
+# reddening on an `SC2015` the locally installed version no longer raises, in a
+# sample nobody had touched. Both defects this lane was written for sit above
+# the cut — `SC1072` is an error and `SC2209` a warning — so the tier that
+# churns is the one this repository was never going to gate on anyway.
+_SHELLCHECK_ARGS = ("--severity=warning", "-")
+
 # `parse_typescript.mjs` exits with this when the pinned compiler is absent, so
 # a machine that has never run `npm ci` skips the lane instead of failing it.
 _NO_TOOLCHAIN = 3
@@ -173,7 +183,7 @@ def _usable_shellcheck() -> str | None:
     if not exe:
         return None
     probe = subprocess.run(
-        [exe, "-"],
+        [exe, *_SHELLCHECK_ARGS],
         input=_SHELLCHECK_PROBE,
         **_TEXT_UTF8,
         capture_output=True,
@@ -262,7 +272,11 @@ def test_runnable_shell_samples_pass_shellcheck() -> None:
     ]
     for fence in scripts:
         done = subprocess.run(
-            [exe, "-"], input=fence.body, **_TEXT_UTF8, capture_output=True, check=False
+            [exe, *_SHELLCHECK_ARGS],
+            input=fence.body,
+            **_TEXT_UTF8,
+            capture_output=True,
+            check=False,
         )
         if done.returncode:
             codes = sorted(
