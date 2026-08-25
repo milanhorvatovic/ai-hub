@@ -73,6 +73,8 @@ _GRADE_USES = (
 # floors are the ones a reader is most likely to be told to reach for.
 _INSTALL_COMMANDS = (
     "pip install",
+    "pip-sync",
+    "hatch env create",
     "uv add",
     "poetry add",
     "pipenv install",
@@ -168,8 +170,10 @@ _ALLOWED_CITATIONS: dict[str, dict[str, int]] = {
         "brew install": 1,
         "bun add": 1,
         "cargo install": 1,
+        "hatch env create": 1,
         "npm i": 1,
         "pip install": 1,
+        "pip-sync": 1,
         "pipenv install": 1,
         "pnpm add": 1,
         "poetry add": 1,
