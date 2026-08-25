@@ -27,10 +27,12 @@ run_tool $FLAGS
 
 `shfmt` reads `.editorconfig`, which is also what a contributor's editor reads — one declaration for both, instead of flags that live only in a CI step.
 
+The extension glob carries every extension the inventory collects, `.bats` included — the discovery script emits those files and the `shfmt` step below formats them, so leaving them out of this section hands them the tool's defaults while every other script follows the project's policy. That is the same split this section exists to prevent, arriving through the extension nobody remembered to add.
+
 The section headers come from the inventory, not from `*.sh`. This is the same trap as the linter's file list: the scan exists to find the shell that no extension glob matches, and a config keyed only to `[*.sh]` then formats the hooks and `bin/` scripts with `shfmt`'s defaults instead — one repository, two formatting policies, and the files with the widest blast radius on the wrong one.
 
 ```ini
-[*.{sh,bash}]
+[*.{sh,bash,bats}]
 indent_style = <the project's existing style>
 indent_size = <the project's existing width>
 switch_case_indent = true

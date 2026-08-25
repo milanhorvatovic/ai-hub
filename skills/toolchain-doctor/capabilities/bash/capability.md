@@ -54,7 +54,7 @@ The first-line check is the reliable one for the extensionless case: a file whos
 
 1. **The script inventory**, per the table above, with the hidden locations named explicitly.
 2. **`shellcheck` presence and severity handling** — whether it runs, and whether its findings fail anything.
-3. **Suppression directives** — every `# shellcheck disable=` in the tree, with whether each carries a reason. The floor asks for a one-line reason per suppression, and a bare disable is the thing this row exists to find.
+3. **Suppression directives** — every `# shellcheck disable=` **in the inventoried script files**, with whether each carries a reason. The scope matters: a search across the whole tree also matches documentation, fenced examples, and prose about suppressions — this skill's own reference carries one as an illustration — and reporting those as undocumented suppressions is a finding about a sentence rather than about a script. Only a directive `shellcheck` would actually apply counts. The floor asks for a one-line reason per suppression, and a bare disable is the thing this row exists to find.
 4. **`shfmt` presence and flags** — including whether `.editorconfig` and the invocation agree.
 5. **Coverage gaps** — script **files** found by the inventory that the linter's invocation does not reach; embedded shell sits outside this row, per the note above. A `shellcheck scripts/*.sh` step in a repository with hooks and a `bin/` directory covers a fraction of its shell and reports success.
 

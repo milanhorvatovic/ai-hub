@@ -335,7 +335,7 @@ def test_no_template_prescribes_what_its_own_audit_flags(
 # outlive the rule.
 _TEMPLATE_MUST_CARRY = (
     ("typescript", "tseslint.config(", "a scaffolded linter must parse the language"),
-    ("bash", "[*.{sh,bash}]", "a scaffolded policy covers every path the inventory collects"),
+    ("bash", "[*.{sh,bash,bats}]", "a scaffolded policy covers every path the inventory collects"),
 )
 
 
