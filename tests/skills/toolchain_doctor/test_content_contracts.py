@@ -243,7 +243,9 @@ def test_every_capability_reaches_the_three_contracts_it_runs_on() -> None:
         for ref in required
         if ref not in path.read_text(encoding="utf-8")
     ]
-    assert not missing, "capabilities not wired to a shared contract:\n" + "\n".join(missing)
+    assert not missing, "capabilities not wired to a shared contract:\n" + "\n".join(
+        missing
+    )
 
 
 def test_no_shipped_doc_defines_a_grade_of_its_own() -> None:
@@ -256,9 +258,9 @@ def test_no_shipped_doc_defines_a_grade_of_its_own() -> None:
         for path in _ALL_SKILL_DOCS
         if path != owner and _GRADE_TABLE_HEADER in _prose(path)
     ]
-    assert offenders == [], (
-        f"{offenders} open a grade table; grades live in references/diagnosis-grading.md"
-    )
+    assert (
+        offenders == []
+    ), f"{offenders} open a grade table; grades live in references/diagnosis-grading.md"
 
 
 def test_every_grade_a_capability_assigns_is_registered() -> None:
@@ -276,7 +278,9 @@ def test_every_grade_a_capability_assigns_is_registered() -> None:
         "grades assigned but not declared in references/diagnosis-grading.md:\n"
         + "\n".join(unregistered)
     )
-    assert used, "no capability assigns a grade in a recognized frame — check the frames"
+    assert (
+        used
+    ), "no capability assigns a grade in a recognized frame — check the frames"
 
 
 def _assigned_grades(path: Path) -> set[str]:
@@ -298,7 +302,9 @@ def test_every_registered_grade_is_used(grade: str) -> None:
     in for one that produces it, so a genuinely dead entry keeps its citation
     and the invariant this test claims to hold quietly stops holding.
     """
-    users = [path.parent.name for path in _CAPABILITIES if grade in _assigned_grades(path)]
+    users = [
+        path.parent.name for path in _CAPABILITIES if grade in _assigned_grades(path)
+    ]
     assert users, f"`{grade}` is declared but no capability ever assigns it"
 
 
@@ -343,6 +349,7 @@ def test_the_consent_model_still_names_what_it_forbids() -> None:
 _SELF_CONTRADICTIONS = (
     ("rust", "cargo check", "`cargo check` standing in for `clippy`"),
     ("python", "pip install", "A CI job that installs past the environment manager"),
+    ("rust", 'channel = "stable', "That is `floating` like any other unfixed version"),
 )
 
 
@@ -367,7 +374,9 @@ def test_no_template_prescribes_what_its_own_audit_flags(
         "restore the finding, but do not leave a template pinned to nothing"
     )
 
-    templates = _SKILL / "capabilities" / language / "references" / "scaffold-templates.md"
+    templates = (
+        _SKILL / "capabilities" / language / "references" / "scaffold-templates.md"
+    )
     fenced = "\n".join(_FENCE.findall(templates.read_text(encoding="utf-8")))
     assert shape not in fenced, (
         f"{language}'s templates prescribe {shape!r}, which its own audit grades "
@@ -383,7 +392,16 @@ def test_no_template_prescribes_what_its_own_audit_flags(
 # outlive the rule.
 _TEMPLATE_MUST_CARRY = (
     ("typescript", "tseslint.config(", "a scaffolded linter must parse the language"),
-    ("bash", "[*.{sh,bash,bats}]", "a scaffolded policy covers every path the inventory collects"),
+    (
+        "bash",
+        "[*.{sh,bash,bats}]",
+        "a scaffolded policy covers every path the inventory collects",
+    ),
+    (
+        "rust",
+        'channel = "<the exact version',
+        "That is `floating` like any other unfixed version",
+    ),
 )
 
 
@@ -403,7 +421,9 @@ def test_the_templates_still_carry_what_their_capability_requires(
     inventory on the formatter's defaults.
     """
     capability = _SKILL / "capabilities" / language / "capability.md"
-    templates = _SKILL / "capabilities" / language / "references" / "scaffold-templates.md"
+    templates = (
+        _SKILL / "capabilities" / language / "references" / "scaffold-templates.md"
+    )
     assert anchor in capability.read_text(encoding="utf-8"), (
         f"{language}'s capability no longer states the rule behind {required!r} — "
         "drop this pin or restore the rule, but do not pin a template to nothing"
@@ -417,7 +437,9 @@ def test_the_templates_still_carry_what_their_capability_requires(
     )
 
 
-@pytest.mark.parametrize("doc", _ALL_SKILL_DOCS, ids=lambda p: p.relative_to(_SKILL).as_posix())
+@pytest.mark.parametrize(
+    "doc", _ALL_SKILL_DOCS, ids=lambda p: p.relative_to(_SKILL).as_posix()
+)
 def test_only_inventoried_files_name_an_install_command(doc: Path) -> None:
     """The consent model, pinned by inventory rather than by reading intent.
 
@@ -446,16 +468,18 @@ def test_the_citation_inventory_describes_this_tree() -> None:
     """An inventory that outlives its citations stops being one — a listed file
     that no longer names an install form is a standing permission nobody would
     notice granting."""
-    stale = [name for name in _ALLOWED_CITATIONS if not _install_citations(_SKILL / name)]
-    assert not stale, f"inventory lists files that no longer cite an install form: {stale}"
+    stale = [
+        name for name in _ALLOWED_CITATIONS if not _install_citations(_SKILL / name)
+    ]
+    assert (
+        not stale
+    ), f"inventory lists files that no longer cite an install form: {stale}"
 
     # The keys are compared against `as_posix()` output, so a backslash in one
     # can only ever miss. Pinning the spelling here fails on every platform
     # rather than only on the runners that use the other separator.
     windows_style = [name for name in _ALLOWED_CITATIONS if "\\" in name]
-    assert not windows_style, (
-        f"inventory keys must be posix-form paths; these carry backslashes: {windows_style}"
-    )
+    assert not windows_style, f"inventory keys must be posix-form paths; these carry backslashes: {windows_style}"
 
 
 def test_the_install_detector_reads_forms_not_tool_names() -> None:

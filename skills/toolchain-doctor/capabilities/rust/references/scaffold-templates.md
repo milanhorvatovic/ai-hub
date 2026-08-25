@@ -51,9 +51,11 @@ The `edition` key belongs here even in a minimal config: `rustfmt` formats some 
 
 ```toml
 [toolchain]
-channel = "<stable, or the exact version the project pins>"
+channel = "<the exact version the project pins, e.g. 1.83.0>"
 components = ["rustfmt", "clippy"]
 ```
+
+An exact channel, because `stable` is what this file exists to stop being: the toolchain carries `rustfmt` and `clippy`, so a crate on `stable` takes their new lints the day they release and this capability grades that `floating` — a scaffold writing `stable` would hand a repository a fresh finding on the run that was meant to close one. Where a repository already floats and this template is being applied to some other row, leave its channel alone and say the fixity finding stands: a scaffold closes the row it was called for and does not quietly overturn a choice the repository made.
 
 Listing the components is what makes a fresh checkout able to run the floor's commands. Without it, a contributor whose toolchain was installed without `clippy` gets a missing-component error rather than lint output, which reads like a broken repository rather than a missing component.
 
