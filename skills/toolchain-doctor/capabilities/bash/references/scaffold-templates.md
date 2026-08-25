@@ -38,17 +38,17 @@ The section headers come from the inventory, not from `*.sh`. This is the same t
 [*.{sh,bash,bats}]
 indent_style = <the project's existing style>
 indent_size = <the project's existing width>
-switch_case_indent = true
+switch_case_indent = <true if the scripts indent case bodies, false if not>
 
 # One section per extensionless path the inventory found; EditorConfig matches
 # on path patterns, so these cannot be folded into the glob above.
 [{.githooks/*,bin/deploy,bin/release}]
 indent_style = <the project's existing style>
 indent_size = <the project's existing width>
-switch_case_indent = true
+switch_case_indent = <true if the scripts indent case bodies, false if not>
 ```
 
-The indentation values come from the scripts the inventory found, not from a default: picking a width would reformat every line of every script for a repository whose finding was that nothing formatted them at all. `switch_case_indent` is the `-ci` flag spelled as a setting, and it is here because the floor names it. `binary_next_line` — `-bn` — is deliberately absent: the floor does not ask for it, and it reflows every continued command in the repository, which is a large unrequested diff handed to someone who asked for a config file. Carry it over only where the scan found `shfmt` already invoked with `-bn`. The same rule governs the rest: when the repository already invokes `shfmt` with flags somewhere, translate the flags it uses rather than imposing these.
+The indentation values come from the scripts the inventory found, not from a default: picking a width would reformat every line of every script for a repository whose finding was that nothing formatted them at all. `switch_case_indent` — the `-ci` flag spelled as a setting — is filled the same way, from what the scripts already do. The floor names `-ci` as the convention most projects follow, not as a bar it sets, so writing `true` into a repository that had deliberately left its `case` bodies flush reformats every one of them — the unrequested diff the width setting is careful to avoid, arriving through a line that looks like a default. Read it from the scan and write `false` where the scripts do not indent case bodies. `binary_next_line` — `-bn` — is deliberately absent: the floor does not ask for it, and it reflows every continued command in the repository, which is a large unrequested diff handed to someone who asked for a config file. Carry it over only where the scan found `shfmt` already invoked with `-bn`. The same rule governs the rest: when the repository already invokes `shfmt` with flags somewhere, translate the flags it uses rather than imposing these.
 
 Where the inventory's extensionless paths are too many or too scattered to enumerate, the honest alternative is to skip `.editorconfig` for them and pass one explicit flag set to every `shfmt` invocation instead. That loses the editor half of the deal and should be said out loud; what it does not do is leave half the repository formatted by a policy nobody chose.
 

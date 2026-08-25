@@ -224,6 +224,21 @@ def _flags_for(text: str, tool: str) -> set[str]:
     return flags
 
 
+# A recommendation is not a requirement, and the flag comparison must not read
+# one as the other. Both floors name `shfmt -i 2 -ci` as what "most projects"
+# use; unioning every backticked flag would promote that style to a mandatory
+# floor the doctor and its scaffold then enforce as a diff nobody asked for. The
+# clause is stripped before extraction on both sides, so only the normative bar
+# — the requirement stated outright, not the convention noted beside it — is
+# compared. Clippy's `--all-targets -- -D warnings` carries no such hedge and is
+# untouched.
+_RECOMMENDATION = re.compile(r"\(?\bmost projects\b[^).|;\n]*\)?")
+
+
+def _without_recommendations(text: str) -> str:
+    return _RECOMMENDATION.sub("", text)
+
+
 def _rulebook_text(language: str) -> str:
     """The rulebook's floor plus the verification commands that realize it."""
     capability = (_RULEBOOK / language / "capability.md").read_text(encoding="utf-8")
@@ -235,7 +250,9 @@ def _rulebook_text(language: str) -> str:
         r"^## Verification$(.*?)(?=^## |\Z)", capability, re.S | re.M
     )
     assert floor, f"{language}: no `{heading}` section"
-    return floor.group(1) + (verification.group(1) if verification else "")
+    return _without_recommendations(
+        floor.group(1) + (verification.group(1) if verification else "")
+    )
 
 
 def _doctor_text(language: str) -> str:
@@ -253,7 +270,7 @@ def _doctor_text(language: str) -> str:
     assert section, f"tooling-floors.md has no `## {language}` section"
     rows = [line for line in section.group(1).splitlines() if line.startswith("| `")]
     assert rows, f"no floor table rows under `## {language}`"
-    return "\n".join(rows)
+    return _without_recommendations("\n".join(rows))
 
 
 @pytest.mark.parametrize("language", sorted(_FLOOR_HEADINGS))
@@ -309,6 +326,29 @@ def test_the_flag_reader_sees_what_it_claims_to() -> None:
     # A path is not an argument, or `-ci .` and `-ci` would read as different
     # requirements and two sides stating the same floor would disagree.
     assert _flags_for("`shfmt -i 2 -ci .`", "shfmt") == {"shfmt: -i 2", "shfmt: -ci"}
+
+
+def test_a_recommendation_is_not_promoted_to_a_requirement() -> None:
+    """`shfmt -i 2 -ci` is what most projects use, not the floor's bar.
+
+    Both floors name it as a convention; unioning every backticked flag would
+    make `-i 2 -ci` a mandatory requirement the doctor's scaffold then hard-codes
+    into a config, reformatting a repository that had chosen otherwise. The
+    stripping keeps the recommendation as prose while leaving the shfmt bar
+    without a style: the check invocation's `-d` may remain — that is how a check
+    is run, not a style anyone chose — but the specific indentation must not.
+    """
+    for style in ("shfmt: -i 2", "shfmt: -ci"):
+        assert style not in _flags_for(_rulebook_text("bash"), "shfmt")
+        assert style not in _flags_for(_doctor_text("bash"), "shfmt")
+    # The clause is what carries the flags out, not the tool: a requirement stated
+    # outright still counts.
+    kept = _without_recommendations("run `cargo clippy --all-targets -- -D warnings`")
+    assert _flags_for(kept, "cargo clippy") == {
+        "cargo clippy: --all-targets",
+        "cargo clippy: -D warnings",
+    }
+    assert _without_recommendations("most projects use `shfmt -ci`; do X.") == "; do X."
 
     # A flag on the wrong subcommand no longer hides. `ruff` is one tool with two
     # subcommands, so `--check` under `ruff format` and `--check` under `ruff

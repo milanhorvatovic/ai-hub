@@ -44,7 +44,7 @@ Edition and MSRV are declarations rather than tools: prefer the latest edition t
 | Tool | Role | Floor | Verify with |
 | --- | --- | --- | --- |
 | `shellcheck` | lint | The authoritative linter for shell; its warnings are errors unless a script carries a documented `# shellcheck disable=SCXXXX` with a one-line reason | `shellcheck script.sh` |
-| `shfmt` | format | Configured with the project's indentation; most projects use `-i 2 -ci` | `shfmt -d -i 2 -ci .` |
+| `shfmt` | format | Configured with the project's indentation; most projects use `-i 2 -ci`, but the specific style is the project's to choose | `shfmt -d .` |
 
 The floor has a size limit rather than a third tool: past roughly 200 lines, multiple subcommands, or structured I/O, shell is the wrong language and no amount of linting fixes that. The doctor reports the threshold when it sees a script well past it, as an observation rather than a finding — rewriting a working script is a decision far above a tooling audit's pay grade.
 
