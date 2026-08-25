@@ -53,13 +53,14 @@ _PROBE = "# \N{RIGHTWARDS ARROW} utf-8 round-trip\ntrue\n"
 _SHELLCHECK_PROBE = "#!/usr/bin/env bash\n" + _PROBE
 
 # Errors and warnings only, which is the rule the fleet's shell guidance already
-# states and is also what keeps this lane from drifting: `shellcheck` is not
-# pinned here — it is whatever the runner ships — and its `info` and `style`
-# tiers move between releases. The first run of this lane proved the point by
-# reddening on an `SC2015` the locally installed version no longer raises, in a
-# sample nobody had touched. Both defects this lane was written for sit above
-# the cut — `SC1072` is an error and `SC2209` a warning — so the tier that
-# churns is the one this repository was never going to gate on anyway.
+# states and is defense in depth beside the version pin: the lane runs only in
+# the job that installs a fixed `shellcheck` (see the gate in the lane below),
+# but holding the check to the two tiers that gate a real pipeline means even a
+# future bump of that pin can only bite where the floor says it should. The
+# `info` and `style` tiers move between releases — the first run of this lane
+# reddened on an `SC2015` a newer version no longer raises, in a sample nobody
+# had touched — and both defects this lane was written for sit above the cut:
+# `SC1072` is an error and `SC2209` a warning.
 _SHELLCHECK_ARGS = ("--severity=warning", "-")
 
 # `parse_typescript.mjs` exits with this when the pinned compiler is absent, so
@@ -261,7 +262,27 @@ def test_runnable_shell_samples_pass_shellcheck() -> None:
     variables assigned elsewhere, which is the right shape for an illustration
     and the wrong shape for a linter that would report every one of them as
     referenced-but-not-assigned.
+
+    Unlike the other three lanes, this one runs only where its tool is pinned.
+    `ast.parse` and `bash -n` are parse-only and stable across versions, and the
+    TypeScript lane runs a compiler `npm ci` pins — but `shellcheck` is taken
+    from the environment and reclassifies diagnostics between releases, so a
+    sample's verdict depends on which binary answers. The one job that installs
+    a fixed `shellcheck` is the one that sets this variable, so the lane runs
+    there and skips everywhere else rather than grading a sample against
+    whichever build an image ships. The pytest matrix legs are the case that
+    forces this: they run on an Ubuntu image that preinstalls `shellcheck`, so
+    without the gate they would lint against an unpinned binary and a later
+    reclassification would redden a required job the pin exists to make
+    reproducible. The bash lane still parses these same samples everywhere, so
+    the local loss is the linter pass, not coverage of the shell fences.
     """
+    if not os.environ.get("REQUIRE_SAMPLE_LANES"):
+        pytest.skip(
+            "shell linter lane runs only in the job that pins shellcheck; "
+            "the bash lane covers these samples elsewhere"
+        )
+
     exe = _usable_shellcheck()
     if not exe:
         _no_toolchain("no usable shellcheck on PATH")
