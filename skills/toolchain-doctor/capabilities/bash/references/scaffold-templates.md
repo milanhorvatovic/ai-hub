@@ -67,7 +67,11 @@ set -euo pipefail
 # feeds do not support the same shells, so each caller passes its own set.
 accepted=${1:?pass a shebang alternation, e.g. 'sh|bash|dash|ksh|oksh|bats|ash|busybox[[:space:]]+sh'}
 
-git ls-files -z |
+git ls-files -z \
+  -- ':(exclude,glob)**/node_modules/**' ':(exclude,glob)**/vendor/**' \
+     ':(exclude,glob)**/target/**' ':(exclude,glob)**/dist/**' \
+     ':(exclude,glob)**/build/**' ':(exclude,glob)**/.venv/**' \
+     ':(exclude,glob)**/venv/**' |
   while IFS= read -r -d '' f; do
     # A symlink is never read: a tracked link can point anywhere the runner can
     # reach, and the tools this list feeds would open the target, not the repo.
@@ -78,8 +82,8 @@ git ls-files -z |
     first=$(head -c 256 -- "$f" | head -n 1)
     case "$first" in
       '#!'*)
-        # `env` may front a single-token interpreter, but not `busybox sh`:
-        # shellcheck takes that only when the binary is named directly.
+        # `env` may front a single-token interpreter, but not `busybox sh` —
+        # that spelling is one the linter takes only from a direct path.
         if printf '%s\n' "$first" |
           grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?(env([[:space:]]+-S)?[[:space:]]+)?($accepted)([[:space:]]|\$)" &&
           ! printf '%s\n' "$first" |
@@ -91,9 +95,9 @@ git ls-files -z |
         # No shebang: the extension implies a dialect, and that dialect faces
         # the same accepted-set filter the shebang branch applies.
         case "$f" in
-          *.sh) implied=sh ;;
-          *.bash) implied=bash ;;
-          *.bats) implied=bats ;;
+          *.sh) implied='sh' ;;
+          *.bash) implied='bash' ;;
+          *.bats) implied='bats' ;;
           *) continue ;;
         esac
         if printf '%s\n' "$implied" | grep -Eq "^($accepted)$"; then
@@ -104,6 +108,14 @@ git ls-files -z |
   done
 ```
 
+The dialect names are quoted for the same tool rather than for style: `implied=sh` assigns a string that is also a command name, and `shellcheck` raises `SC2209` on it because the far more common intent behind that line is `implied=$(sh)`. The quotes say which one was meant. That one was invisible until the parse errors above were fixed — a script that will not parse is a script whose remaining findings nobody has seen.
+
+No comment in that script begins with the linter's own name, and the phrasing is bent around the constraint rather than by taste: `shellcheck` reads `# shellcheck <word>` as a directive wherever it appears, so an ordinary sentence starting with the tool's name is parsed as one and raises `SC1072` — a parse error, on the script this capability hands a repository to wire its linting up with. This was found by running `shellcheck` over the block rather than by reading it, which is also why the suite now does that.
+
+The exclusions are the mode contract's list of vendored and generated trees, applied here because `git ls-files` answers a different question than the inventory asks: it emits every tracked path, and a repository that commits its vendored dependencies gets their shell handed to `shellcheck` and `shfmt` as though it were its own. That produces findings a maintainer cannot act on, and a red job for code they did not write — the second being worse, because the scaffold was prescribed to close a finding rather than to open a new class of them. The `glob` magic is what makes each one reach past the top level: `:!vendor` excludes a root `vendor/` and leaves `packages/x/vendor/` in the list, which was confirmed by running both spellings against a repository holding each shape. Repositories that generate into some other directory add it here; the list is a floor rather than an inventory of every name a project might use.
+
+A tracked file that also matches an ignore rule stays in, which is a deliberate departure from the contract's last clause. `git ls-files` does not apply ignore rules to tracked paths, and reproducing that here would mean dropping files somebody added with `-f` on purpose — a real script, silently outside the check, which is the failure this whole inventory exists to prevent.
+
 The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
 
 The `--` before the appended paths is not decoration. A tracked file may legally be named `-deploy.sh`, and `xargs` appends it as an argument like any other, so the tool reads it as a bundle of options and reports an unrecognized option — the job then fails on a filename rather than on a script. The terminator was checked against `shellcheck` directly; `shfmt` takes it by the same convention, which is stated here rather than claimed as tested.
@@ -112,7 +124,7 @@ NUL delimiters end to end, because a path is not a line. Git emits `-z` for a re
 
 One pass, not two. An earlier shape emitted every `*.sh` and `*.bash` file directly and ran the shebang test only over the rest, which meant a zsh script named `deploy.sh` went straight into the list the generated job feeds to `shellcheck` — the unsupported-shell failure this section promises to keep out, arriving through the branch that never checked. The shebang is the authority wherever there is one; the extension answers only for a file that declares nothing, and `shellcheck` reads those as `sh`, which is the right default.
 
-The interpreter list is what `shellcheck` actually accepts, established by running it rather than by reading its error message: `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` exit clean, while `mksh`, `ash`, and `zsh` do not. Both directions of getting this list wrong cost something. Too narrow — matching only the two spellings of Bash — silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, reproducing the coverage under-reach this capability exists to find. Too wide is worse, because the extra file does not go unchecked, it turns the job red: `zsh` raises `SC1071`, `mksh` raises `SC1008`, and neither is a lint result the scaffold can act on.
+The interpreter list is what `shellcheck` can be made to accept, established by running it rather than by reading its error message. Two questions live inside that and separating them is what settles the list: which shebangs exit clean as they stand — `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` — and which of the rest can be made to, which is where `ash` parts company with `mksh` and `zsh` and why it is in the alternation, per the paragraph below. Both directions of getting this list wrong cost something. Too narrow — matching only the two spellings of Bash — silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, reproducing the coverage under-reach this capability exists to find. Too wide is worse, because the extra file does not go unchecked, it turns the job red: `zsh` raises `SC1071`, `mksh` raises `SC1008`, and neither is a lint result the scaffold can act on.
 
 `ash` belongs **in** the list, which took a measurement to settle. Left alone it exits non-zero with `SC2187` — and that diagnostic is a request rather than a refusal: it asks for `# shellcheck shell=dash` at the top of the file, and with the directive present the same file exits clean. Excluding ash therefore made its own documented remedy unreachable, because discovery dropped the file before `shellcheck` could read the directive it was asking for. Include it, and let the directive decide whether the job passes.
 

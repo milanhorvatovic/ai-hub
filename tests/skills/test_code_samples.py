@@ -50,6 +50,7 @@ _TEXT_UTF8 = {"text": True, "encoding": "utf-8"}
 # surfaces here — as "the interpreter cannot take our input" — instead of as a
 # malformed-sample report against the first sample that happens to contain one.
 _PROBE = "# \N{RIGHTWARDS ARROW} utf-8 round-trip\ntrue\n"
+_SHELLCHECK_PROBE = "#!/usr/bin/env bash\n" + _PROBE
 
 # `parse_typescript.mjs` exits with this when the pinned compiler is absent, so
 # a machine that has never run `npm ci` skips the lane instead of failing it.
@@ -111,7 +112,9 @@ def _no_toolchain(reason: str) -> NoReturn:
     runners happen to ship bash: true today, and not a thing the suite checked.
     """
     if os.environ.get("REQUIRE_SAMPLE_LANES"):
-        raise AssertionError(f"a sample lane is required here but could not run: {reason}")
+        raise AssertionError(
+            f"a sample lane is required here but could not run: {reason}"
+        )
     pytest.skip(reason)
 
 
@@ -159,6 +162,26 @@ def _usable_bash() -> str | None:
     return exe if probe.returncode == 0 else None
 
 
+def _usable_shellcheck() -> str | None:
+    """Path to a shellcheck that can lint a script, or None.
+
+    Probed like bash for the same reason, and with a shebang the bash probe does
+    not need: `shellcheck` refuses a script whose target shell it cannot tell,
+    so a probe without one reports every installation as unusable.
+    """
+    exe = shutil.which("shellcheck")
+    if not exe:
+        return None
+    probe = subprocess.run(
+        [exe, "-"],
+        input=_SHELLCHECK_PROBE,
+        **_TEXT_UTF8,
+        capture_output=True,
+        check=False,
+    )
+    return exe if probe.returncode == 0 else None
+
+
 def test_python_samples_parse() -> None:
     """Every `python` fence in the tracked tree is syntactically valid.
 
@@ -172,7 +195,9 @@ def test_python_samples_parse() -> None:
         try:
             ast.parse(fence.body)
         except SyntaxError as exc:
-            problems.append(f"{fence.path}:{fence.line}: {exc.msg} (sample line {exc.lineno})")
+            problems.append(
+                f"{fence.path}:{fence.line}: {exc.msg} (sample line {exc.lineno})"
+            )
 
     assert not problems, "malformed python samples:\n" + "\n".join(problems)
     assert samples, "no python fence was checked — the fence pattern has gone stale"
@@ -195,14 +220,65 @@ def test_bash_samples_parse() -> None:
     samples = _samples("bash")
     for fence in samples:
         done = subprocess.run(
-            [bash, "-n"], input=fence.body, **_TEXT_UTF8, capture_output=True, check=False
+            [bash, "-n"],
+            input=fence.body,
+            **_TEXT_UTF8,
+            capture_output=True,
+            check=False,
         )
         if done.returncode:
-            detail = done.stderr.strip().splitlines()[-1] if done.stderr.strip() else "?"
+            detail = (
+                done.stderr.strip().splitlines()[-1] if done.stderr.strip() else "?"
+            )
             problems.append(f"{fence.path}:{fence.line}: {detail}")
 
     assert not problems, "malformed shell samples:\n" + "\n".join(problems)
     assert samples, "no shell fence was checked — the fence pattern has gone stale"
+
+
+def test_runnable_shell_samples_pass_shellcheck() -> None:
+    """Every shell sample that carries a shebang also survives the linter.
+
+    Parsing is a weaker question than a shell script can be held to, and this
+    repository ships scripts meant to be pasted into a pipeline: one arrived
+    parsing cleanly while `shellcheck` rejected it outright, because a comment
+    beginning with the tool's own name is read as a directive rather than as
+    prose. `bash -n` has no opinion about that and never will.
+
+    The shebang is what selects a sample, and it selects on the sample's own
+    claim rather than on a guess about its length: a fence that opens with
+    `#!` is presenting a script to run, while the rest are fragments naming
+    variables assigned elsewhere, which is the right shape for an illustration
+    and the wrong shape for a linter that would report every one of them as
+    referenced-but-not-assigned.
+    """
+    exe = _usable_shellcheck()
+    if not exe:
+        _no_toolchain("no usable shellcheck on PATH")
+
+    problems = []
+    scripts = [
+        fence for fence in _samples("bash") if fence.body.lstrip().startswith("#!")
+    ]
+    for fence in scripts:
+        done = subprocess.run(
+            [exe, "-"], input=fence.body, **_TEXT_UTF8, capture_output=True, check=False
+        )
+        if done.returncode:
+            codes = sorted(
+                {
+                    word.strip("():")
+                    for line in done.stdout.splitlines()
+                    for word in line.split()
+                    if word.startswith("SC") and word[2:].rstrip("():").isdigit()
+                }
+            )
+            problems.append(f"{fence.path}:{fence.line}: {', '.join(codes) or '?'}")
+
+    assert not problems, "shell scripts their own linter rejects:\n" + "\n".join(
+        problems
+    )
+    assert scripts, "no shell script was linted — has the shebang selection gone stale?"
 
 
 def test_template_fences_are_exempt_because_they_are_templates() -> None:
@@ -249,12 +325,18 @@ def test_template_fences_are_exempt_because_they_are_templates() -> None:
             return False
         return (
             subprocess.run(
-                [bash, "-n"], input=fence.body, **_TEXT_UTF8, capture_output=True, check=False
+                [bash, "-n"],
+                input=fence.body,
+                **_TEXT_UTF8,
+                capture_output=True,
+                check=False,
             ).returncode
             != 0
         )
 
-    needless = [f"{fence.path}:{fence.line}" for fence in marked if not still_fails(fence)]
+    needless = [
+        f"{fence.path}:{fence.line}" for fence in marked if not still_fails(fence)
+    ]
 
     assert not needless, (
         "these fences are marked `template` but parse fine, so the marker is"
@@ -297,7 +379,9 @@ def test_typescript_samples_parse() -> None:
     )
     if done.returncode == _NO_TOOLCHAIN:
         _no_toolchain(done.stderr.strip() or "the pinned typescript is not installed")
-    assert done.returncode == 0, f"the TypeScript parser failed to run: {done.stderr.strip()}"
+    assert (
+        done.returncode == 0
+    ), f"the TypeScript parser failed to run: {done.stderr.strip()}"
 
     result = json.loads(done.stdout)
     flagged = {problem["id"] for problem in result["problems"]}
@@ -314,7 +398,9 @@ def test_typescript_samples_parse() -> None:
         " is a type stripper rather than a compiler, and would report valid"
         " samples as defects"
     )
-    must_fail_lines = {p["line"] for p in result["problems"] if p["id"] == "control://must-fail"}
+    must_fail_lines = {
+        p["line"] for p in result["problems"] if p["id"] == "control://must-fail"
+    }
     assert 1 in must_fail_lines, (
         f"the broken control's error is on line 1 but the parser reported {sorted(must_fail_lines)};"
         " the control's multibyte prefix is built so byte-based offsets cross the"
@@ -334,9 +420,9 @@ def test_typescript_samples_parse() -> None:
     # guard is least able to notice about itself. Counted over the samples, not
     # the payload, or the controls alone would satisfy it.
     assert samples, "no TypeScript fence was checked — the fence pattern has gone stale"
-    assert result["checked"] == len(payload), (
-        f"sent {len(payload)} samples, parser reports {result['checked']} checked"
-    )
+    assert result["checked"] == len(
+        payload
+    ), f"sent {len(payload)} samples, parser reports {result['checked']} checked"
 
 
 def test_the_lane_reaches_every_skill_that_ships_typescript() -> None:
@@ -387,8 +473,12 @@ def test_every_fence_spelling_is_accounted_for() -> None:
     )
 
 
-@pytest.mark.parametrize(("spelling", "language"), [("sh", "bash"), ("ts", "typescript")])
-def test_both_spellings_of_a_language_reach_its_lane(spelling: str, language: str) -> None:
+@pytest.mark.parametrize(
+    ("spelling", "language"), [("sh", "bash"), ("ts", "typescript")]
+)
+def test_both_spellings_of_a_language_reach_its_lane(
+    spelling: str, language: str
+) -> None:
     """A lane keyed to one spelling shrinks in silence, which is the defect the
     whole file is built against.
 
