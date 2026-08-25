@@ -77,10 +77,13 @@ jobs:
       - uses: actions/checkout@<40-char-sha> # <the version this sha is>
       - uses: <rust setup action>@<40-char-sha> # <the version this sha is>
         with:
+          toolchain: <the exact version, matching rust-toolchain.toml>
           components: rustfmt, clippy
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
 ```
+
+Naming the toolchain is the same rule as the channel above, arriving where it is easier to miss. A setup action with no version installs whatever its own default resolves to, which floats by exactly the mechanism the section above exists to stop: `rustfmt` and `clippy` ship with the toolchain, so the version left unstated here is the version of both linters. A repository wiring these jobs for the first time would take the finding on the run that closed its wiring gap. Where the repository has the `rust-toolchain.toml` above and the chosen action honours it, that file is the single declaration and this key repeats it; where it does not, this key is the only thing deciding, and either way the value is exact.
 
 The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
 

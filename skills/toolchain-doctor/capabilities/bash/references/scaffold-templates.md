@@ -95,6 +95,8 @@ git ls-files -z \
         # No shebang: the extension implies a dialect, and that dialect faces
         # the same accepted-set filter the shebang branch applies.
         case "$f" in
+          .husky/_/*) continue ;;
+          .husky/*) implied='sh' ;;
           *.sh) implied='sh' ;;
           *.bash) implied='bash' ;;
           *.bats) implied='bats' ;;
@@ -114,7 +116,7 @@ No comment in that script begins with the linter's own name, and the phrasing is
 
 The exclusions are the mode contract's list of vendored and generated trees, applied here because `git ls-files` answers a different question than the inventory asks: it emits every tracked path, and a repository that commits its vendored dependencies gets their shell handed to `shellcheck` and `shfmt` as though it were its own. That produces findings a maintainer cannot act on, and a red job for code they did not write — the second being worse, because the scaffold was prescribed to close a finding rather than to open a new class of them. The `glob` magic is what makes each one reach past the top level: `:!vendor` excludes a root `vendor/` and leaves `packages/x/vendor/` in the list, which was confirmed by running both spellings against a repository holding each shape. Repositories that generate into some other directory add it here; the list is a floor rather than an inventory of every name a project might use.
 
-A tracked file that also matches an ignore rule stays in, which is a deliberate departure from the contract's last clause. `git ls-files` does not apply ignore rules to tracked paths, and reproducing that here would mean dropping files somebody added with `-f` on purpose — a real script, silently outside the check, which is the failure this whole inventory exists to prevent.
+A tracked file that also matches an ignore rule stays in, which is what the mode contract asks for and was not always: the contract read as though ignore rules excluded tracked source too, and the two rules disagreeing would have been worse than either, because stage 0 decides whether this lane loads at all. A repository whose only shell is a tracked, ignored script would never have reached the inventory written to keep it.
 
 The trigger and the permission floor are part of the scaffold, not context around it. A bare job fragment dropped into a push-only workflow still grades `wiring` on the next audit — it runs, and not where review happens — so a scaffold that omitted `on: pull_request` would not close the finding it was written for. And a job that runs repository code inherits whatever token permissions the repository defaults to, which on an older repository is write; `contents: read` is the floor, raised only for a scope the job demonstrably needs.
 
@@ -139,6 +141,10 @@ The pattern is anchored to the **interpreter's own position** rather than search
 The `env -S` segment is optional in the pattern because it is not optional in practice: `#!/usr/bin/env -S bash -e` is the standard way to pass a flag through `env`, and a classifier that only accepted the interpreter directly after a slash would drop every script written that way — silently, from both generated tool invocations, which is the failure this inventory exists to prevent.
 
 The extension branch runs the **same** accepted-set filter as the shebang branch, which is the point of taking the dialects as an argument at all. An earlier shape emitted every known extension unconditionally, so the two per-tool lists changed nothing for files without a shebang: a `.bats` file went to a formatter whose pinned version might not accept `bats`, and the generated job failed on a file the caller had deliberately excluded. Mapping each extension to the dialect it implies puts both branches under one rule.
+
+`.husky/` is in that fallback for a reason the extension list cannot express: husky supplies the interpreter, its hooks are ordinarily written without a shebang, and a file called `pre-commit` has no extension either — so a classifier reading only shebangs and extensions drops the whole directory, which is the inventory promise this capability makes broken by the script meant to keep it. The manager runs them with `sh`, so `sh` is what they are classified as, and they face the accepted-set filter like everything else. `.husky/_/` is excluded because it is husky's own generated wrapper rather than the repository's code.
+
+`.githooks/` is deliberately not given the same treatment, and the difference is evidence rather than tidiness. Nothing in the repository says what interprets a shebang-less file there — that is git's business and varies by platform — so classifying it would be the guess this capability's own routing rule forbids. Report such a file in the inventory as a script whose interpreter is unestablished, with adding a shebang as the prescription: one line makes it self-describing, at which point the shebang branch collects it like any other.
 
 `.bats` is in the extension fallback because Bats files legitimately carry no shebang: the runner supplies the interpreter, so the shebang branch never sees them and an extension list of `.sh` and `.bash` alone leaves a repository's whole test suite unchecked.
 
