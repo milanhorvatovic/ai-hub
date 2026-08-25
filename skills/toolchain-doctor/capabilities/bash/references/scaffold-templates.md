@@ -105,7 +105,11 @@ The `env -S` segment is optional in the pattern because it is not optional in pr
 
 `.bats` is in the extension fallback because Bats files legitimately carry no shebang: the runner supplies the interpreter, so the shebang branch never sees them and an extension list of `.sh` and `.bash` alone leaves a repository's whole test suite unchecked.
 
-**Two tools, two lists, which is why the script takes its dialects as an argument.** Their support differs: `shellcheck` accepts `ksh` and `oksh` and refuses `mksh`; `shfmt` has no `ksh` grammar and does have `mksh`. Handing one list to both sends a `ksh` script to `shfmt` to be reformatted by another dialect's rules without saying so — which is the defect the previous version of this paragraph warned about while the CI steps below went on sharing a list anyway. Each step passes the set its own tool accepts now, and a script in neither set lands in neither list and is reported instead of silently mis-handled. Check the sets against the versions a repository actually pins rather than taking them from here: shellcheck's was measured against the binary, shfmt's was not.
+**Two tools, two lists, which is why the script takes its dialects as an argument — and both lists are placeholders because they belong to a version rather than to this file.** Their support differs and it moves between releases, so a set written here as fact would be wrong for somebody's pinned version and wrong silently: a dialect wrongly included reaches a tool that refuses it and reddens the job, and one wrongly excluded leaves those scripts outside the check while the job stays green.
+
+Establish each set against the versions the repository actually pins. `shellcheck` states its own on rejection — feeding it an unsupported shebang produces `SC1071` naming the shells it takes — and `shfmt --help` lists the values its `-ln` flag accepts. Both are one command, and both are worth running once rather than inheriting an assumption.
+
+What was measured here, against `shellcheck` 0.11: `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` exit clean; `mksh` raises `SC1008`, `zsh` raises `SC1071`, and `ash` is checked as Dash with an `SC2187` warning that still exits non-zero. `shfmt` was **not** measured — it is not installed where this was written — so its set is deliberately left for the adopter to read off `--help` rather than asserted from memory. A reviewer of this template reported that current `shfmt` handles `zsh`, which is plausible and which nothing here can confirm; that is precisely why the value is a placeholder and not a list.
 
 Two more details in that loop are load-bearing, and both were found by running it rather than by reading it. No `mapfile`: it arrived in Bash 4 and macOS still ships 3.2 as `/bin/bash`, so a discovery script using it fails on the machines of the contributors most likely to run it by hand — and this one is written to be run by hand and read before anything is wired to it. A pipeline into `sort -u` needs no array at all.
 
@@ -146,9 +150,9 @@ jobs:
           install -m 0755 shfmt bin/shfmt
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: shellcheck
-        run: <discovery> 'sh|bash|dash|ksh|oksh|bats' | xargs -0 --no-run-if-empty shellcheck --
+        run: <discovery> '<shellcheck dialects>' | xargs -0 --no-run-if-empty shellcheck --
       - name: shfmt
-        run: <discovery> 'sh|bash|dash|mksh|bats' | xargs -0 --no-run-if-empty shfmt -d --
+        run: <discovery> '<shfmt dialects>' | xargs -0 --no-run-if-empty shfmt -d --
 ```
 
 Both downloads are checksum-verified before anything is extracted or made executable, and the digests are recorded here rather than fetched alongside the artifact. A version tag is not an identity: a release asset can be replaced without its URL changing, so a pinned version alone leaves the job executing whatever is behind that link today. The version pins which release the job wants; the digest is what makes the job refuse a different one. Fetching the checksums from the same host at the same time would verify only that the download was not corrupted in transit, which is not the question.
