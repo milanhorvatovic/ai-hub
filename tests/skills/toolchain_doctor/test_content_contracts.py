@@ -155,6 +155,9 @@ _ALLOWED_CITATIONS: dict[str, dict[str, int]] = {
     },
     # The worked example of a `floating` finding.
     "references/diagnosis-grading.md": {"pip install": 1},
+    # `corepack enable` named in the prose that explains why the bootstrap step
+    # must not use it — a citation of the mechanism being ruled out.
+    "capabilities/typescript/references/scaffold-templates.md": {"corepack enable": 1},
 }
 
 

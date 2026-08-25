@@ -37,7 +37,7 @@
   "toolchain-doctor": {
     "discovery_bytes": 3930,
     "skill_md_bytes": 9954,
-    "load_bytes": 118505,
+    "load_bytes": 120408,
     "files": 13,
     "version": "1.0.0"
   }

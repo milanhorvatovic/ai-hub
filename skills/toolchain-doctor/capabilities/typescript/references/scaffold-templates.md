@@ -74,6 +74,8 @@ The TypeScript config is not optional decoration here. `@eslint/js` alone brings
 
 The scripts come first, and CI calls them — not because it is tidier, but because a CI step invoking a tool directly runs a different thing from what contributors run, and one of the two will drift without anyone noticing.
 
+**Corepack is not the mechanism to reach for in that slot**, which is worth saying because it is the obvious one. `corepack enable` installs shims beside whichever Node is current when it runs, so a later `setup-node` selecting a different Node hides them — and moving it after `setup-node` does not work either, because the cache input needs the manager to exist by then. Recent Node has also stopped bundling Corepack, so the step's availability depends on the runtime version the job has not selected yet. A pinned setup action for the manager avoids the whole ordering question: it provides the manager itself, before and independently of Node. Where a project genuinely wants Corepack, it belongs in a sequence built around that constraint rather than dropped into this one.
+
 `actions/setup-node` supplies Node and `npm` and nothing further. Its `cache` input names a manager's store to restore; it does not install that manager, so a scaffold adapted to pnpm or a modern yarn relies on whatever happens to be global on the runner, and one adapted to bun has no path through `setup-node` at all. Bootstrap first, then cache — that order is the constraint, because the cache step resolves a store the manager has to be present to describe.
 
 The script runner is the project's own, for the same reason the install command is: a template that discovers the package manager for setup and then hardcodes `npm run` contradicts itself, and breaks outright on a setup like Yarn Plug'n'Play that requires its own runner to resolve anything.
@@ -142,8 +144,9 @@ jobs:
       - uses: actions/checkout@<40-char-sha> # <the version this sha is>
       # Bootstrap the package manager BEFORE setup-node: the cache input below
       # resolves the manager's store and needs the manager to already exist.
-      # npm needs nothing here; pnpm and modern yarn come from corepack or a
-      # pinned setup action; bun needs its own and does not use setup-node.
+      # npm needs nothing here. pnpm and yarn use their own pinned setup action,
+      # which installs the manager independently of whichever Node follows.
+      # bun uses its own setup action and does not use setup-node at all.
       - name: bootstrap <the project's package manager>
         uses: <that manager's pinned setup action>@<40-char-sha> # <the version this sha is>
       - uses: actions/setup-node@<40-char-sha> # <the version this sha is>

@@ -22,11 +22,13 @@ Audits a TypeScript or JavaScript project's toolchain configuration. Modes and t
 | Tool | Config locations |
 | --- | --- |
 | `tsc` | `tsconfig.json`, `tsconfig.*.json`, and whatever they `extends` — including a package such as `@tsconfig/strictest` |
-| `eslint` | `eslint.config.*` (flat config), `.eslintrc*`, `package.json` `eslintConfig` |
+| `eslint` | `eslint.config.*` (flat config) always; `.eslintrc*` and `package.json` `eslintConfig` **only on a major that still reads them** — resolve the pinned version first, because the legacy format was made opt-in and then removed, so on a current major a repository carrying only `.eslintrc` is not configured, it is broken, and reporting it as configured hides the reason `eslint` refuses to start |
 | `biome` | `biome.json`, `biome.jsonc` |
 | `prettier` | `.prettierrc*`, `prettier.config.*`, `package.json` `prettier` |
 | scripts | `package.json` `scripts` — the entry points CI and contributors actually call |
 | module system | `package.json` `type`, `exports`, and `tsconfig`'s `module` / `moduleResolution` |
+
+Read the declared `eslint` version alongside the config file rather than treating the file's presence as the answer; where the version cannot be resolved, that is `unknown` on the linter row rather than a satisfied one.
 
 `extends` chains matter here more than in any other language: a `tsconfig.json` whose visible body sets nothing can still be strict through a base config, and a config that sets `"strict": true` can have it undone by a later `"strictNullChecks": false`. Resolve the chain before grading, and when a base config lives in a package the scan cannot read, grade the strictness row `unknown` with that reason rather than reading the visible file alone.
 
