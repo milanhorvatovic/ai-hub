@@ -70,7 +70,9 @@ git ls-files -z |
     # reach, and the tools this list feeds would open the target, not the repo.
     [ -L "$f" ] && continue
     [ -f "$f" ] || continue
-    first=$(head -n 1 -- "$f")
+    # Bounded: a shebang cannot be long, and a tracked minified bundle or binary
+    # with no newline would otherwise make "the first line" the whole file.
+    first=$(head -c 256 -- "$f" | head -n 1)
     case "$first" in
       '#!'*)
         # `env` may front a single-token interpreter, but not `busybox sh`:
@@ -138,6 +140,8 @@ Two more details in that loop are load-bearing, and both were found by running i
 And the shebang test is an `if` rather than `cmd && printf`. With `&&`, the last file examined decides the loop's exit status, so a script that printed a correct list would still exit non-zero whenever the final tracked file was not shell — which under `set -e`, or as a CI step, is a failure on a run that worked.
 
 Symlinks are dropped before anything is read, and `[ -f ]` alone does not do that — it follows the link and answers about the target. A pull request can add a tracked `deploy.sh` pointing at a file outside the checkout, and the list this produces is fed straight to `shellcheck` and `shfmt`, which would open whatever it names on the runner. Rejecting links costs a line and closes that.
+
+The first-line read is capped at a couple of hundred bytes because a shebang cannot exceed that and a repository can contain files that are one enormous line. A tracked minified bundle with no trailing newline turns an unbounded `head -n 1` into a read of the entire file, per file, to inspect two bytes — measured here at five million characters against a hundred and twenty-eight for the bounded form.
 
 Tracked files only, and the reason is the CI step this feeds. An untracked script exists on the machine that ran the discovery and nowhere else, so copying it into a workflow's file list produces a job that fails on a path absent from the checkout — a scaffold that works for its author and for no one else. `git ls-files` is also what makes the shebang pass finite: it walks what the repository contains rather than everything under the working directory, so ignored build output and vendored trees never reach the `head` check.
 
