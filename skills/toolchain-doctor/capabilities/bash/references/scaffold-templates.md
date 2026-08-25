@@ -191,7 +191,7 @@ jobs:
           install -m 0755 shfmt bin/shfmt
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: shellcheck
-        run: <discovery> '<shellcheck dialects>' | xargs -0 --no-run-if-empty shellcheck --
+        run: <discovery> '<shellcheck dialects>' | xargs -0 --no-run-if-empty shellcheck --severity=warning --
       - name: shfmt
         run: <discovery> '<shfmt dialects>' | xargs -0 --no-run-if-empty shfmt -d --
 ```
@@ -203,6 +203,10 @@ The binaries land in a runner-writable directory and reach the later steps throu
 `shfmt` is the reason this job needs an install step at all. `shellcheck` is preinstalled on the common hosted Ubuntu images and `shfmt` is not, so a job that assumes both fails on a fresh runner with `shfmt: command not found` — a scaffold that cannot run is worse than the gap it closes. A pinned setup action for either tool works equally well; the point is that both arrive deliberately.
 
 Pinning both versions here is what keeps the scaffold consistent with what the router promises and with the scaffold contract that an addressed row re-audits clean. Taking `shellcheck` from the image is the cheaper-looking option and it is the one that produces a `floating` finding on the very next run — prescribing a shape the audit then reports is the contradiction this skill has now made six times, and there is no reason to make it a seventh when the install step already exists for `shfmt`.
+
+`--severity=warning` is the gate the floor asks for, and leaving it off is not the neutral choice it looks like: `shellcheck` defaults to reporting every tier, so a job without the flag fails on `info` and `style` findings too — legacy backticks, a redundant `echo` — and hands a repository adopting this scaffold a stricter bar than the floor states on the day it lands. The tiers exist because their authors sorted them, and the rulebook these floors are shared with draws the line in the same place: errors and warnings gate a pipeline, and the two tiers below are the author's call. A wall of style findings on the first run is also how a team arrives at `continue-on-error`, which costs them the check the scaffold was written to give them.
+
+The audit does not grade the tier a repository chose, only whether its findings fail anything at all — the same split as the suppression layout above, and for the same reason: a scaffold hands over the house shape, and a report on somebody else's repository grades the substance.
 
 `shfmt -d` prints a diff and exits non-zero when a file would change, which is the check-mode behavior; `shfmt -w` writes, and belongs nowhere near CI.
 
