@@ -11,7 +11,16 @@ This turns the forced copy into a pinned contract. Both sides are *extracted*
 rather than listed here, so the test is a comparison and not a third copy that
 can drift with the other two: the doctor's floors come from its floor tables,
 the rulebook's from the section of each language capability that states the
-floor, and every direction of disagreement fails.
+floor.
+
+The two comparisons have different reach, deliberately. Tool identity is pinned
+both ways — a name added or dropped on either side fails — while the
+requirements attached to a shared tool are pinned one way: every flag the
+rulebook asks for must survive on the doctor's side, and the doctor adding one
+of its own does not fail. It legitimately asks for check-mode flags the rulebook
+has no reason to state, so a superset is the safe direction to differ in, and
+the guarantee that matters is that the graded bar can never fall below the
+stated one.
 
 Extraction rejects the things a floor's prose backticks that are not tools —
 config filenames, compiler options, a shell directive — by shape rather than by
@@ -26,7 +35,9 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_FLOORS = _REPO_ROOT / "skills" / "toolchain-doctor" / "references" / "tooling-floors.md"
+_FLOORS = (
+    _REPO_ROOT / "skills" / "toolchain-doctor" / "references" / "tooling-floors.md"
+)
 _RULEBOOK = _REPO_ROOT / "skills" / "coding-principles" / "capabilities"
 
 # The heading that opens each language's floor in the rulebook, discovered
@@ -155,7 +166,11 @@ def _requirements(command: str) -> set[str]:
         if not _FLAG.match(token):
             continue
         following = tokens[index + 1] if index + 1 < len(tokens) else ""
-        takes_argument = bool(following) and not _FLAG.match(following) and bool(_ARGUMENT.match(following))
+        takes_argument = (
+            bool(following)
+            and not _FLAG.match(following)
+            and bool(_ARGUMENT.match(following))
+        )
         out.add(f"{token} {following}" if takes_argument else token)
     return out
 
@@ -184,8 +199,12 @@ def _rulebook_text(language: str) -> str:
     """The rulebook's floor plus the verification commands that realize it."""
     capability = (_RULEBOOK / language / "capability.md").read_text(encoding="utf-8")
     heading = _FLOOR_HEADINGS[language]
-    floor = re.search(rf"^{re.escape(heading)}$(.*?)(?=^## |\Z)", capability, re.S | re.M)
-    verification = re.search(r"^## Verification$(.*?)(?=^## |\Z)", capability, re.S | re.M)
+    floor = re.search(
+        rf"^{re.escape(heading)}$(.*?)(?=^## |\Z)", capability, re.S | re.M
+    )
+    verification = re.search(
+        r"^## Verification$(.*?)(?=^## |\Z)", capability, re.S | re.M
+    )
     assert floor, f"{language}: no `{heading}` section"
     return floor.group(1) + (verification.group(1) if verification else "")
 
@@ -252,7 +271,9 @@ def test_the_flag_reader_sees_what_it_claims_to() -> None:
 
     # The argument is half the requirement: a bare `-D` matches any deny, so
     # reading the flag alone would let the floor's `warnings` become anything.
-    assert _flags_for("`cargo clippy -- -D deprecated`", "cargo clippy") == {"-D deprecated"}
+    assert _flags_for("`cargo clippy -- -D deprecated`", "cargo clippy") == {
+        "-D deprecated"
+    }
     # A path is not an argument, or `-ci .` and `-ci` would read as different
     # requirements and two sides stating the same floor would disagree.
     assert _flags_for("`shfmt -i 2 -ci .`", "shfmt") == {"-i 2", "-ci"}
@@ -263,8 +284,12 @@ def test_the_floor_is_not_empty(language: str) -> None:
     """An extraction that finds nothing agrees with an extraction that finds
     nothing, so the comparison above passes loudest exactly when it has stopped
     reading either file. This is what stands between that and a green suite."""
-    assert _doctor_floor(language), f"extracted no tools from the doctor's {language} floor"
-    assert _rulebook_floor(language), f"extracted no tools from the rulebook's {language} floor"
+    assert _doctor_floor(
+        language
+    ), f"extracted no tools from the doctor's {language} floor"
+    assert _rulebook_floor(
+        language
+    ), f"extracted no tools from the rulebook's {language} floor"
 
 
 def test_the_doctor_covers_every_language_the_rulebook_floors() -> None:
@@ -290,8 +315,15 @@ def test_the_extractor_rejects_what_is_not_a_tool() -> None:
     in config filenames and compiler options, and with them too aggressive it
     quietly drops a real tool. Both failure modes look like a passing test, so
     the shapes are asserted directly rather than inferred from a green run."""
-    rejected = ["pyproject.toml", '"strict": true', "noUncheckedIndexedAccess", "pip install"]
-    assert _tool_names(rejected) == set(), f"filters let through: {_tool_names(rejected)}"
+    rejected = [
+        "pyproject.toml",
+        '"strict": true',
+        "noUncheckedIndexedAccess",
+        "pip install",
+    ]
+    assert (
+        _tool_names(rejected) == set()
+    ), f"filters let through: {_tool_names(rejected)}"
 
     kept = ["ruff", "cargo clippy -- -D warnings", "shfmt -i 2 -ci", "tsc --noEmit"]
     assert _tool_names(kept) == {"ruff", "cargo clippy", "shfmt", "tsc"}
