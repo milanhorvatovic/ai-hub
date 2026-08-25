@@ -132,13 +132,18 @@ _STANDALONE_FORMS = (
     r"|\bcorepack\s+(?:enable|disable|install|prepare|use|up))"
 )
 # Commands whose leading word also reads as prose, so they count only in command
-# position — the two ways this skill's docs present something to run: opening an
-# inline-code span, or opening a line. The line case is not hypothetical: fenced
-# blocks are stripped only in scaffold templates, so in the router, a capability,
-# or a shared reference a fenced command is retained and carries no backtick, and
-# a rule keyed to the backtick alone would let a fenced `npx eslint` or `yarn`
-# bypass the inventory it claims to be exhaustive over.
-_COMMAND_POSITION = r"(?:`|^[ \t]*(?:[$>][ \t]+)?)"
+# position — the ways this skill's docs present something to run: opening an
+# inline-code span, or opening a line, including the Markdown list item and shell
+# prompt a line so often opens with. The line case is not hypothetical: fenced
+# blocks are stripped only in scaffold templates, so elsewhere a fenced command
+# is retained and carries no backtick, and instructions are written as bullets —
+# `- npx eslint`, `1. npm exec tsc` — as readily as prose. A rule keyed to the
+# backtick alone would let any of those bypass the inventory it calls exhaustive.
+# The list-marker and prompt prefixes are optional and never consumed into the
+# citation; a bare `npx <word>` opening a bullet can still read a sentence about
+# `npx` as a command, which is the safe direction for a no-false-negative guard
+# and is what the skill's own backtick-the-command convention keeps rare.
+_COMMAND_POSITION = r"(?:`|^[ \t]*(?:(?:[-*+]|\d+\.)[ \t]+)?(?:[$>][ \t]+)?)"
 # Bare `yarn` is Yarn's alias for `yarn install`; `npx <tool>` / `npm exec <tool>`
 # fetch a package when it is absent, an install the TypeScript guidance points
 # out. The yarn form ends at a command terminator — a closing backtick or the
@@ -567,6 +572,11 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("```\nyarn\n```")
     assert _INSTALL_FORMS.search("```sh\n$ npx create-foo\n```")
     assert _INSTALL_FORMS.search("run this:\n\n    yarn\n")
+    # A Markdown list item is a command line the same way, ordered or not.
+    assert _INSTALL_FORMS.search("- npx eslint")
+    assert _INSTALL_FORMS.search("1. npm exec tsc")
+    assert _INSTALL_FORMS.search("* yarn")
+    assert _INSTALL_FORMS.search("  - npx create-foo")
     # `--no-install` cannot fetch — the safe form the guidance recommends — and a
     # bare `npx` naming the executor is not a command to run.
     assert not _INSTALL_FORMS.search("`npx --no-install`")

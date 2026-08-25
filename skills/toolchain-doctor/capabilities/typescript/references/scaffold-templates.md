@@ -87,11 +87,13 @@ Yarn has no such action, so a modern Yarn project is exactly the case that has t
 ```yaml
       - run: npm install --global corepack@<pinned> # only where the Node in use no longer bundles it
       - run: corepack prepare yarn@<pinned> --activate # the exact version the packageManager field names
-      - run: yarn install --immutable # from the committed lock, failing if it would change
+      # Restore the cache BEFORE the install, or the install downloads
+      # everything first and the cache it saves helps no run, including this one.
       - uses: actions/cache@<40-char-sha> # <the version this sha is>
         with:
           path: .yarn/cache
           key: <a key derived from the lock file's hash>
+      - run: yarn install --immutable # from the committed lock, failing if it would change
 ```
 
 It is more moving parts than the setup-action slot, which is why the slot is the default and yarn is named as the exception rather than folded in silently.
