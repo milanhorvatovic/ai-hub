@@ -110,7 +110,10 @@ _INSTALL_SUBCOMMAND = (
 # `pip-sync` is one word, and `corepack enable` provisions a manager rather than
 # a package — both are mechanisms this skill names, and neither fits the shape
 # above.
-_STANDALONE_FORMS = r"(?:pip-sync|pip-compile|corepack enable|corepack prepare)"
+_STANDALONE_FORMS = (
+    r"(?:pip-sync|pip-compile"
+    r"|corepack\s+(?:enable|disable|install|prepare|use|up))"
+)
 _INSTALL_FORMS = re.compile(
     rf"\b(?:{_MANAGER}{_MANAGER_OPTIONS}\s+{_INSTALL_SUBCOMMAND}|{_STANDALONE_FORMS})"
 )
@@ -447,6 +450,9 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # Versioned pip executables are the ordinary spelling on most systems.
     assert _INSTALL_FORMS.search("`pip3 install ruff`")
     assert _INSTALL_FORMS.search("`pip3.12 uninstall ruff`")
+    # Corepack mutates the environment under more than one subcommand.
+    assert _INSTALL_FORMS.search("`corepack use pnpm@9`")
+    assert _INSTALL_FORMS.search("`corepack disable`")
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")

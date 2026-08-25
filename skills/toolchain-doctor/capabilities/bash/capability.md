@@ -25,7 +25,7 @@ This is the step that distinguishes a useful shell audit from a decorative one, 
 | --- | --- |
 | `*.sh`, `*.bash` | Found by everyone; the easy case |
 | Extensionless files with a shell shebang | `bin/deploy`, `scripts/release` — invisible to an extension glob, and usually the most consequential scripts in the repository |
-| `.githooks/`, `.husky/` | Hooks are scripts, run on every commit, and routinely unlinted |
+| `.githooks/`, `.husky/` | Hook scripts, routinely unlinted. They belong in the inventory whether or not anything activates them — an unlinted script is unlinted either way — but do not assume they run: both need wiring the repository may or may not carry |
 | CI `run:` blocks | Multi-line `run:` in a workflow is a shell script living in YAML — when the step's shell is a shell. A `shell:` key can select `pwsh`, `python`, or something else entirely, and the default is not the same on every runner image |
 | `Makefile` recipes | Each recipe line is shell, with its own quoting hazards and its own tab-sensitivity — unless the makefile sets `SHELL` to something that is not one |
 | Dockerfile `RUN` lines | Shell in the shell form, executed at build time, and frequently the least reviewed lines in the repository — but a `SHELL` directive can change the interpreter, the exec form is not shell at all, and a Windows base image defaults to `cmd` |

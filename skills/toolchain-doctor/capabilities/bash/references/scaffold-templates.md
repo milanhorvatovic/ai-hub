@@ -73,7 +73,8 @@ git ls-files -z |
     first=$(head -n 1 -- "$f")
     case "$first" in
       '#!'*)
-        if printf '%s\n' "$first" | grep -Eq "[/ ]($accepted)([[:space:]]|\$)"; then
+        if printf '%s\n' "$first" |
+          grep -Eq "^#!.*[/ ](env +(-S +)?)?($accepted)([[:space:]]|\$)"; then
           printf '%s\0' "$f"
         fi
         ;;
@@ -99,6 +100,8 @@ The interpreter list is what `shellcheck` actually accepts, established by runni
 `ash` is the interesting exclusion. `shellcheck` checks it — as Dash — but warns `SC2187` while doing so and exits non-zero, so an un-annotated ash script reddens the job just as surely as an unsupported one. Its fix is a directive rather than a removal: `# shellcheck shell=dash` at the top of the file silences the warning and keeps the script checked.
 
 Report the shells left out — `mksh`, `ash`, `zsh` — by name as outside the generated job's reach, with ash's directive named as its remedy. Dropping them silently, or feeding them to a tool that will refuse them, are the two failures this list exists between.
+
+The `env -S` segment is optional in the pattern because it is not optional in practice: `#!/usr/bin/env -S bash -e` is the standard way to pass a flag through `env`, and a classifier that only accepted the interpreter directly after a slash would drop every script written that way — silently, from both generated tool invocations, which is the failure this inventory exists to prevent.
 
 `.bats` is in the extension fallback because Bats files legitimately carry no shebang: the runner supplies the interpreter, so the shebang branch never sees them and an extension list of `.sh` and `.bash` alone leaves a repository's whole test suite unchecked.
 
@@ -158,4 +161,4 @@ Pinning both versions here is what keeps the scaffold consistent with what the r
 
 `shfmt -d` prints a diff and exits non-zero when a file would change, which is the check-mode behavior; `shfmt -w` writes, and belongs nowhere near CI.
 
-Hooks are the case worth being explicit about. If the inventory found `.githooks/` or `.husky/`, they are in the list — they run on every commit on every contributor's machine, which makes them the shell in the repository with the widest blast radius and, almost always, the least review.
+Hooks are the case worth being explicit about. If the inventory found `.githooks/` or `.husky/`, they are in the list, because an unlinted script is worth linting whether or not it currently runs. Their blast radius is conditional rather than given: a hook directory activated by `core.hooksPath` or an installer runs on every commit on every machine that ran the setup, and one nobody has wired runs nowhere. Say which of those the repository looks like rather than assuming the first — presenting an inert directory as active execution is the same conflation the audit is built to avoid.

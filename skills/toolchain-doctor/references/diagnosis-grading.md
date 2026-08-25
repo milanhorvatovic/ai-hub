@@ -7,7 +7,7 @@ Every audit finding carries a grade. The vocabulary is small on purpose, and all
 | Grade | Means | Example |
 | --- | --- | --- |
 | `gap` | A floor row nothing satisfies | No linter configured for a language the repo contains |
-| `wiring` | Declared, and the execution does not cover what it claims to — nothing runs it, or what runs cannot fail, or it reaches only part of the code | `ruff` configured in `pyproject.toml` with no CI job calling it; `clippy` run without `--workspace` in a workspace |
+| `wiring` | Declared, and the execution does not cover what it claims to — nothing runs it, or what runs cannot fail, or it reaches only part of the code | `ruff` configured in `pyproject.toml` with no CI job calling it; `clippy` run over a workspace whose members it does not reach |
 | `conflict` | Two declarations that cannot both be honored | `prettier` and `biome` both formatting the same files |
 | `drift` | The same fact declared twice, differently | Language version pinned in CI and floated in the manifest |
 | `floating` | Running, at whatever version resolved today | `pip install ruff` in CI with no version constraint |
