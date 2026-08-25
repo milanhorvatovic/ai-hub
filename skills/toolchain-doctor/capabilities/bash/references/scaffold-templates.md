@@ -40,9 +40,14 @@ indent_style = <the project's existing style>
 indent_size = <the project's existing width>
 switch_case_indent = <true if the scripts indent case bodies, false if not>
 
-# One section per extensionless path the inventory found; EditorConfig matches
-# on path patterns, so these cannot be folded into the glob above.
-[{.githooks/*,bin/deploy,bin/release}]
+# One section per extensionless path the inventory classified as shell —
+# EditorConfig matches on path patterns, so these cannot fold into the glob
+# above, and each is an exact path, never a `.githooks/*` wildcard. The wildcard
+# is the trap this section exists to avoid one directory in: a hook that is not
+# shell, or one whose interpreter the scan could not establish, would take these
+# formatting settings in every contributor's editor. List the paths the
+# inventory returned and no others.
+[{.githooks/pre-commit,.githooks/pre-push,bin/deploy,bin/release}]
 indent_style = <the project's existing style>
 indent_size = <the project's existing width>
 switch_case_indent = <true if the scripts indent case bodies, false if not>

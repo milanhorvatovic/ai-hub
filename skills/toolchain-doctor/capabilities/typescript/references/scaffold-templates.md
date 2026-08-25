@@ -80,7 +80,21 @@ The TypeScript config is not optional decoration here. `@eslint/js` alone brings
 
 The scripts come first, and CI calls them — not because it is tidier, but because a CI step invoking a tool directly runs a different thing from what contributors run, and one of the two will drift without anyone noticing.
 
-**Corepack is not the mechanism to reach for in that slot**, which is worth saying because it is the obvious one. `corepack enable` installs shims beside whichever Node is current when it runs, so a later `setup-node` selecting a different Node hides them — and moving it after `setup-node` does not work either, because the cache input needs the manager to exist by then. Recent Node has also stopped bundling Corepack, so the step's availability depends on the runtime version the job has not selected yet. A pinned setup action for the manager avoids the whole ordering question: it provides the manager itself, before and independently of Node. Where a project genuinely wants Corepack, it belongs in a sequence built around that constraint rather than dropped into this one.
+**Corepack is not the mechanism to reach for in that slot for pnpm — and it is the only one for yarn.** The split is the point, not an inconsistency. `corepack enable` installs shims beside whichever Node is current when it runs, so a later `setup-node` selecting a different Node hides them; moving it after `setup-node` does not work either, because the cache input needs the manager to exist by then; and recent Node has stopped bundling Corepack, so the step's availability depends on a runtime the job has not selected yet. For pnpm a pinned setup action sidesteps all of that — it provides the manager before and independently of Node — and bun's setup action does the same.
+
+Yarn has no such action, so a modern Yarn project is exactly the case that has to build the sequence around the ordering constraint rather than drop a manager into the slot. Set up Node with its `cache: yarn` line omitted, then run the manager into place and cache its store separately:
+
+```yaml
+      - run: npm install --global corepack@<pinned> # only where the Node in use no longer bundles it
+      - run: corepack prepare yarn@<pinned> --activate # the exact version the packageManager field names
+      - run: yarn install --immutable # from the committed lock, failing if it would change
+      - uses: actions/cache@<40-char-sha> # <the version this sha is>
+        with:
+          path: .yarn/cache
+          key: <a key derived from the lock file's hash>
+```
+
+It is more moving parts than the setup-action slot, which is why the slot is the default and yarn is named as the exception rather than folded in silently.
 
 `actions/setup-node` supplies Node and `npm` and nothing further. Its `cache` input names a manager's store to restore; it does not install that manager, so a scaffold adapted to pnpm or a modern yarn relies on whatever happens to be global on the runner, and one adapted to bun has no path through `setup-node` at all. Bootstrap first, then cache — that order is the constraint, because the cache step resolves a store the manager has to be present to describe.
 
@@ -159,15 +173,19 @@ jobs:
       - uses: actions/checkout@<40-char-sha> # <the version this sha is>
       # Bootstrap the package manager BEFORE setup-node: the cache input below
       # resolves the manager's store and needs the manager to already exist.
-      # npm needs nothing here. pnpm and yarn use their own pinned setup action,
-      # which installs the manager independently of whichever Node follows.
-      # bun uses its own setup action and does not use setup-node at all.
-      - name: bootstrap <the project's package manager>
+      # npm needs nothing here. pnpm has a pinned setup action that installs it
+      # independently of whichever Node follows, so it goes in this slot; bun
+      # uses its own setup action and skips setup-node entirely. Yarn is the
+      # exception with no such action — it takes the Corepack sequence described
+      # below instead of this step, and drops the `yarn` cache from setup-node.
+      - name: bootstrap <the project's package manager — pnpm here; see below for yarn>
         uses: <that manager's pinned setup action>@<40-char-sha> # <the version this sha is>
       - uses: actions/setup-node@<40-char-sha> # <the version this sha is>
         with:
           node-version: "<the project's version>"
-          cache: "<npm, pnpm, or yarn>"
+          # `yarn` is not a value here when Yarn came through Corepack: the cache
+          # would run `yarn --version` before Yarn exists. Cache it separately.
+          cache: "<npm or pnpm; omit for a Corepack yarn>"
       - run: <the project's install command, resolving the tracked lock file>
       - run: <the project's script runner> typecheck
       # Route A: one script covers both jobs.
