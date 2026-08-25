@@ -5,7 +5,8 @@ description: >
   the shell scripts other audits miss (hooks, bin directories, extensionless
   files with a shell shebang, CI run blocks), reads .shellcheckrc, .editorconfig,
   and shfmt flags, establishes whether anything lints them, grades the distance
-  to the bash floor (shellcheck as an error-level linter, shfmt for format), and
+  to the bash floor (shellcheck gating on warnings, not errors alone; shfmt for
+  format), and
   scaffolds configs and CI steps on confirmation. Never installs anything.
   Triggers on "lint our shell scripts", "set up shellcheck", "what shfmt
   flags", "our git hooks aren't checked", or a repository whose scripts have
