@@ -159,7 +159,10 @@ _COMMAND_FORMS = (
     # token, so a later command's `--no-install` cannot reach back and clear this
     # one.
     r"(?!(?:\s+--?[\w-]+(?:[= ]\S+)?)*?\s+--no-install\b)"
-    r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*\s+[\w@][\w@./-]*)"
+    # A bare `--` may separate the options from the package — `npm exec -- eslint`
+    # is the canonical form, and it fetches the same way — so it is allowed
+    # before the tool token without being mistaken for one.
+    r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*(?:\s+--)?\s+[\w@][\w@./-]*)"
 )
 # Named groups so the citation reader recovers the command a match belongs to
 # regardless of which shape hit — the command-position branch consumes a leading
@@ -572,6 +575,9 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("`npx eslint .`")
     assert _INSTALL_FORMS.search("`npm exec tsc`")
     assert _INSTALL_FORMS.search("`npx --loglevel=warn create-foo`")
+    # The canonical `--` separator form fetches the same way.
+    assert _INSTALL_FORMS.search("`npm exec -- eslint`")
+    assert _INSTALL_FORMS.search("`npm exec --package=eslint -- eslint`")
     # A retained fence presents the command at a line start with no inline
     # backtick — the bypass the backtick-only rule left open. The line case
     # covers a bare prompt and an indent too.

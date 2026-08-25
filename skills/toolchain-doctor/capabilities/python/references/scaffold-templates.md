@@ -96,11 +96,18 @@ Where the repository already routes CI through a task runner, add the commands t
 
 ## Declaring the interpreter version
 
-One home, referenced by the rest. When the project has none, `requires-python` is the one to add first, because it is the declaration packaging tools and installers already read.
+One home, referenced by the rest — and the home is the one the project already uses for metadata, not a new one this scaffold introduces. A project on PEP 621 declares it in `pyproject.toml`'s `[project]`; one whose metadata lives in `setup.cfg` declares `python_requires` under `[options]`; one still using `setup.py` passes `python_requires` to `setup()`. Adding a `[project]` table to a project that owns its metadata in `setup.cfg` either does nothing, because the tool reads the other file, or stands up a second source that disagrees with the first — the interpreter-version gap unclosed either way. Read the owner off the scan and write the declaration there. Reserve the TOML shape below for a project already on PEP 621, or one with no metadata file at all, where `requires-python` is the one to add first because it is the declaration packaging tools and installers already read.
 
 ```toml
+# pyproject.toml — a PEP 621 project, or one with no metadata file yet
 [project]
 requires-python = ">=<3.XX>"
+```
+
+```ini
+# setup.cfg — where the project already declares its metadata there
+[options]
+python_requires = >=<3.XX>
 ```
 
 Then make the CI matrix and any `.python-version` agree with it rather than restating it independently — the disagreement between them is a `drift` finding on the next audit, and scaffolding one without checking the others is how it gets introduced.
