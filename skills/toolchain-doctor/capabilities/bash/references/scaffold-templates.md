@@ -74,7 +74,7 @@ git ls-files -z |
     case "$first" in
       '#!'*)
         if printf '%s\n' "$first" |
-          grep -Eq "^#!.*[/ ](env +(-S +)?)?($accepted)([[:space:]]|\$)"; then
+          grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?(env([[:space:]]+-S)?[[:space:]]+)?($accepted)([[:space:]]|\$)"; then
           printf '%s\0' "$f"
         fi
         ;;
@@ -101,13 +101,15 @@ The interpreter list is what `shellcheck` actually accepts, established by runni
 
 Report the shells left out — `mksh`, `ash`, `zsh` — by name as outside the generated job's reach, with ash's directive named as its remedy. Dropping them silently, or feeding them to a tool that will refuse them, are the two failures this list exists between.
 
+The pattern is anchored to the **interpreter's own position** rather than searching the line. A leading `.*` looks harmless and is not: it lets the match slide past the real interpreter to any later word, so `#!/usr/bin/env -S python -m bash` and `#!/usr/bin/python3 -c import bash` both read as shell and the generated job hands a Python file to a shell linter, which then fails for a reason that has nothing to do with the repository's shell. The path, the optional `env`, and the interpreter are matched in sequence instead.
+
 The `env -S` segment is optional in the pattern because it is not optional in practice: `#!/usr/bin/env -S bash -e` is the standard way to pass a flag through `env`, and a classifier that only accepted the interpreter directly after a slash would drop every script written that way — silently, from both generated tool invocations, which is the failure this inventory exists to prevent.
 
 `.bats` is in the extension fallback because Bats files legitimately carry no shebang: the runner supplies the interpreter, so the shebang branch never sees them and an extension list of `.sh` and `.bash` alone leaves a repository's whole test suite unchecked.
 
 **Two tools, two lists, which is why the script takes its dialects as an argument — and both lists are placeholders because they belong to a version rather than to this file.** Their support differs and it moves between releases, so a set written here as fact would be wrong for somebody's pinned version and wrong silently: a dialect wrongly included reaches a tool that refuses it and reddens the job, and one wrongly excluded leaves those scripts outside the check while the job stays green.
 
-Establish each set against the versions the repository actually pins. `shellcheck` states its own on rejection — feeding it an unsupported shebang produces `SC1071` naming the shells it takes — and `shfmt --help` lists the values its `-ln` flag accepts. Both are one command, and both are worth running once rather than inheriting an assumption.
+Establishing each set is a step for the **user**, not for this skill, which does not run the tools it audits. Hand over the two commands with the scaffold and leave the placeholders for the answers: `shfmt --help` lists the values its dialect flag accepts, and `shellcheck` names the shells it takes in the error it raises when given one it does not. Both are a single invocation on the versions the repository pins, and neither is something to probe from whatever happens to be installed on the machine running the audit — that would answer about a different computer.
 
 What was measured here, against `shellcheck` 0.11: `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` exit clean; `mksh` raises `SC1008`, `zsh` raises `SC1071`, and `ash` is checked as Dash with an `SC2187` warning that still exits non-zero. `shfmt` was **not** measured — it is not installed where this was written — so its set is deliberately left for the adopter to read off `--help` rather than asserted from memory. A reviewer of this template reported that current `shfmt` handles `zsh`, which is plausible and which nothing here can confirm; that is precisely why the value is a placeholder and not a list.
 
