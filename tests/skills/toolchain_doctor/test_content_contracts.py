@@ -246,11 +246,15 @@ def test_every_capability_reaches_the_three_contracts_it_runs_on() -> None:
     assert not missing, "capabilities not wired to a shared contract:\n" + "\n".join(missing)
 
 
-def test_no_capability_defines_a_grade_of_its_own() -> None:
-    """One home for the vocabulary. A capability that grows its own grade table
+def test_no_shipped_doc_defines_a_grade_of_its_own() -> None:
+    """One home for the vocabulary, held over every shipped file rather than the
+    capabilities alone — a second grade table in the router or a shared reference
     is how two files start disagreeing about what `wiring` means."""
+    owner = _SKILL / "references" / "diagnosis-grading.md"
     offenders = [
-        path.parent.name for path in _CAPABILITIES if _GRADE_TABLE_HEADER in _prose(path)
+        path.relative_to(_SKILL).as_posix()
+        for path in _ALL_SKILL_DOCS
+        if path != owner and _GRADE_TABLE_HEADER in _prose(path)
     ]
     assert offenders == [], (
         f"{offenders} open a grade table; grades live in references/diagnosis-grading.md"
