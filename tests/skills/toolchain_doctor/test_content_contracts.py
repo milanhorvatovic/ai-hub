@@ -50,7 +50,17 @@ _INLINE_CODE = re.compile(r"`[^`\n]*`")
 _GRADE_USES = (
     re.compile(r"\bgraded\s+(?:an?\s+)?`([a-z]+)`"),
     re.compile(r"`([a-z]+)`\s+finding"),
-    re.compile(r"\bis an?\s+`([a-z]+)`"),
+    # The article is optional: the prose writes both "is a `conflict`" and
+    # "that is `unknown`", and requiring one hid every assignment of the second
+    # shape from both directions of the registry check.
+    #
+    # Widening it does let the frame reach a sentence like "X is `ruff` acting
+    # as `pyflakes`", which is prose rather than a grade. That is left as a
+    # failure rather than patched around: the frame stays literal, and a
+    # collision means the sentence gets reworded or the word gets declared —
+    # which is a decision worth a person, and the shape that has held up here
+    # where five rounds of cleverer matching did not.
+    re.compile(r"\bis\s+(?:an?\s+)?`([a-z]+)`"),
     re.compile(r"\bgrade\s+(?:the\s+\w+(?:\s+\w+)?\s+row\s+)?(?:an?\s+)?`([a-z]+)`"),
 )
 
@@ -103,6 +113,7 @@ _MANAGER_OPTIONS = r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*"
 # matching them would flag the skill for naming its own subject.
 _INSTALL_SUBCOMMAND = (
     r"(?:install|reinstall|uninstall|add|remove|rm|sync|update|upgrade|prune|bundle|ci|i\b"
+    r"|inject|global add|global remove|global upgrade"
     r"|tool install|env create|env remove|component add|component remove"
     r"|toolchain install|toolchain uninstall|self update|pip install)"
 )
@@ -469,6 +480,9 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("`yarn --frozen-lockfile`")
     assert not _INSTALL_FORMS.search("pnpm and yarn use their own setup action")
     assert not _INSTALL_FORMS.search("`<npm, pnpm, or yarn>`")
+    # Multi-token and manager-specific installing forms.
+    assert _INSTALL_FORMS.search("`pipx inject ruff pkg`")
+    assert _INSTALL_FORMS.search("`yarn global add shfmt`")
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")

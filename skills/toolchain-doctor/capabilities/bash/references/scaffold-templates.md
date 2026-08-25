@@ -73,8 +73,12 @@ git ls-files -z |
     first=$(head -n 1 -- "$f")
     case "$first" in
       '#!'*)
+        # `env` may front a single-token interpreter, but not `busybox sh`:
+        # shellcheck takes that only when the binary is named directly.
         if printf '%s\n' "$first" |
-          grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?(env([[:space:]]+-S)?[[:space:]]+)?($accepted)([[:space:]]|\$)"; then
+          grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?(env([[:space:]]+-S)?[[:space:]]+)?($accepted)([[:space:]]|\$)" &&
+          ! printf '%s\n' "$first" |
+            grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?env([[:space:]]+-S)?[[:space:]]+busybox"; then
           printf '%s\0' "$f"
         fi
         ;;
@@ -106,6 +110,8 @@ One pass, not two. An earlier shape emitted every `*.sh` and `*.bash` file direc
 The interpreter list is what `shellcheck` actually accepts, established by running it rather than by reading its error message: `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` exit clean, while `mksh`, `ash`, and `zsh` do not. Both directions of getting this list wrong cost something. Too narrow — matching only the two spellings of Bash — silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, reproducing the coverage under-reach this capability exists to find. Too wide is worse, because the extra file does not go unchecked, it turns the job red: `zsh` raises `SC1071`, `mksh` raises `SC1008`, and neither is a lint result the scaffold can act on.
 
 `ash` belongs **in** the list, which took a measurement to settle. Left alone it exits non-zero with `SC2187` — and that diagnostic is a request rather than a refusal: it asks for `# shellcheck shell=dash` at the top of the file, and with the directive present the same file exits clean. Excluding ash therefore made its own documented remedy unreachable, because discovery dropped the file before `shellcheck` could read the directive it was asking for. Include it, and let the directive decide whether the job passes.
+
+The second grep is what keeps that measurement honest. The optional `env` prefix in the first pattern applies to every alternative, so with `busybox sh` in the accepted set it would also admit `#!/usr/bin/env busybox sh` — the one spelling measured to raise `SC1008` — and the generated job would fail on a file this classifier was written to exclude. Rejecting the `env`-fronted form explicitly is cheaper than splitting the alternation into two shapes.
 
 `busybox sh` is accepted too, and only by the spellings that name the binary directly — `#!/bin/busybox sh` and `#!/usr/bin/busybox sh` pass, while routing it through `env` raises `SC1008`. It is two tokens rather than one, which is why the alternation carries a whitespace class rather than a plain name.
 
