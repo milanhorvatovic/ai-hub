@@ -90,9 +90,9 @@ git ls-files -z \
         # `env` may front a single-token interpreter, but not `busybox sh` —
         # that spelling is one the linter takes only from a direct path.
         if printf '%s\n' "$first" |
-          grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?(env([[:space:]]+-S)?[[:space:]]+)?($accepted)([[:space:]]|\$)" &&
+          grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?(env([[:space:]]+(-[^[:space:]]+|[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*))*[[:space:]]+)?($accepted)([[:space:]]|\$)" &&
           ! printf '%s\n' "$first" |
-            grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?env([[:space:]]+-S)?[[:space:]]+busybox"; then
+            grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?env([[:space:]]+(-[^[:space:]]+|[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*))*[[:space:]]+busybox"; then
           printf '%s\0' "$f"
         fi
         ;;
@@ -143,7 +143,7 @@ Report the shells left out — `mksh` and `zsh`, both refused outright — by na
 
 The pattern is anchored to the **interpreter's own position** rather than searching the line. A leading `.*` looks harmless and is not: it lets the match slide past the real interpreter to any later word, so `#!/usr/bin/env -S python -m bash` and `#!/usr/bin/python3 -c import bash` both read as shell and the generated job hands a Python file to a shell linter, which then fails for a reason that has nothing to do with the repository's shell. The path, the optional `env`, and the interpreter are matched in sequence instead.
 
-The `env -S` segment is optional in the pattern because it is not optional in practice: `#!/usr/bin/env -S bash -e` is the standard way to pass a flag through `env`, and a classifier that only accepted the interpreter directly after a slash would drop every script written that way — silently, from both generated tool invocations, which is the failure this inventory exists to prevent.
+The `env` segment carries an option run because `env` is not always a bare prefix. `#!/usr/bin/env -S bash -e` passes a flag through `env`, and a script may clear or set a variable before the interpreter — `env -S -i bash`, `env -S FOO=bar bash`. The pattern skips those first: any leading token that is a flag or a `NAME=value` assignment is stepped over before it looks for the interpreter, so a classifier that only took the interpreter directly after `env` no longer drops every script written that way. What it does not skip is an `env` option that consumes the _next_ token as its argument — `env -S -u DEBUG bash` unsets `DEBUG` and then runs `bash` — because skipping an arbitrary following word is exactly the slide-past the anchoring above forbids: the same latitude would read `#!/usr/bin/env -S python -m bash` as shell. That form is rare, and it is the one this classifier hands to the capability's interpreter-resolution rule rather than resolve here — reported as an unestablished shebang for the maintainer to place, not silently dropped as shell it could not confirm.
 
 The extension branch runs the **same** accepted-set filter as the shebang branch, which is the point of taking the dialects as an argument at all. An earlier shape emitted every known extension unconditionally, so the two per-tool lists changed nothing for files without a shebang: a `.bats` file went to a formatter whose pinned version might not accept `bats`, and the generated job failed on a file the caller had deliberately excluded. Mapping each extension to the dialect it implies puts both branches under one rule.
 

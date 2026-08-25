@@ -152,7 +152,14 @@ _COMMAND_POSITION = r"(?:`|^[ \t]*(?:(?:[-*+]|\d+\.)[ \t]+)?(?:[$>][ \t]+)?)"
 # so a bare `npx` mention never matches.
 _COMMAND_FORMS = (
     r"(?:yarn(?:\s+--[\w-]+(?:[= ][^`\s]+)?)*(?=[ \t]*(?:`|$))"
-    r"|(?:npx|npm\s+exec)(?!\s+--no-install\b)(?:\s+--?[\w-]+(?:[= ]\S+)?)*\s+[\w@][\w@./-]*)"
+    r"|(?:npx|npm\s+exec)"
+    # The exemption is `--no-install` anywhere among the options, not only first:
+    # `npx --yes --no-install eslint` cannot fetch either. The lookahead walks the
+    # option run non-greedily up to the flag, and stops at the first non-option
+    # token, so a later command's `--no-install` cannot reach back and clear this
+    # one.
+    r"(?!(?:\s+--?[\w-]+(?:[= ]\S+)?)*?\s+--no-install\b)"
+    r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*\s+[\w@][\w@./-]*)"
 )
 # Named groups so the citation reader recovers the command a match belongs to
 # regardless of which shape hit — the command-position branch consumes a leading
@@ -577,10 +584,13 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("1. npm exec tsc")
     assert _INSTALL_FORMS.search("* yarn")
     assert _INSTALL_FORMS.search("  - npx create-foo")
-    # `--no-install` cannot fetch — the safe form the guidance recommends — and a
-    # bare `npx` naming the executor is not a command to run.
+    # `--no-install` cannot fetch — the safe form the guidance recommends —
+    # wherever it sits among the options, not only immediately after the
+    # executor. And a bare `npx` naming the executor is not a command to run.
     assert not _INSTALL_FORMS.search("`npx --no-install`")
     assert not _INSTALL_FORMS.search("`npx --no-install eslint`")
+    assert not _INSTALL_FORMS.search("`npx --yes --no-install eslint`")
+    assert not _INSTALL_FORMS.search("`npm exec --loglevel=warn --no-install tsc`")
     assert not _INSTALL_FORMS.search("a rule that reads `npx` as floating")
     assert not _INSTALL_FORMS.search("npm and npx are node tools")
     # `yarn add` is the manager form, not the bare-yarn alias truncated to `yarn`.
