@@ -156,6 +156,29 @@ _FLAG = re.compile(r"^--?[A-Za-z][\w-]*$")
 # alone is "deny something", and only `-D warnings` is the floor. Paths and the
 # `--` separator are not arguments, so they never attach.
 _ARGUMENT = re.compile(r"^[A-Za-z0-9][\w.=-]*$")
+# A command word is the tool or one of its subcommands — `cargo`, `clippy`,
+# `ruff`, `check`, `format`. It is what a flag is qualified by, so that two
+# subcommands of one tool keep their requirements apart.
+_COMMAND_WORD = re.compile(r"^[A-Za-z][\w-]*$")
+
+
+def _role(command: str) -> str:
+    """The tool-and-subcommand prefix of an invocation, before its first flag.
+
+    `ruff format --check .` and `ruff check .` share the tool name the floor
+    tables print and differ only here, so a flag has to be qualified by this
+    prefix or the two subcommands' requirements merge under `ruff` — and a floor
+    that moved `--check` from `format` to `check` would read as unchanged while
+    it had quietly stopped checking formatting. Cargo's tools already carry the
+    subcommand in the name the tables use (`cargo clippy`, `cargo fmt`), so there
+    this reproduces that name; `ruff` is the case that needs it.
+    """
+    words = []
+    for token in command.split():
+        if not _COMMAND_WORD.match(token):
+            break
+        words.append(token)
+    return " ".join(words)
 
 
 def _requirements(command: str) -> set[str]:
@@ -185,13 +208,19 @@ def _flags_for(text: str, tool: str) -> set[str]:
     deleted from the table would otherwise survive in the paragraph warning
     against deleting it, and the comparison would pass while the graded bar had
     dropped. That direction is the one this whole check exists for.
+
+    Each flag is returned qualified by its invocation's role — `ruff format:
+    --check`, not a bare `--check` filed under `ruff` — so a requirement that
+    moves between a tool's subcommands is a difference the set comparison sees
+    rather than one it flattens away.
     """
     flags: set[str] = set()
     for span in _BACKTICKED.findall(text):
         for part in span.split("&&"):
             part = part.strip()
             if part.startswith(tool):
-                flags.update(_requirements(part))
+                role = _role(part)
+                flags.update(f"{role}: {flag}" for flag in _requirements(part))
     return flags
 
 
@@ -265,18 +294,29 @@ def test_the_flag_reader_sees_what_it_claims_to() -> None:
     because the suite is green.
     """
     sample = "run `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check`"
-    assert _flags_for(sample, "cargo clippy") == {"--all-targets", "-D warnings"}
-    assert _flags_for(sample, "cargo fmt") == {"--check"}
+    assert _flags_for(sample, "cargo clippy") == {
+        "cargo clippy: --all-targets",
+        "cargo clippy: -D warnings",
+    }
+    assert _flags_for(sample, "cargo fmt") == {"cargo fmt: --check"}
     assert _flags_for(sample, "shellcheck") == set()
 
     # The argument is half the requirement: a bare `-D` matches any deny, so
     # reading the flag alone would let the floor's `warnings` become anything.
     assert _flags_for("`cargo clippy -- -D deprecated`", "cargo clippy") == {
-        "-D deprecated"
+        "cargo clippy: -D deprecated"
     }
     # A path is not an argument, or `-ci .` and `-ci` would read as different
     # requirements and two sides stating the same floor would disagree.
-    assert _flags_for("`shfmt -i 2 -ci .`", "shfmt") == {"-i 2", "-ci"}
+    assert _flags_for("`shfmt -i 2 -ci .`", "shfmt") == {"shfmt: -i 2", "shfmt: -ci"}
+
+    # A flag on the wrong subcommand no longer hides. `ruff` is one tool with two
+    # subcommands, so `--check` under `ruff format` and `--check` under `ruff
+    # check` are different requirements; the old flatten-under-`ruff` reading
+    # made both `{--check}` and would have passed a floor that moved formatting's
+    # check onto the lint subcommand and stopped checking format at all.
+    assert _flags_for("`ruff format --check .`", "ruff") == {"ruff format: --check"}
+    assert _flags_for("`ruff check --check .`", "ruff") == {"ruff check: --check"}
 
 
 @pytest.mark.parametrize("language", sorted(_FLOOR_HEADINGS))
