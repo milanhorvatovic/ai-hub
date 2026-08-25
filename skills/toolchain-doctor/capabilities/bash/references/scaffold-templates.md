@@ -19,9 +19,12 @@ external-sources=true
 Do not scaffold a `disable=` line here. A repository-wide suppression turns off a check for every script including the ones written next year, and the floor's position is that a suppression carries a one-line reason at the site it applies to. Where an audit found a rule that genuinely does not fit the repository, propose the per-file directive with its reason instead:
 
 ```bash
-# shellcheck disable=SC2086  # word splitting is intended: $FLAGS carries multiple args
+# Word splitting is intended here: $FLAGS carries several arguments.
+# shellcheck disable=SC2086
 run_tool $FLAGS
 ```
+
+The reason sits on its own line immediately above the directive, which is the shape the rulebook these floors are shared with states, and a scaffold exists to hand a repository the house shape rather than a personal one. `shellcheck` honours a reason trailing the directive on one line just as well, so a repository already writing them that way is documented and is graded as such — the audit's row asks whether a reason is there, never where it sits. Prescribing one layout and grading another is deliberate here: a scaffold gets to have a preference, and an audit reporting on code someone else wrote does not.
 
 ## `shfmt` settings in `.editorconfig`
 
