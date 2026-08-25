@@ -106,16 +106,21 @@ _MANAGER = (
 # forms suggest — `pip --require-virtualenv install`, `npm --prefix web install`
 # — and a pattern demanding they be adjacent misses every one of those.
 _MANAGER_OPTIONS = r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*"
+# The trailing boundary closes the whole group rather than one alternative. With
+# it on `i` alone, every other name matched as a prefix: "npm installation", "the
+# pip installer", "uv syncing", and "cargo updates the lock" all read as commands,
+# so an exact citation inventory could be counting prose.
+#
 # The subcommands that install or otherwise mutate an environment — removal and
 # upgrade included, because the promise is about invoking a package manager and
 # not about the direction the change runs. `check`, `run`, `fmt`, and `clippy`
 # are deliberately absent: those are the tools the floors are made of, and
 # matching them would flag the skill for naming its own subject.
 _INSTALL_SUBCOMMAND = (
-    r"(?:install|reinstall|uninstall|add|remove|rm|sync|update|upgrade|prune|bundle|ci|i\b"
-    r"|inject|global add|global remove|global upgrade"
+    r"(?:install|reinstall|uninstall|add|remove|rm|sync|update|upgrade|prune|bundle"
+    r"|inject|global add|global remove|global upgrade|ci|i"
     r"|tool install|env create|env remove|component add|component remove"
-    r"|toolchain install|toolchain uninstall|self update|pip install)"
+    r"|toolchain install|toolchain uninstall|self update|pip install)\b"
 )
 # Not every environment-mutating command is a manager plus a subcommand.
 # `pip-sync` is one word, and `corepack enable` provisions a manager rather than
@@ -128,7 +133,8 @@ _STANDALONE_FORMS = (
     # installs dependencies. It is required to be backticked and followed by
     # nothing but flags, because the word also appears throughout this skill as
     # the name of a package manager rather than as a command to run.
-    r"|`yarn(?:\s+--[\w-]+)*`)"
+    # Flags may carry values: `yarn --cwd web` is still the install alias.
+    r"|`yarn(?:\s+--[\w-]+(?:[= ][^`\s]+)?)*`)"
 )
 # The word boundary belongs to the manager alternative alone. Applied to the
 # whole group it sits between two backticks in "`yarn`", where there is no
@@ -478,6 +484,7 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # Bare yarn installs; the same word as a tool name does not.
     assert _INSTALL_FORMS.search("run `yarn` first")
     assert _INSTALL_FORMS.search("`yarn --frozen-lockfile`")
+    assert _INSTALL_FORMS.search("`yarn --cwd web`")
     assert not _INSTALL_FORMS.search("pnpm and yarn use their own setup action")
     assert not _INSTALL_FORMS.search("`<npm, pnpm, or yarn>`")
     # Multi-token and manager-specific installing forms.
@@ -486,6 +493,11 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert not _INSTALL_FORMS.search("`cargo fmt --check`")
     assert not _INSTALL_FORMS.search("`npm run lint`")
     assert not _INSTALL_FORMS.search("`uv run ruff`")
+    # Prose that merely contains a subcommand as a word prefix is not a command.
+    assert not _INSTALL_FORMS.search("npm installation is easy")
+    assert not _INSTALL_FORMS.search("the pip installer")
+    assert not _INSTALL_FORMS.search("uv syncing")
+    assert not _INSTALL_FORMS.search("cargo updates the lock")
     assert not _INSTALL_FORMS.search("`cargo check`")
     assert not _INSTALL_FORMS.search("`poetry run pytest`")
     assert not _INSTALL_FORMS.search("`ruff check .`")
