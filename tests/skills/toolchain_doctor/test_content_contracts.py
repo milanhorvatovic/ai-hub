@@ -104,10 +104,16 @@ _MANAGER = (
     r"(?:pip(?:[0-9](?:\.[0-9]+)?)?|pipx|uv|poetry|pipenv|hatch|npm|pnpm|yarn"
     r"|bun|cargo|rustup|brew|apt-get)"
 )
+# An option value may be a quoted shell word, so `--prefix "web app"` has to be
+# read whole rather than truncated at the space inside the quotes — otherwise a
+# `\S+` value stops at that space and the subcommand past it is never reached, and
+# the install slips the inventory. Quoted alternatives come first so the closing
+# quote wins over a greedy bare run.
+_OPT_VALUE = r"""(?:"[^"]*"|'[^']*'|\S+)"""
 # Options sit between a manager and its subcommand more often than the literal
 # forms suggest — `pip --require-virtualenv install`, `npm --prefix web install`
 # — and a pattern demanding they be adjacent misses every one of those.
-_MANAGER_OPTIONS = r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*"
+_MANAGER_OPTIONS = r"(?:\s+--?[\w-]+(?:[= ]" + _OPT_VALUE + r")?)*"
 # The trailing boundary closes the whole group rather than one alternative. With
 # it on `i` alone, every other name matched as a prefix: "npm installation", "the
 # pip installer", "uv syncing", and "cargo updates the lock" all read as commands,
@@ -154,7 +160,7 @@ _COMMAND_POSITION = r"(?:`|^[ \t]*(?:(?:[-*+]|\d+\.)[ \t]+)?(?:[$>][ \t]+)?)"
 # The options a one-shot executor may carry, an optional `--` separator, then the
 # package token: `npm exec -- eslint` and `pnpm dlx --package=x foo` alike. Shared
 # because every executor ends this way; only the leading verb differs.
-_ONESHOT_TAIL = r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*(?:\s+--)?\s+[\w@][\w@./-]*"
+_ONESHOT_TAIL = r"(?:\s+--?[\w-]+(?:[= ]" + _OPT_VALUE + r")?)*(?:\s+--)?\s+[\w@][\w@./-]*"
 _COMMAND_FORMS = (
     r"(?:yarn(?:\s+--[\w-]+(?:[= ][^`\s]+)?)*(?=[ \t]*(?:`|$))"
     # `npx` and `npm exec` carry the `--no-install` exemption — anywhere among the
@@ -562,6 +568,10 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # alternation misses, and the one an instruction most plausibly carries.
     assert _INSTALL_FORMS.search("`pip --require-virtualenv install ruff`")
     assert _INSTALL_FORMS.search("`npm --prefix web install`")
+    # A quoted option value carries whitespace, so it has to be read whole or the
+    # subcommand past it is missed — single quotes and an inner `=` included.
+    assert _INSTALL_FORMS.search('`npm --prefix "web app" install`')
+    assert _INSTALL_FORMS.search("`pip --config-settings 'x = y' install ruff`")
     assert _INSTALL_FORMS.search("`uv tool install ruff`")
     # Shapes that are not manager-plus-subcommand at all.
     assert _INSTALL_FORMS.search("run `pip-sync` in CI")
