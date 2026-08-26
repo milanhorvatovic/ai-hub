@@ -106,10 +106,14 @@ _MANAGER = (
 )
 # An option value may be a quoted shell word, so `--prefix "web app"` has to be
 # read whole rather than truncated at the space inside the quotes — otherwise a
-# `\S+` value stops at that space and the subcommand past it is never reached, and
-# the install slips the inventory. Quoted alternatives come first so the closing
-# quote wins over a greedy bare run.
-_OPT_VALUE = r"""(?:"[^"]*"|'[^']*'|\S+)"""
+# bare value stops at that space and the subcommand past it is never reached, and
+# the install slips the inventory. The quoted forms are shared; the bare run that
+# follows them differs by shape — the space-terminated forms stop at whitespace,
+# the backtick-terminated bare-Yarn form stops at a backtick too — so each pairs
+# them with its own. Quoted alternatives come first so a closing quote wins over a
+# greedy bare run.
+_QUOTED_VALUE = r"""(?:"[^"]*"|'[^']*')"""
+_OPT_VALUE = r"(?:" + _QUOTED_VALUE + r"|\S+)"
 # Options sit between a manager and its subcommand more often than the literal
 # forms suggest — `pip --require-virtualenv install`, `npm --prefix web install`
 # — and a pattern demanding they be adjacent misses every one of those.
@@ -162,15 +166,18 @@ _COMMAND_POSITION = r"(?:`|^[ \t]*(?:(?:[-*+]|\d+\.)[ \t]+)?(?:[$>][ \t]+)?)"
 # because every executor ends this way; only the leading verb differs.
 _ONESHOT_TAIL = r"(?:\s+--?[\w-]+(?:[= ]" + _OPT_VALUE + r")?)*(?:\s+--)?\s+[\w@][\w@./-]*"
 _COMMAND_FORMS = (
-    r"(?:yarn(?:\s+--[\w-]+(?:[= ][^`\s]+)?)*(?=[ \t]*(?:`|$))"
+    # Bare Yarn ends at a backtick or line end, so its option value keeps a
+    # backtick-excluding bare run; it shares the quoted forms so `yarn --cwd
+    # "web app"` — a `yarn install` alias — is read whole, not cut at the space.
+    r"(?:yarn(?:\s+--[\w-]+(?:[= ](?:" + _QUOTED_VALUE + r"|[^`\s]+))?)*(?=[ \t]*(?:`|$))"
     # `npx` and `npm exec` carry the `--no-install` exemption — anywhere among the
     # options, not only first: `npx --yes --no-install eslint` cannot fetch. An
     # option value has to be `=`-attached here, so a bare word ends the option run
     # rather than being swallowed as one option's space-separated value: in
     # `npx --yes eslint --no-install` the `--no-install` sits past the tool token
     # `eslint` and belongs to eslint, so it must not exempt an npx that still fetches.
-    r"|(?:npx|npm\s+exec)"
-    r"(?!(?:\s+--?[\w-]+(?:=\S+)?)*?\s+--no-install\b)"
+    + r"|(?:npx|npm\s+exec)"
+    + r"(?!(?:\s+--?[\w-]+(?:=\S+)?)*?\s+--no-install\b)"
     + _ONESHOT_TAIL
     +
     # The rest of the one-shot executors fetch a missing package the same way and
@@ -594,6 +601,9 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("run `yarn` first")
     assert _INSTALL_FORMS.search("`yarn --frozen-lockfile`")
     assert _INSTALL_FORMS.search("`yarn --cwd web`")
+    # A quoted value carries whitespace here too, and bare Yarn keeps its own
+    # backtick-excluding bare run, so the quoted form must be read whole.
+    assert _INSTALL_FORMS.search('`yarn --cwd "web app"`')
     assert not _INSTALL_FORMS.search("pnpm and yarn use their own setup action")
     assert not _INSTALL_FORMS.search("`<npm, pnpm, or yarn>`")
     # Multi-token and manager-specific installing forms.
