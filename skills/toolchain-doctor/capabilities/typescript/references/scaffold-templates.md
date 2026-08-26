@@ -125,7 +125,7 @@ The dependency and script blocks come from whichever route the audit picked, not
     "@biomejs/biome": "<pinned>"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "<tsc --noEmit, or tsc -b for a project-references solution>",
     "check": "biome check ."
   }
 }
@@ -144,7 +144,7 @@ Route B, where the format check is a separate script because the two tools are s
     "eslint-config-prettier": "<pinned>"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "<tsc --noEmit, or tsc -b for a project-references solution>",
     "lint": "eslint .",
     "format:check": "prettier --check ."
   }
@@ -152,6 +152,8 @@ Route B, where the format check is a separate script because the two tools are s
 ```
 
 Taking Route A's block into a Route B repository is the mistake this split exists to prevent: it adds the second linter the capability forbids and drops the format check entirely, so the scaffold would both create a `conflict` and leave a floor row unmet.
+
+The `typecheck` script is the one command here the scan resolves rather than writes out fixed, and both routes carry it as a placeholder for that reason. A single-project repository checks with `tsc --noEmit`, but a solution-style root — a `tsconfig` carrying only `references` — checks nothing that way, because `--noEmit` never crosses into a referenced project and a CI job wired to it reports success over sources it never read. There the invocation is `tsc -b`, which the capability grades as a type check like the other two; the scaffold writes whichever the scanned `tsconfig` calls for rather than assuming the flat-project shape.
 
 The JavaScript-only variant is either block with the compiler removed — no `typescript` dependency, no `typecheck` script, no `tsc` step. What remains is the lint and format rows, which are the only ones that applied to that repository in the first place.
 

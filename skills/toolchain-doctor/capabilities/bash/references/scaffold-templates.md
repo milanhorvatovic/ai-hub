@@ -107,8 +107,8 @@ git ls-files -z \
         # No shebang: the extension implies a dialect, and that dialect faces
         # the same accepted-set filter the shebang branch applies.
         case "$f" in
-          .husky/_/*) continue ;;
-          .husky/*) implied='sh' ;;
+          .husky/_/* | */.husky/_/*) continue ;;
+          .husky/* | */.husky/*) implied='sh' ;;
           *.sh) implied='sh' ;;
           *.bash) implied='bash' ;;
           *.bats) implied='bats' ;;
@@ -160,7 +160,7 @@ The `env` segment carries an option run because `env` is not always a bare prefi
 
 The extension branch runs the **same** accepted-set filter as the shebang branch, which is the point of taking the dialects as an argument at all. An earlier shape emitted every known extension unconditionally, so the two per-tool lists changed nothing for files without a shebang: a `.bats` file went to a formatter whose pinned version might not accept `bats`, and the generated job failed on a file the caller had deliberately excluded. Mapping each extension to the dialect it implies puts both branches under one rule.
 
-`.husky/` is in that fallback for a reason the extension list cannot express: husky supplies the interpreter, its hooks are ordinarily written without a shebang, and a file called `pre-commit` has no extension either — so a classifier reading only shebangs and extensions drops the whole directory, which is the inventory promise this capability makes broken by the script meant to keep it. The manager runs them with `sh`, so `sh` is what they are classified as, and they face the accepted-set filter like everything else. `.husky/_/` is excluded because it is husky's own generated wrapper rather than the repository's code.
+`.husky/` is in that fallback for a reason the extension list cannot express: husky supplies the interpreter, its hooks are ordinarily written without a shebang, and a file called `pre-commit` has no extension either — so a classifier reading only shebangs and extensions drops the whole directory, which is the inventory promise this capability makes broken by the script meant to keep it. The manager runs them with `sh`, so `sh` is what they are classified as, and they face the accepted-set filter like everything else. `.husky/_/` is excluded because it is husky's own generated wrapper rather than the repository's code. The match reaches a nested `.husky/` as readily as a root one — a monorepo keeping its hooks under `frontend/.husky/` has the same unlinted-hook problem a root directory does — while still dropping the `_` wrapper wherever it sits.
 
 `.githooks/` is deliberately not given the same treatment, and the difference is evidence rather than tidiness. Nothing in the repository says what interprets a shebang-less file there — that is git's business and varies by platform — so classifying it would be the guess this capability's own routing rule forbids. Report such a file in the inventory as a script whose interpreter is unestablished, with adding a shebang as the prescription: one line makes it self-describing, at which point the shebang branch collects it like any other.
 
