@@ -169,7 +169,7 @@ _COMMAND_FORMS = (
     # Bare Yarn ends at a backtick or line end, so its option value keeps a
     # backtick-excluding bare run; it shares the quoted forms so `yarn --cwd
     # "web app"` — a `yarn install` alias — is read whole, not cut at the space.
-    r"(?:yarn(?:\s+--[\w-]+(?:[= ](?:" + _QUOTED_VALUE + r"|[^`\s]+))?)*(?=[ \t]*(?:`|$))"
+    r"(?:yarn(?:\s+--?[\w-]+(?:[= ](?:" + _QUOTED_VALUE + r"|[^`\s]+))?)*(?=[ \t]*(?:`|$))"
     # `npx` and `npm exec` carry the `--no-install` exemption — anywhere among the
     # options, not only first: `npx --yes --no-install eslint` cannot fetch. An
     # option value has to be `=`-attached here, so a bare word ends the option run
@@ -604,6 +604,8 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # A quoted value carries whitespace here too, and bare Yarn keeps its own
     # backtick-excluding bare run, so the quoted form must be read whole.
     assert _INSTALL_FORMS.search('`yarn --cwd "web app"`')
+    # Bare Yarn takes short options too — `yarn -s` still aliases `yarn install`.
+    assert _INSTALL_FORMS.search("`yarn -s`")
     assert not _INSTALL_FORMS.search("pnpm and yarn use their own setup action")
     assert not _INSTALL_FORMS.search("`<npm, pnpm, or yarn>`")
     # Multi-token and manager-specific installing forms.
