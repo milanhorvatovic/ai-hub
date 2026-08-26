@@ -251,6 +251,15 @@ _ALLOWED_CITATIONS: dict[str, dict[str, int]] = {
 }
 
 
+# A shell line continuation — a backslash right before the newline — joins two
+# lines into one command, so `pip \`<newline>`install ruff` runs an install. The
+# scan collapses the continuation before matching, or the split hides the command
+# between the manager and its subcommand and the inventory that promises to miss
+# none does.
+def _join_line_continuations(text: str) -> str:
+    return re.sub(r"[ \t]*\\\n[ \t]*", " ", text)
+
+
 def _install_citations(path: Path) -> dict[str, int]:
     """Install forms the file names in the skill's own voice.
 
@@ -261,7 +270,9 @@ def _install_citations(path: Path) -> dict[str, int]:
     """
     text = path.read_text(encoding="utf-8")
     body = _FENCE.sub("", text) if path.name == "scaffold-templates.md" else text
-    return dict(Counter(_cited_form(m) for m in _INSTALL_FORMS.finditer(body)))
+    return dict(
+        Counter(_cited_form(m) for m in _INSTALL_FORMS.finditer(_join_line_continuations(body)))
+    )
 
 
 def _registered_grades() -> set[str]:
@@ -607,6 +618,12 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("1. npm exec tsc")
     assert _INSTALL_FORMS.search("* yarn")
     assert _INSTALL_FORMS.search("  - npx create-foo")
+    # A shell line continuation splits a command across lines; the scan joins it
+    # back before matching, or a `pip \`<newline>`install` in a retained fence
+    # installs between the manager and subcommand unseen. The helper is the join
+    # the scan runs, asserted here on the same pipeline.
+    assert _INSTALL_FORMS.search(_join_line_continuations("pip \\\ninstall ruff"))
+    assert _INSTALL_FORMS.search(_join_line_continuations("```\npip \\\n  install ruff\n```"))
     # `--no-install` cannot fetch — the safe form the guidance recommends —
     # wherever it sits among the options, not only immediately after the
     # executor. And a bare `npx` naming the executor is not a command to run.

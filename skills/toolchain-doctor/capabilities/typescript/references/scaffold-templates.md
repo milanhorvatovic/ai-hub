@@ -94,16 +94,23 @@ Yarn has no such action, so a modern Yarn project is exactly the case that has t
       # Now the Node is fixed, bring Yarn into place under it.
       - run: npm install --global corepack@<pinned> # only where this Node no longer bundles it
       - run: corepack prepare yarn@<pinned> --activate # the version the packageManager field names
+      # Ask Yarn where its cache is rather than assuming .yarn/cache: Yarn 4
+      # defaults enableGlobalCache on, so a modern project caches to a global
+      # folder and a step keyed to .yarn/cache would save a store no run reads.
+      - id: yarn-cache
+        run: echo "dir=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
       # Restore the cache BEFORE the install, or the install downloads
       # everything first and the cache it saves helps no run, including this one.
       - uses: actions/cache@<40-char-sha> # <the version this sha is>
         with:
-          path: .yarn/cache
+          path: ${{ steps.yarn-cache.outputs.dir }}
           key: <a key derived from the lock file's hash>
       - run: yarn install --immutable # from the committed lock, failing if it would change
 ```
 
 It is more moving parts than the setup-action slot, which is why the slot is the default and yarn is named as the exception rather than folded in silently.
+
+The cache path is asked for, not written down. Yarn 4 defaults `enableGlobalCache` on, so a modern project's packages land in a global folder rather than `.yarn/cache`, and a cache step keyed to the old path would restore nothing and save a store no run reads. `yarn config get cacheFolder` reports the folder in force — the same query `actions/setup-node`'s own yarn caching runs to locate a Berry cache — so the step is right whether the project kept the global default or pinned a local cache, and a project that commits its cache for zero-installs wants no cache step here at all.
 
 `actions/setup-node` supplies Node and `npm` and nothing further. Its `cache` input names a manager's store to restore; it does not install that manager, so a scaffold adapted to pnpm or a modern yarn relies on whatever happens to be global on the runner, and one adapted to bun has no path through `setup-node` at all. Bootstrap first, then cache — that order is the constraint, because the cache step resolves a store the manager has to be present to describe.
 
