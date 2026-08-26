@@ -158,11 +158,13 @@ _ONESHOT_TAIL = r"(?:\s+--?[\w-]+(?:[= ]\S+)?)*(?:\s+--)?\s+[\w@][\w@./-]*"
 _COMMAND_FORMS = (
     r"(?:yarn(?:\s+--[\w-]+(?:[= ][^`\s]+)?)*(?=[ \t]*(?:`|$))"
     # `npx` and `npm exec` carry the `--no-install` exemption — anywhere among the
-    # options, not only first: `npx --yes --no-install eslint` cannot fetch. The
-    # lookahead walks the option run non-greedily and stops at the first
-    # non-option token, so a later command's `--no-install` cannot reach back.
+    # options, not only first: `npx --yes --no-install eslint` cannot fetch. An
+    # option value has to be `=`-attached here, so a bare word ends the option run
+    # rather than being swallowed as one option's space-separated value: in
+    # `npx --yes eslint --no-install` the `--no-install` sits past the tool token
+    # `eslint` and belongs to eslint, so it must not exempt an npx that still fetches.
     r"|(?:npx|npm\s+exec)"
-    r"(?!(?:\s+--?[\w-]+(?:[= ]\S+)?)*?\s+--no-install\b)"
+    r"(?!(?:\s+--?[\w-]+(?:=\S+)?)*?\s+--no-install\b)"
     + _ONESHOT_TAIL
     +
     # The rest of the one-shot executors fetch a missing package the same way and
@@ -631,6 +633,9 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert not _INSTALL_FORMS.search("`npx --no-install eslint`")
     assert not _INSTALL_FORMS.search("`npx --yes --no-install eslint`")
     assert not _INSTALL_FORMS.search("`npm exec --loglevel=warn --no-install tsc`")
+    # A `--no-install` past the tool token belongs to the invoked command, not to
+    # npx, so it does not exempt an npx that will still fetch the package.
+    assert _INSTALL_FORMS.search("`npx --yes eslint --no-install`")
     assert not _INSTALL_FORMS.search("a rule that reads `npx` as floating")
     assert not _INSTALL_FORMS.search("npm and npx are node tools")
     # `yarn add` is the manager form, not the bare-yarn alias truncated to `yarn`.
