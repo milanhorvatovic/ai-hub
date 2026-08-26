@@ -40,7 +40,7 @@ Where the inventory finds **no script files at all** — every line of shell emb
 
 Report the inventory before the grade. A repository that lints `scripts/*.sh` and has never looked at its hooks is not partially covered — it is uncovered in the place where an error runs on every developer's machine.
 
-The first-line check is the reliable one for the extensionless case: a file whose first line is `#!/bin/sh`, `#!/bin/bash`, `#!/usr/bin/env bash`, or a variant is shell regardless of its name. When reporting these, name them individually rather than as a count — a maintainer recognizes their own scripts and can tell immediately whether the list is right.
+The first-line check is the reliable one for the extensionless case: a file whose first line is `#!/bin/sh`, `#!/bin/bash`, `#!/usr/bin/env bash`, or a variant is shell regardless of its name. Read that first line without following a symlink, per the stage-0 rule in `../../references/modes.md`: a tracked link can point outside the checkout, so skip links by their git mode before the read, the way the scaffold's discovery does before handing a path to a linter. When reporting these, name them individually rather than as a count — a maintainer recognizes their own scripts and can tell immediately whether the list is right.
 
 ## Where the declarations live
 

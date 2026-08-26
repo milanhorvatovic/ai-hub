@@ -23,6 +23,8 @@ The refusal covers the project the file governs, not the repository that contain
 
 `*.bats` is on that row because Bats test files carry no shebang — the runner supplies the interpreter — so a repository whose only shell is its test suite would otherwise reach no lane, and both shell tools recognize the extension.
 
+Reading an extensionless file's first line follows no symlink, at stage 0 and in the capability's inventory alike. A repository can track a symlink whose target sits outside the checkout, so a scan that opened it would read an arbitrary file off the runner and could disclose it. Test the git file mode — or check for a link explicitly — and skip links before the read, the same rule the bash scaffold's discovery applies before it hands any path to a linter.
+
 The interpreter qualifier on that row is not a detail deferred to the capability. A `run:` block can select `pwsh` or `python`, a makefile can point `SHELL` elsewhere, and a Windows base image defaults to `cmd` — so counting the location rather than the language routes a repository with no shell at all into the shell lane, which then audits files it has misread. Resolve it here, at the point the routing decision is made, and count only what resolves to a shell.
 
 Embedded shell is on the bash row for the same reason, and it is the case detection would otherwise miss most often: plenty of repositories contain no shell file at all and a great deal of shell, all of it inside workflow `run:` blocks and Dockerfiles. A stage-0 rule that only globs files routes that repository to no lane, and the capability built to find exactly those locations never gets loaded.
