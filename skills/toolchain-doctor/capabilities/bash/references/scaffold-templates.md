@@ -72,6 +72,12 @@ set -euo pipefail
 # feeds do not support the same shells, so each caller passes its own set.
 accepted=${1:?pass a shebang alternation, e.g. 'sh|bash|dash|ksh|oksh|bats|ash|busybox[[:space:]]+sh'}
 
+# A no-shebang `.sh` file or an extensionless hook is one the linter cannot name
+# a dialect for on its own, so those need `-s sh` and the rest do not; a caller
+# asks for the self-describing group or the sh group by role, and the shfmt
+# caller — which needs no such split — omits it and takes them all.
+role=${2:-all}
+
 git ls-files -z \
   -- ':(exclude,glob)**/node_modules/**' ':(exclude,glob)**/vendor/**' \
      ':(exclude,glob)**/target/**' ':(exclude,glob)**/dist/**' \
@@ -93,7 +99,8 @@ git ls-files -z \
           grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?(env([[:space:]]+(-[^[:space:]]+|[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*))*[[:space:]]+)?($accepted)([[:space:]]|\$)" &&
           ! printf '%s\n' "$first" |
             grep -Eq "^#![[:space:]]*(/[^[:space:]]*/)?env([[:space:]]+(-[^[:space:]]+|[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*))*[[:space:]]+busybox"; then
-          printf '%s\0' "$f"
+          # A shebang names the dialect, so this file is self-describing.
+          case "$role" in all | self) printf '%s\0' "$f" ;; esac
         fi
         ;;
       *)
@@ -108,7 +115,13 @@ git ls-files -z \
           *) continue ;;
         esac
         if printf '%s\n' "$implied" | grep -Eq "^($accepted)$"; then
-          printf '%s\0' "$f"
+          # `.bash` and `.bats` read as their own dialect, but a no-shebang `.sh`
+          # or an extensionless hook does not, so only the sh group needs `-s sh`;
+          # the other two ride with the self-describing files.
+          case "$implied" in
+            sh) case "$role" in all | sh) printf '%s\0' "$f" ;; esac ;;
+            *) case "$role" in all | self) printf '%s\0' "$f" ;; esac ;;
+          esac
         fi
         ;;
     esac
@@ -129,7 +142,7 @@ The `--` before the appended paths is not decoration. A tracked file may legally
 
 NUL delimiters end to end, because a path is not a line. Git emits `-z` for a reason: a filename may legally contain a newline, and converting to newlines on the way in splits one such path into two bogus entries — then hands them to a linter as two files that do not exist. Reading with `read -d ''` and emitting with a trailing NUL keeps the list usable as arguments, which is what the CI step below consumes it as.
 
-One pass, not two. An earlier shape emitted every `*.sh` and `*.bash` file directly and ran the shebang test only over the rest, which meant a zsh script named `deploy.sh` went straight into the list the generated job feeds to `shellcheck` — the unsupported-shell failure this section promises to keep out, arriving through the branch that never checked. The shebang is the authority wherever there is one; the extension answers only for a file that declares nothing, and `shellcheck` reads those as `sh`, which is the right default.
+One pass, not two. An earlier shape emitted every `*.sh` and `*.bash` file directly and ran the shebang test only over the rest, which meant a zsh script named `deploy.sh` went straight into the list the generated job feeds to `shellcheck` — the unsupported-shell failure this section promises to keep out, arriving through the branch that never checked. The shebang is the authority wherever there is one; the extension answers only for a file that declares nothing, and a no-shebang `.sh` is classified `sh` — a classification the CI step then has to hand to `shellcheck` itself, per the role paragraph below, because the tool does not infer a dialect from that name.
 
 The interpreter list is what `shellcheck` can be made to accept, established by running it rather than by reading its error message. Two questions live inside that and separating them is what settles the list: which shebangs exit clean as they stand — `sh`, `bash`, `dash`, `ksh`, `oksh`, and `bats` — and which of the rest can be made to, which is where `ash` parts company with `mksh` and `zsh` and why it is in the alternation, per the paragraph below. Both directions of getting this list wrong cost something. Too narrow — matching only the two spellings of Bash — silently drops `#!/bin/dash` and `#!/bin/ksh` scripts, reproducing the coverage under-reach this capability exists to find. Too wide is worse, because the extra file does not go unchecked, it turns the job red: `zsh` raises `SC1071`, `mksh` raises `SC1008`, and neither is a lint result the scaffold can act on.
 
@@ -152,6 +165,8 @@ The extension branch runs the **same** accepted-set filter as the shebang branch
 `.githooks/` is deliberately not given the same treatment, and the difference is evidence rather than tidiness. Nothing in the repository says what interprets a shebang-less file there — that is git's business and varies by platform — so classifying it would be the guess this capability's own routing rule forbids. Report such a file in the inventory as a script whose interpreter is unestablished, with adding a shebang as the prescription: one line makes it self-describing, at which point the shebang branch collects it like any other.
 
 `.bats` is in the extension fallback because Bats files legitimately carry no shebang: the runner supplies the interpreter, so the shebang branch never sees them and an extension list of `.sh` and `.bash` alone leaves a repository's whole test suite unchecked.
+
+Which of those extensions `shellcheck` can name a dialect for on its own is the split the `role` argument carries, and it was measured against `shellcheck` 0.11 rather than assumed: the tool reads `.bash` and `.bats` as their dialect and needs nothing said, but a no-shebang `.sh` — or an extensionless hook classified `sh` — it refuses with `SC2148`, the same error-tier stop as an unsupported shell, because a bare `.sh` name is not a dialect it will guess. So the discovery script hands the CI step one of two groups. `self` is every file that declares its own dialect, whether by a shebang or by a `.bash`/`.bats` name `shellcheck` honours, and runs with no `-s`. `sh` is the no-shebang `sh` group the tool cannot name, and runs with `-s sh`. The default `all` is both, which is what `shfmt` takes: it defaults a shebang-less file rather than refusing it, so it needs no split. One `-s` across the whole list is the shape that looks right and is not — `-s` overrides every shebang it is handed, so `-s bash` would grade a `#!/bin/sh` script by Bash's rules, the exact dialect conflict this capability's audit reports arriving out of its own scaffold — which is why only the `sh` group, whose files declare nothing, carries one.
 
 **Two tools, two lists, which is why the script takes its dialects as an argument — and both lists are placeholders because they belong to a version rather than to this file.** Their support differs and it moves between releases, so a set written here as fact would be wrong for somebody's pinned version and wrong silently: a dialect wrongly included reaches a tool that refuses it and reddens the job, and one wrongly excluded leaves those scripts outside the check while the job stays green.
 
@@ -202,7 +217,11 @@ jobs:
           install -m 0755 shfmt bin/shfmt
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: shellcheck
-        run: <discovery> '<shellcheck dialects>' | xargs -0 --no-run-if-empty shellcheck --severity=warning --
+        run: |
+          rc=0
+          <discovery> '<shellcheck dialects>' self | xargs -0 --no-run-if-empty shellcheck --severity=warning -- || rc=1
+          <discovery> '<shellcheck dialects>' sh   | xargs -0 --no-run-if-empty shellcheck --severity=warning -s sh -- || rc=1
+          exit "$rc"
       - name: shfmt
         run: <discovery> '<shfmt dialects>' | xargs -0 --no-run-if-empty shfmt -d --
 ```
@@ -214,6 +233,8 @@ The binaries land in a runner-writable directory and reach the later steps throu
 `shfmt` is the reason this job needs an install step at all. `shellcheck` is preinstalled on the common hosted Ubuntu images and `shfmt` is not, so a job that assumes both fails on a fresh runner with `shfmt: command not found` — a scaffold that cannot run is worse than the gap it closes. A pinned setup action for either tool works equally well; the point is that both arrive deliberately.
 
 Pinning both versions here is what keeps the scaffold consistent with what the router promises and with the scaffold contract that an addressed row re-audits clean. Taking `shellcheck` from the image is the cheaper-looking option and it is the one that produces a `floating` finding on the very next run — prescribing a shape the audit then reports is the contradiction this skill has now made seven times, and there is no reason to make it an eighth when the install step already exists for `shfmt`. The seventh is worth knowing about while reading this one: the rust toolchain template offered `stable` as a channel, which was fine until the day this skill started grading a floating channel as a finding, and nothing swept the templates when the grade moved.
+
+The `shellcheck` step runs twice because the discovery split hands it two groups: the self-describing files, linted with no `-s`, and the no-shebang `sh` files, linted with `-s sh`. Both run on every pass rather than the first failure ending the step — the default `bash -eo pipefail` shell would stop on the first group's findings and never reach the second, so a repository would fix one batch, push, and only then be told about the other. Catching each pipeline's status into `rc` and exiting on it at the end reports both groups from one run and still fails the job when either has a finding. `--no-run-if-empty` earns its place on each invocation here in a way a single call did not need it: a repository with only shebang scripts leaves the `sh` group empty, and the runner's GNU `xargs` runs its command once even on empty input, so without the guard that empty group invokes `shellcheck` with no file arguments — `No files specified`, a non-zero exit — reddening the job for having nothing to check.
 
 `--severity=warning` is the gate the floor asks for, and leaving it off is not the neutral choice it looks like: `shellcheck` defaults to reporting every tier, so a job without the flag fails on `info` and `style` findings too — legacy backticks, a redundant `echo` — and hands a repository adopting this scaffold a stricter bar than the floor states on the day it lands. The tiers exist because their authors sorted them, and the rulebook these floors are shared with draws the line in the same place: errors and warnings gate a pipeline, and the two tiers below are the author's call. A wall of style findings on the first run is also how a team arrives at `continue-on-error`, which costs them the check the scaffold was written to give them.
 
