@@ -28,6 +28,7 @@ Read what the selector's value **is** before treating it as a path. `ruff --conf
 | Tool | Config locations, highest precedence first |
 | --- | --- |
 | `ruff` | resolved per source file, not per repository: the closest config in an ancestor directory wins, and `.ruff.toml`, `ruff.toml`, `pyproject.toml` `[tool.ruff]` rank against each other only when they sit in the **same** directory |
+| `black` | `pyproject.toml` `[tool.black]` — black keeps no config file of its own — plus any `black` invocation in CI or a hook. Discovered so the `black`-versus-`ruff format` overlap the audit grades has both sides to read; a repository formatting with `black` this scan never found would be graded as though it had no formatter |
 | `mypy` | `mypy.ini`, `.mypy.ini`, `pyproject.toml` `[tool.mypy]`, `setup.cfg` `[mypy]` — with `tox.ini` `[mypy]` read only when passed explicitly |
 | `pyright` | `pyrightconfig.json`, `pyproject.toml` `[tool.pyright]` |
 | interpreter version | no single owner — `pyproject.toml` `requires-python` is the project's declaration, `.python-version` and `mise.toml` bind local shells, a CI matrix binds CI, and `[tool.ruff] target-version` binds one linter's syntax rules. They are peers, and disagreement between them is the finding |
