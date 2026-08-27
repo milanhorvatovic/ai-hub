@@ -68,7 +68,7 @@ export default tseslint.config(
 );
 ```
 
-The `files` entry is not optional here for the same reason it is not on the JavaScript route: this lane accepts `*.jsx` and `*.tsx` at stage 0, and flat config's default matching covers only `.js`, `.cjs`, and `.mjs` with JSX parsing off. The `typescript-eslint` presets add the `.ts` and `.tsx` extensions but not `.jsx`, so a mixed TypeScript-and-JSX project scaffolded without this block would have its `.jsx` sources walked past while the job reported success — the same unlinted-source failure the TypeScript parser was added to prevent, arriving through the one extension the presets do not claim.
+The `files` entry is not optional here for the same reason it is not optional on the JavaScript route: this lane accepts `*.jsx` and `*.tsx` at stage 0, and flat config's default matching covers only `.js`, `.cjs`, and `.mjs` with JSX parsing off. The `typescript-eslint` presets add the `.ts` and `.tsx` extensions but not `.jsx`, so a mixed TypeScript-and-JSX project scaffolded without this block would have its `.jsx` sources walked past while the job reported success — the same unlinted-source failure the TypeScript parser was added to prevent, arriving through the one extension the presets do not claim.
 
 Every package the config imports is declared, `@eslint/js` included. Relying on it arriving transitively through `eslint` works under a flat `node_modules` and fails under a strict package manager, where a config cannot resolve what the project does not declare — so the scaffold that lints cleanly on one machine is unloadable on another.
 
