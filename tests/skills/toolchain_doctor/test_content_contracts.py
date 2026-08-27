@@ -165,6 +165,17 @@ _COMMAND_POSITION = r"(?:`|^[ \t]*(?:(?:[-*+]|\d+\.)[ \t]+)?(?:[$>][ \t]+)?)"
 # package token: `npm exec -- eslint` and `pnpm dlx --package=x foo` alike. Shared
 # because every executor ends this way; only the leading verb differs.
 _ONESHOT_TAIL = r"(?:\s+--?[\w-]+(?:[= ]" + _OPT_VALUE + r")?)*(?:\s+--)?\s+[\w@][\w@./-]*"
+# npx and npm exec are install-capable with a positional package token, and also
+# with `--package`/`-p` naming the package and no positional: `npm exec
+# --package=figlet -c 'figlet Hi'` fetches figlet when it is absent, the command
+# supplied by `--call`/`-c`. The package flag is the fetch signal, so the positional
+# the shared tail requires is not the only install-capable shape for this executor.
+_NPM_EXEC_TAIL = (
+    r"(?:" + _ONESHOT_TAIL
+    + r"|(?:\s+--?[\w-]+(?:[= ]" + _OPT_VALUE + r")?)*?\s+(?:--package|-p)[= ]"
+    + _OPT_VALUE
+    + r"(?:\s+--?[\w-]+(?:[= ]" + _OPT_VALUE + r")?)*)"
+)
 _COMMAND_FORMS = (
     # Bare Yarn ends at a backtick or line end, so its option value keeps a
     # backtick-excluding bare run; it shares the quoted forms so `yarn --cwd
@@ -181,7 +192,7 @@ _COMMAND_FORMS = (
     # `eslint` and belongs to eslint, so it must not exempt an npx that still fetches.
     + r"|(?:npx|npm\s+exec)"
     + r"(?!(?:\s+--?[\w-]+(?:=\S+)?)*?\s+--no(?:-install)?(?![-\w]))"
-    + _ONESHOT_TAIL
+    + _NPM_EXEC_TAIL
     +
     # The rest of the one-shot executors fetch a missing package the same way and
     # have no such exemption: pnpm's and yarn's `dlx`, bun's `bunx`, uv's `uvx`,
@@ -624,6 +635,14 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # The canonical `--` separator form fetches the same way.
     assert _INSTALL_FORMS.search("`npm exec -- eslint`")
     assert _INSTALL_FORMS.search("`npm exec --package=eslint -- eslint`")
+    # `--package`/`-p` names the package to fetch with no positional token, the
+    # command carried by `--call`/`-c`: `npm exec --package=figlet -c 'figlet Hi'`
+    # still fetches figlet when it is absent, so it is install-capable. The
+    # `=`-attached form leaves no trailing word the positional tail could split
+    # out, so it is caught only by recognizing the package flag itself.
+    assert _INSTALL_FORMS.search("`npm exec --package=figlet`")
+    assert _INSTALL_FORMS.search("`npm exec --package=figlet -c 'figlet Hello'`")
+    assert _INSTALL_FORMS.search("`npx -p cowsay -c 'cowsay hi'`")
     # The other one-shot executors fetch a missing package just as `npx` does.
     assert _INSTALL_FORMS.search("`pnpm dlx eslint`")
     assert _INSTALL_FORMS.search("`yarn dlx prettier`")
