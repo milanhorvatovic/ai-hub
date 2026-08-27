@@ -91,8 +91,12 @@ Yarn has no such action, so a modern Yarn project is exactly the case that has t
       - uses: actions/setup-node@<40-char-sha> # <the version this sha is>
         with:
           node-version: "<the project's version>"
-      # Now the Node is fixed, bring Yarn into place under it.
+      # Now the Node is fixed, bring Yarn into place under it. `corepack enable`
+      # creates the `yarn` shim; `corepack prepare --activate` only downloads and
+      # selects the version, so without enable `yarn` is not on PATH for the steps
+      # below — where Corepack is bundled but opt-in, the next `yarn config` fails.
       - run: npm install --global corepack@<pinned> # only where this Node no longer bundles it
+      - run: corepack enable # create the yarn shim before any yarn command runs
       - run: corepack prepare yarn@<pinned> --activate # the version the packageManager field names
       # Ask Yarn where its cache is rather than assuming .yarn/cache: Yarn 4
       # defaults enableGlobalCache on, so a modern project caches to a global
