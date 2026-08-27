@@ -91,6 +91,10 @@ git ls-files -z \
     # reach, and the tools this list feeds would open the target, not the repo.
     [ -L "$f" ] && continue
     [ -f "$f" ] || continue
+    # Husky's own generated wrappers are not the repo's code, and they carry a
+    # `#!/usr/bin/env sh` shebang — so skip them here, before the shebang read
+    # below would route them to the self-describing branch and emit them.
+    case "$f" in .husky/_/* | */.husky/_/*) continue ;; esac
     # Bounded and subprocess-free: `read -n 256` stops at the first newline or 256
     # characters, so a shebang is captured whole while a tracked minified bundle or
     # binary with no newline cannot make "the first line" the whole file — and no
@@ -113,7 +117,6 @@ git ls-files -z \
         # No shebang: the extension implies a dialect, and that dialect faces
         # the same accepted-set filter the shebang branch applies.
         case "$f" in
-          .husky/_/* | */.husky/_/*) continue ;;
           .husky/* | */.husky/*) implied='sh' ;;
           *.sh) implied='sh' ;;
           *.bash) implied='bash' ;;
