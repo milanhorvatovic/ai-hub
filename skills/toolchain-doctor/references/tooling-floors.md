@@ -20,7 +20,7 @@ Language version: target a Python still receiving security fixes, which is a mov
 
 | Tool | Role | Floor | Verify with |
 | --- | --- | --- | --- |
-| `tsc` | typecheck | `tsconfig.json` sets `"strict": true`, and a typecheck runs somewhere other than the bundler | `tsc --noEmit` |
+| `tsc` | typecheck | `tsconfig.json` sets `"strict": true`, and a typecheck actually runs — any step that reaches the compiler in a checking form satisfies this, a bundler configured with a real type-checking plugin included | `tsc --noEmit` |
 | `eslint` _or_ `biome` | lint | One linter, not two | `eslint .` or `biome check .` |
 | `prettier` _or_ `biome` | format | One formatter, not two; `biome` satisfies this row and the one above together | `prettier --check .` or `biome check .` |
 
