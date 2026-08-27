@@ -132,7 +132,7 @@ _INSTALL_SUBCOMMAND = (
     r"(?:install|reinstall|uninstall|add|remove|rm|sync|update|upgrade|prune|bundle"
     r"|inject|global add|global remove|global upgrade|ci|i"
     r"|tool install|env create|env remove|component add|component remove"
-    r"|toolchain install|toolchain uninstall|self update|pip install)\b"
+    r"|target add|target remove|toolchain install|toolchain uninstall|self update|pip install)\b"
 )
 # Not every environment-mutating command is a manager plus a subcommand:
 # `pip-sync` is one word, and `corepack enable` provisions a manager rather than
@@ -183,9 +183,9 @@ _COMMAND_FORMS = (
     r"(?:yarn(?:\s+--?[\w-]+(?:[= ](?:" + _QUOTED_VALUE + r"|[^`\s]+))?)*(?=[ \t]*(?:`|$))"
     # `npx` and `npm exec` carry the install-declining exemption — anywhere among
     # the options, not only first: `npx --yes --no-install eslint` cannot fetch.
-    # Current npm spells that flag `--no`, so it exempts like the legacy
-    # `--no-install`, matched as an exact token — `--no(?![-\w])`, so a `--no-audit`
-    # or a `--nope`, which do not decline the install, are not read as the flag. An
+    # npm accepts `--no` as well as `--no-install` for this, so both exempt,
+    # matched as an exact token — `--no(?![-\w])`, so a `--no-audit` or a `--nope`,
+    # which do not decline the install, are not read as the flag. An
     # option value has to be `=`-attached here, so a bare word ends the option run
     # rather than being swallowed as one option's space-separated value: in
     # `npx --yes eslint --no-install` the `--no-install` sits past the tool token
@@ -602,6 +602,10 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("`cargo update`")
     assert _INSTALL_FORMS.search("`brew upgrade`")
     assert _INSTALL_FORMS.search("`rustup toolchain uninstall 1.70`")
+    # `rustup target add` fetches a compilation target, mutating the toolchain the
+    # same way `component add` does; `target remove` is its inverse.
+    assert _INSTALL_FORMS.search("`rustup target add wasm32-unknown-unknown`")
+    assert _INSTALL_FORMS.search("`rustup target remove wasm32-unknown-unknown`")
     # Versioned pip executables are the ordinary spelling on most systems.
     assert _INSTALL_FORMS.search("`pip3 install ruff`")
     assert _INSTALL_FORMS.search("`pip3.12 uninstall ruff`")
@@ -680,8 +684,8 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # A `--no-install` past the tool token belongs to the invoked command, not to
     # npx, so it does not exempt an npx that will still fetch the package.
     assert _INSTALL_FORMS.search("`npx --yes eslint --no-install`")
-    # Current npm spells the install-declining flag `--no`; it exempts the same way
-    # `--no-install` does, wherever it sits among the options.
+    # npm accepts `--no` for this as well as `--no-install`; it exempts the same
+    # way, wherever it sits among the options.
     assert not _INSTALL_FORMS.search("`npx --no eslint`")
     assert not _INSTALL_FORMS.search("`npx --yes --no eslint`")
     assert not _INSTALL_FORMS.search("`npm exec --loglevel=warn --no tsc`")

@@ -288,6 +288,10 @@ def test_runnable_shell_samples_pass_shellcheck() -> None:
         _no_toolchain("no usable shellcheck on PATH")
 
     problems = []
+    # `_samples("bash")` normalizes `sh`-tagged fences in alongside `bash` ones, so
+    # a `#!/usr/bin/env sh` sample is shellchecked here too — the lane covers both
+    # shell spellings, not only the literal `bash` tag; shellcheck reads each
+    # shebang for its dialect.
     scripts = [
         fence for fence in _samples("bash") if fence.body.lstrip().startswith("#!")
     ]
