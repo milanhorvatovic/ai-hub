@@ -170,14 +170,17 @@ _COMMAND_FORMS = (
     # backtick-excluding bare run; it shares the quoted forms so `yarn --cwd
     # "web app"` — a `yarn install` alias — is read whole, not cut at the space.
     r"(?:yarn(?:\s+--?[\w-]+(?:[= ](?:" + _QUOTED_VALUE + r"|[^`\s]+))?)*(?=[ \t]*(?:`|$))"
-    # `npx` and `npm exec` carry the `--no-install` exemption — anywhere among the
-    # options, not only first: `npx --yes --no-install eslint` cannot fetch. An
+    # `npx` and `npm exec` carry the install-declining exemption — anywhere among
+    # the options, not only first: `npx --yes --no-install eslint` cannot fetch.
+    # Current npm spells that flag `--no`, so it exempts like the legacy
+    # `--no-install`, matched as an exact token — `--no(?![-\w])`, so a `--no-audit`
+    # or a `--nope`, which do not decline the install, are not read as the flag. An
     # option value has to be `=`-attached here, so a bare word ends the option run
     # rather than being swallowed as one option's space-separated value: in
     # `npx --yes eslint --no-install` the `--no-install` sits past the tool token
     # `eslint` and belongs to eslint, so it must not exempt an npx that still fetches.
     + r"|(?:npx|npm\s+exec)"
-    + r"(?!(?:\s+--?[\w-]+(?:=\S+)?)*?\s+--no-install\b)"
+    + r"(?!(?:\s+--?[\w-]+(?:=\S+)?)*?\s+--no(?:-install)?(?![-\w]))"
     + _ONESHOT_TAIL
     +
     # The rest of the one-shot executors fetch a missing package the same way and
@@ -658,6 +661,15 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # A `--no-install` past the tool token belongs to the invoked command, not to
     # npx, so it does not exempt an npx that will still fetch the package.
     assert _INSTALL_FORMS.search("`npx --yes eslint --no-install`")
+    # Current npm spells the install-declining flag `--no`; it exempts the same way
+    # `--no-install` does, wherever it sits among the options.
+    assert not _INSTALL_FORMS.search("`npx --no eslint`")
+    assert not _INSTALL_FORMS.search("`npx --yes --no eslint`")
+    assert not _INSTALL_FORMS.search("`npm exec --loglevel=warn --no tsc`")
+    # But it is matched as an exact token, not a prefix: a `--no-audit` does not
+    # decline the install, and a `--no` past the tool token belongs to the command.
+    assert _INSTALL_FORMS.search("`npx --no-audit eslint`")
+    assert _INSTALL_FORMS.search("`npx --yes eslint --no`")
     assert not _INSTALL_FORMS.search("a rule that reads `npx` as floating")
     assert not _INSTALL_FORMS.search("npm and npx are node tools")
     # `yarn add` is the manager form, not the bare-yarn alias truncated to `yarn`.
