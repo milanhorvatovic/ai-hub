@@ -35,7 +35,7 @@ The extension glob carries every extension the inventory collects, `.bats` inclu
 The section headers come from the inventory, not from `*.sh`. This is the same trap as the linter's file list: the scan exists to find the shell that no extension glob matches, and a config keyed only to `[*.sh]` then formats the hooks and `bin/` scripts with `shfmt`'s defaults instead — one repository, two formatting policies, and the files with the widest blast radius on the wrong one.
 
 ```ini
-[*.{sh,bash,bats}]
+[*.{sh,bash,bats,dash,ksh}]
 indent_style = <the project's existing style>
 indent_size = <the project's existing width>
 switch_case_indent = <true if the scripts indent case bodies, false if not>
@@ -121,6 +121,8 @@ git ls-files -z \
           *.sh) implied='sh' ;;
           *.bash) implied='bash' ;;
           *.bats) implied='bats' ;;
+          *.dash) implied='dash' ;;
+          *.ksh) implied='ksh' ;;
           *) continue ;;
         esac
         if printf '%s\n' "$implied" | grep -Eq "^($accepted)$"; then

@@ -502,7 +502,7 @@ _TEMPLATE_MUST_CARRY = (
     ("typescript", "tseslint.config(", "a scaffolded linter must parse the language"),
     (
         "bash",
-        "[*.{sh,bash,bats}]",
+        "[*.{sh,bash,bats,dash,ksh}]",
         "a scaffolded policy covers every path the inventory collects",
     ),
     (
