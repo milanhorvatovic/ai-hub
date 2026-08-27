@@ -47,7 +47,7 @@ switch_case_indent = <true if the scripts indent case bodies, false if not>
 # shell, or one whose interpreter the scan could not establish, would take these
 # formatting settings in every contributor's editor. List the paths the
 # inventory returned and no others.
-[{.githooks/pre-commit,.githooks/pre-push,bin/deploy,bin/release}]
+[{<each extensionless path the inventory returned, comma-separated>}]
 indent_style = <the project's existing style>
 indent_size = <the project's existing width>
 switch_case_indent = <true if the scripts indent case bodies, false if not>
