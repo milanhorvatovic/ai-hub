@@ -4,7 +4,7 @@ Three modes, one contract each. A capability names which stages it runs and what
 
 ## Stage 0 — language detection (whole-repo runs only)
 
-When the request names a language, skip this: route to that capability and scan only its sources. When the request names none — "audit this repo's tooling" — establish which languages the repository actually contains before loading anything, and report which capabilities ran.
+When the request names a language, skip the broad discovery below and route straight to that capability, scanning only its sources — with the Deno refusal as the one check that still runs first. A request naming TypeScript or JavaScript can still land on a Deno project, and routing it into the Node lane unchecked would audit it against a floor Deno does not use — the false report that refusal exists to prevent — so resolve the target's own manifest for a `deno.json`/`deno.jsonc` root and refuse a Deno project by name before the lane loads, the same project-scoped check the whole-repo path runs. When the request names none — "audit this repo's tooling" — establish which languages the repository actually contains before loading anything, and report which capabilities ran.
 
 Detection is manifest-first, extension-second, because a manifest is a declaration and an extension is a guess:
 
