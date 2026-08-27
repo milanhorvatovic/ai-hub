@@ -46,7 +46,7 @@ The first-line check is the reliable one for the extensionless case: a file whos
 
 | Tool | Config locations |
 | --- | --- |
-| `shellcheck` | `.shellcheckrc`, per-file `# shellcheck` directives, CLI flags in whatever invokes it |
+| `shellcheck` | `--rcfile <file>` when the invocation names one — an explicit selector outranks discovery — otherwise `.shellcheckrc` or an undotted `shellcheckrc`, found from each script's own directory upward; per-file `# shellcheck` directives; other CLI flags in whatever invokes it |
 | `shfmt` | `.editorconfig` — the sections matching the inventory's paths, not `[*.sh]` alone — or flags in the invocation; `shfmt` has no config file of its own |
 | dialect | The shebang per file, plus any `shellcheck -s` flag; `sh` and `bash` are graded against different rules |
 

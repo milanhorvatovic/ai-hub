@@ -64,6 +64,7 @@ The list comes from the inventory, not a glob. This is the shape that reaches th
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
+IFS=$'\n\t'
 
 # Every tracked file, classified once: the shebang decides, and only a file
 # without one falls back to its extension. NUL in, NUL out.
