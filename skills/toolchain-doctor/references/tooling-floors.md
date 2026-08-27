@@ -37,7 +37,7 @@ The failure this language produces more than any other is two tools claiming the
 
 The package-selection flags are in the stated commands because they are the spelling that is correct everywhere, not because their absence is itself the defect. What the audit grades is coverage: Cargo's default selection depends on the workspace's shape — a virtual root with no `default-members` already selects every member, while a root that is itself a package selects only that root — so a command without `--workspace` is complete in the first case and leaves members unchecked in the second. Resolve the shape, then grade the members actually reached. Writing the flags is what makes one command right in both, which is why the floor states them and why a scaffold uses them. `cargo check` does not satisfy the lint row: it answers whether the crate compiles, and `clippy` is what catches the things that compile and should not. A CI job running `cargo check` where `clippy` belongs is the most common shape of this gap, and it looks green while checking less than it appears to.
 
-Edition and MSRV are declarations rather than tools: prefer the latest edition the project has adopted, do not mix editions across a workspace, and respect the minimum supported Rust version `Cargo.toml` declares — a config this skill scaffolds never raises it.
+Edition and MSRV are declarations rather than tools: prefer the latest edition the project has adopted, and respect the minimum supported Rust version `Cargo.toml` declares — a config this skill scaffolds never raises it. Workspace members on different editions are surfaced as a fact, not graded a defect: a member left on an older edition usually has a reason, and the audit's job is to surface it rather than flatten it.
 
 ## bash
 
