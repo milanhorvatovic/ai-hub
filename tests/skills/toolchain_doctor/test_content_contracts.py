@@ -177,10 +177,11 @@ _NPM_EXEC_TAIL = (
     + r"(?:\s+--?[\w-]+(?:[= ]" + _OPT_VALUE + r")?)*)"
 )
 _COMMAND_FORMS = (
-    # Bare Yarn ends at a backtick or line end, so its option value keeps a
+    # Bare Yarn ends at a backtick, a line end, or a shell operator — `yarn &&
+    # npm test` runs `yarn install` first — so its option value keeps a
     # backtick-excluding bare run; it shares the quoted forms so `yarn --cwd
     # "web app"` — a `yarn install` alias — is read whole, not cut at the space.
-    r"(?:yarn(?:\s+--?[\w-]+(?:[= ](?:" + _QUOTED_VALUE + r"|[^`\s]+))?)*(?=[ \t]*(?:`|$))"
+    r"(?:yarn(?:\s+--?[\w-]+(?:[= ](?:" + _QUOTED_VALUE + r"|[^`\s]+))?)*(?=[ \t]*(?:`|$|[;&|<>]))"
     # `npx` and `npm exec` carry the install-declining exemption — anywhere among
     # the options, not only first: `npx --yes --no-install eslint` cannot fetch.
     # npm accepts `--no` as well as `--no-install` for this, so both exempt,
@@ -356,11 +357,24 @@ def test_no_shipped_doc_defines_a_grade_of_its_own() -> None:
 
 
 def test_every_grade_a_capability_assigns_is_registered() -> None:
-    """The reverse direction of the registry: a grade used but never declared."""
+    """The reverse direction of the registry: a grade used but never declared.
+
+    Held over the grade-assigning instruction docs, not the capabilities alone — a
+    shared reference contract assigns grades too (`references/modes.md` grades a
+    version `floating`, and `tooling-floors.md` grades its rows), so scanning only
+    the capabilities would let an undeclared grade in one of those slip the
+    closed-vocabulary guarantee. The scaffold templates are left out on purpose:
+    their backticked config and code words (`strict`, `env`, `if`) are not grades,
+    and the assignment frames cannot tell one from the other; the vocabulary owner
+    is the other exclusion."""
     registered = _registered_grades()
+    grade_assigning = _CAPABILITIES + [
+        _SKILL / "references" / "modes.md",
+        _SKILL / "references" / "tooling-floors.md",
+    ]
     used = {
-        (path.parent.name, grade)
-        for path in _CAPABILITIES
+        (path.relative_to(_SKILL).as_posix(), grade)
+        for path in grade_assigning
         for grade in _assigned_grades(path)
     }
     unregistered = sorted(
@@ -624,6 +638,14 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search('`yarn --cwd "web app"`')
     # Bare Yarn takes short options too — `yarn -s` still aliases `yarn install`.
     assert _INSTALL_FORMS.search("`yarn -s`")
+    # Bare Yarn before a shell operator still installs — `yarn && npm test` runs
+    # `yarn install` first — so a list/pipe/redirection terminator ends the command
+    # like a backtick or line end.
+    assert _INSTALL_FORMS.search("`yarn && npm test`")
+    assert _INSTALL_FORMS.search("`yarn || exit 1`")
+    assert _INSTALL_FORMS.search("`yarn | tee build.log`")
+    assert _INSTALL_FORMS.search("`yarn ; echo done`")
+    assert _INSTALL_FORMS.search("`yarn > out.txt`")
     assert not _INSTALL_FORMS.search("pnpm and yarn use their own setup action")
     assert not _INSTALL_FORMS.search("`<npm, pnpm, or yarn>`")
     # Multi-token and manager-specific installing forms.

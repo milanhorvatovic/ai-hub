@@ -91,9 +91,12 @@ git ls-files -z \
     # reach, and the tools this list feeds would open the target, not the repo.
     [ -L "$f" ] && continue
     [ -f "$f" ] || continue
-    # Bounded: a shebang cannot be long, and a tracked minified bundle or binary
-    # with no newline would otherwise make "the first line" the whole file.
-    first=$(head -c 256 -- "$f" | head -n 1)
+    # Bounded and subprocess-free: `read -n 256` stops at the first newline or 256
+    # characters, so a shebang is captured whole while a tracked minified bundle or
+    # binary with no newline cannot make "the first line" the whole file — and no
+    # `head` is forked per file, which on a large tree the CI step runs three times
+    # would otherwise be tens of thousands of processes.
+    IFS= read -r -n 256 first < "$f" || true
     case "$first" in
       '#!'*)
         # `env` may front a single-token interpreter, but not `busybox sh` —
