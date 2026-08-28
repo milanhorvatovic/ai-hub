@@ -81,11 +81,14 @@ accepted=${1:?pass a shebang alternation, e.g. 'sh|bash|dash|ksh|oksh|bats|ash|b
 # caller — which needs no such split — omits it and takes them all.
 role=${2:-all}
 
+# Exclude only trees that are never the repository's own authored code —
+# installed dependencies, vendored third-party source, virtualenvs. A build
+# output directory stays in: `build/`, `dist/`, and `target/` name a convention,
+# not a fact, and a tracked `build/release.sh` is authored code a name-based skip
+# would drop while the scaffold reported the repository fully covered.
 git ls-files -z \
   -- ':(exclude,glob)**/node_modules/**' ':(exclude,glob)**/vendor/**' \
-     ':(exclude,glob)**/target/**' ':(exclude,glob)**/dist/**' \
-     ':(exclude,glob)**/build/**' ':(exclude,glob)**/.venv/**' \
-     ':(exclude,glob)**/venv/**' |
+     ':(exclude,glob)**/.venv/**' ':(exclude,glob)**/venv/**' |
   while IFS= read -r -d '' f; do
     # A symlink is never read: a tracked link can point anywhere the runner can
     # reach, and the tools this list feeds would open the target, not the repo.
