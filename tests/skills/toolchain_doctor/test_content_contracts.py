@@ -182,8 +182,9 @@ _COMMAND_FORMS = (
     # backtick-excluding bare run; it shares the quoted forms so `yarn --cwd
     # "web app"` — a `yarn install` alias — is read whole, not cut at the space.
     r"(?:yarn(?:\s+--?[\w-]+(?:[= ](?:" + _QUOTED_VALUE + r"|[^`\s]+))?)*(?=[ \t]*(?:`|$|[;&|<>]))"
-    # `npx` and `npm exec` carry the install-declining exemption — anywhere among
-    # the options, not only first: `npx --yes --no-install eslint` cannot fetch.
+    # `npx`, `npm exec`, and the `npm x` alias carry the install-declining
+    # exemption — anywhere among the options, not only first: `npx --yes
+    # --no-install eslint` cannot fetch.
     # npm accepts `--no` as well as `--no-install` for this, so both exempt,
     # matched as an exact token — `--no(?![-\w])`, so a `--no-audit` or a `--nope`,
     # which do not decline the install, are not read as the flag. An
@@ -191,14 +192,15 @@ _COMMAND_FORMS = (
     # rather than being swallowed as one option's space-separated value: in
     # `npx --yes eslint --no-install` the `--no-install` sits past the tool token
     # `eslint` and belongs to eslint, so it must not exempt an npx that still fetches.
-    + r"|(?:npx|npm\s+exec)"
+    + r"|(?:npx|npm\s+(?:exec|x))"
     + r"(?!(?:\s+--?[\w-]+(?:=\S+)?)*?\s+--no(?:-install)?(?![-\w]))"
     + _NPM_EXEC_TAIL
     +
     # The rest of the one-shot executors fetch a missing package the same way and
-    # have no such exemption: pnpm's and yarn's `dlx`, bun's `bunx`, uv's `uvx`,
-    # and `pipx run`.
-    r"|(?:pnpm\s+dlx|yarn\s+dlx|bunx|uvx|pipx\s+run)"
+    # have no such exemption: pnpm's and yarn's `dlx`, bun's `bunx` and its `bun x`
+    # spelling, uv's `uvx` and its `uv tool run` spelling, `pipx run`, and pnpm's
+    # deprecated `pnpx`.
+    r"|(?:pnpm\s+dlx|yarn\s+dlx|bunx|bun\s+x|uvx|uv\s+tool\s+run|pipx\s+run|pnpx)"
     + _ONESHOT_TAIL
     + r")"
 )
@@ -657,6 +659,8 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("`npx eslint`")
     assert _INSTALL_FORMS.search("`npx eslint .`")
     assert _INSTALL_FORMS.search("`npm exec tsc`")
+    # `npm x` is npm's short alias for `npm exec`, install-capable the same way.
+    assert _INSTALL_FORMS.search("`npm x eslint`")
     assert _INSTALL_FORMS.search("`npx --loglevel=warn create-foo`")
     # The canonical `--` separator form fetches the same way.
     assert _INSTALL_FORMS.search("`npm exec -- eslint`")
@@ -675,9 +679,15 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert _INSTALL_FORMS.search("`bunx eslint`")
     assert _INSTALL_FORMS.search("`uvx ruff`")
     assert _INSTALL_FORMS.search("`pipx run black`")
+    # The spelled-out aliases of those same executors fetch identically: `bun x`
+    # for `bunx`, `uv tool run` for `uvx`, and pnpm's deprecated `pnpx`.
+    assert _INSTALL_FORMS.search("`bun x eslint`")
+    assert _INSTALL_FORMS.search("`uv tool run ruff`")
+    assert _INSTALL_FORMS.search("`pnpx create-foo`")
     # Each still needs a package token, so the bare executor is not a command.
     assert not _INSTALL_FORMS.search("`pnpm dlx`")
     assert not _INSTALL_FORMS.search("`bunx`")
+    assert not _INSTALL_FORMS.search("`bun x`")
     # A retained fence presents the command at a line start with no inline
     # backtick — the bypass the backtick-only rule left open. The line case
     # covers a bare prompt and an indent too.
@@ -703,6 +713,7 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert not _INSTALL_FORMS.search("`npx --no-install eslint`")
     assert not _INSTALL_FORMS.search("`npx --yes --no-install eslint`")
     assert not _INSTALL_FORMS.search("`npm exec --loglevel=warn --no-install tsc`")
+    assert not _INSTALL_FORMS.search("`npm x --no-install eslint`")
     # A `--no-install` past the tool token belongs to the invoked command, not to
     # npx, so it does not exempt an npx that will still fetch the package.
     assert _INSTALL_FORMS.search("`npx --yes eslint --no-install`")
