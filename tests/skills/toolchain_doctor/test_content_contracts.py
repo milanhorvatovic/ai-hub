@@ -125,11 +125,13 @@ _MANAGER_OPTIONS = r"(?:\s+--?[\w-]+(?:[= ]" + _OPT_VALUE + r")?)*"
 #
 # The subcommands that install or otherwise mutate an environment — removal and
 # upgrade included, because the promise is about invoking a package manager and
-# not about the direction the change runs. `check`, `run`, `fmt`, and `clippy`
-# are deliberately absent: those are the tools the floors are made of, and
-# matching them would flag the skill for naming its own subject.
+# not about the direction the change runs, and `link`/`unlink` included too, since
+# they mutate the global or local module tree without fetching from a registry at
+# all. `check`, `run`, `fmt`, and `clippy` are deliberately absent: those are the
+# tools the floors are made of, and matching them would flag the skill for naming
+# its own subject.
 _INSTALL_SUBCOMMAND = (
-    r"(?:install|reinstall|uninstall|add|remove|rm|sync|update|upgrade|prune|bundle"
+    r"(?:install|reinstall|uninstall|add|remove|rm|sync|update|upgrade|prune|bundle|link|unlink"
     r"|inject|global add|global remove|global upgrade|ci|i"
     r"|tool install|env create|env remove|component add|component remove"
     r"|target add|target remove|toolchain install|toolchain uninstall|self update|pip install)\b"
@@ -653,6 +655,14 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     # Multi-token and manager-specific installing forms.
     assert _INSTALL_FORMS.search("`pipx inject ruff pkg`")
     assert _INSTALL_FORMS.search("`yarn global add shfmt`")
+    # `link`/`unlink` mutate the module tree — a global symlink — without fetching,
+    # so they are install-capable for the consent model the same way.
+    assert _INSTALL_FORMS.search("`npm link`")
+    assert _INSTALL_FORMS.search("`npm unlink left-pad`")
+    assert _INSTALL_FORMS.search("`pnpm link`")
+    assert _INSTALL_FORMS.search("`yarn link`")
+    # But `link` is a whole subcommand, not a prefix: `npm linkage` is not one.
+    assert not _INSTALL_FORMS.search("`npm linkage`")
     # `npx <tool>` fetches when the package is absent, so it is install-capable;
     # `npm exec` is the same executor. Command position — an inline-code span or
     # a line — is what tells a command from the word `npx` in prose.
