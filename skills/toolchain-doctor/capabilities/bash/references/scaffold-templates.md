@@ -81,6 +81,18 @@ accepted=${1:?pass a shebang alternation, e.g. 'sh|bash|dash|ksh|oksh|bats|ash|b
 # caller — which needs no such split — omits it and takes them all.
 role=${2:-all}
 
+# `accepted` is spliced into the greps below as an extended regex; a malformed one
+# makes each grep exit 2, the loop emit no paths, and the lint job pass having
+# checked nothing. Validate it once here: empty input never matches, so grep
+# returns 1 for a usable expression and 2 for a broken one, and the `|| ` keeps
+# the expected no-match 1 from tripping `set -e` — only a 2 is the error.
+accepted_status=0
+printf '' | grep -Eq "^($accepted)$" || accepted_status=$?
+if [ "$accepted_status" -gt 1 ]; then
+  printf 'discovery: shebang alternation is not a valid POSIX ERE: %s\n' "$accepted" >&2
+  exit 2
+fi
+
 # Exclude only trees that are never the repository's own authored code —
 # installed dependencies, vendored third-party source, virtualenvs. A build
 # output directory stays in: `build/`, `dist/`, and `target/` name a convention,
