@@ -66,6 +66,7 @@ Two routes, and the audit picks between them from what the repository already ha
 
 ```typescript
 import js from "@eslint/js";
+import globals from "globals";
 import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 
@@ -74,7 +75,10 @@ export default tseslint.config(
   tseslint.configs.recommended,
   {
     files: ["**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}"],
-    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+    languageOptions: {
+      globals: globals.node, // or globals.browser, per the scanned runtime
+      parserOptions: { ecmaFeatures: { jsx: true } },
+    },
   },
   prettier,
 );
@@ -87,6 +91,8 @@ Every package the config imports is declared, `@eslint/js` included. Relying on 
 The TypeScript config is not optional decoration here. `@eslint/js` alone brings no TypeScript parser, so `eslint .` walks the JavaScript it can parse and leaves the `.ts` and `.tsx` sources the project is actually written in unlinted — a scaffold that satisfies the lint floor on paper while checking almost none of the code. Add `typescript-eslint` as a devDependency alongside `eslint` when taking this route; a JavaScript-only repository is the one case that can drop it, and it should say so rather than inherit the omission.
 
 `eslint-config-prettier` goes last. It exists to disable every rule that would fight the formatter, and a config that lists it before the rule sets it is meant to neutralize has it backwards — the later entry wins, so the stylistic rules come back on.
+
+`js.configs.recommended` turns on `no-undef`, and flat config ships no runtime globals of its own — the old `env: { node: true }` has no equivalent it sets for you — so a config that stops at the rules reports `console`, `process`, or `window` as undefined and fails on the first line of ordinary code. `languageOptions.globals` supplies them from the `globals` package: `globals.node` for a Node runtime, `globals.browser` for the browser, both spread together for code that runs in each. Read the runtime from the scan rather than guess it, and declare `globals` among the devDependencies — it is its own package, and a config importing what the project does not declare is the same unloadable-under-a-strict-manager failure the `@eslint/js` note above describes. The JavaScript-only form takes the same `globals` import and block; only its lack of the TypeScript parser sets it apart.
 
 ## The CI steps
 
@@ -166,6 +172,7 @@ Route B, where the format check is a separate script because the two tools are s
     "eslint": "<pinned>",
     "@eslint/js": "<pinned>",
     "typescript-eslint": "<pinned>",
+    "globals": "<pinned>",
     "prettier": "<pinned>",
     "eslint-config-prettier": "<pinned>"
   },
@@ -189,13 +196,17 @@ On Route B the config file changes with it, and dropping the dependency alone is
 
 ```typescript
 import js from "@eslint/js";
+import globals from "globals";
 import prettier from "eslint-config-prettier";
 
 export default [
   js.configs.recommended,
   {
     files: ["**/*.{js,cjs,mjs,jsx}"],
-    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+    languageOptions: {
+      globals: globals.node, // or globals.browser, per the scanned runtime
+      parserOptions: { ecmaFeatures: { jsx: true } },
+    },
   },
   prettier,
 ];
