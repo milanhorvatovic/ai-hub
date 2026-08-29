@@ -370,9 +370,10 @@ def test_every_grade_a_capability_assigns_is_registered() -> None:
 
     Held over the grade-assigning instruction docs, not the capabilities alone — a
     shared reference contract assigns grades too (`references/modes.md` grades a
-    version `floating`, and `tooling-floors.md` grades its rows), so scanning only
-    the capabilities would let an undeclared grade in one of those slip the
-    closed-vocabulary guarantee. The scaffold templates are left out on purpose:
+    version `floating`, `tooling-floors.md` grades its rows, and `ci-detection.md`
+    grades an unresolved wiring chain `unknown`), so scanning only the capabilities
+    would let an undeclared grade in one of those slip the closed-vocabulary
+    guarantee. The scaffold templates are left out on purpose:
     their backticked config and code words (`strict`, `env`, `if`) are not grades,
     and the assignment frames cannot tell one from the other; the vocabulary owner
     is the other exclusion."""
@@ -380,6 +381,7 @@ def test_every_grade_a_capability_assigns_is_registered() -> None:
     grade_assigning = _CAPABILITIES + [
         _SKILL / "references" / "modes.md",
         _SKILL / "references" / "tooling-floors.md",
+        _SKILL / "references" / "ci-detection.md",
     ]
     used = {
         (path.relative_to(_SKILL).as_posix(), grade)
