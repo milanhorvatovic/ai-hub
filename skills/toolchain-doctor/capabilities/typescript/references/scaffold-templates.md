@@ -118,6 +118,16 @@ The cache path is asked for, not written down. Yarn 4 defaults `enableGlobalCach
 
 `actions/setup-node` supplies Node and `npm` and nothing further. Its `cache` input names a manager's store to restore; it does not install that manager, so a scaffold adapted to pnpm or a modern yarn relies on whatever happens to be global on the runner, and one adapted to bun has no path through `setup-node` at all. Bootstrap first, then cache — that order is the constraint, because the cache step resolves a store the manager has to be present to describe.
 
+Bun leaves the default slot for the opposite reason to yarn: it has a pinned setup action, but it is the runtime rather than a manager riding on Node, so `setup-node` and its `cache` input have no Node to provide and no store they can resolve for it. Its sequence is the default job with the `setup-node` step dropped — the setup action installs Bun and caches its own store — and the install reads Bun's own lockfile:
+
+```yaml
+      - uses: actions/checkout@<40-char-sha> # <the version this sha is>
+      - uses: <bun's pinned setup action>@<40-char-sha> # <the version this sha is>
+      - run: <the project's install command, resolving the tracked bun lockfile>
+```
+
+From there the `typecheck` and `check` (or `lint` and `format:check`) steps are the default job's unchanged; only the bootstrap differs.
+
 The script runner is the project's own, for the same reason the install command is: a template that discovers the package manager for setup and then hardcodes `npm run` contradicts itself, and breaks outright on a setup like Yarn Plug'n'Play that requires its own runner to resolve anything.
 
 The dependency and script blocks come from whichever route the audit picked, not from a default. The `typescript` dependency and the `typecheck` script below belong to a project that has TypeScript in it: where the lane ran on a JavaScript-only repository and marked the compiler rows `N/A`, they come out, because scaffolding a compiler into a project that has no TypeScript adds a tool nothing asked for and a script that checks nothing. Route A:
@@ -193,17 +203,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@<40-char-sha> # <the version this sha is>
-      # Bootstrap the package manager BEFORE setup-node: the cache input below
-      # resolves the manager's store and needs the manager to already exist.
-      # npm needs nothing here. pnpm has a pinned setup action that installs it
-      # independently of whichever Node follows, so it goes in this slot; bun
-      # uses its own setup action and skips setup-node entirely. Yarn does NOT
-      # fit this shape at all: it has no setup action, and Corepack activated
-      # here would be hidden when setup-node switches Node. A yarn project
-      # replaces this whole bootstrap-then-setup-node block with the Corepack
-      # sequence below, which puts setup-node first.
-      - name: bootstrap <the project's package manager — pnpm or bun, never yarn>
-        uses: <that manager's pinned setup action>@<40-char-sha> # <the version this sha is>
+      # Bootstrap pnpm BEFORE setup-node: the cache input below resolves the
+      # manager's store and needs the manager to already exist. This slot is
+      # pnpm's alone — an npm project omits the step, since setup-node provides
+      # npm, while bun and yarn each take their own sequence instead of this one:
+      # bun because it is the runtime and skips setup-node entirely, yarn because
+      # it has no setup action and its Corepack shims would be hidden when
+      # setup-node switches Node.
+      - name: bootstrap pnpm
+        uses: <pnpm's pinned setup action>@<40-char-sha> # <the version this sha is>
       - uses: actions/setup-node@<40-char-sha> # <the version this sha is>
         with:
           node-version: "<the project's version>"
