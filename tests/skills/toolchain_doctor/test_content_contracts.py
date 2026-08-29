@@ -190,12 +190,16 @@ _COMMAND_FORMS = (
     # npm accepts `--no` as well as `--no-install` for this, so both exempt,
     # matched as an exact token — `--no(?![-\w])`, so a `--no-audit` or a `--nope`,
     # which do not decline the install, are not read as the flag. An
-    # option value has to be `=`-attached here, so a bare word ends the option run
-    # rather than being swallowed as one option's space-separated value: in
-    # `npx --yes eslint --no-install` the `--no-install` sits past the tool token
-    # `eslint` and belongs to eslint, so it must not exempt an npx that still fetches.
+    # An option value is `=`-attached, or a separate word but only after the
+    # executor's value-taking options — `--package`/`-p` and `--call`/`-c`, whose
+    # argument is a token and not another flag. Any other bare word ends the option
+    # run rather than being swallowed as a space-separated value: in `npx --yes
+    # eslint --no-install` the `--no-install` sits past the tool token `eslint` and
+    # belongs to eslint, so it must not exempt an npx that still fetches — while
+    # `npx --package cowsay --no-install cowsay` is a real no-install, `cowsay`
+    # being the flag's value and the exemption reaching the `--no-install` beyond it.
     + r"|(?:npx|npm\s+(?:exec|x))"
-    + r"(?!(?:\s+--?[\w-]+(?:=\S+)?)*?\s+--no(?:-install)?(?![-\w]))"
+    + r"(?!(?:\s+(?:(?:--package|--call|-[pc])\s+[^-\s]\S*|--?[\w-]+(?:=\S+)?))*?\s+--no(?:-install)?(?![-\w]))"
     + _NPM_EXEC_TAIL
     +
     # The rest of the one-shot executors fetch a missing package the same way and
@@ -724,6 +728,12 @@ def test_the_install_detector_reads_forms_not_tool_names() -> None:
     assert not _INSTALL_FORMS.search("`npx --yes --no-install eslint`")
     assert not _INSTALL_FORMS.search("`npm exec --loglevel=warn --no-install tsc`")
     assert not _INSTALL_FORMS.search("`npm x --no-install eslint`")
+    # A value-taking option with a separated argument before `--no-install`: the
+    # exemption reaches the flag past the option's value, per "anywhere among the
+    # options", and the value is not mistaken for the tool token that ends the run.
+    assert not _INSTALL_FORMS.search("`npx --package cowsay --no-install cowsay`")
+    assert not _INSTALL_FORMS.search("`npx -p cowsay --no-install cowsay`")
+    assert not _INSTALL_FORMS.search("`npm exec --package cowsay --no-install cowsay`")
     # A `--no-install` past the tool token belongs to the invoked command, not to
     # npx, so it does not exempt an npx that will still fetch the package.
     assert _INSTALL_FORMS.search("`npx --yes eslint --no-install`")
