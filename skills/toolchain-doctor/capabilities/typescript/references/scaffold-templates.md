@@ -29,7 +29,19 @@ The three extras are **not** scaffolded. They are recommendations, no floor row 
 
 Keeping them separate is the whole point rather than tidiness: each produces its own class of error across an existing codebase, and enabling all four at once yields a diff nobody can review.
 
-Module settings are deliberately absent. The common case for this template is a project with no `tsconfig.json` at all, where there is no existing `module` or `moduleResolution` to carry over and the rule against inventing policy forbids picking one — a placeholder nobody can fill is worse than an omission, because it ships to the user as a blank to guess at. Where the project has a config already, its settings stay untouched; where it has none, ask which module system the project targets rather than assuming.
+Module settings are chosen for a new config, not omitted — because omitting them does not decline a policy. Leave `target`, `module`, and `moduleResolution` out and TypeScript resolves them to its own defaults, an old target and CommonJS under node resolution, which a modern ESM or bundler project neither uses nor survives: imports resolve under the wrong model, or the build fails on the first one. The common case for this template is a project with no `tsconfig.json` at all, so ask which module system it targets and emit the matching trio into the same `compilerOptions` rather than ship a config that silently assumes the oldest one:
+
+```json
+{
+  "compilerOptions": {
+    "target": "<ES2022 for Node, ESNext for a bundler>",
+    "module": "<NodeNext for Node, ESNext for a bundler>",
+    "moduleResolution": "<NodeNext for Node, Bundler for a bundler>"
+  }
+}
+```
+
+These are asked values, like the source directory above — not policy invented for the user, which is the concern that would otherwise forbid them; a value you asked for is not a blank the reader has to guess at. Where the project already has a `tsconfig.json`, the opposite holds: its module settings are resolved and its own, so add `strict` and leave them untouched rather than overwrite a working resolution.
 
 Where the project already extends a shared base, add the options to the project's own config rather than editing the base — a base config is usually shared with packages this audit never looked at.
 
