@@ -122,7 +122,7 @@ Within `pr-description`, the body's state picks the mode: a substantive existing
 
 ## Arguments
 
-An invocation may name a verb: `/git-toolkit <verb> [options]`. The verb is the whole difference between the two activation paths. Both reach the same capabilities; only the typed one reaches their state-changing half, because a verb is evidence the user asked for the action and an inferred trigger is evidence of nothing but topic.
+An invocation may name a verb: `/git-toolkit <verb> [options]`. Two options are defined here because they change what a verb does rather than what a capability decides: `--dry-run`, which rehearses an applying verb, and `--split`, which forces `commit`'s partition analysis to run at any confidence and on a pile the user has already curated. Anything else a verb accepts is the capability's and is documented there. The verb is the whole difference between the two activation paths. Both reach the same capabilities; only the typed one reaches their state-changing half, because a verb is evidence the user asked for the action and an inferred trigger is evidence of nothing but topic.
 
 ### Verb polarity
 
@@ -151,7 +151,7 @@ The verb's front end is state detection, so the same invocation means different 
 | Staged, one concern | `commit-message` WRITE — one commit, splitting never mentioned |
 | Staged, mixed concerns | `commit-message` SPLIT — an ordered series, WRITE per partition |
 | Staged, fixup-shaped (the change belongs to an earlier commit on the branch) | `commit-fixup`'s proposal, offered beside the WRITE alternative rather than instead of it. Two answers means the verb has none, so this state proposes both and applies neither until the user names one |
-| Nothing staged, tree dirty | A staging plan first — the groups and their `git add` recipes — then WRITE per group |
+| Nothing staged, tree dirty | `commit-message` SPLIT over the working tree: a staging plan first — the groups and their `git add` recipes — then WRITE per group. Proposal only, whatever the polarity above says; an empty index is the user not having chosen yet, and choosing for them is not the act this verb's default covers |
 | Clean tree | Report that there is nothing to commit, and stop |
 | Mid-rebase, unresolved conflicts, or detached HEAD | Report the blocking state and stop; propose nothing while the tree is mid-operation |
 

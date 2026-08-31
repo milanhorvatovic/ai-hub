@@ -401,6 +401,88 @@ def test_the_aggregate_scan_pass_is_justified(split_mode: str) -> None:
     )
 
 
+def test_the_series_is_graded_before_it_is_applied(split_mode: str) -> None:
+    """The gap an acceptance re-read found, and the one apply-by-default creates.
+
+    WRITE can leave message validation to the reader, because a single proposal
+    is read before it is run. A series under an applying verb is not: the same
+    pass writes N messages and commits them, so without an explicit grading step
+    the verb applies text nothing checked. Repair-first rather than report-first
+    follows AMEND, which faces the same problem for the same reason.
+    """
+    body = split_mode.split("### 6. Author each message", 1)[1].split("### 7.", 1)[0]
+    assert "REVIEW per-commit checks" in body, (
+        "the authoring step does not validate its drafts against the REVIEW "
+        "checks, so an applying verb commits messages nothing graded"
+    )
+    assert "wrap detection" in body, (
+        "the pointer names the REVIEW checks without the detection above them, so "
+        "a series body can be reflowed against a convention nothing established"
+    )
+    assert "repair-first" in body, (
+        "the step does not say what happens on a failing check; a findings report "
+        "is the wrong answer when the next thing the verb does is commit"
+    )
+
+
+def test_an_empty_index_drops_the_verb_to_a_proposal(split_mode: str) -> None:
+    """The router dispatches this state; the capability has to implement it.
+
+    The apply default is licensed by the user having staged something. With an
+    empty index that signal does not exist — choosing what enters the commit is
+    a different act from committing what someone picked — so the polarity does
+    not carry over, and the router's row would otherwise route to a workflow
+    whose first four commands all read `--cached`.
+    """
+    body = split_mode.split("### 1. Read the pile", 1)[1].split("### 2.", 1)[0]
+    assert "nothing is staged" in body, (
+        "SPLIT reads only the index, so the router's dirty-tree dispatch routes "
+        "to a workflow with no input"
+    )
+    assert "git add" in body, (
+        "the unstaged path does not produce staging recipes, which is the whole "
+        "of what it can offer"
+    )
+    assert "drops to a proposal" in body, (
+        "the unstaged path does not void the apply default, so the verb would "
+        "stage on the user's behalf under a polarity that never covered it"
+    )
+
+
+def test_a_long_series_is_evidence_against_itself(split_mode: str) -> None:
+    """The backstop the tiers do not provide.
+
+    Confidence gates whether to split at all; nothing gated how far. An
+    over-eager partition that clears the floor can still return eight groups,
+    and eight commits from one session is the outcome that stops people typing
+    the verb just as surely as a wrong split does.
+    """
+    body = split_mode.split("### 5. Order the series", 1)[1].split("### 6.", 1)[0]
+    assert "evidence against itself" in body, (
+        "nothing treats an implausibly long series as a partition failure"
+    )
+    assert "coarser" in body, (
+        "the backstop does not say what to do about a long series, so it is an "
+        "observation rather than a rule"
+    )
+
+
+def test_the_router_grammar_names_the_flags_it_owns(router: str) -> None:
+    """Both flags, because the router claims to own the grammar.
+
+    `--split` changes what the commit verb does, exactly as `--dry-run` does, so
+    documenting one at router level and the other only inside the capability
+    makes the router's own claim false and leaves a reader of the grammar unable
+    to find half of it.
+    """
+    grammar = _section(router, "## Arguments").split("### Verb polarity", 1)[0]
+    for flag in ("--dry-run", "--split"):
+        assert flag in grammar, (
+            f"the verb grammar does not name {flag}, which changes what a verb "
+            "does rather than what a capability decides"
+        )
+
+
 def test_the_output_shows_the_reversal(split_mode: str) -> None:
     """Reversibility claimed is reversibility shown.
 
