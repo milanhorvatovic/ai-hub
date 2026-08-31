@@ -14,6 +14,7 @@ Incubator hub for AI-agnostic artifacts of every shape — skills, docs, MCP ser
 - **git-toolkit** — branch/commit/PR/release narration across the git + GitHub lifecycle.
 - **docs-steward** — orchestrates markdown formatters + yamllint over a repo's docs.
 - **oss-repository-conventions** — scans, audits, and scaffolds an open-source repository toward and along a top-notch standard.
+- **toolchain-doctor** — examines a repository's per-language tooling and prescribes the setup it is missing, without ever installing anything.
 
 ## Install
 

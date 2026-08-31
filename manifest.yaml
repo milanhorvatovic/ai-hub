@@ -58,3 +58,11 @@ skills:
       - repo-infrastructure
       - security-policy
       - testing-quality
+  toolchain-doctor:
+    canonical: skills/toolchain-doctor/SKILL.md
+    type: router
+    capabilities:
+      - bash
+      - python
+      - rust
+      - typescript
