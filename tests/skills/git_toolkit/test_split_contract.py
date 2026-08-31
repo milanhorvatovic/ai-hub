@@ -415,6 +415,59 @@ def test_series_messages_do_not_reference_each_other(split_mode: str) -> None:
     )
 
 
+def test_normalization_scope_matches_what_was_measured(split_mode: str) -> None:
+    """The floor's percentages and the rule that counts areas must agree.
+
+    Signal 1 first scoped role normalization to the co-change lookup alone, but
+    the corpus behind §4's numbers was measured with it applied throughout — so
+    the count the shipped rule performed was not the count the percentages were
+    taken against. Two sibling packages would have scored as two areas where the
+    calibration saw one, which moves every pile toward the floor it was tuned to
+    keep them under.
+    """
+    body = split_mode.split("### 3. Partition", 1)[1].split("### 4.", 1)[0]
+    signal = body.split("1. **Area.**", 1)[1].split("\n2.", 1)[0]
+    assert "everywhere, not just in the co-change lookup" in signal, (
+        "role normalization is scoped narrower than the measurement that "
+        "calibrated the floor, so the count and the percentages describe "
+        "different rules"
+    )
+
+
+def test_the_working_tree_path_supersedes_writes_staged_guard(split_mode: str) -> None:
+    """WRITE stops on an empty index; the working-tree path arrives with one.
+
+    Step 1's branch resolves the dirty-tree state and then hands each group to
+    WRITE, whose own first step sanity-checks that staged changes exist and
+    stops when they do not. Left unstated, the two steps cancel: the branch that
+    exists to handle an empty index routes into a guard that refuses it.
+    """
+    body = split_mode.split("### 6. Author each message", 1)[1].split("### 7.", 1)[0]
+    assert "superseded" in body, (
+        "the authoring step does not say which WRITE step the working-tree path "
+        "displaces, so that path routes into a guard that refuses its input"
+    )
+    assert "empty index" in body, (
+        "the supersession does not name the condition it covers, so a reader "
+        "cannot tell when the guard applies and when it does not"
+    )
+
+
+def test_the_scan_step_does_not_restate_writes_own(split_mode: str) -> None:
+    """One home per rule, inside a mode as much as across files.
+
+    SPLIT's contribution is the aggregate pass; the per-partition scan is WRITE's
+    Step 6 running per partition, exactly as the rest of §6 arranges. Restating
+    it as a separate action is a second copy that drifts, and this skill's own
+    principle forbids that between references for the same reason.
+    """
+    body = split_mode.split("### 7. Pre-publication scans", 1)[1].split("### 8.", 1)[0]
+    assert "WRITE's Step 6 already runs" in body, (
+        "the scan step restates the per-partition scan instead of pointing at "
+        "the WRITE step that performs it"
+    )
+
+
 def test_the_aggregate_scan_pass_is_justified(split_mode: str) -> None:
     """Two scan passes need a reason, or the second one gets optimized away.
 

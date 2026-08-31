@@ -191,7 +191,7 @@ The analysis earns its keep on the other shape — everything staged, typically 
 
 Group hunks by concern, using signals in this order:
 
-1. **Area.** A path's concern bucket, taken at the depth where the repository's own layout names a concern rather than at a fixed level — `src/<module>` in a flat source tree, `packages/<name>` in a monorepo, `.github/<group>` for tooling. Where a repository holds many instances of one kind, normalize the instance to its role for the co-change lookup in signal 4: two sibling packages are the same role played twice, and scoring them as unrelated areas is what makes every ordinary cross-package change look like a bundle.
+1. **Area.** A path's concern bucket, taken at the depth where the repository's own layout names a concern rather than at a fixed level — `src/<module>` in a flat source tree, `packages/<name>` in a monorepo, `.github/<group>` for tooling. Where a repository holds many instances of one kind, normalize the instance to its role — everywhere, not just in the co-change lookup: two sibling packages are the same role played twice, and scoring them as unrelated areas is what makes every ordinary cross-package change look like a bundle. The scope matters because §4's floor counts these areas and its numbers were measured with normalization applied throughout; in the corpus behind them, a third of all commits touch more than one instance and almost all of those are one fleet-wide concern. Normalizing only the co-change lookup would leave the count describing a different rule from the one the percentages were taken against.
 2. **The test pairing.** A module and its own tests are one area, never two — the single most common false split and the cheapest to prevent. Match at whatever depth the mirror holds (`src/foo` ↔ `tests/foo`, `packages/bar` ↔ `tests/packages/bar`, `<name>` ↔ `<name>_test`), which is why signal 1 fixes no depth: a bucket cut shallower than the mirror cannot see the correspondence, and one cut deeper splits a module from itself. Fold each pair before any count below is taken, and fold it at the code side's name so the shares are attributed to the concern rather than to its tests.
 3. **Symbol dependency.** Two hunks that touch the same symbol — a definition and its callers, a signature and the sites it forces — belong together whatever their paths say. A partition that separates them produces a commit that does not build, which is worse than any bundling it fixes. Where a tree has no symbols to follow — prose, configuration, schemas — the analogue is a named thing one hunk defines and another cites: a heading and its link, a key and its reader, an id and its registry entry. Splitting those produces the same broken intermediate state a compiler would have caught, minus the compiler.
 4. **Co-change history.** For each pair of areas the pile spans, the share of past commits touching either that touched both. This is the weakest of the four and is used only to demote, never to promote — see §4.
@@ -222,7 +222,7 @@ Dependency-first: a definition before its callers, a schema before the code that
 
 ### 6. Author each message
 
-Run the WRITE workflow per partition, with three things shared across the series rather than repeated:
+Run the WRITE workflow per partition, with three things shared across the series rather than repeated — and one superseded: WRITE's Step 1 stops and asks the user to stage when it finds an empty index, which is exactly the state §1's working-tree branch has already resolved. On that path the staging groups are the input and that guard does not fire; everywhere else it does.
 
 - **The convention discovery and the Step 0 wrap detection run once** for the whole invocation. Deriving them per partition is how a series ends up with two commits that disagree about the body-wrap convention of the same repository.
 - **The scope inference sees the partition, not the pile.** That is the point of partitioning — each message describes its own change, and a cross-cutting scope on every commit of a series means the partition did not hold.
@@ -232,7 +232,7 @@ Then validate every drafted message through the REVIEW per-commit checks (the St
 
 ### 7. Pre-publication scans
 
-Run `../../references/secret-patterns.md` and `../../references/publication-audience.md` over each partition's drafted message as it is authored, and once more over the whole series before presentation. The aggregate pass is not redundant: a secret split across two partitions is invisible in each, and an audience finding — a reference resolving only against a sibling commit the reader does not have — exists only at series scope by construction.
+WRITE's Step 6 already runs `../../references/secret-patterns.md` and `../../references/publication-audience.md` over each partition's message as it is authored, so that half needs no restating here — what SPLIT adds is one aggregate pass over the whole series before presentation. The aggregate pass is not redundant: a secret split across two partitions is invisible in each, and an audience finding — a reference resolving only against a sibling commit the reader does not have — exists only at series scope by construction.
 
 ### 8. Guard vetoes
 
