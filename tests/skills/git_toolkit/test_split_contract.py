@@ -288,6 +288,40 @@ def test_the_eligibility_floor_is_a_veto_not_a_trigger(split_mode: str) -> None:
     )
 
 
+def test_the_thresholds_carry_their_provenance(split_mode: str) -> None:
+    """A number without a provenance reads as a constant.
+
+    The floor was calibrated on one repository's history — a skills monorepo,
+    not a representative sample of anything — and a reader who cannot see that
+    will treat 60% and 0.15 as facts about software rather than as a starting
+    point. The fleet's currency rule is the same idea for tool versions.
+    """
+    body = split_mode.split("### 4.", 1)[1].split("### 5.", 1)[0]
+    assert "one repository's" in body, (
+        "the measured thresholds do not say what they were measured on, so they "
+        "read as universal constants"
+    )
+    assert "rather than as constants" in body, (
+        "the provenance is stated without saying what to do with it; a reader "
+        "needs to know the numbers are a starting point, not a finding"
+    )
+
+
+def test_symbol_dependency_reaches_trees_without_symbols(split_mode: str) -> None:
+    """This skill ships to prose and config repositories too.
+
+    Stated as compiler-shaped, signal 3 is vacuous in a tree with no callers to
+    find — which silently drops the strongest anti-split signal in exactly the
+    repositories where paths are the only other thing to go on.
+    """
+    body = split_mode.split("### 3. Partition", 1)[1].split("### 4.", 1)[0]
+    signal = body.split("3. **Symbol dependency.**", 1)[1].split("\n4.", 1)[0]
+    assert "no symbols to follow" in signal, (
+        "signal 3 assumes a tree with symbols, so it does nothing in prose, "
+        "configuration, or schema repositories"
+    )
+
+
 def test_type_divergence_is_named_as_split_evidence(split_mode: str) -> None:
     """The signal that produced this change's own commit series.
 
