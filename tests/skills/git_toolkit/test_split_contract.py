@@ -415,22 +415,50 @@ def test_series_messages_do_not_reference_each_other(split_mode: str) -> None:
     )
 
 
-def test_normalization_scope_matches_what_was_measured(split_mode: str) -> None:
-    """The floor's percentages and the rule that counts areas must agree.
+def test_roles_score_but_never_count(split_mode: str) -> None:
+    """The scope of role normalization, which is wrong in both easy directions.
 
-    Signal 1 first scoped role normalization to the co-change lookup alone, but
-    the corpus behind §4's numbers was measured with it applied throughout — so
-    the count the shipped rule performed was not the count the percentages were
-    taken against. Two sibling packages would have scored as two areas where the
-    calibration saw one, which moves every pile toward the floor it was tuned to
-    keep them under.
+    Normalize everywhere and two sibling packages collapse to one area, so a
+    floor requiring two is structurally unreachable for the case a monorepo most
+    wants split — and unreachable is worse than wrong, because the reading that
+    decides everything else never gets to run. Normalize nowhere and a new
+    package's wiring points score as unrelated, which is the failure the whole
+    signal was introduced to fix. Both were shipped in turn before the rule was
+    walked against a concrete pile.
     """
     body = split_mode.split("### 3. Partition", 1)[1].split("### 4.", 1)[0]
     signal = body.split("1. **Area.**", 1)[1].split("\n2.", 1)[0]
-    assert "everywhere, not just in the co-change lookup" in signal, (
-        "role normalization is scoped narrower than the measurement that "
-        "calibrated the floor, so the count and the percentages describe "
-        "different rules"
+    assert "roles enter the scoring but never the counting" in signal, (
+        "the rule does not separate scoring from counting, so role normalization "
+        "either collapses the area count or leaves the lookup unnormalized"
+    )
+    assert "structurally unreachable" in signal, (
+        "the rule does not say what collapsing the count costs, so the next edit "
+        "that simplifies it has nothing to lose"
+    )
+    assert "same-role pair by its instances" in signal, (
+        "a pair of same-role areas has no defined score, which is every "
+        "two-package pile in a monorepo"
+    )
+
+
+def test_an_unknown_co_change_rate_does_not_clear_the_floor(split_mode: str) -> None:
+    """Absence of evidence, one step later than where §1 already refuses it.
+
+    Step 1 says a repository too young for a history must treat co-change as
+    unknown rather than zero, because an empty history looks exactly like proof
+    of unrelatedness. The floor then asks for a rate below a threshold, and left
+    undefined an unknown reads as satisfying it — reinstating at the floor the
+    error Step 1 refused at the input.
+    """
+    body = split_mode.split("### 4.", 1)[1].split("### 5.", 1)[0]
+    assert "unknown co-change rate does not satisfy the floor" in body, (
+        "the floor does not say what an unknown rate does, so a young repository "
+        "clears the co-change clause by having no history to fail it"
+    )
+    assert "`--split`" in body, (
+        "young repositories are given no route to a series at all; the forcing "
+        "flag has to remain reachable where the floor cannot decide"
     )
 
 
