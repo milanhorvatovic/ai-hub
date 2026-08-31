@@ -501,6 +501,65 @@ def test_a_long_series_is_evidence_against_itself(split_mode: str) -> None:
     )
 
 
+def test_the_trigger_section_names_the_applying_path(router: str) -> None:
+    """The router's own map of how it gets activated has to include the verb.
+
+    Before this, "When to trigger" said activation cues live in two places only
+    — the description and the routing tables — both of which are inferred
+    activation that stops at a proposal. A reader following that section would
+    never learn that a third path exists and that it is the only one able to
+    run a command. Omitting the applying path from the map of activation paths
+    is the most consequential kind of stale a router can carry.
+    """
+    section = _section(router, "## When to trigger")
+    assert "verb the user types" in section, (
+        "the trigger map does not list the typed verb, so the one activation "
+        "path that can apply is absent from the section describing activation"
+    )
+    assert "stop at a proposal" in section, (
+        "the trigger map does not say that the inferred paths cannot apply, so "
+        "the three read as interchangeable"
+    )
+
+
+def test_no_router_surface_contradicts_the_apply_polarity(router: str) -> None:
+    """Two surfaces of one file must not state opposite rules.
+
+    The anti-pattern list said every state-changing command is surfaced for the
+    user to run, which is what the principle above it said until the verb landed
+    and stopped being true. The skill's own rule is that discovery and
+    enforcement state the same rules; the same obligation holds inside one file.
+    """
+    anti = _section(router, "## Anti-patterns")
+    entry = next((ln for ln in anti.splitlines() if "state-changing" in ln), None)
+    assert entry, "the anti-pattern list no longer covers state-changing commands"
+    assert "Outside an applying verb" in entry, (
+        "the anti-pattern states an unconditional propose-only rule, contradicting "
+        f"the apply polarity the principles define: {entry!r}"
+    )
+    assert "creates no branch" in entry, (
+        "the entry does not bound what an applying verb may do, so the exception "
+        f"it opens has no stated edge: {entry!r}"
+    )
+
+
+def test_the_walkthrough_demonstrates_the_silent_path(references_dir: Path) -> None:
+    """The behaviour most likely to be regressed is the one that shows nothing.
+
+    A splitter that stays quiet on single-concern work is the whole reason the
+    tiers are conservative, and it is invisible by construction — so the
+    onboarding walkthrough has to say the analysis ran and returned N=1, or the
+    only example a reader meets is one where splitting never came up and they
+    cannot tell that from the mode not existing.
+    """
+    text = (references_dir / "worked-example.md").read_text(encoding="utf-8")
+    assert "N=1" in text, (
+        "the walkthrough never shows the partition analysis running, so a reader "
+        "cannot distinguish the silent path from an absent one"
+    )
+    assert "SPLIT" in text, "the walkthrough does not mention SPLIT at all"
+
+
 def test_the_router_grammar_names_the_flags_it_owns(router: str) -> None:
     """Both flags, because the router claims to own the grammar.
 
