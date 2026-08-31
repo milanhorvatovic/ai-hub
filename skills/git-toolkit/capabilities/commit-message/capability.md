@@ -18,13 +18,15 @@ description: >
 
 # commit-message capability
 
-Writes a new commit message, reviews existing ones for format compliance, or rewords HEAD's message in place.
+Writes a new commit message, partitions staged work into a commit series and authors one message per partition, reviews existing commits for format compliance, or rewords HEAD's message in place.
 
 ## Mode detection
 
 | Signal | Mode |
 | --- | --- |
 | `git diff --cached` shows staged changes AND no commit yet AND user says "write/draft a commit" | **WRITE** |
+| The user invoked the `commit` verb, or asked to split staged work into separate commits | **SPLIT** (WRITE is its N=1 case, reached silently) |
+| The user passed `--split` | **SPLIT**, series analysis forced regardless of confidence |
 | User points at a specific commit ("review HEAD", "check commit abc1234", "audit the last 5 commits") | **REVIEW** |
 | User says "review my commits" / "are my commits compliant?" / "fix commit history" / "audit the branch" | **REVIEW** (range = branch's unique commits) |
 | User says "write a commit message" with no staged changes | **WRITE** (ask: stage now or describe a hypothetical) |
@@ -32,6 +34,8 @@ Writes a new commit message, reviews existing ones for format compliance, or rew
 | Ambiguous | Ask: write a new one, review existing, or reword HEAD? |
 
 REVIEW and AMEND overlap on HEAD deliberately: REVIEW is report-first (findings, then proposed fixes across a commit or range), AMEND is repair-first (a corrected HEAD message plus the apply command). "What's wrong with my commits?" is REVIEW; "fix the last commit message" is AMEND.
+
+SPLIT and WRITE are one path, not two: SPLIT is the partition analysis WRITE's inputs always deserve, and WRITE is what it produces whenever the answer is one commit. A user who asked for a commit message on a single-concern tree must not learn that a splitter exists.
 
 ## Input guards
 
@@ -53,7 +57,7 @@ Always check first; the format spec is in `../../references/format-conventions.m
 4. Sample recent commits: `git log --pretty=format:'%s' -20 main..HEAD 2>/dev/null || git log --pretty=format:'%s' -20`. If all match conventional-commits regex, the repo uses them. If subjects are mixed case, no consistent prefix, etc., the repo is loose — note this in the review.
 5. Check `git config --get commit.template` for a configured commit message template.
 
-Record the inferred conventions; every mode uses them.
+Record the inferred conventions; every mode uses them, and SPLIT derives them once for a whole series rather than per partition — a repository's conventions do not change between two commits authored in the same breath.
 
 ## WRITE mode workflow
 
@@ -163,6 +167,120 @@ Or write to a file and use:
 The preamble is mandatory: it turns the wrap decision into a falsifiable claim a reviewer can check, instead of a silent default. For the fresh-repo reproducer the correct line is `Detected: subject = type: prefix; body wrap = flowing (17/17 prior bodies empty → no hard-wrap convention)`. When the first-time-contributor heuristic (Input guards) fires, its note is added after the `Detected:` line, so every proposal still opens with the Detected-conventions line.
 
 Always show the full proposed message AND the apply command. Never run `git commit` directly. If the proposal exceeds the subject length cap, show the truncated and full versions side-by-side.
+
+## SPLIT mode workflow
+
+Partitions a staged pile into an ordered commit series and authors a message for each. It is the `commit` verb's front end and runs on every invocation of it; WRITE is its N=1 case, produced silently whenever the answer is one commit.
+
+### 1. Read the pile
+
+- `git diff --cached --numstat` — per-file added/deleted counts, the churn input every share below is computed from.
+- `git diff --cached` — the hunks themselves; a partition may cut inside a file.
+- `git status --porcelain` — what is staged against what is merely dirty, which §2 needs and which nothing else can recover afterwards.
+- `git log --format='%H' --name-only -400` — the co-change history §3 measures against. A repository with fewer than ~50 commits does not have one; say so and treat every co-change rate as unknown rather than as zero, because an empty history looks exactly like proof of unrelatedness and is not.
+
+### 2. The curation rule
+
+**A staged subset of a dirty tree is a hand-partitioned commit and is treated as one.** The user already answered the question this mode asks, with `git add -p` or a path list, and re-asking it is both rude and usually wrong. Bias hard to N=1: nothing below may propose a series on a curated pile unless `--split` was passed explicitly.
+
+The analysis earns its keep on the other shape — everything staged, typically `git add -A` after a long session, where nobody has partitioned anything yet. Detect the difference from `git status --porcelain`, reading it for **tracked work left behind**: a tracked file modified but not staged (` M`), or a staged file still carrying unstaged hunks (`MM`), is someone choosing what goes in. Untracked files (`??`) are not evidence of anything — a working tree routinely holds scratch directories, stray worktrees, and generated files that were never part of the change, and counting them as curation makes an uncurated pile look curated in exactly the repositories that most need the analysis.
+
+### 3. Partition
+
+Group hunks by concern, using signals in this order:
+
+1. **Area.** A path's concern bucket, taken at the depth where the repository's own layout names a concern rather than at a fixed level — `src/<module>` in a flat source tree, `packages/<name>` in a monorepo, `.github/<group>` for tooling. Where a repository holds many instances of one kind, normalize the instance to its role for the co-change lookup in signal 4: two sibling packages are the same role played twice, and scoring them as unrelated areas is what makes every ordinary cross-package change look like a bundle.
+2. **The test pairing.** A module and its own tests are one area, never two — the single most common false split and the cheapest to prevent. Match at whatever depth the mirror holds (`src/foo` ↔ `tests/foo`, `packages/bar` ↔ `tests/packages/bar`, `<name>` ↔ `<name>_test`), which is why signal 1 fixes no depth: a bucket cut shallower than the mirror cannot see the correspondence, and one cut deeper splits a module from itself. Fold each pair before any count below is taken, and fold it at the code side's name so the shares are attributed to the concern rather than to its tests.
+3. **Symbol dependency.** Two hunks that touch the same symbol — a definition and its callers, a signature and the sites it forces — belong together whatever their paths say. A partition that separates them produces a commit that does not build, which is worse than any bundling it fixes.
+4. **Co-change history.** For each pair of areas the pile spans, the share of past commits touching either that touched both. This is the weakest of the four and is used only to demote, never to promote — see §4.
+
+Every partition must stand alone: the series is ordered dependency-first in §5 precisely so that each commit builds on its own, and a group that cannot is not a partition but a piece of one.
+
+### 4. Confidence, and which tier the proposal lands in
+
+Three tiers, and the asymmetry that sets them: a wrong split costs the user one override, while a wrong bulk commit costs history surgery after a push. That argues for splitting eagerly — and the failure mode that actually kills the verb is the opposite one, a splitter that fires on ordinary work until people stop typing it. So recall is spent freely on the advisory tier and hoarded on the default one.
+
+| Tier | Reached when | Proposal |
+| --- | --- | --- |
+| **Silent N=1** | Anything not below, and every curated pile without `--split` | One commit via the WRITE workflow. Splitting is not mentioned |
+| **Advisory** | The pile clears the eligibility floor: two or more unpaired areas, no single area above 60% of total churn, and a weakest pairwise co-change rate below 0.15 | One commit, plus exactly one line naming `--split` as available. The bundling-justification rule in `../../references/format-body.md` applies to the body |
+| **Series by default** | The floor above, **and** a reading of the diff that finds two or more changes with separate reasons, each of which would stand as a commit if the other were reverted | The ordered series is the reply. The single-commit alternative is offered below it |
+
+In a conventional-commits repository one form of that reading is sharper than the rest and costs nothing: **two parts of the pile that would need different types**. A `fix` for a defect that predates the work sitting beside the `feat` it was noticed during is two commits by the repository's own vocabulary — bundling them files the fix under the feature in every changelog the types generate, and no reader gets it back. The type is a fact the repository already publishes, which is what makes this stronger evidence than any path statistic.
+
+The floor is a veto, not a trigger — it can only keep a pile out of the top tier, never put one in it. That is a measured decision, not a stylistic one: over a 511-commit corpus, the floor admits 9.2% of commits, and every statistical tightening tried on top of it either fired on wide-but-single-concern work or missed the one commit in that history nobody would defend as atomic — sixteen areas at 21%, 12%, 11% and down, whose largest-two shares look exactly like a small focused change. Path statistics can say _these might be unrelated_; only reading the diff can say _these are_, and only the second is good enough to make a series the default reply.
+
+`--split` overrides the tier and forces series analysis at any confidence, including on a curated pile. Declining a proposed series falls back to the bulk WRITE workflow, with the bundling justification the body rule asks for.
+
+### 5. Order the series
+
+Dependency-first: a definition before its callers, a schema before the code that reads it, a helper before the change that needs it. Where two partitions are genuinely independent, order them by churn share descending so the series reads with its subject first. State the ordering rule that produced the sequence in the output — an order the reader cannot account for looks arbitrary, and a reader who thinks the order is arbitrary will not check it.
+
+### 6. Author each message
+
+Run the WRITE workflow per partition, with three things shared across the series rather than repeated:
+
+- **The convention discovery and the Step 0 wrap detection run once** for the whole invocation. Deriving them per partition is how a series ends up with two commits that disagree about the body-wrap convention of the same repository.
+- **The scope inference sees the partition, not the pile.** That is the point of partitioning — each message describes its own change, and a cross-cutting scope on every commit of a series means the partition did not hold.
+- **No message may refer to another commit in the series** by "as above", "the previous commit", or a position. Each is read alone in `git log`, and a position is not stable once anything is rebased.
+
+### 7. Pre-publication scans
+
+Run `../../references/secret-patterns.md` and `../../references/publication-audience.md` over each partition's drafted message as it is authored, and once more over the whole series before presentation. The aggregate pass is not redundant: a secret split across two partitions is invisible in each, and an audience finding — a reference resolving only against a sibling commit the reader does not have — exists only at series scope by construction.
+
+### 8. Guard vetoes
+
+Any of these voids the apply default for the invocation. The verb degrades to a proposal plus the warning, and applying takes a fresh, deliberate invocation; no flag overrides a veto.
+
+| Veto | Fires when | Degrades to |
+| --- | --- | --- |
+| Secret match | `../../references/secret-patterns.md` matches anything in a drafted message or a staged hunk | Proposal only, with the match redacted and named. Nothing is committed while a secret is in the pile |
+| Force-push territory | The pile only exists because pushed history was unwound to make it — the `mixed-scope` repair path, where `git reset HEAD~` over an already-pushed commit turns a bulk commit back into a staged pile. SPLIT itself only ever adds commits, so this is the one route by which it inherits a rewrite | Proposal only, behind the **Force-Push Impact** block from `../../references/force-push-impact.md`; `--force-with-lease` stays that reference's impact-gated opt-in and is never bundled here |
+| Unresolved `mixed-scope` | The user declined the split and the resulting bulk commit still trips `mixed-scope` from `../../references/commit-smells.md`, with no bundling justification in the body | Proposal only, with the smell named. Committing it is the user's call to make explicitly |
+
+Proposals for these operations follow the intent/impact/recovery phrasing in `../../references/harness-safety-nets.md`, reached through `../../references/force-push-impact.md`.
+
+### 9. Output
+
+Open with WRITE mode's Detected-conventions preamble — one detection, one line, for the whole series — then the partition table, then each partition's staging recipe and message, then what applying will do and exactly how to undo it.
+
+```
+Detected: subject = <style>; body wrap = <flowing | hard-wrap @72> (<evidence sample>)
+Partitioned 14 staged files into 2 commits (ordered: definition before callers).
+
+| # | Files | Concern |
+|---|---|---|
+| 1 | src/parser/*.ts (6) | the parser's new token type |
+| 2 | .github/workflows/ci.yml, package.json | the CI node bump |
+
+### 1. feat(parser): add the raw-string token type
+
+  git add -- src/parser/lexer.ts src/parser/tokens.ts …
+
+<body>
+
+### 2. build(ci): move the test matrix onto node 22
+
+  git add -- .github/workflows/ci.yml package.json
+
+<body>
+
+---
+Applying creates 2 commits on <branch>. Undo the whole series with:
+  git reset --soft HEAD~2
+
+Or rehearse without committing:
+  /git-toolkit commit --dry-run
+```
+
+Under `--dry-run` the same output is produced with every `git commit -F` spelled out and nothing executed. When the verb applies, the closing block reports what was created — the short SHAs and subjects — and repeats the reversal command against the actual count, because reversibility that is claimed and not shown is not reversibility the user can act on.
+
+### SPLIT edge cases
+
+- **An intra-file split.** Two concerns in one file need `git add -p`, which is interactive and cannot be scripted into an apply command. Present the partition, hand the user the `git add -p <path>` invocation and which hunks belong where, and drop to proposal for that partition — the verb applies what it can stage non-interactively, never what it would have to guess at.
+- **A partition touches only generated or lock files.** Lockfile churn belongs with the change that moved the manifest, not in a commit of its own. Fold it into the partition that owns its manifest rather than proposing a series member nobody wants.
+- **A rename plus an edit to the renamed file.** One partition. Splitting them produces a rename commit that immediately gets edited, which is noise in `git log` and worse in `git blame`.
+- **The pile is a revert or a merge resolution.** Neither partitions meaningfully — a revert's atomicity is inherited from what it reverts, and a conflict resolution belongs to the merge. Report and drop to N=1.
 
 ## AMEND mode workflow
 
@@ -369,6 +487,11 @@ Skip this hook when the correction reflects a repo rule (e.g., user pointed at a
 - Don't draft a body without running the Step 0 wrap-detection and stating its result in the §8 Detected-conventions preamble. `../../references/format-body.md` states the flowing-vs-hard-wrap rule, but an unrun check silently falls back to a ~72-column habit — the exact failure this capability guards against.
 - Don't report a wrap verdict the detection never produced. `body-wrap` and `hard-wrapped-paragraph` are the two directions of one convention and exactly one of them applies to any repo, so grading both `N/A` is not a result — it is what an unrun detection looks like from the outside, and it reads as a clean bill of health.
 - Don't auto-amend or auto-rebase. Always propose; let the user run the command.
+- Don't mention splitting on a single-concern tree. A user who asked for a commit message and got a paragraph about a splitter they did not need has been sold something, and the next thing they do is stop invoking the verb.
+- Don't propose a series on a curated pile. Staging a subset of a dirty tree is the user partitioning by hand; re-partitioning it is overriding an answer they already gave, and `--split` exists for the case where they want it reconsidered.
+- Don't promote a series to the default reply on path statistics alone. The eligibility floor is a veto and reads as one — a pile that clears it has only earned the right to be read, and it is the reading that decides.
+- Don't split a definition from its callers, or a module from its own tests, to make the areas look tidier. Both produce a commit that does not stand alone, which is the one property the series exists to preserve.
+- Don't apply a series while a guard veto stands. A veto degrades the whole invocation to a proposal, not the offending partition alone — a series applied minus one member is a state nobody asked for and nothing names.
 - Don't reformat trailers; copy them through verbatim per `../../references/trailer-semantics.md`.
 - Don't invent issue numbers in proposed messages. If the user didn't mention an issue and the diff doesn't reference one, leave issue refs out.
 - Don't propose changes to bot-authored commits.
