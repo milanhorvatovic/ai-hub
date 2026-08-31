@@ -657,6 +657,156 @@ def test_the_router_grammar_names_the_flags_it_owns(router: str) -> None:
         )
 
 
+def test_every_staged_authoring_request_reaches_the_analysis(
+    commit_message_md: str,
+) -> None:
+    """Review caught the mode table contradicting the claim beneath it.
+
+    A conversational "write a commit message" on a staged tree routed straight
+    to WRITE, so the partition analysis ran or did not run depending on how the
+    user phrased the ask — while the paragraph below the table and the worked
+    example both said it runs on every commit. The surface decides whether the
+    result is applied, never whether the question gets asked.
+    """
+    modes = _section(commit_message_md, "## Mode detection")
+    row = next((r for r in _rows(modes) if "write/draft a commit" in r), None)
+    assert row, "the mode table no longer routes the conversational authoring ask"
+    assert "**SPLIT**" in row, (
+        "a staged authoring request routes past the partition analysis, making it "
+        f"conditional on phrasing: {row!r}"
+    )
+    assert "decides only whether the result is applied" in modes, (
+        "the table does not state that the surface governs application rather "
+        "than whether the analysis runs"
+    )
+
+
+def test_writes_never_commit_rule_is_scoped_to_its_workflow(
+    commit_message_md: str,
+) -> None:
+    """WRITE forbade outright what the applying verb exists to do.
+
+    SPLIT's N=1 case is WRITE, so an unqualified "never run git commit directly"
+    in WRITE's output contract makes the verb proposal-only for the single-concern
+    tree — the commonest case there is. The rule is right for the workflow and
+    wrong as an absolute; execution is the invocation layer's call.
+    """
+    write = _section(commit_message_md, "## WRITE mode workflow")
+    line = next((ln for ln in write.splitlines() if "Never run `git commit` directly" in ln), None)
+    assert line, "WRITE no longer states where committing is decided"
+    assert "from this workflow" in line, (
+        f"WRITE's prohibition is unqualified, so SPLIT's N=1 case cannot apply: {line!r}"
+    )
+
+
+def test_curation_reads_the_worktree_column_not_a_code_list(split_mode: str) -> None:
+    """Enumerating two porcelain codes misses most of the states that matter.
+
+    ` M` and `MM` are two of many ways tracked work is left behind: an unstaged
+    deletion, a typechange, a rename-then-edit all say the same thing and none
+    matched, so those trees read as fully staged and reached the automatic path
+    against an index the user had curated by hand.
+    """
+    body = split_mode.split("### 2. The curation rule", 1)[1].split("### 3.", 1)[0]
+    assert "worktree column" in body, (
+        "curation is detected from a list of status codes rather than from the "
+        "column that carries the answer, so the list decides what is missed"
+    )
+    assert "non-space" in body, (
+        "the rule does not say which column values count, leaving the code list "
+        "as the operative definition after all"
+    )
+
+
+def test_the_secret_veto_claims_only_what_its_catalog_covers(split_mode: str) -> None:
+    """A veto that cannot fire reads exactly like one that can.
+
+    The row promised to match a secret in a staged hunk, and the catalog it cites
+    excludes diff content by design. The contract test that checked the citation
+    could not see this: the file existed and the anchor was there, and the row
+    still described a scan nothing performs.
+    """
+    table = split_mode.split("### 8. Guard vetoes", 1)[1].split("###", 1)[0]
+    row = next((r for r in _rows(table) if "secret" in r.split("|")[1].lower()), None)
+    assert row, "the veto table has no secret row"
+    assert "staged hunk" not in row, (
+        f"the veto claims a scan of staged content its catalog excludes: {row!r}"
+    )
+    body = split_mode.split("### 8. Guard vetoes", 1)[1].split("###", 1)[0]
+    assert "publishes nothing" in body, (
+        "the exclusion of staged content is unexplained, so the next reader "
+        "restores the unsupported veto as an oversight fix"
+    )
+
+
+def test_the_apply_protocol_rebuilds_the_index_per_partition(split_mode: str) -> None:
+    """`git add -- <paths>` against a fully staged index is a no-op.
+
+    Reproduced before the fix: the first commit took all three partitions. The
+    input is already staged, so isolating a partition means rebuilding the index
+    from a snapshot of what the user staged — and from the snapshot rather than
+    the worktree, or a partially-staged file contributes hunks the user withheld.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    # The executable fence, not the section: the paragraph under it explains why
+    # `git restore --staged --source=` is load-bearing, so a whole-section search
+    # stays green while the commands themselves regress to `git add`. Mutation
+    # found exactly that.
+    recipe = re.search(r"```bash\n(.*?)```", body, re.DOTALL)
+    assert recipe, "the apply protocol is no longer an executable bash fence"
+    commands = recipe.group(1)
+    assert "git write-tree" in commands, (
+        "the apply protocol does not snapshot the index, so partition staging "
+        "cannot be isolated from the rest of the pile"
+    )
+    assert "restore --staged" in commands and "--source=" in commands, (
+        "partitions are staged from the working tree rather than from the "
+        "snapshot, which absorbs hunks the user deliberately left unstaged"
+    )
+    assert "git add" not in commands, (
+        "the protocol stages with `git add` against an already-staged index, "
+        "which is a no-op — the first commit then takes every partition"
+    )
+    assert "git read-tree" in body, (
+        "no recovery path restores the original index after a partial failure"
+    )
+
+
+def test_an_unstageable_partition_stops_the_whole_series(split_mode: str) -> None:
+    """The edge case contradicted the anti-pattern three sections below it.
+
+    Applying every partition that can be staged non-interactively and leaving the
+    intra-file one as a proposal builds precisely the partial series the veto rule
+    refuses: some of an ordered series in history, no message describing that
+    state, and an undo recipe whose count is wrong.
+    """
+    edge = split_mode.split("### SPLIT edge cases", 1)[1]
+    entry = next((p for p in edge.split("\n- ") if "intra-file" in p), None)
+    assert entry, "the intra-file edge case is gone"
+    assert "whole invocation" in entry, (
+        f"an unstageable partition degrades alone, building a partial series: {entry!r}"
+    )
+
+
+def test_only_implemented_verbs_are_advertised(router: str) -> None:
+    """The grammar promised an API that dispatches nowhere.
+
+    The polarity table names `pr`, `merge`, and `release` so a future verb
+    inherits a safe default rather than re-deriving it — worth keeping — but
+    nothing said they are unimplemented, so `/git-toolkit pr --apply` read as
+    accepted-but-undefined rather than refused.
+    """
+    arguments = _section(router, "## Arguments")
+    assert "only verb implemented today" in arguments, (
+        "the grammar does not say which verbs exist, so an unimplemented one "
+        "reads as accepted"
+    )
+    assert "refused by name" in arguments, (
+        "an unimplemented verb has no stated handling, which leaves guessing as "
+        "the default behaviour"
+    )
+
+
 def test_the_output_shows_the_reversal(split_mode: str) -> None:
     """Reversibility claimed is reversibility shown.
 

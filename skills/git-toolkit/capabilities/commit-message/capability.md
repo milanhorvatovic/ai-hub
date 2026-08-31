@@ -24,7 +24,7 @@ Writes a new commit message, partitions staged work into a commit series and aut
 
 | Signal | Mode |
 | --- | --- |
-| `git diff --cached` shows staged changes AND no commit yet AND user says "write/draft a commit" | **WRITE** |
+| `git diff --cached` shows staged changes AND no commit yet AND user says "write/draft a commit" | **SPLIT**, which returns WRITE's single proposal whenever the pile is one concern |
 | The user invoked the `commit` verb, or asked to split staged work into separate commits | **SPLIT** (WRITE is its N=1 case, reached silently) |
 | The user passed `--split` | **SPLIT**, series analysis forced regardless of confidence |
 | User points at a specific commit ("review HEAD", "check commit abc1234", "audit the last 5 commits") | **REVIEW** |
@@ -35,7 +35,7 @@ Writes a new commit message, partitions staged work into a commit series and aut
 
 REVIEW and AMEND overlap on HEAD deliberately: REVIEW is report-first (findings, then proposed fixes across a commit or range), AMEND is repair-first (a corrected HEAD message plus the apply command). "What's wrong with my commits?" is REVIEW; "fix the last commit message" is AMEND.
 
-SPLIT and WRITE are one path, not two: SPLIT is the partition analysis WRITE's inputs always deserve, and WRITE is what it produces whenever the answer is one commit. A user who asked for a commit message on a single-concern tree must not learn that a splitter exists.
+SPLIT and WRITE are one path, not two: every staged-authoring request routes through SPLIT, and WRITE is what it produces whenever the answer is one commit. The invocation surface decides only whether the result is applied or proposed, never whether the analysis runs — a mode table that sent conversational requests straight to WRITE would make the analysis conditional on phrasing, and the partition question does not depend on how the user asked. A user who asked for a commit message on a single-concern tree still must not learn that a splitter exists.
 
 ## Input guards
 
@@ -166,7 +166,7 @@ Or write to a file and use:
 
 The preamble is mandatory: it turns the wrap decision into a falsifiable claim a reviewer can check, instead of a silent default. For the fresh-repo reproducer the correct line is `Detected: subject = type: prefix; body wrap = flowing (17/17 prior bodies empty → no hard-wrap convention)`. When the first-time-contributor heuristic (Input guards) fires, its note is added after the `Detected:` line, so every proposal still opens with the Detected-conventions line.
 
-Always show the full proposed message AND the apply command. Never run `git commit` directly. If the proposal exceeds the subject length cap, show the truncated and full versions side-by-side.
+Always show the full proposed message AND the apply command. Never run `git commit` directly **from this workflow** — WRITE is reached both by an inferred trigger and as SPLIT's N=1 case, and only the second can be under an applying verb. Executing is the invocation layer's decision and is made in SPLIT §9 against the router's polarity, never here, so this workflow's own output is always a proposal plus its command. If the proposal exceeds the subject length cap, show the truncated and full versions side-by-side.
 
 ## SPLIT mode workflow
 
@@ -185,7 +185,7 @@ Partitions a staged pile into an ordered commit series and authors a message for
 
 **A staged subset of a dirty tree is a hand-partitioned commit and is treated as one.** The user already answered the question this mode asks, with `git add -p` or a path list, and re-asking it is both rude and usually wrong. Bias hard to N=1: nothing below may propose a series on a curated pile unless `--split` was passed explicitly.
 
-The analysis earns its keep on the other shape — everything staged, typically `git add -A` after a long session, where nobody has partitioned anything yet. Detect the difference from `git status --porcelain`, reading it for **tracked work left behind**: a tracked file modified but not staged (` M`), or a staged file still carrying unstaged hunks (`MM`), is someone choosing what goes in. Untracked files (`??`) are not evidence of anything — a working tree routinely holds scratch directories, stray worktrees, and generated files that were never part of the change, and counting them as curation makes an uncurated pile look curated in exactly the repositories that most need the analysis.
+The analysis earns its keep on the other shape — everything staged, typically `git add -A` after a long session, where nobody has partitioned anything yet. Detect the difference from `git status --porcelain`, reading it for **tracked work left behind**: for every tracked entry, look at the worktree column — the second character — and treat any non-space value as evidence. That is `M`, `D`, `T`, and the rest as one rule rather than a list of codes to keep current, because the list is where this goes wrong: enumerating ` M` and `MM` alone silently misreads an unstaged deletion, a typechange, or a rename-then-edit as a fully staged tree, and hands the automatic path a pile the user had already partitioned by hand. Untracked files (`??`) are not evidence of anything — a working tree routinely holds scratch directories, stray worktrees, and generated files that were never part of the change, and counting them as curation makes an uncurated pile look curated in exactly the repositories that most need the analysis.
 
 ### 3. Partition
 
@@ -242,15 +242,31 @@ Any of these voids the apply default for the invocation. The verb degrades to a 
 
 | Veto | Fires when | Degrades to |
 | --- | --- | --- |
-| Secret match | `../../references/secret-patterns.md` matches anything in a drafted message or a staged hunk | Proposal only, with the match redacted and named. Nothing is committed while a secret is in the pile |
-| Force-push territory | The pile only exists because pushed history was unwound to make it — the `mixed-scope` repair path, where `git reset HEAD~` over an already-pushed commit turns a bulk commit back into a staged pile. SPLIT itself only ever adds commits, so this is the one route by which it inherits a rewrite | Proposal only, behind the **Force-Push Impact** block from `../../references/force-push-impact.md`; `--force-with-lease` stays that reference's impact-gated opt-in and is never bundled here |
+| Secret match | `../../references/secret-patterns.md` matches anything in a drafted message — the whole of what that catalog covers, since it excludes diff content by design as the user's own code rather than new text being authored | Proposal only, with the match redacted and named |
+| Force-push territory | The pile only exists because pushed history was unwound to make it — the `mixed-scope` repair path, where `git reset --soft HEAD~` over an already-pushed commit turns a bulk commit back into a staged pile — soft, because a mixed reset empties the index and would drop the pile into §1's working-tree branch instead. SPLIT itself only ever adds commits, so this is the one route by which it inherits a rewrite | Proposal only, behind the **Force-Push Impact** block from `../../references/force-push-impact.md`; `--force-with-lease` stays that reference's impact-gated opt-in and is never bundled here |
 | Unresolved `mixed-scope` | The user declined the split and the resulting bulk commit still trips `mixed-scope` from `../../references/commit-smells.md`, with no bundling justification in the body | Proposal only, with the smell named. Committing it is the user's call to make explicitly |
+
+Staged content is deliberately not a veto here, and the reason is worth stating so nobody adds one back as an oversight fix. A commit is local: it publishes nothing, and the staged code is what the user was about to commit anyway. The concern belongs to the step that leaves the machine, and this verb never bundles that step.
 
 Proposals for these operations follow the intent/impact/recovery phrasing in `../../references/harness-safety-nets.md`, reached through `../../references/force-push-impact.md`.
 
-### 9. Output
+### 9. Output and the apply protocol
 
-Open with WRITE mode's Detected-conventions preamble — one detection, one line, for the whole series — then the partition table, then each partition's staging recipe and message, then what applying will do and exactly how to undo it.
+Open with WRITE mode's Detected-conventions preamble — one detection, one line, for the whole series — then the partition table, then each partition's message, then what applying will do and exactly how to undo it.
+
+**The pile is already staged, so staging a partition means removing the others, not adding it.** `git add -- <paths>` against a fully staged index is a no-op, and the first commit would take every partition; the recipe has to rebuild the index per partition from a snapshot of what the user staged. Taking it from the worktree instead is the second trap — a path with both staged and unstaged hunks would silently commit the unstaged ones too, which is the user's curation reversed rather than honoured.
+
+```bash
+SNAPSHOT=$(git write-tree)     # exactly what the user staged
+ORIGINAL=$(git rev-parse HEAD) # for recovery
+git reset -q                   # empty the index; the worktree is untouched
+
+# per partition, in series order:
+git restore --staged --source="$SNAPSHOT" -- "${PARTITION_PATHS[@]}"
+git commit -F "$MESSAGE_FILE"
+```
+
+`git restore --staged --source=$SNAPSHOT` is the load-bearing part: it sets those index entries from the snapshot rather than from the working tree, so a partially-staged file contributes the half the user staged and keeps the other half unstaged afterwards. Recovery from any failure, at any point in the series, is two commands — `git reset --soft "$ORIGINAL"` then `git read-tree "$SNAPSHOT"` — which restores the original HEAD and the original index, partial staging included. Emit both with the proposal, not only on failure.
 
 ```
 Detected: subject = <style>; body wrap = <flowing | hard-wrap @72> (<evidence sample>)
@@ -263,29 +279,29 @@ Partitioned 14 staged files into 2 commits (ordered: definition before callers).
 
 ### 1. feat(parser): add the raw-string token type
 
-  git add -- src/parser/lexer.ts src/parser/tokens.ts …
-
 <body>
 
 ### 2. build(ci): move the test matrix onto node 22
 
-  git add -- .github/workflows/ci.yml package.json
-
 <body>
 
 ---
-Applying creates 2 commits on <branch>. Undo the whole series with:
+Applying creates 2 commits on <branch> using the snapshot protocol above.
+Undo the whole series with:
   git reset --soft HEAD~2
+
+If a commit fails part-way, restore the original state with:
+  git reset --soft <ORIGINAL> && git read-tree <SNAPSHOT>
 
 Or rehearse without committing:
   /git-toolkit commit --dry-run
 ```
 
-Under `--dry-run` the same output is produced with every `git commit -F` spelled out and nothing executed. When the verb applies, the closing block reports what was created — the short SHAs and subjects — and repeats the reversal command against the actual count, because reversibility that is claimed and not shown is not reversibility the user can act on.
+Under `--dry-run` the same output is produced with every command spelled out and nothing executed. When the verb applies, the closing block reports what was created — the short SHAs and subjects — and repeats the reversal command against the actual count, because reversibility that is claimed and not shown is not reversibility the user can act on.
 
 ### SPLIT edge cases
 
-- **An intra-file split.** Two concerns in one file need `git add -p`, which is interactive and cannot be scripted into an apply command. Present the partition, hand the user the `git add -p <path>` invocation and which hunks belong where, and drop to proposal for that partition — the verb applies what it can stage non-interactively, never what it would have to guess at.
+- **An intra-file split.** Two concerns in one file need `git add -p`, which is interactive and cannot be scripted into an apply command. Present the partition, hand the user the `git add -p <path>` invocation and which hunks belong where, and **drop the whole invocation to a proposal** — not that partition alone. Applying the rest and leaving one behind builds exactly the partial series §8's veto rule and the anti-patterns both refuse: a history containing some of an ordered series, where no message describes the state and the undo recipe's count is wrong.
 - **A partition touches only generated or lock files.** Lockfile churn belongs with the change that moved the manifest, not in a commit of its own. Fold it into the partition that owns its manifest rather than proposing a series member nobody wants.
 - **A rename plus an edit to the renamed file.** One partition. Splitting them produces a rename commit that immediately gets edited, which is noise in `git log` and worse in `git blame`.
 - **The pile is a revert or a merge resolution.** Neither partitions meaningfully — a revert's atomicity is inherited from what it reverts, and a conflict resolution belongs to the merge. Report and drop to N=1.

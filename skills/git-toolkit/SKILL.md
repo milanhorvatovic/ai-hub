@@ -122,7 +122,7 @@ Within `pr-description`, the body's state picks the mode: a substantive existing
 
 ## Arguments
 
-An invocation may name a verb: `/git-toolkit <verb> [options]`. Two options are defined here because they change what a verb does rather than what a capability decides: `--dry-run`, which rehearses an applying verb, and `--split`, which forces `commit`'s partition analysis to run at any confidence and on a pile the user has already curated. Anything else a verb accepts is the capability's and is documented there. The verb is the whole difference between the two activation paths. Both reach the same capabilities; only the typed one reaches their state-changing half, because a verb is evidence the user asked for the action and an inferred trigger is evidence of nothing but topic.
+An invocation may name a verb: `/git-toolkit <verb> [options]`. Two options are defined here because they change what a verb does rather than what a capability decides: `--dry-run`, which rehearses an applying verb, and `--split`, which forces `commit`'s partition analysis to run at any confidence and on a pile the user has already curated. Anything else a verb accepts is the capability's and is documented there. **`commit` is the only verb implemented today.** The outward row below states the polarity a future one inherits so it lands safe rather than re-deriving the rule, but an unimplemented verb has no dispatch and is refused by name rather than guessed at: `/git-toolkit pr --apply` is not a command this skill accepts yet, and answering it as though it were is how a flag reaches a surface nobody defined. The verb is the whole difference between the two activation paths. Both reach the same capabilities; only the typed one reaches their state-changing half, because a verb is evidence the user asked for the action and an inferred trigger is evidence of nothing but topic.
 
 ### Verb polarity
 
@@ -132,7 +132,7 @@ Polarity follows reversibility, and it is a property of the surface rather than 
 | --- | --- | --- |
 | `/git-toolkit commit` | **applies** — creates the commit or the series | `--dry-run` runs the identical analysis, presents the full proposals and their apply commands, and executes nothing |
 | Conversational trigger — this skill firing on "about to commit staged work" mid-flow | **proposes**, always | none; no flag reaches this path |
-| Any outward verb (`pr`, `merge`, `release`, or anything implying `push`) | **proposes** | `--apply` per verb, never inherited from another verb on the same invocation |
+| Any outward verb (`pr`, `merge`, `release`, or anything implying `push`) — none implemented yet; this row is the default each will inherit | **proposes** | `--apply` per verb, never inherited from another verb on the same invocation |
 
 `commit` applies by default for two reasons that do not generalize: `git commit` itself commits, and spells its own rehearsal `--dry-run`, so the polarity and the flag are both already in the user's hands; and a local commit is undone by one local command, which is the reversibility the whole table is graded on. Nothing that leaves the machine has that property, so no outward verb takes the same default, and `commit` never bundles a push under any flag.
 

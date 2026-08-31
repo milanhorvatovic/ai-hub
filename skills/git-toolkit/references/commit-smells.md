@@ -196,7 +196,7 @@ Good: Move the fix record to a run-scoped artifact
 
 **Pattern**: `git show --name-only <sha>` touches files in two or more top-level directories that have no historical co-change pattern.
 
-**Fix**: caught before the commit, this is `commit-message`'s SPLIT mode — it partitions the staged pile, orders the series dependency-first, and authors a message per partition. Caught after, the repair is `git reset HEAD~` back to a staged pile and the same mode over it, or `rebase-cleanup` when the commit is not HEAD. Either way the body should justify why a bundled commit makes sense if you decide to keep it bundled.
+**Fix**: caught before the commit, this is `commit-message`'s SPLIT mode — it partitions the staged pile, orders the series dependency-first, and authors a message per partition. Caught after, the repair is `git reset --soft HEAD~` back to a staged pile and the same mode over it — soft rather than the default mixed, which would unstage everything and leave a working tree rather than the pile the mode expects, or `rebase-cleanup` when the commit is not HEAD. Either way the body should justify why a bundled commit makes sense if you decide to keep it bundled.
 
 ### `repeated-fix` — "fix typo", "fix typo again", "fix actual typo"
 
