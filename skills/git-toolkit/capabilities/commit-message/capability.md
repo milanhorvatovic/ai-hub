@@ -179,7 +179,7 @@ Partitions a staged pile into an ordered commit series and authors a message for
 - `git status --porcelain` — what is staged against what is merely dirty, which §2 needs and which nothing else can recover afterwards.
 - `git log --format='%H' --name-only -400` — the co-change history §3 measures against. A repository with fewer than ~50 commits does not have one; say so and treat every co-change rate as unknown rather than as zero, because an empty history looks exactly like proof of unrelatedness and is not.
 
-**When nothing is staged and the tree is dirty**, the pile is the working tree and the partition produces staging groups rather than commits. **Swap the inputs before anything else runs**: `git diff HEAD --numstat` and `git diff HEAD` in place of their `--cached` forms, plus `git ls-files --others --exclude-standard` for untracked files, which no `git diff` shows at all. Reading the cached forms here returns an empty pile by definition — the branch exists because the index is empty — so the steps below would run against nothing and report a clean tree. The signals and tiers are unchanged; only the reads move. The output then leads with a `git add` recipe per group, and the invocation drops to a proposal whatever the verb's polarity says. The apply default is licensed by the user having staged something; with an empty index they have not chosen what enters the commit, and the verb choosing for them is a different act from committing what they picked.
+**When nothing is staged and the tree is dirty**, the pile is the working tree and the partition produces staging groups rather than commits. **Swap the inputs before anything else runs**, and guard them on whether the branch has a commit yet. With a HEAD: `git diff HEAD --numstat` and `git diff HEAD` in place of their `--cached` forms. Without one — a repository before its first commit — those fail, and nothing is tracked anyway, so the tracked reads are skipped entirely. Either way `git ls-files --others --exclude-standard` supplies the untracked files, which no `git diff` shows at all, and that command **names** them rather than describing them: read each listed file's contents, because a partition is grouped by what changed and a message is written from it, and neither is derivable from a path. Reading the cached forms here returns an empty pile by definition — the branch exists because the index is empty — so the steps below would run against nothing and report a clean tree. The signals and tiers are unchanged; only the reads move. The output then leads with a `git add` recipe per group, and the invocation drops to a proposal whatever the verb's polarity says. The apply default is licensed by the user having staged something; with an empty index they have not chosen what enters the commit, and the verb choosing for them is a different act from committing what they picked.
 
 ### 2. The curation rule
 
@@ -259,14 +259,18 @@ Open with WRITE mode's Detected-conventions preamble — one detection, one line
 ```bash
 SNAPSHOT=$(git write-tree)                       # exactly what the user staged
 ORIGINAL=$(git rev-parse --verify -q HEAD || :)  # empty on an unborn branch
-git reset -q                                     # empty the index; worktree untouched
+git reset -q                                     # index back to HEAD; worktree untouched
 
 # per partition, in series order:
 git restore --staged --source="$SNAPSHOT" -- "${PARTITION_PATHS[@]}"
 git commit -F "$MESSAGE_FILE"
 ```
 
-`git restore --staged --source=$SNAPSHOT` is the load-bearing part: it sets those index entries from the snapshot rather than from the working tree, so a partially-staged file contributes the half the user staged and keeps the other half unstaged afterwards. **`--verify -q` is not decoration.** A repository with no commits has no `HEAD`, so a bare `git rev-parse HEAD` fails and takes the protocol down before the first partition — and since every staged authoring request now reaches this mode, the initial commit is a path through here rather than an exotic one. An unborn branch needs no other special case: `git write-tree`, `git reset`, and `git restore --staged --source` all work without a HEAD.
+`git restore --staged --source=$SNAPSHOT` is the load-bearing part: it sets those index entries from the snapshot rather than from the working tree, so a partially-staged file contributes the half the user staged and keeps the other half unstaged afterwards. **`git reset` here, not `git read-tree --empty`.** The two look interchangeable and are not: `reset` returns the index to HEAD, while `--empty` leaves it holding nothing, so every path the snapshot does not restore reads as *deleted* and the first commit of a parented series removes the rest of the tree. On an unborn branch there is no HEAD and `reset` clears to the empty tree, which is what that case wants, so one command covers both. The distinction is invisible in the recipe and obvious the moment it runs, which is why the protocol is executed by a test rather than only described.
+
+**`--verify -q` is not decoration.** A repository with no commits has no `HEAD`, so a bare `git rev-parse HEAD` fails and takes the protocol down before the first partition — and since every staged authoring request now reaches this mode, the initial commit is a path through here rather than an exotic one. An unborn branch needs no other special case: `git write-tree`, `git reset`, and `git restore --staged --source` all work without a HEAD.
+
+**The undo command is chosen the same way, not only the recovery one.** A series of N that began on an unborn branch leaves N commits with no N-th ancestor, so `HEAD~N` does not resolve and the advertised reversal fails on the successful path — the case the output block is most likely to be copied from. Where `ORIGINAL` was empty the reversal is `git update-ref -d HEAD`, and the block states both.
 
 Recovery from any failure, at any point in the series, is two commands. With a parent commit: `git reset --soft "$ORIGINAL"` then `git read-tree "$SNAPSHOT"`, which restores the original HEAD and the original index, partial staging included. On an unborn branch there is no commit to return to, so the first command is `git update-ref -d HEAD`, which puts the branch back to unborn; the second is unchanged. Emit whichever pair applies with the proposal, not only on failure.
 
@@ -291,10 +295,11 @@ Partitioned 14 staged files into 2 commits (ordered: definition before callers).
 Applying creates 2 commits on <branch> using the snapshot protocol above.
 Undo the whole series with:
   git reset --soft HEAD~2
+  # if the branch had no commit before this series: git update-ref -d HEAD
 
 If a commit fails part-way, restore the original state with:
   git reset --soft <ORIGINAL> && git read-tree <SNAPSHOT>
-  # on an unborn branch: git update-ref -d HEAD && git read-tree <SNAPSHOT>
+  # if the branch was unborn: git update-ref -d HEAD && git read-tree <SNAPSHOT>
 
 Or rehearse without committing:
   /git-toolkit commit --dry-run

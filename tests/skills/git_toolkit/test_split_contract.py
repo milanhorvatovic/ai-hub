@@ -823,6 +823,14 @@ def test_the_working_tree_branch_swaps_its_inputs(split_mode: str) -> None:
     assert "git ls-files --others --exclude-standard" in body, (
         "untracked files are never listed, and no git diff form reveals them"
     )
+    assert "read each listed file's contents" in body, (
+        "the untracked read stops at names, which cannot be grouped by concern "
+        "or written into a message"
+    )
+    assert "guard them on whether the branch has a commit yet" in body, (
+        "the HEAD-relative reads are unguarded, so this branch fails on the "
+        "repository-before-its-first-commit case it also serves"
+    )
 
 
 def test_unmeasurable_churn_does_not_clear_the_floor(split_mode: str) -> None:
@@ -886,6 +894,11 @@ def test_the_apply_protocol_survives_an_unborn_branch(split_mode: str) -> None:
         "the output template omits the unborn recovery, so a reader copying it "
         "after a failed first commit has no way back"
     )
+    assert "git read-tree --empty" not in recipe.group(1), (
+        "the recipe clears the index to nothing rather than to HEAD, which stages "
+        "every unrestored path as a deletion — the first commit of a parented "
+        "series then removes the rest of the tree"
+    )
 
 
 def test_the_output_shows_the_reversal(split_mode: str) -> None:
@@ -900,5 +913,15 @@ def test_the_output_shows_the_reversal(split_mode: str) -> None:
     assert "git reset --soft HEAD~" in body, (
         "the output template does not carry the undo recipe the apply default "
         "is justified by"
+    )
+    # Both reversals, because `HEAD~N` cannot resolve for a series that began on
+    # an unborn branch — the successful path, not only the failure path.
+    assert "git update-ref -d HEAD" in body, (
+        "only the parented reversal is offered, so the advertised undo fails "
+        "after a series that created a repository's first commits"
+    )
+    assert "had no commit before this series" in body, (
+        "the template does not say which reversal applies when, leaving a reader "
+        "to pick between two commands on their own"
     )
     assert "--dry-run" in body, "the output template does not surface the rehearsal path"

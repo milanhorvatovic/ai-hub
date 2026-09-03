@@ -719,3 +719,7 @@ def test_mixed_scope_repair_bypasses_the_curation_rule(references_dir: Path) -> 
         "the entry does not say why the flag is required, so the next edit drops "
         "it as redundant"
     )
+    assert "git update-ref -d HEAD" in entry, (
+        "the repair has no root-commit path, where `HEAD~` does not resolve — the "
+        "same initial-commit case the split protocol otherwise supports"
+    )
