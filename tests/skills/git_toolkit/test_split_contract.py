@@ -201,6 +201,13 @@ def test_guards_outrank_the_verb_at_router_level(arguments: str) -> None:
     section = arguments.split("### Guards outrank the verb", 1)
     assert len(section) == 2, "Arguments does not carry the guard-precedence rule"
     body = section[1].lower()
+    # Membership, not severity: the secret catalog grades every match `WARN`, so
+    # a precedence rule keyed on `error` left the least controversial veto in the
+    # skill unable to fire. Review caught the contract disagreement.
+    assert "veto table" in body and "not a severity tier" in body, (
+        "precedence is keyed on a severity tier rather than on the veto table, "
+        "which disagrees with the catalogs the vetoes cite"
+    )
     assert "no flag overrides a veto" in body, (
         "the precedence rule does not close the flag path around a veto"
     )
@@ -785,6 +792,27 @@ def test_an_unstageable_partition_stops_the_whole_series(split_mode: str) -> Non
     assert entry, "the intra-file edge case is gone"
     assert "whole invocation" in entry, (
         f"an unstageable partition degrades alone, building a partial series: {entry!r}"
+    )
+
+
+def test_the_fixup_branch_states_how_it_resolves(router: str) -> None:
+    """"Until the user names one" needs a way to name one.
+
+    The grammar carries no selector, a conversational reply cannot reach an
+    applying path by design, and `commit-fixup` proposes rather than executes —
+    so the branch resolved to nothing. Saying it is proposal-only is the honest
+    answer and the only one that does not invent a chooser at the one place this
+    skill would be letting an inferred selection execute.
+    """
+    rows = _rows(_section(router, "## Arguments").split("### `commit` dispatch", 1)[1])
+    row = next((r for r in rows if "fixup-shaped" in r), None)
+    assert row, "the dispatch table no longer routes the fixup-shaped state"
+    assert "proposal-only" in row, (
+        f"the fixup branch does not say it never applies: {row!r}"
+    )
+    assert "no selector flag" in row, (
+        "the branch implies a selection mechanism the grammar does not define, "
+        f"so how either option reaches execution is unstated: {row!r}"
     )
 
 

@@ -176,14 +176,36 @@ def test_the_protocol_creates_a_first_commit(tmp_path: Path, protocol) -> None:
     assert _git(repo, "show", "--name-only", "--format=", "HEAD").split() == ["b.txt"]
 
 
-@needs_bash
-def test_the_documented_reversals_resolve(tmp_path: Path, protocol) -> None:
-    """Both undo commands, against the trees they are advertised for.
+@pytest.fixture(scope="session")
+def reversals() -> tuple[str, str]:
+    """(parented, unborn) undo commands, read from the shipped output block.
 
-    `HEAD~N` is the reversal for a series with a parent and does not resolve for
-    one that began unborn — where N commits leave no N-th ancestor. The output
-    block offers both; this runs both against the case each names.
+    The previous version of this test restated `reset` and `update-ref` from
+    memory, so the output block a user copies could regress while the semantics
+    it claims to check stayed green — the same gap the apply protocol had before
+    it was executed rather than described.
     """
+    text = _CAPABILITY.read_text(encoding="utf-8")
+    marker = "Undo the whole series with:"
+    assert marker in text, "the output block no longer advertises a reversal"
+    lines = text.split(marker, 1)[1].splitlines()
+    plain = next(ln.strip() for ln in lines if ln.strip().startswith("git "))
+    commented = next(
+        ln.split(":", 1)[1].strip() for ln in lines if ln.strip().startswith("# ")
+    )
+    return plain, commented
+
+
+@needs_bash
+def test_the_documented_reversals_resolve(tmp_path: Path, protocol, reversals) -> None:
+    """Both advertised undo commands, against the trees each names.
+
+    `HEAD~N` is the reversal for a series with a parent and cannot resolve for
+    one that began unborn, where N commits leave no N-th ancestor. Both are run
+    exactly as the output block spells them, with only the count substituted.
+    """
+    parented_cmd, unborn_cmd = reversals
+
     with_parent = tmp_path / "parent"
     with_parent.mkdir()
     _init(with_parent)
@@ -195,9 +217,9 @@ def test_the_documented_reversals_resolve(tmp_path: Path, protocol) -> None:
     (with_parent / "b.txt").write_text("b\n", encoding="utf-8")
     _git(with_parent, "add", "-A")
     _run_series(with_parent, protocol, [["a.txt"], ["b.txt"]])
-    _git(with_parent, "reset", "--soft", "HEAD~2")
+    _git(with_parent, *parented_cmd.split()[1:])
     assert _git(with_parent, "rev-parse", "HEAD").strip() == base, (
-        "`git reset --soft HEAD~N` did not return a parented series to its base"
+        f"the advertised reversal {parented_cmd!r} did not return the series to its base"
     )
 
     unborn = tmp_path / "unborn-undo"
@@ -206,15 +228,73 @@ def test_the_documented_reversals_resolve(tmp_path: Path, protocol) -> None:
     (unborn / "a.txt").write_text("a\n", encoding="utf-8")
     _git(unborn, "add", "-A")
     _run_series(unborn, protocol, [["a.txt"]])
-    result = subprocess.run(
-        ["git", "reset", "--soft", "HEAD~1"],
+    failed = subprocess.run(
+        ["git", *parented_cmd.replace("2", "1").split()[1:]],
         cwd=unborn, capture_output=True, text=True, env=_ENV,
     )
-    assert result.returncode != 0, (
-        "HEAD~N resolved on a series that began unborn, so the output block's "
-        "second reversal would be unnecessary — recheck which command applies"
+    assert failed.returncode != 0, (
+        "the parented reversal resolved on a series that began unborn, so the "
+        "block's second command would be unnecessary — recheck which applies"
     )
-    _git(unborn, "update-ref", "-d", "HEAD")
+    _git(unborn, *unborn_cmd.split()[1:])
     assert "A  a.txt" in _git(unborn, "status", "--porcelain"), (
-        "deleting the ref did not return the branch to unborn with the tree staged"
+        f"the advertised unborn reversal {unborn_cmd!r} did not return the branch "
+        "to unborn with the tree staged"
+    )
+
+
+@needs_bash
+def test_a_partition_path_is_never_a_pattern(tmp_path: Path, protocol) -> None:
+    """A filename is not a pathspec, and git disagrees unless told.
+
+    `a[1].txt` is a legal name whose characters are also a character class, so a
+    bare pathspec stages its neighbour `a1.txt` too — measured, not theorised.
+    On a verb that applies by default the result is a commit containing another
+    partition's file, which no message describes.
+    """
+    repo = tmp_path / "globby"
+    repo.mkdir()
+    _init(repo)
+    for name in ("a[1].txt", "a1.txt"):
+        (repo / name).write_text("base\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    for name in ("a[1].txt", "a1.txt"):
+        (repo / name).write_text("changed\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+
+    _run_series(repo, protocol, [["a[1].txt"], ["a1.txt"]])
+
+    first = _git(repo, "show", "--name-only", "--format=", "HEAD~1").split("\n")
+    assert [f for f in first if f] == ["a[1].txt"], (
+        f"the bracketed name matched as a pattern and pulled in a sibling: {first}"
+    )
+
+
+@needs_bash
+def test_a_rename_keeps_both_of_its_paths(tmp_path: Path, protocol) -> None:
+    """Restoring only the destination records an add and orphans the deletion.
+
+    The source entry stands from HEAD, so the commit says a file appeared rather
+    than moved and the removal lands in whichever partition follows — or in none.
+    """
+    repo = tmp_path / "renamed"
+    repo.mkdir()
+    _init(repo)
+    (repo / "old.txt").write_text("content\n", encoding="utf-8")
+    (repo / "z.txt").write_text("other\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    _git(repo, "mv", "old.txt", "new.txt")
+    _git(repo, "add", "-A")
+
+    _run_series(repo, protocol, [["old.txt", "new.txt"]])
+
+    status = _git(repo, "show", "--name-status", "--format=", "HEAD", "-M")
+    assert status.startswith("R"), (
+        f"the commit records {status.split()[0]!r} rather than a rename, so the "
+        "source deletion was left behind"
+    )
+    assert "old.txt" not in _git(repo, "status", "--porcelain"), (
+        "the rename's source is still pending after its partition committed"
     )

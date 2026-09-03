@@ -723,3 +723,19 @@ def test_mixed_scope_repair_bypasses_the_curation_rule(references_dir: Path) -> 
         "the repair has no root-commit path, where `HEAD~` does not resolve — the "
         "same initial-commit case the split protocol otherwise supports"
     )
+
+
+def test_mixed_scope_repair_checks_the_remote_before_deleting(references_dir: Path) -> None:
+    """Ordering, because the deletion destroys the evidence the guard needs.
+
+    `git update-ref -d HEAD` leaves the branch unborn and takes its reflog with
+    it, so the unwound root SHA is unrecoverable afterwards and SPLIT's
+    force-push veto has nothing to test remote containment against. The check
+    has to happen while the ref still exists.
+    """
+    text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
+    entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
+    assert "--contains HEAD" in entry and "**before** deleting" in entry, (
+        "the root-commit repair deletes the ref without first asking whether a "
+        "remote holds it, so a pushed root rewrite passes the veto unseen"
+    )

@@ -138,7 +138,7 @@ Polarity follows reversibility, and it is a property of the surface rather than 
 
 ### Guards outrank the verb
 
-An error-severity guard voids the apply default for that invocation: the verb degrades to a proposal plus the warning, and applying takes a fresh, deliberate invocation. The vetoes and what each degrades to are listed with the mode that runs them, in `capabilities/commit-message/capability.md`; the rule the router owns is the precedence — a guard's veto beats a verb's polarity, never the reverse, and no flag overrides a veto.
+A guard listed in the mode's veto table voids the apply default for that invocation — membership in that table, not a severity tier. Keying this on `error` was wrong in a way that mattered: the secret catalog surfaces every match as `WARN` by design, so the rule as written left the one veto nobody would argue about unable to fire. Severity grades a finding's confidence; whether a finding blocks an apply is a separate decision, and the table is where it is made. On a veto: the verb degrades to a proposal plus the warning, and applying takes a fresh, deliberate invocation. The vetoes and what each degrades to are listed with the mode that runs them, in `capabilities/commit-message/capability.md`; the rule the router owns is the precedence — a guard's veto beats a verb's polarity, never the reverse, and no flag overrides a veto.
 
 The harness's own permission layer sits outside all of this and stays the outer gate for every integrator. A verb's polarity describes what this skill will propose to run, never a claim about what it is permitted to run.
 
@@ -150,7 +150,7 @@ The verb's front end is state detection, so the same invocation means different 
 | --- | --- |
 | Staged, one concern | `commit-message` WRITE — one commit, splitting never mentioned |
 | Staged, mixed concerns | `commit-message` SPLIT — an ordered series, WRITE per partition |
-| Staged, fixup-shaped (the change belongs to an earlier commit on the branch) | `commit-fixup`'s proposal, offered beside the WRITE alternative rather than instead of it. Two answers means the verb has none, so this state proposes both and applies neither until the user names one |
+| Staged, fixup-shaped (the change belongs to an earlier commit on the branch) | `commit-fixup`'s proposal, offered beside the WRITE alternative rather than instead of it. Two answers means the verb has none, so this state is **proposal-only**: both options are shown with their commands and the user runs the one they want. There is no selector flag and no follow-up that applies — a conversational reply cannot reach an applying path, and inventing a chooser here would be the one place this skill let an inferred answer execute |
 | Nothing staged, tree dirty | `commit-message` SPLIT over the working tree: a staging plan first — the groups and their `git add` recipes — then WRITE per group. Proposal only, whatever the polarity above says; an empty index is the user not having chosen yet, and choosing for them is not the act this verb's default covers |
 | Clean tree | Report that there is nothing to commit, and stop |
 | Mid-rebase, unresolved conflicts, or detached HEAD | Report the blocking state and stop; propose nothing while the tree is mid-operation |
