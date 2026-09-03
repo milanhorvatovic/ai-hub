@@ -146,14 +146,16 @@ The harness's own permission layer sits outside all of this and stays the outer 
 
 The verb's front end is state detection, so the same invocation means different things against different trees. Routing is the router's job, so the table lives here once rather than in each capability.
 
+**Rows are evaluated top to bottom and the first match wins**, because they are not mutually exclusive and an agent picking by resemblance would pick wrong: a detached HEAD or an interrupted rebase can carry perfectly ordinary staged changes, and a pile can be both mixed and fixup-shaped. Blocking states are therefore listed first — a tree mid-operation is refused whatever else is true of it — and the fixup row precedes the mixed row, so a pile that is both is offered the repair beside the alternatives rather than partitioned around a commit it belongs to.
+
 | Tree state | Route |
 | --- | --- |
+| Mid-rebase, unresolved conflicts, or detached HEAD | Report the blocking state and stop; propose nothing while the tree is mid-operation |
+| Clean tree | Report that there is nothing to commit, and stop |
+| Staged, fixup-shaped (the change belongs to an earlier commit on the branch) | `commit-fixup`'s proposal, offered beside the WRITE alternative rather than instead of it. Two answers means the verb has none, so this state is **proposal-only**: both options are shown with their commands and the user runs the one they want. There is no selector flag and no follow-up that applies — a conversational reply cannot reach an applying path, and inventing a chooser here would be the one place this skill let an inferred answer execute |
 | Staged, one concern | `commit-message` WRITE — one commit, splitting never mentioned |
 | Staged, mixed concerns | `commit-message` SPLIT — an ordered series, WRITE per partition |
-| Staged, fixup-shaped (the change belongs to an earlier commit on the branch) | `commit-fixup`'s proposal, offered beside the WRITE alternative rather than instead of it. Two answers means the verb has none, so this state is **proposal-only**: both options are shown with their commands and the user runs the one they want. There is no selector flag and no follow-up that applies — a conversational reply cannot reach an applying path, and inventing a chooser here would be the one place this skill let an inferred answer execute |
 | Nothing staged, tree dirty | `commit-message` SPLIT over the working tree: a staging plan first — the groups and their `git add` recipes — then WRITE per group. Proposal only, whatever the polarity above says; an empty index is the user not having chosen yet, and choosing for them is not the act this verb's default covers |
-| Clean tree | Report that there is nothing to commit, and stop |
-| Mid-rebase, unresolved conflicts, or detached HEAD | Report the blocking state and stop; propose nothing while the tree is mid-operation |
 
 ## Shared references
 

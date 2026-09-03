@@ -739,3 +739,13 @@ def test_mixed_scope_repair_checks_the_remote_before_deleting(references_dir: Pa
         "the root-commit repair deletes the ref without first asking whether a "
         "remote holds it, so a pushed root rewrite passes the veto unseen"
     )
+    # Ordering alone is satisfied by an unconditional delete that happens to run
+    # the check first. What the published-root case needs is the branch.
+    assert "conditional on an empty result" in entry, (
+        "the check runs but nothing depends on its answer, so a published root "
+        "is still deleted and its reflog evidence destroyed"
+    )
+    assert "delete nothing" in entry, (
+        "the non-empty branch does not say to stop, so the recipe reads as "
+        "advisory where it has to be a halt"
+    )

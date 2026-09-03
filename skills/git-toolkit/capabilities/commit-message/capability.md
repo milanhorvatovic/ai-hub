@@ -238,7 +238,9 @@ WRITE's Step 6 already runs `../../references/secret-patterns.md` and `../../ref
 
 ### 8. Guard vetoes
 
-Any of these voids the apply default for the invocation. The verb degrades to a proposal plus the warning, and applying takes a fresh, deliberate invocation; no flag overrides a veto.
+Any of these voids the apply default for the invocation: the verb degrades to a proposal plus the warning, and no flag overrides a veto.
+
+**What clears one is the condition, not another invocation.** Force-push territory and an unresolved `mixed-scope` persist across runs, so re-invoking reaches the same veto forever — saying "apply on a fresh invocation" would promise a path that does not exist. A vetoed invocation is proposal-only and stays that way: the user either runs the emitted commands themselves, having read the warning, or removes the condition — redacting the secret, coordinating the rewrite, accepting the bundle with the justification the body rule asks for — and invokes again against a state where the veto no longer fires.
 
 | Veto | Fires when | Degrades to |
 | --- | --- | --- |
@@ -252,20 +254,32 @@ Proposals for these operations follow the intent/impact/recovery phrasing in `..
 
 ### 9. Output and the apply protocol
 
-Open with WRITE mode's Detected-conventions preamble — one detection, one line, for the whole series — then the partition table, then each partition's message, then what applying will do and exactly how to undo it.
+**N=1 emits WRITE's output unchanged.** No partition table, no snapshot protocol, no mention that either exists: a single partition is the whole pile, so the index already holds exactly what the one commit takes and rebuilding it would be ceremony around a no-op. Everything below is the N>1 contract. Routing every staged request through this mode is what makes saying so necessary — the tier table promises silence on a single-concern tree and this section would otherwise break that promise on the commonest path through it.
+
+For N>1, open with WRITE mode's Detected-conventions preamble — one detection, one line, for the whole series — then the partition table, then each partition's message, then what applying will do and exactly how to undo it.
 
 **The pile is already staged, so staging a partition means removing the others, not adding it.** `git add -- <paths>` against a fully staged index is a no-op, and the first commit would take every partition; the recipe has to rebuild the index per partition from a snapshot of what the user staged. Taking it from the worktree instead is the second trap — a path with both staged and unstaged hunks would silently commit the unstaged ones too, which is the user's curation reversed rather than honoured.
 
 ```bash
+set -euo pipefail                                # a rejected commit must stop the series
+
 SNAPSHOT=$(git write-tree)                       # exactly what the user staged
 ORIGINAL=$(git rev-parse --verify -q HEAD || :)  # empty on an unborn branch
 git reset -q                                     # index back to HEAD; worktree untouched
 
+# PARTITION_FILE holds one partition's paths, NUL-separated, written by the
+# proposal — never interpolated into this script.
 # per partition, in series order:
+PARTITION_PATHS=()
+while IFS= read -r -d '' path; do PARTITION_PATHS+=("$path"); done < "$PARTITION_FILE"
 printf ':(literal)%s\0' "${PARTITION_PATHS[@]}" |
   git restore --staged --source="$SNAPSHOT" --pathspec-from-file=- --pathspec-file-nul
 git commit -F "$MESSAGE_FILE"
 ```
+
+**Strict mode is part of the recipe, not of whoever runs it.** Without `set -e` a `git commit` a pre-commit hook rejects returns non-zero and the loop carries on, producing a partial series in the wrong order with an undo count that no longer matches. A recipe whose safety depends on how it was invoked is not a safe recipe.
+
+**Paths reach the script through a file, never through its text.** A staged filename may legally contain a quote, a backtick, or `$(…)`, and building the array by pasting names into shell source turns any of those into execution during an apply. The proposal writes each partition's paths NUL-separated to `PARTITION_FILE` and the loop reads them back; `while read -d ''` rather than `mapfile -d ''` because the latter needs bash 4.4 and this has to run where `/bin/bash` is 3.2.
 
 **Paths are pathspecs unless you say otherwise, and that is a correctness bug on an applying verb.** A file genuinely named `a[1].txt` matches its neighbour `a1.txt`, and a leading `:` reads as pathspec magic rather than as the first character of a name — so a partition can stage files belonging to another one and the commit is simply wrong. `:(literal)` disables the interpretation, and `--pathspec-from-file` with `--pathspec-file-nul` carries names that contain spaces or newlines without a second quoting layer. NUL separation alone is not enough: it fixes the separator, not the globbing, which was measured rather than assumed.
 

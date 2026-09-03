@@ -129,6 +129,33 @@ def test_commit_dispatch_routes_every_tree_state(
     )
 
 
+def test_dispatch_rows_have_a_stated_precedence(arguments: str) -> None:
+    """The rows overlap, so resemblance is not a selection rule.
+
+    A detached HEAD or an interrupted rebase can carry perfectly ordinary staged
+    changes, and a pile can be both mixed and fixup-shaped — so an agent reading
+    for the best-looking match can pick an applying row over a blocking one.
+    """
+    section = arguments.split("### `commit` dispatch", 1)[1]
+    assert "first match wins" in section, (
+        "the dispatch table states no evaluation order, so overlapping rows are "
+        "resolved by whichever an agent notices first"
+    )
+    rows = _rows(section)
+    blocking = next(i for i, r in enumerate(rows) if "Mid-rebase" in r)
+    staged = next(i for i, r in enumerate(rows) if "Staged, one concern" in r)
+    fixup = next(i for i, r in enumerate(rows) if "fixup-shaped" in r)
+    mixed = next(i for i, r in enumerate(rows) if "Staged, mixed concerns" in r)
+    assert blocking < staged, (
+        "a blocking state is listed after an applying one, so first-match "
+        "ordering routes a mid-operation tree into a commit"
+    )
+    assert fixup < mixed, (
+        "a pile that is both fixup-shaped and mixed would be partitioned around "
+        "a commit it belongs to"
+    )
+
+
 def test_clean_and_mid_operation_states_propose_nothing(arguments: str) -> None:
     """The two states whose correct route is to stop.
 
@@ -743,6 +770,86 @@ def test_the_secret_veto_claims_only_what_its_catalog_covers(split_mode: str) ->
     assert "publishes nothing" in body, (
         "the exclusion of staged content is unexplained, so the next reader "
         "restores the unsupported veto as an oversight fix"
+    )
+
+
+def test_n_equals_one_emits_write_output_unchanged(split_mode: str) -> None:
+    """The output section broke the silence the tier table promises.
+
+    It opened with the partition table unconditionally, and every staged request
+    now enters this mode — so a single-concern tree would have been shown a
+    splitter it was never supposed to hear about, on the commonest path through
+    the capability.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    assert "N=1 emits WRITE's output unchanged" in body, (
+        "the output contract does not branch on N, so a single-concern pile is "
+        "shown a partition table"
+    )
+    assert "No partition table" in body, (
+        "the N=1 branch does not say what it omits, leaving the silent path to "
+        "the reader's inference"
+    )
+
+
+def test_the_recipe_carries_its_own_strict_mode(split_mode: str) -> None:
+    """Safety that depends on the caller is not safety.
+
+    A pre-commit hook rejecting one partition returns non-zero; without `set -e`
+    in the recipe itself the loop continues and builds a partial series in the
+    wrong order, with an undo count that no longer matches what exists.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    recipe = re.search(r"```bash\n(.*?)```", body, re.DOTALL)
+    assert recipe, "the apply protocol is no longer an executable bash fence"
+    assert "set -euo pipefail" in recipe.group(1), (
+        "the recipe does not fail fast on its own, so a rejected commit runs on "
+        "into later partitions"
+    )
+
+
+def test_partition_paths_never_enter_the_script_as_text(split_mode: str) -> None:
+    """A staged filename may legally contain `$(…)`, a backtick, or a quote.
+
+    On a verb that applies by default, a path pasted into shell source is
+    command execution on someone else's repository. The recipe reads them from a
+    NUL-separated file instead, and says so where the next editor would be
+    tempted to simplify it back.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    recipe = re.search(r"```bash\n(.*?)```", body, re.DOTALL).group(1)
+    assert "PARTITION_FILE" in recipe and "read -r -d ''" in recipe, (
+        "partition paths are not read from a NUL-delimited file, so building the "
+        "list means interpolating names into the script"
+    )
+    assert "never interpolated" in recipe, (
+        "the recipe does not state the constraint, so the loop reads as an "
+        "arbitrary style choice"
+    )
+
+
+def test_a_veto_is_cleared_by_the_condition_not_a_rerun(split_mode: str) -> None:
+    """"Apply on a fresh invocation" promised a path that does not exist.
+
+    Force-push territory and an unresolved `mixed-scope` persist across runs, so
+    re-invoking reaches the same veto forever. Either the verb never applies for
+    that state or something clears it; saying the former is honest, and saying
+    neither left the apply boundary undefined.
+    """
+    body = split_mode.split("### 8. Guard vetoes", 1)[1].split("###", 1)[0]
+    assert "persist across runs" in body, (
+        "the veto section does not acknowledge that re-invoking cannot clear a "
+        "standing condition"
+    )
+    assert "proposal-only and stays that way" in body, (
+        "nothing states whether a vetoed invocation can ever apply, leaving the "
+        "boundary to be guessed at"
+    )
+    # The claim that was wrong, asserted absent: a re-run reaches the same
+    # standing veto, so offering one as the apply path promises nothing.
+    assert "fresh, deliberate invocation" not in body, (
+        "the section again offers a re-run as the way to apply, which a standing "
+        "veto makes unreachable"
     )
 
 
