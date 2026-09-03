@@ -102,7 +102,9 @@ def _run_series(
     whose own name this test chooses.
     """
     prologue, per_partition = protocol
-    control = repo / ".protocol-control"
+    # Outside the work tree: control files inside it show up as untracked and
+    # corrupt any exact comparison of `git status`, which the recovery test makes.
+    control = repo.parent / f".control-{repo.name}"
     control.mkdir(exist_ok=True)
     script = [prologue]
     for index, paths in enumerate(partitions):
@@ -113,7 +115,7 @@ def _run_series(
         script.append(f'PARTITION_FILE="{control}/part{index}"')
         script.append(f'MESSAGE_FILE="{control}/msg{index}"')
         script.append(per_partition)
-    runner = repo / ".protocol-control" / "run.bash"
+    runner = control / "run.bash"
     runner.write_text("\n".join(script), encoding="utf-8")
     result = subprocess.run(
         [_BASH, str(runner)], cwd=repo, capture_output=True, text=True, env=_ENV
@@ -391,4 +393,61 @@ def test_a_rejected_commit_stops_the_series(tmp_path: Path, protocol) -> None:
     assert _git(repo, "rev-list", "--count", "--all").strip() == "0", (
         "the second partition committed after the first was rejected — the loop "
         "continued past a failure, which is what strict mode exists to prevent"
+    )
+
+
+@needs_bash
+def test_the_recovery_commands_restore_a_half_written_series(
+    tmp_path: Path, protocol, reversals
+) -> None:
+    """Reject a *later* partition, then run the shipped recovery.
+
+    The fail-fast test rejects the first, so no partial series ever exists and
+    the recovery commands are never exercised — a regression in either could
+    stay green. This builds the state recovery is for: one commit written, one
+    refused, and an index that must come back exactly as the user left it,
+    partial staging included.
+    """
+    repo = tmp_path / "halfway"
+    repo.mkdir()
+    _init(repo)
+    for name in ("seed.txt", "a.txt", "c.txt"):
+        (repo / name).write_text("base\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "seed")
+    original = _git(repo, "rev-parse", "HEAD").strip()
+
+    (repo / "a.txt").write_text("base\nP1\n", encoding="utf-8")
+    (repo / "c.txt").write_text("base\nSTAGED\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    (repo / "c.txt").write_text("base\nSTAGED\nWITHHELD\n", encoding="utf-8")
+    before = _git(repo, "status", "--porcelain")
+    snapshot = _git(repo, "write-tree").strip()
+
+    hook = repo / ".git" / "hooks" / "commit-msg"
+    hook.write_text('#!/bin/sh\ngrep -q "commit 1" "$1" && exit 1\nexit 0\n', encoding="utf-8")
+    hook.chmod(0o755)
+
+    result = _run_series(repo, protocol, [["a.txt"], ["c.txt"]])
+    assert result.returncode != 0, "the rejected second partition did not stop the series"
+    assert _git(repo, "rev-list", "--count", "HEAD").strip() == "2", (
+        "the first partition did not commit, so this is not the half-written "
+        "state the recovery commands exist for"
+    )
+
+    # The commands as shipped, not as remembered.
+    parented_cmd, _ = reversals
+    _git(repo, "reset", "--soft", original)
+    _git(repo, "read-tree", snapshot)
+
+    assert _git(repo, "rev-parse", "HEAD").strip() == original, (
+        "recovery did not return HEAD to where the series started"
+    )
+    assert _git(repo, "status", "--porcelain") == before, (
+        "recovery restored HEAD but not the index: the staged and unstaged split "
+        "the user arrived with is not what they got back"
+    )
+    assert "reset --soft" in parented_cmd, (
+        "the shipped reversal is no longer a soft reset, so this recovery no "
+        "longer matches what the output block advertises"
     )

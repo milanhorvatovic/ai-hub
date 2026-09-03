@@ -231,6 +231,10 @@ def test_guards_outrank_the_verb_at_router_level(arguments: str) -> None:
     # Membership, not severity: the secret catalog grades every match `WARN`, so
     # a precedence rule keyed on `error` left the least controversial veto in the
     # skill unable to fire. Review caught the contract disagreement.
+    assert "removing the condition, not invoking again" in body, (
+        "the router offers a re-invocation as the route back to applying, which "
+        "a standing veto makes unreachable — and it contradicts the capability"
+    )
     assert "veto table" in body and "not a severity tier" in body, (
         "precedence is keyed on a severity tier rather than on the veto table, "
         "which disagrees with the catalogs the vetoes cite"
@@ -773,6 +777,62 @@ def test_the_secret_veto_claims_only_what_its_catalog_covers(split_mode: str) ->
     )
 
 
+def test_n_equals_one_still_applies(split_mode: str) -> None:
+    """Excluding N=1 from the ceremony is right; excluding it from the apply is not.
+
+    WRITE refuses to commit from its own workflow and defers to this section, so
+    a §9 that hands N=1 back to WRITE and then describes only the N>1 contract
+    leaves the verb proposal-only on the commonest tree it meets — against the
+    router's promise that the typed verb applies.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    assert "The apply does." in body, (
+        "the N=1 branch omits execution along with the ceremony, so an applying "
+        "verb proposes on a single-concern pile"
+    )
+    assert "git reset --soft HEAD~1" in body, (
+        "the single-commit case advertises no reversal, though the apply default "
+        "rests on there being one"
+    )
+
+
+def test_the_working_tree_recipes_treat_names_as_data(split_mode: str) -> None:
+    """The staged path was hardened and the proposal path was not.
+
+    Untracked filenames are repository-controlled and reach the user as a `git
+    add` command they will run. An interpolated `$(…)` there is the same defect
+    as in the applying protocol, just deferred to their keyboard.
+    """
+    body = split_mode.split("### 1. Read the pile", 1)[1].split("### 2.", 1)[0]
+    assert "git ls-files -z --others --exclude-standard" in body, (
+        "the untracked listing is not NUL-delimited, so a name containing a "
+        "newline splits into two paths"
+    )
+    assert ":(literal)" in body and "--pathspec-from-file" in body, (
+        "the generated add recipes interpolate names instead of passing them as "
+        "literal pathspecs"
+    )
+
+
+def test_the_root_repair_never_hands_off_to_an_apply(split_mode: str) -> None:
+    """"Its answer is carried in" named a channel that does not exist.
+
+    The grammar takes no SHA, and the invocation after a root deletion has
+    neither reflog nor memory — so a published root could reach the applying
+    path with the veto undetectable. One proposal-only flow is the only shape
+    that closes it without inventing a state-passing mechanism.
+    """
+    table = split_mode.split("### 8. Guard vetoes", 1)[1].split("###", 1)[0]
+    row = next((r for r in _rows(table) if "force-push" in r.split("|")[1].lower()), None)
+    assert row, "the veto table has no force-push row"
+    assert "no channel that could carry the answer forward" in row, (
+        f"the row still implies a hand-off it cannot perform: {row!r}"
+    )
+    assert "proposal-only end to end" in row, (
+        f"the root path does not close itself to the applying verb: {row!r}"
+    )
+
+
 def test_n_equals_one_emits_write_output_unchanged(split_mode: str) -> None:
     """The output section broke the silence the tier table promises.
 
@@ -1045,7 +1105,11 @@ def test_the_output_shows_the_reversal(split_mode: str) -> None:
     section = split_mode.split("### 9. Output", 1)
     assert len(section) == 2, "SPLIT mode has no output section"
     body = section[1]
-    assert "git reset --soft HEAD~" in body, (
+    # The template a reader copies, not the section: the N=1 paragraph also names
+    # a soft reset, so a section-wide search survives deleting the series
+    # reversal. Mutation found that.
+    template = body.split("```", 2)[2] if body.count("```") > 2 else body
+    assert "git reset --soft HEAD~" in template, (
         "the output template does not carry the undo recipe the apply default "
         "is justified by"
     )
