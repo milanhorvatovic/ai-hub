@@ -335,7 +335,14 @@ def test_a_filename_cannot_execute_during_an_apply(tmp_path: Path, protocol) -> 
     _init(repo)
     canary = repo / "PWNED"
     hostile = '$(touch PWNED)"; touch PWNED; #.txt'
-    (repo / hostile).write_text("payload\n", encoding="utf-8")
+    # Probed rather than assumed, like the bash lane: NTFS rejects `"` in a name,
+    # so this payload cannot exist there. The vulnerability class it exercises is
+    # a POSIX filename one, and skipping is honest where creating is impossible —
+    # asserting nothing beats asserting on a file that was never written.
+    try:
+        (repo / hostile).write_text("payload\n", encoding="utf-8")
+    except OSError as exc:
+        pytest.skip(f"filesystem rejects the hostile filename: {exc}")
     (repo / "innocent.txt").write_text("fine\n", encoding="utf-8")
     _git(repo, "add", "-A")
 
