@@ -695,3 +695,27 @@ def test_no_cross_capability_step_citations(capabilities_dir: Path) -> None:
             if m and m.group(1) != cap.parent.name:
                 offenders.append(f"{cap.parent.name}:{lineno} cites {m.group(0)!r}")
     assert not offenders, "cross-capability step citations:\n" + "\n".join(offenders)
+
+
+def test_mixed_scope_repair_bypasses_the_curation_rule(references_dir: Path) -> None:
+    """The documented repair silently did nothing on the common tree.
+
+    `git reset --soft HEAD~` leaves the reverted commit staged, but any tracked
+    edit still in the worktree — the usual state, since the smell is noticed
+    while working — makes that pile read as hand-curated to SPLIT's curation
+    rule, which forces it to one commit. The repair then rebuilds the same
+    mixed-scope commit it was invoked to take apart.
+    """
+    text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
+    entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
+    # The invocation, not the flag: the sentence explaining why the flag is
+    # needed also contains "--split", so a bare substring check stayed green
+    # after the recipe itself lost it. Mutation found that.
+    assert "/git-toolkit commit --split" in entry, (
+        "the post-commit repair does not force series analysis, so the curation "
+        "rule converts it into a no-op on any tree with unstaged work"
+    )
+    assert "curation rule" in entry, (
+        "the entry does not say why the flag is required, so the next edit drops "
+        "it as redundant"
+    )

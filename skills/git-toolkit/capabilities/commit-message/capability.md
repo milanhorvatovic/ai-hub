@@ -174,12 +174,12 @@ Partitions a staged pile into an ordered commit series and authors a message for
 
 ### 1. Read the pile
 
-- `git diff --cached --numstat` — per-file added/deleted counts, the churn input every share below is computed from.
+- `git diff --cached --numstat` — per-file added/deleted counts, the churn input every share below is computed from. Two rows do not yield a number: a binary file reports `-\t-`, and a pure rename or mode change reports `0\t0`, so a rename-only pile totals zero and the share arithmetic has no denominator. **Unknown or zero total churn leaves the dominance clause unmet**, exactly as an unknown co-change rate does in §4 — the floor is a veto, and a clause that cannot be evaluated has not been satisfied. `--split` remains the way to ask for reason-based analysis on such a pile.
 - `git diff --cached` — the hunks themselves; a partition may cut inside a file.
 - `git status --porcelain` — what is staged against what is merely dirty, which §2 needs and which nothing else can recover afterwards.
 - `git log --format='%H' --name-only -400` — the co-change history §3 measures against. A repository with fewer than ~50 commits does not have one; say so and treat every co-change rate as unknown rather than as zero, because an empty history looks exactly like proof of unrelatedness and is not.
 
-**When nothing is staged and the tree is dirty**, the pile is the working tree and the partition produces staging groups rather than commits. Everything below runs unchanged — the same signals, the same tiers — but the output leads with a `git add` recipe per group, and the invocation drops to a proposal whatever the verb's polarity says. The apply default is licensed by the user having staged something; with an empty index they have not chosen what enters the commit, and the verb choosing for them is a different act from committing what they picked.
+**When nothing is staged and the tree is dirty**, the pile is the working tree and the partition produces staging groups rather than commits. **Swap the inputs before anything else runs**: `git diff HEAD --numstat` and `git diff HEAD` in place of their `--cached` forms, plus `git ls-files --others --exclude-standard` for untracked files, which no `git diff` shows at all. Reading the cached forms here returns an empty pile by definition — the branch exists because the index is empty — so the steps below would run against nothing and report a clean tree. The signals and tiers are unchanged; only the reads move. The output then leads with a `git add` recipe per group, and the invocation drops to a proposal whatever the verb's polarity says. The apply default is licensed by the user having staged something; with an empty index they have not chosen what enters the commit, and the verb choosing for them is a different act from committing what they picked.
 
 ### 2. The curation rule
 
@@ -243,7 +243,7 @@ Any of these voids the apply default for the invocation. The verb degrades to a 
 | Veto | Fires when | Degrades to |
 | --- | --- | --- |
 | Secret match | `../../references/secret-patterns.md` matches anything in a drafted message — the whole of what that catalog covers, since it excludes diff content by design as the user's own code rather than new text being authored | Proposal only, with the match redacted and named |
-| Force-push territory | The pile only exists because pushed history was unwound to make it — the `mixed-scope` repair path, where `git reset --soft HEAD~` over an already-pushed commit turns a bulk commit back into a staged pile — soft, because a mixed reset empties the index and would drop the pile into §1's working-tree branch instead. SPLIT itself only ever adds commits, so this is the one route by which it inherits a rewrite | Proposal only, behind the **Force-Push Impact** block from `../../references/force-push-impact.md`; `--force-with-lease` stays that reference's impact-gated opt-in and is never bundled here |
+| Force-push territory | The pile only exists because pushed history was unwound to make it — the `mixed-scope` repair path, where `git reset --soft HEAD~` over an already-pushed commit turns a bulk commit back into a staged pile — soft, because a mixed reset empties the index and would drop the pile into §1's working-tree branch instead. SPLIT itself only ever adds commits, so this is the one route by which it inherits a rewrite. **Detect it rather than assume it**: `git reflog show HEAD -n 5` names the commit HEAD was moved off, and `git branch -r --contains <that sha>` says whether a remote still holds it — run after a fetch, per the stale-tracking-refs caveat in the reference below. A fresh invocation has no memory of the reset that produced its pile, so without this read the veto never fires on the case it was written for | Proposal only, behind the **Force-Push Impact** block from `../../references/force-push-impact.md`; `--force-with-lease` stays that reference's impact-gated opt-in and is never bundled here |
 | Unresolved `mixed-scope` | The user declined the split and the resulting bulk commit still trips `mixed-scope` from `../../references/commit-smells.md`, with no bundling justification in the body | Proposal only, with the smell named. Committing it is the user's call to make explicitly |
 
 Staged content is deliberately not a veto here, and the reason is worth stating so nobody adds one back as an oversight fix. A commit is local: it publishes nothing, and the staged code is what the user was about to commit anyway. The concern belongs to the step that leaves the machine, and this verb never bundles that step.
@@ -257,16 +257,18 @@ Open with WRITE mode's Detected-conventions preamble — one detection, one line
 **The pile is already staged, so staging a partition means removing the others, not adding it.** `git add -- <paths>` against a fully staged index is a no-op, and the first commit would take every partition; the recipe has to rebuild the index per partition from a snapshot of what the user staged. Taking it from the worktree instead is the second trap — a path with both staged and unstaged hunks would silently commit the unstaged ones too, which is the user's curation reversed rather than honoured.
 
 ```bash
-SNAPSHOT=$(git write-tree)     # exactly what the user staged
-ORIGINAL=$(git rev-parse HEAD) # for recovery
-git reset -q                   # empty the index; the worktree is untouched
+SNAPSHOT=$(git write-tree)                       # exactly what the user staged
+ORIGINAL=$(git rev-parse --verify -q HEAD || :)  # empty on an unborn branch
+git reset -q                                     # empty the index; worktree untouched
 
 # per partition, in series order:
 git restore --staged --source="$SNAPSHOT" -- "${PARTITION_PATHS[@]}"
 git commit -F "$MESSAGE_FILE"
 ```
 
-`git restore --staged --source=$SNAPSHOT` is the load-bearing part: it sets those index entries from the snapshot rather than from the working tree, so a partially-staged file contributes the half the user staged and keeps the other half unstaged afterwards. Recovery from any failure, at any point in the series, is two commands — `git reset --soft "$ORIGINAL"` then `git read-tree "$SNAPSHOT"` — which restores the original HEAD and the original index, partial staging included. Emit both with the proposal, not only on failure.
+`git restore --staged --source=$SNAPSHOT` is the load-bearing part: it sets those index entries from the snapshot rather than from the working tree, so a partially-staged file contributes the half the user staged and keeps the other half unstaged afterwards. **`--verify -q` is not decoration.** A repository with no commits has no `HEAD`, so a bare `git rev-parse HEAD` fails and takes the protocol down before the first partition — and since every staged authoring request now reaches this mode, the initial commit is a path through here rather than an exotic one. An unborn branch needs no other special case: `git write-tree`, `git reset`, and `git restore --staged --source` all work without a HEAD.
+
+Recovery from any failure, at any point in the series, is two commands. With a parent commit: `git reset --soft "$ORIGINAL"` then `git read-tree "$SNAPSHOT"`, which restores the original HEAD and the original index, partial staging included. On an unborn branch there is no commit to return to, so the first command is `git update-ref -d HEAD`, which puts the branch back to unborn; the second is unchanged. Emit whichever pair applies with the proposal, not only on failure.
 
 ```
 Detected: subject = <style>; body wrap = <flowing | hard-wrap @72> (<evidence sample>)
@@ -292,6 +294,7 @@ Undo the whole series with:
 
 If a commit fails part-way, restore the original state with:
   git reset --soft <ORIGINAL> && git read-tree <SNAPSHOT>
+  # on an unborn branch: git update-ref -d HEAD && git read-tree <SNAPSHOT>
 
 Or rehearse without committing:
   /git-toolkit commit --dry-run

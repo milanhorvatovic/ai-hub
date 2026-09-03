@@ -807,6 +807,87 @@ def test_only_implemented_verbs_are_advertised(router: str) -> None:
     )
 
 
+def test_the_working_tree_branch_swaps_its_inputs(split_mode: str) -> None:
+    """The branch existed because the index is empty, and then read the index.
+
+    Step 1's four reads are all `--cached`, which return nothing on exactly the
+    tree this branch handles — so the steps below would run against an empty
+    pile and report a clean tree. Untracked files need naming separately because
+    no form of `git diff` shows them at all.
+    """
+    body = split_mode.split("### 1. Read the pile", 1)[1].split("### 2.", 1)[0]
+    assert "git diff HEAD --numstat" in body, (
+        "the working-tree branch does not replace the cached reads, so it "
+        "partitions an empty pile"
+    )
+    assert "git ls-files --others --exclude-standard" in body, (
+        "untracked files are never listed, and no git diff form reveals them"
+    )
+
+
+def test_unmeasurable_churn_does_not_clear_the_floor(split_mode: str) -> None:
+    """`--numstat` does not always yield a number.
+
+    A binary file reports `-`, a pure rename reports `0`, and a rename-only pile
+    totals zero — so the 60% dominance clause has no denominator. Left undefined
+    it reads as satisfied, which is the same failure the unknown co-change rate
+    had: a veto cleared by an unevaluable clause.
+    """
+    body = split_mode.split("### 1. Read the pile", 1)[1].split("### 2.", 1)[0]
+    assert "Unknown or zero total churn leaves the dominance clause unmet" in body, (
+        "a pile with no measurable churn has no defined tier, so the applying "
+        "verb behaves differently on a rename-only pile than on any other"
+    )
+
+
+def test_the_force_push_veto_says_how_to_detect_its_state(split_mode: str) -> None:
+    """A veto whose trigger cannot be observed never fires.
+
+    A fresh invocation has no memory of the reset that produced its pile: the
+    index and status alone do not say whether the unwound commit was pushed, and
+    the impact reference's recipes need the removed SHA, which nothing recovers.
+    """
+    table = split_mode.split("### 8. Guard vetoes", 1)[1].split("###", 1)[0]
+    row = next((r for r in _rows(table) if "force-push" in r.split("|")[1].lower()), None)
+    assert row, "the veto table has no force-push row"
+    assert "git reflog" in row, (
+        "the veto does not recover the commit that was unwound, so the impact "
+        f"detection it defers to has no input: {row!r}"
+    )
+    assert "--contains" in row, (
+        f"nothing establishes whether a remote still holds that commit: {row!r}"
+    )
+
+
+def test_the_apply_protocol_survives_an_unborn_branch(split_mode: str) -> None:
+    """The initial commit is a path through here now, not an exotic case.
+
+    Routing every staged authoring request through SPLIT put the first commit of
+    a repository on this protocol, and a bare `git rev-parse HEAD` fails on an
+    unborn branch — before any partition is committed. Recovery differs too:
+    there is no commit to reset back to, only a ref to delete.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    recipe = re.search(r"```bash\n(.*?)```", body, re.DOTALL)
+    assert recipe, "the apply protocol is no longer an executable bash fence"
+    assert "rev-parse --verify -q HEAD" in recipe.group(1), (
+        "the protocol takes HEAD unguarded, so it dies on a repository with no "
+        "commits rather than creating its first one"
+    )
+    # Both homes, because they do different jobs and the example alone survived
+    # deleting the explanation when this checked the section as a whole.
+    assert "there is no commit to return to" in body, (
+        "the protocol does not explain why an unborn branch recovers differently, "
+        "so the command in the template reads as an alternative rather than the "
+        "only thing that works"
+    )
+    template = body.split("```", 2)[2] if body.count("```") > 2 else body
+    assert "git update-ref -d HEAD" in template, (
+        "the output template omits the unborn recovery, so a reader copying it "
+        "after a failed first commit has no way back"
+    )
+
+
 def test_the_output_shows_the_reversal(split_mode: str) -> None:
     """Reversibility claimed is reversibility shown.
 
