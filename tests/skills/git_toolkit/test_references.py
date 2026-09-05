@@ -760,7 +760,30 @@ def test_mixed_scope_repair_fetches_before_the_containment_read(references_dir: 
     """
     text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
     entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
-    assert "git fetch" in entry, (
+    # The instruction, not the word: the paragraph explaining why `--all` is
+    # required also says "git fetch", so a bare substring survives deleting the
+    # step it guards.
+    assert "Before deleting anything, run `git fetch" in entry, (
         "the containment read runs against possibly-stale tracking refs before a "
         "deletion that cannot be undone"
+    )
+
+
+def test_mixed_scope_repair_fetches_all_remotes(references_dir: Path) -> None:
+    """The fetch and the containment read must cover the same ground.
+
+    `git branch -r` spans every remote-tracking namespace; a bare `git fetch`
+    refreshes only the branch's configured remote. In a repository with a second
+    remote, a root freshly pushed there reports as unpublished and the deletion
+    that follows destroys the only local copy.
+    """
+    text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
+    entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
+    assert "run `git fetch --all`" in entry, (
+        "the fetch covers one remote while the containment read covers all, so a "
+        "root pushed to another remote reads as unpublished"
+    )
+    assert "unreachable remote is not an empty result" in entry, (
+        "a failed fetch is not distinguished from a clean containment answer, so "
+        "an offline remote authorises the deletion"
     )

@@ -338,7 +338,7 @@ Apply with: gh release create v2.4.0 --notes-file <mktemp-path>
 
 - **`worktree-setup`** — useful when working on multiple branches in parallel; not needed for a single change.
 - **`commit-message` AMEND mode** — useful for fixing only the wording of HEAD (no diff change); not needed here since the messages were good on first draft.
-- **`commit-message` SPLIT mode, in its series form** — it ran silently at Step 2 and returned one commit. A pile mixing the retry fix with, say, an unrelated CI bump would have been proposed as an ordered two-commit series instead.
+- **SPLIT mode's series output** — never reached here. The partition analysis itself did run, at Step 2, and returned N=1, which is why nothing in the walkthrough mentions splitting; the series form is what a pile mixing the retry fix with, say, an unrelated CI bump would have produced instead — two ordered commits and their staging protocol.
 - **`commit-body-reflow`** — useful when switching style across many commits at once; not needed for a 3-commit PR.
 
 Each is documented in its own `capabilities/<name>/capability.md`.

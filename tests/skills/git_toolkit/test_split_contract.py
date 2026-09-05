@@ -46,6 +46,19 @@ _VETO_ANCHORS = (
 )
 
 
+def _last_fence(text: str) -> str:
+    """The content of the final fenced block in `text`.
+
+    `split("```", 2)[2]` looked like fence extraction and was not: it returns
+    everything after the bash fence closes, explanatory prose included. Every
+    string those assertions looked for also appears in that prose, so deleting a
+    command from the block a reader copies left them green. Review caught it.
+    """
+    fences = re.findall(r"```[^\n]*\n(.*?)```", text, re.DOTALL)
+    assert fences, "no fenced block found where an output template was expected"
+    return fences[-1]
+
+
 def _section(text: str, heading: str) -> str:
     """The body of a `## <heading>` section, up to the next `## `."""
     assert heading in text, f"section {heading!r} not found"
@@ -696,9 +709,10 @@ def test_the_walkthrough_demonstrates_the_silent_path(references_dir: Path) -> N
     cannot tell that from the mode not existing.
     """
     text = (references_dir / "worked-example.md").read_text(encoding="utf-8")
-    assert "N=1" in text, (
+    assert "SPLIT's partition analysis runs here" in text, (
         "the walkthrough never shows the partition analysis running, so a reader "
-        "cannot distinguish the silent path from an absent one"
+        "cannot distinguish the silent path from an absent one. Pinned on the "
+        "sentence rather than on \"N=1\", which the modes-not-used entry also carries"
     )
     assert "SPLIT" in text, "the walkthrough does not mention SPLIT at all"
 
@@ -843,6 +857,10 @@ def test_the_working_tree_recipes_treat_names_as_data(split_mode: str) -> None:
         "the generated add recipes interpolate names instead of passing them as "
         "literal pathspecs"
     )
+    assert "--pathspec-file-nul" in body, (
+        "NUL-delimited records are fed to a parser left in its line-delimited "
+        "default, so the whole list reads as one path"
+    )
 
 
 def test_the_series_verifies_it_covered_the_pile(split_mode: str) -> None:
@@ -884,9 +902,10 @@ def test_the_root_veto_rests_on_something_observable(split_mode: str) -> None:
         "the row does not state the condition it detects, leaving the signal to "
         f"be inferred from a command: {row!r}"
     )
-    assert "Fetch first" in row, (
-        "the containment read is not preceded by a fetch, so a stale tracking ref "
-        f"reports a freshly pushed root as unpublished: {row!r}"
+    assert "git fetch --all" in row, (
+        "the containment read spans every remote-tracking namespace while the "
+        "fetch before it covers one, so a root pushed to a second remote reads "
+        f"as unpublished: {row!r}"
     )
 
 
@@ -1068,15 +1087,17 @@ def test_paths_have_one_authoritative_inventory(split_mode: str) -> None:
     exist while every command in the recipe behaved correctly.
     """
     body = split_mode.split("### 1. Read the pile", 1)[1].split("### 2.", 1)[0]
-    assert "--no-renames --name-only -z" in body, (
-        "the inventory keeps rename detection on, so a moved file contributes "
-        "only its destination and the partition records an add"
+    assert "git diff --cached --no-renames --name-only -z" in body, (
+        "the staged inventory is missing or keeps rename detection on, so a moved "
+        "file contributes only its destination and the partition records an add. "
+        "Named in full because the working-tree branch carries its own "
+        "HEAD-relative inventory that would otherwise satisfy a looser match"
     )
     assert "git log -z --no-renames" in body, (
         "the co-change history is read in a form that quotes unusual names, so "
         "they become area names that match nothing"
     )
-    assert "git diff --cached" in body and "--name-only -z" in body, (
+    assert "the authoritative path list" in body, (
         "there is no NUL-delimited path inventory, so partition files are built "
         "from quoted, newline-separated output"
     )
@@ -1098,6 +1119,11 @@ def test_the_working_tree_branch_swaps_its_inputs(split_mode: str) -> None:
     assert "git diff HEAD --numstat" in body, (
         "the working-tree branch does not replace the cached reads, so it "
         "partitions an empty pile"
+    )
+    assert "git diff HEAD --no-renames --name-only -z" in body, (
+        "only the measuring reads were swapped: identity still points at an "
+        "index this branch exists because it is empty, so the staging groups "
+        "it emits name nothing"
     )
     assert "git ls-files -z --others --exclude-standard" in body, (
         "untracked files are either unlisted, or listed without `-z` — and no "
@@ -1173,7 +1199,7 @@ def test_the_apply_protocol_survives_an_unborn_branch(split_mode: str) -> None:
         "so the command in the template reads as an alternative rather than the "
         "only thing that works"
     )
-    template = body.split("```", 2)[2] if body.count("```") > 2 else body
+    template = _last_fence(body)
     assert "git update-ref -d HEAD" in template, (
         "the output template omits the unborn recovery, so a reader copying it "
         "after a failed first commit has no way back"
@@ -1197,19 +1223,19 @@ def test_the_output_shows_the_reversal(split_mode: str) -> None:
     # The template a reader copies, not the section: the N=1 paragraph also names
     # a soft reset, so a section-wide search survives deleting the series
     # reversal. Mutation found that.
-    template = body.split("```", 2)[2] if body.count("```") > 2 else body
+    template = _last_fence(body)
     assert "git reset --soft HEAD~" in template, (
         "the output template does not carry the undo recipe the apply default "
         "is justified by"
     )
     # Both reversals, because `HEAD~N` cannot resolve for a series that began on
     # an unborn branch — the successful path, not only the failure path.
-    assert "git update-ref -d HEAD" in body, (
+    assert "git update-ref -d HEAD" in template, (
         "only the parented reversal is offered, so the advertised undo fails "
         "after a series that created a repository's first commits"
     )
-    assert "had no commit before this series" in body, (
+    assert "had no commit before this series" in template, (
         "the template does not say which reversal applies when, leaving a reader "
         "to pick between two commands on their own"
     )
-    assert "--dry-run" in body, "the output template does not surface the rehearsal path"
+    assert "--dry-run" in template, "the output template does not surface the rehearsal path"
