@@ -749,3 +749,18 @@ def test_mixed_scope_repair_checks_the_remote_before_deleting(references_dir: Pa
         "the non-empty branch does not say to stop, so the recipe reads as "
         "advisory where it has to be a halt"
     )
+
+
+def test_mixed_scope_repair_fetches_before_the_containment_read(references_dir: Path) -> None:
+    """Stale tracking refs report a freshly pushed root as unpublished.
+
+    `force-push-impact.md` documents the caveat; this is where it carries the
+    highest stakes in the skill, because acting on the stale answer deletes the
+    ref and destroys the evidence that would have contradicted it.
+    """
+    text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
+    entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
+    assert "git fetch" in entry, (
+        "the containment read runs against possibly-stale tracking refs before a "
+        "deletion that cannot be undone"
+    )

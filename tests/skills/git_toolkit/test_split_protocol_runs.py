@@ -14,6 +14,7 @@ this file exists to make impossible.
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -30,15 +31,21 @@ _CAPABILITY = _REPO_ROOT / "skills/git-toolkit/capabilities/commit-message/capab
 # The marker is a whole line on purpose: splitting mid-comment leaves prose at
 # the head of the loop body, which is a syntax error rather than a failed test.
 _PER_PARTITION_MARKER = "# per partition, in series order:\n"
+_EPILOGUE_MARKER = "# after the last partition:\n"
 
+# Inherit the host environment and override only what must be deterministic.
+# Replacing PATH wholesale made `git` unresolvable anywhere its location is not
+# a POSIX directory, and `/dev/null` is not the platform null device — together
+# they would have run these tests against a shell that could not call git rather
+# than skipping honestly.
 _ENV = {
-    "GIT_CONFIG_GLOBAL": "/dev/null",
-    "GIT_CONFIG_SYSTEM": "/dev/null",
+    **os.environ,
+    "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_CONFIG_SYSTEM": os.devnull,
     "GIT_AUTHOR_NAME": "T",
     "GIT_AUTHOR_EMAIL": "t@example.invalid",
     "GIT_COMMITTER_NAME": "T",
     "GIT_COMMITTER_EMAIL": "t@example.invalid",
-    "PATH": "/usr/bin:/bin:/usr/local/bin",
 }
 
 
@@ -63,8 +70,8 @@ needs_bash = pytest.mark.skipif(
 
 
 @pytest.fixture(scope="session")
-def protocol() -> tuple[str, str]:
-    """(prologue, per-partition body) read from the shipped bash fence."""
+def protocol() -> tuple[str, str, str]:
+    """(prologue, per-partition body, epilogue) read from the shipped bash fence."""
     text = _CAPABILITY.read_text(encoding="utf-8")
     fence = re.search(r"```bash\n(.*?)```", text, re.DOTALL)
     assert fence, "capability.md no longer ships the apply protocol as a bash fence"
@@ -73,8 +80,13 @@ def protocol() -> tuple[str, str]:
         "the recipe lost its per-partition marker, so this test can no longer "
         "tell the one-time setup from the loop body"
     )
-    prologue, _, per_partition = body.partition(_PER_PARTITION_MARKER)
-    return prologue, per_partition
+    assert _EPILOGUE_MARKER in body, (
+        "the recipe lost its closing marker, so the coverage check that runs "
+        "after the last partition would silently stop being exercised"
+    )
+    prologue, _, rest = body.partition(_PER_PARTITION_MARKER)
+    per_partition, _, epilogue = rest.partition(_EPILOGUE_MARKER)
+    return prologue, per_partition, epilogue
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -101,7 +113,7 @@ def _run_series(
     the script the way the recipe says they do, NUL-separated through a file
     whose own name this test chooses.
     """
-    prologue, per_partition = protocol
+    prologue, per_partition, epilogue = protocol
     # Outside the work tree: control files inside it show up as untracked and
     # corrupt any exact comparison of `git status`, which the recovery test makes.
     control = repo.parent / f".control-{repo.name}"
@@ -115,6 +127,7 @@ def _run_series(
         script.append(f'PARTITION_FILE="{control}/part{index}"')
         script.append(f'MESSAGE_FILE="{control}/msg{index}"')
         script.append(per_partition)
+    script.append(epilogue)
     runner = control / "run.bash"
     runner.write_text("\n".join(script), encoding="utf-8")
     result = subprocess.run(
@@ -450,4 +463,62 @@ def test_the_recovery_commands_restore_a_half_written_series(
     assert "reset --soft" in parented_cmd, (
         "the shipped reversal is no longer a soft reset, so this recovery no "
         "longer matches what the output block advertises"
+    )
+
+
+@needs_bash
+def test_a_path_missing_from_every_partition_is_caught(tmp_path: Path, protocol) -> None:
+    """The failure that reports success.
+
+    A path in no partition file is removed from the index by the opening reset
+    and restored by no iteration, so every commit succeeds while that staged
+    change quietly reverts. Only comparing the final tree against the snapshot
+    sees it — each individual commit is perfectly well-formed.
+    """
+    repo = tmp_path / "dropped"
+    repo.mkdir()
+    _init(repo)
+    for name in ("a.txt", "b.txt", "c.txt"):
+        (repo / name).write_text("base\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    for name in ("a.txt", "b.txt", "c.txt"):
+        (repo / name).write_text("changed\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+
+    result = _run_series(repo, protocol, [["a.txt"], ["b.txt"]])  # c.txt in neither
+
+    assert result.returncode != 0, (
+        "the series reported success while c.txt's staged change was dropped — "
+        "the closing coverage check is not running"
+    )
+    assert _git(repo, "show", "HEAD:c.txt") == "base\n", (
+        "this test no longer reproduces the drop it exists to catch"
+    )
+
+
+@needs_bash
+def test_a_complete_series_passes_the_coverage_check(tmp_path: Path, protocol) -> None:
+    """Anti-vacuity for the check above.
+
+    If the closing `test` compared the wrong things it would fail every run, and
+    the drop test would pass for the wrong reason.
+    """
+    repo = tmp_path / "covered"
+    repo.mkdir()
+    _init(repo)
+    for name in ("a.txt", "b.txt"):
+        (repo / name).write_text("base\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    for name in ("a.txt", "b.txt"):
+        (repo / name).write_text("changed\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    snapshot = _git(repo, "write-tree").strip()
+
+    _run_ok(repo, protocol, [["a.txt"], ["b.txt"]])
+
+    assert _git(repo, "rev-parse", "HEAD^{tree}").strip() == snapshot, (
+        "a complete series did not reproduce the staged tree, so the coverage "
+        "check is comparing the wrong things"
     )

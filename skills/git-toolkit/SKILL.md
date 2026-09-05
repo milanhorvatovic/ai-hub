@@ -150,7 +150,7 @@ The verb's front end is state detection, so the same invocation means different 
 
 | Tree state | Route |
 | --- | --- |
-| Mid-rebase, unresolved conflicts, or detached HEAD | Report the blocking state and stop; propose nothing while the tree is mid-operation |
+| An operation is in progress, or HEAD is detached | Report the blocking state and stop; propose nothing while the tree is mid-operation. Detect it from the sentinels git leaves in `$GIT_DIR` — `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `BISECT_LOG`, `rebase-merge/`, `rebase-apply/` — never from whether conflicts are unresolved: a merge whose conflicts are fixed has a clean index and staged changes, and reading only for conflicts drops it straight into an applying row where committing would write a merge nobody proposed |
 | Clean tree | Report that there is nothing to commit, and stop |
 | Staged, fixup-shaped (the change belongs to an earlier commit on the branch) | `commit-fixup`'s proposal, offered beside the WRITE alternative rather than instead of it. Two answers means the verb has none, so this state is **proposal-only**: both options are shown with their commands and the user runs the one they want. There is no selector flag and no follow-up that applies — a conversational reply cannot reach an applying path, and inventing a chooser here would be the one place this skill let an inferred answer execute |
 | Staged, one concern | `commit-message` WRITE — one commit, splitting never mentioned |

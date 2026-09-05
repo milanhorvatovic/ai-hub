@@ -33,7 +33,7 @@ _DISPATCH_STATES = (
     ("fixup-shaped", "fixup-shaped"),
     ("dirty but unstaged", "Nothing staged, tree dirty"),
     ("clean tree", "Clean tree"),
-    ("mid-operation", "Mid-rebase"),
+    ("mid-operation", "An operation is in progress"),
 )
 
 # Each veto row names a guard that has to exist elsewhere in the tree. Pinning
@@ -142,7 +142,7 @@ def test_dispatch_rows_have_a_stated_precedence(arguments: str) -> None:
         "resolved by whichever an agent notices first"
     )
     rows = _rows(section)
-    blocking = next(i for i, r in enumerate(rows) if "Mid-rebase" in r)
+    blocking = next(i for i, r in enumerate(rows) if "An operation is in progress" in r)
     staged = next(i for i, r in enumerate(rows) if "Staged, one concern" in r)
     fixup = next(i for i, r in enumerate(rows) if "fixup-shaped" in r)
     mixed = next(i for i, r in enumerate(rows) if "Staged, mixed concerns" in r)
@@ -156,6 +156,30 @@ def test_dispatch_rows_have_a_stated_precedence(arguments: str) -> None:
     )
 
 
+def test_the_blocking_row_names_every_in_progress_sentinel(arguments: str) -> None:
+    """A resolved merge has a clean index and staged changes.
+
+    Reading for unresolved conflicts misses it entirely, so a cherry-pick or
+    revert whose conflicts are fixed falls through to an applying row and the
+    verb writes a commit nobody proposed. The sentinels git leaves in `$GIT_DIR`
+    are the state; conflict-freeness is not.
+    """
+    rows = _rows(arguments.split("### `commit` dispatch", 1)[1])
+    row = next(r for r in rows if "An operation is in progress" in r)
+    for sentinel in (
+        "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD",
+        "BISECT_LOG", "rebase-merge/", "rebase-apply/",
+    ):
+        assert sentinel in row, (
+            f"the blocking row does not name {sentinel}, so that operation's "
+            "resolved state falls through to an applying route"
+        )
+    assert "never from whether conflicts are unresolved" in row, (
+        "the row does not reject conflict-freeness as the detection signal, which "
+        "is the reading that lets a resolved merge through"
+    )
+
+
 def test_clean_and_mid_operation_states_propose_nothing(arguments: str) -> None:
     """The two states whose correct route is to stop.
 
@@ -163,7 +187,7 @@ def test_clean_and_mid_operation_states_propose_nothing(arguments: str) -> None:
     routes to a proposal is worse than no row: it looks handled.
     """
     rows = _rows(arguments.split("### `commit` dispatch", 1)[1])
-    for phrase in ("Clean tree", "Mid-rebase"):
+    for phrase in ("Clean tree", "An operation is in progress"):
         row = next(r for r in rows if phrase in r)
         assert "stop" in row.lower(), (
             f"the {phrase!r} row does not stop; a verb that proposes against an "
@@ -790,9 +814,16 @@ def test_n_equals_one_still_applies(split_mode: str) -> None:
         "the N=1 branch omits execution along with the ceremony, so an applying "
         "verb proposes on a single-concern pile"
     )
-    assert "git reset --soft HEAD~1" in body, (
-        "the single-commit case advertises no reversal, though the apply default "
-        "rests on there being one"
+    # Both, scoped to the N=1 paragraph: `HEAD~1` cannot resolve behind a root
+    # commit, and N=1 is how a root commit gets made — so pinning it alone would
+    # have blocked the correction rather than guarding it.
+    paragraph = body.split("**N=1", 1)[1].split("\n\n", 1)[0]
+    assert "git reset --soft HEAD~1" in paragraph, (
+        "the single-commit case advertises no reversal for a parented branch"
+    )
+    assert "git update-ref -d HEAD" in paragraph, (
+        "the single-commit case offers no reversal for the root commit it is the "
+        "path for, where `HEAD~1` does not resolve"
     )
 
 
@@ -814,22 +845,48 @@ def test_the_working_tree_recipes_treat_names_as_data(split_mode: str) -> None:
     )
 
 
-def test_the_root_repair_never_hands_off_to_an_apply(split_mode: str) -> None:
-    """"Its answer is carried in" named a channel that does not exist.
+def test_the_series_verifies_it_covered_the_pile(split_mode: str) -> None:
+    """Every commit can succeed while a staged change is silently reverted.
 
-    The grammar takes no SHA, and the invocation after a root deletion has
-    neither reflog nor memory — so a published root could reach the applying
-    path with the veto undetectable. One proposal-only flow is the only shape
-    that closes it without inventing a state-passing mechanism.
+    A path in no partition file is dropped by the opening reset and restored by
+    nothing, so the only observation that catches it is comparing the final tree
+    to the snapshot — each commit on its own is well-formed and the series
+    reports done.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    recipe = re.search(r"```bash\n(.*?)```", body, re.DOTALL).group(1)
+    assert "# after the last partition:" in recipe, (
+        "the recipe has no closing step, so nothing checks that the series "
+        "committed everything that was staged"
+    )
+    assert 'HEAD^{tree}' in recipe and "$SNAPSHOT" in recipe, (
+        "the closing step does not compare the committed tree against the "
+        "snapshot, which is the only check that sees a dropped path"
+    )
+
+
+def test_the_root_veto_rests_on_something_observable(split_mode: str) -> None:
+    """A veto is only a veto if the state that triggers it can be seen.
+
+    The row first claimed the containment answer was "carried in" to the next
+    invocation, and no channel exists to carry it. The state is observable
+    though, which is the difference between an enforceable rule and an
+    aspirational one: an unborn branch whose remote-tracking ref still resolves
+    was published and unwound, while a genuine first commit has no such ref.
     """
     table = split_mode.split("### 8. Guard vetoes", 1)[1].split("###", 1)[0]
     row = next((r for r in _rows(table) if "force-push" in r.split("|")[1].lower()), None)
     assert row, "the veto table has no force-push row"
-    assert "no channel that could carry the answer forward" in row, (
-        f"the row still implies a hand-off it cannot perform: {row!r}"
+    assert "refs/remotes/" in row, (
+        f"the root case rests on no observable signal, so the veto cannot fire: {row!r}"
     )
-    assert "proposal-only end to end" in row, (
-        f"the root path does not close itself to the applying verb: {row!r}"
+    assert "unborn branch whose remote-tracking ref still resolves" in row, (
+        "the row does not state the condition it detects, leaving the signal to "
+        f"be inferred from a command: {row!r}"
+    )
+    assert "Fetch first" in row, (
+        "the containment read is not preceded by a fetch, so a stale tracking ref "
+        f"reports a freshly pushed root as unpublished: {row!r}"
     )
 
 
