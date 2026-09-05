@@ -815,6 +815,27 @@ def test_the_secret_veto_claims_only_what_its_catalog_covers(split_mode: str) ->
     )
 
 
+def test_the_applying_path_never_executes_a_heredoc(split_mode: str) -> None:
+    """A message is data; a heredoc makes part of it shell.
+
+    A heredoc ends at its delimiter wherever the delimiter appears, so a commit
+    body legitimately containing a line reading `EOF` closes it early and hands
+    the rest to the shell. WRITE's heredoc is a display form and a human reading
+    it would see the collision; an applying verb has no reader, which is why the
+    series protocol commits from a file and why N=1 must too.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    paragraph = body.split("**N=1", 1)[1].split("\n\n", 1)[0]
+    assert 'git commit -F "$MESSAGE_FILE"' in paragraph, (
+        "the single-commit path does not commit from a file, so it executes the "
+        "displayed heredoc and a message can terminate it early"
+    )
+    assert "never by executing the heredoc" in paragraph, (
+        "nothing forbids running the display form, so the next edit that "
+        "simplifies this reaches for the command already on the screen"
+    )
+
+
 def test_n_equals_one_still_applies(split_mode: str) -> None:
     """Excluding N=1 from the ceremony is right; excluding it from the apply is not.
 
@@ -902,10 +923,18 @@ def test_the_root_veto_rests_on_something_observable(split_mode: str) -> None:
         "the row does not state the condition it detects, leaving the signal to "
         f"be inferred from a command: {row!r}"
     )
-    assert "git fetch --all" in row, (
-        "the containment read spans every remote-tracking namespace while the "
-        "fetch before it covers one, so a root pushed to a second remote reads "
-        f"as unpublished: {row!r}"
+    assert "This read never fetches." in row, (
+        "the veto refreshes remote-tracking refs while evaluating, which is a "
+        "network and ref mutation on the conversational path and under "
+        f"--dry-run, both of which promise to execute nothing: {row!r}"
+    )
+    assert "unknown" in row and "degrades exactly as a fired veto does" in row, (
+        "possibly-stale refs have no defined outcome, so the read either fetches "
+        f"or treats absence of evidence as clearance: {row!r}"
+    )
+    assert "surfaces `git fetch --all`" in row, (
+        "the user is given no way to refresh and re-run, which makes the unknown "
+        f"verdict a dead end rather than a step: {row!r}"
     )
 
 
@@ -1116,9 +1145,10 @@ def test_the_working_tree_branch_swaps_its_inputs(split_mode: str) -> None:
     no form of `git diff` shows them at all.
     """
     body = split_mode.split("### 1. Read the pile", 1)[1].split("### 2.", 1)[0]
-    assert "git diff HEAD --numstat" in body, (
-        "the working-tree branch does not replace the cached reads, so it "
-        "partitions an empty pile"
+    assert "git diff HEAD --numstat -z" in body, (
+        "the working-tree churn read is missing, or drops `-z` — in which case a "
+        "quoted path cannot be joined to the NUL-delimited inventory and the "
+        "churn lands on a file that does not exist, moving the dominance share"
     )
     assert "git diff HEAD --no-renames --name-only -z" in body, (
         "only the measuring reads were swapped: identity still points at an "
