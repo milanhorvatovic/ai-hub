@@ -553,3 +553,62 @@ def test_a_complete_series_passes_the_coverage_check(tmp_path: Path, protocol) -
         "a complete series did not reproduce the staged tree, so the coverage "
         "check is comparing the wrong things"
     )
+
+
+@needs_bash
+def test_the_unborn_recovery_restores_a_half_written_first_series(
+    tmp_path: Path, protocol, recovery
+) -> None:
+    """The failure path unique to a repository's first commits.
+
+    The parented recovery resets to a SHA; there is none here, so the advertised
+    command deletes the ref instead — and the `read-tree` half matters more, not
+    less, because a partial unborn series leaves the index holding only what the
+    failed partition restored. Extracting this command and discarding it, which
+    the suite did, left the whole path unexecuted.
+    """
+    # Three partitions with the middle one rejected, so the index at failure is
+    # missing the third — which is what makes `read-tree` load-bearing. With two
+    # partitions the index happens to hold everything and deleting the ref alone
+    # restores the original status, so the mutation that drops `read-tree`
+    # survived. Mutation found that.
+    repo = tmp_path / "unborn-halfway"
+    repo.mkdir()
+    _init(repo)
+    for name in ("a.txt", "b.txt", "c.txt"):
+        (repo / name).write_text("first\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    before = _git(repo, "status", "--porcelain")
+    snapshot = _git(repo, "write-tree").strip()
+
+    hook = repo / ".git" / "hooks" / "commit-msg"
+    hook.write_text('#!/bin/sh\ngrep -q "commit 1" "$1" && exit 1\nexit 0\n', encoding="utf-8")
+    hook.chmod(0o755)
+
+    result = _run_series(repo, protocol, [["a.txt"], ["b.txt"], ["c.txt"]])
+    assert result.returncode != 0, "the rejected second partition did not stop the series"
+    assert _git(repo, "rev-list", "--count", "HEAD").strip() == "1", (
+        "the first partition did not commit, so this is not the half-written "
+        "unborn state the second recovery command exists for"
+    )
+
+    _, unborn_recovery = recovery
+    resolved = unborn_recovery.replace("<SNAPSHOT>", snapshot)
+    assert "<" not in resolved, (
+        f"a placeholder in the shipped unborn recovery went unsubstituted: {resolved!r}"
+    )
+    ran = subprocess.run(
+        [_BASH, "-c", resolved], cwd=repo, capture_output=True, text=True, env=_ENV
+    )
+    assert ran.returncode == 0, (
+        f"the shipped unborn recovery failed: {resolved!r}\n{ran.stderr}"
+    )
+
+    assert subprocess.run(
+        ["git", "rev-parse", "--verify", "-q", "HEAD"],
+        cwd=repo, capture_output=True, text=True, env=_ENV,
+    ).returncode != 0, "recovery left a commit behind; the branch is not unborn again"
+    assert _git(repo, "status", "--porcelain") == before, (
+        "recovery returned the branch to unborn but not the index: the staged "
+        "tree the user arrived with is not what they got back"
+    )

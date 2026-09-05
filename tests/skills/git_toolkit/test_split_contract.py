@@ -1068,7 +1068,15 @@ def test_paths_have_one_authoritative_inventory(split_mode: str) -> None:
     exist while every command in the recipe behaved correctly.
     """
     body = split_mode.split("### 1. Read the pile", 1)[1].split("### 2.", 1)[0]
-    assert "git diff --cached --name-only -z" in body, (
+    assert "--no-renames --name-only -z" in body, (
+        "the inventory keeps rename detection on, so a moved file contributes "
+        "only its destination and the partition records an add"
+    )
+    assert "git log -z --no-renames" in body, (
+        "the co-change history is read in a form that quotes unusual names, so "
+        "they become area names that match nothing"
+    )
+    assert "git diff --cached" in body and "--name-only -z" in body, (
         "there is no NUL-delimited path inventory, so partition files are built "
         "from quoted, newline-separated output"
     )
