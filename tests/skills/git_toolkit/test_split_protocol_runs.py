@@ -97,7 +97,7 @@ def _git(repo: Path, *args: str) -> str:
 
 
 def _run_series(
-    repo: Path, protocol: tuple[str, str], partitions: list[list[str]]
+    repo: Path, protocol: tuple[str, str, str], partitions: list[list[str]]
 ) -> subprocess.CompletedProcess[str]:
     """Run the shipped prologue once, then its body once per partition.
 
@@ -210,6 +210,26 @@ def test_the_protocol_creates_a_first_commit(tmp_path: Path, protocol) -> None:
     )
     assert _git(repo, "show", "--name-only", "--format=", "HEAD~1").split() == ["a.txt"]
     assert _git(repo, "show", "--name-only", "--format=", "HEAD").split() == ["b.txt"]
+
+
+@pytest.fixture(scope="session")
+def recovery() -> tuple[str, str]:
+    """(parented, unborn) recovery commands, read from the shipped output block.
+
+    The recovery test used to extract the reversal and then hard-code `reset`
+    and `read-tree` from memory — so documenting `git read-tree HEAD` would have
+    left it green. These are the commands a reader copies after a failed apply,
+    which makes them exactly the ones a test must not paraphrase.
+    """
+    text = _CAPABILITY.read_text(encoding="utf-8")
+    marker = "If a commit fails part-way, restore the original state with:"
+    assert marker in text, "the output block no longer documents a recovery"
+    lines = text.split(marker, 1)[1].splitlines()
+    plain = next(ln.strip() for ln in lines if ln.strip().startswith("git "))
+    commented = next(
+        ln.split(":", 1)[1].strip() for ln in lines if ln.strip().startswith("# ")
+    )
+    return plain, commented
 
 
 @pytest.fixture(scope="session")
@@ -411,7 +431,7 @@ def test_a_rejected_commit_stops_the_series(tmp_path: Path, protocol) -> None:
 
 @needs_bash
 def test_the_recovery_commands_restore_a_half_written_series(
-    tmp_path: Path, protocol, reversals
+    tmp_path: Path, protocol, recovery
 ) -> None:
     """Reject a *later* partition, then run the shipped recovery.
 
@@ -448,10 +468,21 @@ def test_the_recovery_commands_restore_a_half_written_series(
         "state the recovery commands exist for"
     )
 
-    # The commands as shipped, not as remembered.
-    parented_cmd, _ = reversals
-    _git(repo, "reset", "--soft", original)
-    _git(repo, "read-tree", snapshot)
+    # The commands as shipped, actually run — the previous version of this test
+    # said so and then hard-coded them, which review caught.
+    parented_recovery, _ = recovery
+    resolved = parented_recovery.replace("<ORIGINAL>", original).replace(
+        "<SNAPSHOT>", snapshot
+    )
+    assert "<" not in resolved, (
+        f"a placeholder in the shipped recovery went unsubstituted: {resolved!r}"
+    )
+    ran = subprocess.run(
+        [_BASH, "-c", resolved], cwd=repo, capture_output=True, text=True, env=_ENV
+    )
+    assert ran.returncode == 0, (
+        f"the shipped recovery failed: {resolved!r}\n{ran.stderr}"
+    )
 
     assert _git(repo, "rev-parse", "HEAD").strip() == original, (
         "recovery did not return HEAD to where the series started"
@@ -460,9 +491,9 @@ def test_the_recovery_commands_restore_a_half_written_series(
         "recovery restored HEAD but not the index: the staged and unstaged split "
         "the user arrived with is not what they got back"
     )
-    assert "reset --soft" in parented_cmd, (
-        "the shipped reversal is no longer a soft reset, so this recovery no "
-        "longer matches what the output block advertises"
+    assert "read-tree" in parented_recovery and snapshot in resolved, (
+        "the shipped recovery does not restore the index from the snapshot, so "
+        "HEAD would come back without the staging the user arrived with"
     )
 
 

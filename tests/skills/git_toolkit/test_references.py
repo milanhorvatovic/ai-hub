@@ -735,13 +735,13 @@ def test_mixed_scope_repair_checks_the_remote_before_deleting(references_dir: Pa
     """
     text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
     entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
-    assert "--contains HEAD" in entry and "**before** deleting" in entry, (
+    assert "--contains HEAD" in entry and "Before deleting anything" in entry, (
         "the root-commit repair deletes the ref without first asking whether a "
         "remote holds it, so a pushed root rewrite passes the veto unseen"
     )
     # Ordering alone is satisfied by an unconditional delete that happens to run
     # the check first. What the published-root case needs is the branch.
-    assert "conditional on an empty result" in entry, (
+    assert "make the deletion conditional on an empty result" in entry, (
         "the check runs but nothing depends on its answer, so a published root "
         "is still deleted and its reflog evidence destroyed"
     )

@@ -1059,6 +1059,25 @@ def test_only_implemented_verbs_are_advertised(router: str) -> None:
     )
 
 
+def test_paths_have_one_authoritative_inventory(split_mode: str) -> None:
+    """Identity and measurement are different reads.
+
+    The apply protocol promises to carry names containing quotes and newlines,
+    and the reading step offered only line-oriented, path-quoting commands to
+    build that list from — so a partition file could name files that do not
+    exist while every command in the recipe behaved correctly.
+    """
+    body = split_mode.split("### 1. Read the pile", 1)[1].split("### 2.", 1)[0]
+    assert "git diff --cached --name-only -z" in body, (
+        "there is no NUL-delimited path inventory, so partition files are built "
+        "from quoted, newline-separated output"
+    )
+    assert "never for identity" in body, (
+        "nothing distinguishes the reads that may name a path from the ones that "
+        "may only measure it, leaving the choice to whichever is nearest"
+    )
+
+
 def test_the_working_tree_branch_swaps_its_inputs(split_mode: str) -> None:
     """The branch existed because the index is empty, and then read the index.
 
@@ -1072,8 +1091,13 @@ def test_the_working_tree_branch_swaps_its_inputs(split_mode: str) -> None:
         "the working-tree branch does not replace the cached reads, so it "
         "partitions an empty pile"
     )
-    assert "git ls-files --others --exclude-standard" in body, (
-        "untracked files are never listed, and no git diff form reveals them"
+    assert "git ls-files -z --others --exclude-standard" in body, (
+        "untracked files are either unlisted, or listed without `-z` — and no "
+        "git diff form reveals them at all, so this is the only inventory"
+    )
+    assert "git ls-files --others" not in body, (
+        "a second, non-NUL spelling of the same read is still prescribed, which "
+        "splits a filename containing a newline into two paths"
     )
     assert "read each listed file's contents" in body, (
         "the untracked read stops at names, which cannot be grouped by concern "
