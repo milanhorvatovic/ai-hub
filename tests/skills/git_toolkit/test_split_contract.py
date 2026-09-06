@@ -947,11 +947,17 @@ def test_n_equals_one_emits_write_output_unchanged(split_mode: str) -> None:
     the capability.
     """
     body = split_mode.split("### 9. Output", 1)[1]
-    assert "N=1 emits WRITE's output unchanged" in body, (
+    assert "N=1 emits WRITE's output unchanged on the proposing surfaces" in body, (
         "the output contract does not branch on N, so a single-concern pile is "
-        "shown a partition table"
+        "shown a partition table — or claims WRITE's output is emitted unchanged "
+        "on the applying surface too, where its `Apply with` block would hand the "
+        "user a second commit command for work already committed"
     )
-    assert "No partition table" in body, (
+    assert "no `Apply with` block" in body, (
+        "the applying surface reprints a proposal template after the fact, so the "
+        "output ends with an instruction to do what it just did"
+    )
+    assert "no partition table, no snapshot protocol" in body.lower(), (
         "the N=1 branch does not say what it omits, leaving the silent path to "
         "the reader's inference"
     )
@@ -994,7 +1000,7 @@ def test_partition_paths_never_enter_the_script_as_text(split_mode: str) -> None
 
 
 def test_a_veto_is_cleared_by_the_condition_not_a_rerun(split_mode: str) -> None:
-    """"Apply on a fresh invocation" promised a path that does not exist.
+    """The claim that a fresh invocation restores applying promised a path that does not exist.
 
     Force-push territory and an unresolved `mixed-scope` persist across runs, so
     re-invoking reaches the same veto forever. Either the verb never applies for
@@ -1068,7 +1074,7 @@ def test_an_unstageable_partition_stops_the_whole_series(split_mode: str) -> Non
 
 
 def test_the_fixup_branch_states_how_it_resolves(router: str) -> None:
-    """"Until the user names one" needs a way to name one.
+    """Waiting "until the user names one" needs a way to name one.
 
     The grammar carries no selector, a conversational reply cannot reach an
     applying path by design, and `commit-fixup` proposes rather than executes —
