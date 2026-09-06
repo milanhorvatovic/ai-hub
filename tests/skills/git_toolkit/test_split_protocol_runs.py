@@ -114,11 +114,24 @@ def _run_series(
     whose own name this test chooses.
     """
     prologue, per_partition, epilogue = protocol
+    # Step 1 records these before partitioning; the protocol refuses to mutate
+    # unless they still match. The harness stands in for Step 1 here, and taking
+    # them now — before any partition file is written — is what makes the guard
+    # meaningful rather than self-satisfying.
+    analysed_tree = _git(repo, "write-tree").strip()
+    analysed_head = subprocess.run(
+        ["git", "rev-parse", "--verify", "-q", "HEAD"],
+        cwd=repo, capture_output=True, text=True, env=_ENV,
+    ).stdout.strip()
     # Outside the work tree: control files inside it show up as untracked and
     # corrupt any exact comparison of `git status`, which the recovery test makes.
     control = repo.parent / f".control-{repo.name}"
     control.mkdir(exist_ok=True)
-    script = [prologue]
+    script = [
+        f'ANALYSED_TREE="{analysed_tree}"',
+        f'ANALYSED_HEAD="{analysed_head}"',
+        prologue,
+    ]
     for index, paths in enumerate(partitions):
         (control / f"msg{index}").write_text(f"commit {index}\n", encoding="utf-8")
         (control / f"part{index}").write_bytes(
@@ -611,4 +624,110 @@ def test_the_unborn_recovery_restores_a_half_written_first_series(
     assert _git(repo, "status", "--porcelain") == before, (
         "recovery returned the branch to unborn but not the index: the staged "
         "tree the user arrived with is not what they got back"
+    )
+
+
+@pytest.fixture(scope="session")
+def n1_reversals() -> tuple[str, str]:
+    """(parented, unborn) reversals for the single-commit apply, read from §9.
+
+    The N=1 paragraph names both because N=1 is how a root commit gets made and
+    `HEAD~1` does not resolve behind one. Read rather than restated, for the same
+    reason the series commands are.
+    """
+    text = _CAPABILITY.read_text(encoding="utf-8")
+    paragraph = text.split("**N=1", 1)[1].split("\n\n", 1)[0]
+    assert "git reset --soft HEAD~1" in paragraph, "N=1 names no parented reversal"
+    assert "git update-ref -d HEAD" in paragraph, "N=1 names no unborn reversal"
+    return "git reset --soft HEAD~1", "git update-ref -d HEAD"
+
+
+def _commit_single(repo: Path, message: str) -> subprocess.CompletedProcess[str]:
+    """The N=1 apply as documented: commit the index from a message file.
+
+    Deliberately not the heredoc §9 forbids — a body containing a line reading
+    `EOF` would close it and hand the rest to the shell.
+    """
+    path = repo.parent / f".msg-{repo.name}"
+    path.write_text(message, encoding="utf-8")
+    return subprocess.run(
+        ["git", "commit", "-F", str(path)],
+        cwd=repo, capture_output=True, text=True, env=_ENV,
+    )
+
+
+def test_n_equals_one_applies_and_reverses_with_a_parent(
+    tmp_path: Path, n1_reversals
+) -> None:
+    """The commonest path through the mode had no execution test at all.
+
+    Everything the runner exists for — a message file that writes, a commit that
+    lands, a reversal that resolves — was asserted for N>1 and pattern-matched
+    for N=1, which is the case most invocations take.
+    """
+    repo = tmp_path / "single"
+    repo.mkdir()
+    _init(repo)
+    (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "seed")
+    base = _git(repo, "rev-parse", "HEAD").strip()
+    (repo / "a.txt").write_text("a\n", encoding="utf-8")
+    (repo / "b.txt").write_text("b\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    before = _git(repo, "status", "--porcelain")
+
+    result = _commit_single(repo, "feat: the whole pile as one commit\n")
+    assert result.returncode == 0, f"the N=1 apply failed: {result.stderr}"
+    committed = sorted(f for f in _git(repo, "show", "--name-only", "--format=", "HEAD").split() if f)
+    assert committed == ["a.txt", "b.txt"], (
+        f"the single commit did not take the whole staged pile: {committed}"
+    )
+
+    parented, _ = n1_reversals
+    _git(repo, *parented.split()[1:])
+    assert _git(repo, "rev-parse", "HEAD").strip() == base, (
+        "the documented N=1 reversal did not return HEAD to where it started"
+    )
+    assert _git(repo, "status", "--porcelain") == before, (
+        "the reversal restored HEAD but not the index the user had staged"
+    )
+
+
+def test_n_equals_one_applies_and_reverses_on_an_unborn_branch(
+    tmp_path: Path, n1_reversals
+) -> None:
+    """N=1 is how a repository's first commit gets made.
+
+    `HEAD~1` cannot resolve behind a root commit, so the reversal the paragraph
+    names for a parented branch would fail here — which is why it names two, and
+    why both need running rather than reading.
+    """
+    repo = tmp_path / "single-unborn"
+    repo.mkdir()
+    _init(repo)
+    (repo / "a.txt").write_text("a\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    before = _git(repo, "status", "--porcelain")
+
+    result = _commit_single(repo, "feat: the first commit\n")
+    assert result.returncode == 0, f"the N=1 root apply failed: {result.stderr}"
+    assert _git(repo, "rev-list", "--count", "HEAD").strip() == "1"
+
+    parented, unborn = n1_reversals
+    failed = subprocess.run(
+        ["git", *parented.split()[1:]],
+        cwd=repo, capture_output=True, text=True, env=_ENV,
+    )
+    assert failed.returncode != 0, (
+        "the parented reversal resolved behind a root commit, so §9 naming two "
+        "would be unnecessary — recheck which applies"
+    )
+    _git(repo, *unborn.split()[1:])
+    assert subprocess.run(
+        ["git", "rev-parse", "--verify", "-q", "HEAD"],
+        cwd=repo, capture_output=True, text=True, env=_ENV,
+    ).returncode != 0, "the branch is not unborn again after its documented reversal"
+    assert _git(repo, "status", "--porcelain") == before, (
+        "the reversal returned the branch to unborn but not the staged tree"
     )

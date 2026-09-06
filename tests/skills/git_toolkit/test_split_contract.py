@@ -884,6 +884,68 @@ def test_the_working_tree_recipes_treat_names_as_data(split_mode: str) -> None:
     )
 
 
+def test_the_protocol_refuses_a_pile_that_moved(split_mode: str) -> None:
+    """Reading, partitioning, and drafting all happen before anything is applied.
+
+    Nothing holds the index still meanwhile. Capturing the tree at apply time
+    proves only that the pile matches itself, so a change during analysis would
+    be committed under partitions and messages describing the pile that used to
+    be there — and a same-path edit survives the closing coverage check, whose
+    snapshot was taken after the drift.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    recipe = re.search(r"```bash\n(.*?)```", body, re.DOTALL).group(1)
+    # Comments stripped: the line explaining where these come from names both
+    # variables, so a check against the whole fence stayed green after the
+    # comparisons themselves were deleted. Mutation found that.
+    commands = "\n".join(
+        ln for ln in recipe.splitlines() if not ln.lstrip().startswith("#")
+    )
+    assert '= "$ANALYSED_TREE"' in commands and '= "$ANALYSED_HEAD"' in commands, (
+        "the protocol compares nothing against what analysis actually read, so a "
+        "pile that moved mid-analysis is committed under stale partitions"
+    )
+    step1 = split_mode.split("### 1. Read the pile", 1)[1].split("### 2.", 1)[0]
+    assert "ANALYSED_TREE" in step1, (
+        "the identities are captured at apply time rather than at read time, "
+        "which proves only that the pile matches itself"
+    )
+
+
+def test_each_commit_is_verified_against_its_partition(split_mode: str) -> None:
+    """A successful hook can restage, and the whole-tree check would not see it.
+
+    Formatters restage routinely. A hook staging a later partition's file puts it
+    in this commit; a subsequent commit carries something else; the final tree
+    still equals the snapshot. Every commit is wrong and the closing test passes,
+    because it grades the sum rather than the members.
+    """
+    body = split_mode.split("### 9. Output", 1)[1]
+    recipe = re.search(r"```bash\n(.*?)```", body, re.DOTALL).group(1)
+    assert "git diff-tree" in recipe and "$PARTITION_FILE" in recipe, (
+        "no check compares a created commit against the partition that produced "
+        "it, so a restaging hook redistributes the series undetected"
+    )
+
+
+def test_the_unknown_freshness_case_offers_no_false_retry(split_mode: str) -> None:
+    """A retry nothing can complete is worse than no retry.
+
+    The veto's own no-memory premise applies to the next invocation too, so refs
+    that "may be stale" now may be stale then — offering re-invocation as the
+    route back to applying names a door that never opens.
+    """
+    table = split_mode.split("### 8. Guard vetoes", 1)[1].split("###", 1)[0]
+    row = next(r for r in _rows(table) if "force-push" in r.split("|")[1].lower())
+    assert "No remote configured" in row, (
+        "the unambiguous case is not carved out, so a repository with no remote "
+        "is held proposal-only for a publication that cannot exist"
+    )
+    assert "re-invoking will not change that" in row, (
+        "the row still offers a retry, and nothing observable can ever satisfy it"
+    )
+
+
 def test_the_series_verifies_it_covered_the_pile(split_mode: str) -> None:
     """Every commit can succeed while a staged change is silently reverted.
 
@@ -1091,6 +1153,24 @@ def test_the_fixup_branch_states_how_it_resolves(router: str) -> None:
     assert "no selector flag" in row, (
         "the branch implies a selection mechanism the grammar does not define, "
         f"so how either option reaches execution is unstated: {row!r}"
+    )
+
+
+def test_unrecognised_options_are_refused(router: str) -> None:
+    """`--dryrun` is one keystroke from `--dry-run`, and this verb applies.
+
+    A grammar that ignores what it does not recognise turns that typo into
+    commits the user was asking to rehearse. Fail-closed is the only safe
+    default once a surface applies by default.
+    """
+    arguments = _section(router, "## Arguments")
+    assert "refused before dispatch" in arguments, (
+        "an unrecognised option has no stated handling, so it is ignored or "
+        "guessed at on a surface that commits"
+    )
+    assert "--dryrun" in arguments, (
+        "the rule does not name the failure it prevents, which is the one that "
+        "turns a rehearsal into an apply"
     )
 
 

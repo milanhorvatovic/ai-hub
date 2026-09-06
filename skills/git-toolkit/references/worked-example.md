@@ -34,7 +34,7 @@ You implement the retry, stage `src/upload/queue.js`. Trigger: "write a commit m
 
 The capability runs the workflow from `commit-message/capability.md`:
 
-1. Reads `git diff --cached` — sees the retry loop, the timeout constant, the import of a backoff helper. SPLIT's partition analysis runs here, as it does on every commit: one file, one concern, so the answer is N=1 and the walkthrough never hears about it. That silence is the designed behaviour, not an omission from this example.
+1. Reads `git diff --cached` — sees the retry loop, the timeout constant, the import of a backoff helper. SPLIT's partition analysis runs here in Step 2, as it does on every commit: one file, one concern, so the answer is N=1 and the walkthrough never hears about it. That silence is the designed behaviour, not an omission from this example.
 2. Reads `CLAUDE.md` / `CONTRIBUTING.md` / `.commitlintrc*` — let's say the repo uses Conventional Commits (detected via `.commitlintrc.json` with `@commitlint/config-conventional`).
 3. Samples last 20 commits to confirm the convention is live.
 4. Drafts the subject + body.
