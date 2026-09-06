@@ -695,3 +695,95 @@ def test_no_cross_capability_step_citations(capabilities_dir: Path) -> None:
             if m and m.group(1) != cap.parent.name:
                 offenders.append(f"{cap.parent.name}:{lineno} cites {m.group(0)!r}")
     assert not offenders, "cross-capability step citations:\n" + "\n".join(offenders)
+
+
+def test_mixed_scope_repair_bypasses_the_curation_rule(references_dir: Path) -> None:
+    """The documented repair silently did nothing on the common tree.
+
+    `git reset --soft HEAD~` leaves the reverted commit staged, but any tracked
+    edit still in the worktree — the usual state, since the smell is noticed
+    while working — makes that pile read as hand-curated to SPLIT's curation
+    rule, which forces it to one commit. The repair then rebuilds the same
+    mixed-scope commit it was invoked to take apart.
+    """
+    text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
+    entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
+    # The invocation, not the flag: the sentence explaining why the flag is
+    # needed also contains "--split", so a bare substring check stayed green
+    # after the recipe itself lost it. Mutation found that.
+    assert "/git-toolkit commit --split" in entry, (
+        "the post-commit repair does not force series analysis, so the curation "
+        "rule converts it into a no-op on any tree with unstaged work"
+    )
+    assert "curation rule" in entry, (
+        "the entry does not say why the flag is required, so the next edit drops "
+        "it as redundant"
+    )
+    assert "git update-ref -d HEAD" in entry, (
+        "the repair has no root-commit path, where `HEAD~` does not resolve — the "
+        "same initial-commit case the split protocol otherwise supports"
+    )
+
+
+def test_mixed_scope_repair_checks_the_remote_before_deleting(references_dir: Path) -> None:
+    """Ordering, because the deletion destroys the evidence the guard needs.
+
+    `git update-ref -d HEAD` leaves the branch unborn and takes its reflog with
+    it, so the unwound root SHA is unrecoverable afterwards and SPLIT's
+    force-push veto has nothing to test remote containment against. The check
+    has to happen while the ref still exists.
+    """
+    text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
+    entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
+    assert "--contains HEAD" in entry and "Before deleting anything" in entry, (
+        "the root-commit repair deletes the ref without first asking whether a "
+        "remote holds it, so a pushed root rewrite passes the veto unseen"
+    )
+    # Ordering alone is satisfied by an unconditional delete that happens to run
+    # the check first. What the published-root case needs is the branch.
+    assert "make the deletion conditional on an empty result" in entry, (
+        "the check runs but nothing depends on its answer, so a published root "
+        "is still deleted and its reflog evidence destroyed"
+    )
+    assert "delete nothing" in entry, (
+        "the non-empty branch does not say to stop, so the recipe reads as "
+        "advisory where it has to be a halt"
+    )
+
+
+def test_mixed_scope_repair_fetches_before_the_containment_read(references_dir: Path) -> None:
+    """Stale tracking refs report a freshly pushed root as unpublished.
+
+    `force-push-impact.md` documents the caveat; this is where it carries the
+    highest stakes in the skill, because acting on the stale answer deletes the
+    ref and destroys the evidence that would have contradicted it.
+    """
+    text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
+    entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
+    # The instruction, not the word: the paragraph explaining why `--all` is
+    # required also says "git fetch", so a bare substring survives deleting the
+    # step it guards.
+    assert "Before deleting anything, run `git fetch" in entry, (
+        "the containment read runs against possibly-stale tracking refs before a "
+        "deletion that cannot be undone"
+    )
+
+
+def test_mixed_scope_repair_fetches_all_remotes(references_dir: Path) -> None:
+    """The fetch and the containment read must cover the same ground.
+
+    `git branch -r` spans every remote-tracking namespace; a bare `git fetch`
+    refreshes only the branch's configured remote. In a repository with a second
+    remote, a root freshly pushed there reports as unpublished and the deletion
+    that follows destroys the only local copy.
+    """
+    text = (references_dir / "commit-smells.md").read_text(encoding="utf-8")
+    entry = text.split("### `mixed-scope`", 1)[1].split("\n### ", 1)[0]
+    assert "run `git fetch --all`" in entry, (
+        "the fetch covers one remote while the containment read covers all, so a "
+        "root pushed to another remote reads as unpublished"
+    )
+    assert "unreachable remote is not an empty result" in entry, (
+        "a failed fetch is not distinguished from a clean containment answer, so "
+        "an offline remote authorises the deletion"
+    )
