@@ -26,13 +26,13 @@ Governs the structure, format, and accuracy of how changes are described across 
 
 ## When to trigger
 
-Activation cues live in two places only: the frontmatter description (lifecycle intent — about to commit, opening or updating a PR, preparing a release — plus explicit asks) and the Trigger cells of the six lifecycle tables under [Capability routing](#capability-routing). Match the task against those tables; this file keeps no separate trigger list.
+Activation cues live in three places, and the third is the one that matters most: the frontmatter description (lifecycle intent — about to commit, opening or updating a PR, preparing a release — plus explicit asks), the Trigger cells of the six lifecycle tables under [Capability routing](#capability-routing), and a verb the user types, defined in [Arguments](#arguments). The first two are inferred activation and always stop at a proposal; only the third can reach an applying polarity, which is why it is listed as an activation path rather than left as a detail of the grammar. Match the task against those tables; this file keeps no separate trigger list.
 
 ## Architecture
 
 Two layers:
 
-- **Router** (this `SKILL.md`): triggers, principles, capability routing. Loads always.
+- **Router** (this `SKILL.md`): triggers, principles, capability routing, and the verb grammar with its per-surface apply polarity. Loads always.
 - **Capabilities** (`capabilities/<name>/capability.md`): one per operation. Each is self-sufficient — load just the one whose trigger matches.
 
 Shared references at this skill's root hold the canonical format spec, trailer rules, merge-policy semantics, etc. Every capability links to them via `../../references/<file>.md` rather than duplicating.
@@ -44,7 +44,7 @@ Shared references at this skill's root hold the canonical format spec, trailer r
 - **Format ≠ content accuracy.** `commit-message` and `pr-description` WRITE mode enforce format. `pr-description` SYNC mode enforces content accuracy (claims match diff). Both concerns can fire on the same PR; they are complementary.
 - **Repo conventions override defaults.** Every capability checks `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `.commitlintrc*`, the PR template — if present, those rules supersede the generic spec. Precedence: agent-instruction file > `CONTRIBUTING.md` > commit-lint config > generic defaults.
 - **Discovery and enforcement state the same rules.** This skill is the discovery side of a convention contract; an agent-instruction declaration (`AGENTS.md`, `CONTRIBUTING.md`) and a commit-style gate (CI linter, commit-msg hook) are the enforcement side of the same contract. Where all three exist — as in the repo that ships this skill — a convention change must touch declaration, gate, and skill text together, or the untouched surfaces keep asserting the old rule.
-- **Never auto-publish.** Commit-message rewrites, PR description edits, branch creates, rebases, release publishes — all require user confirmation. Show the proposal and the exact apply command; let the user run it.
+- **Never auto-publish, and never apply unasked.** A state-changing command — a commit, a commit-message rewrite, a PR description edit, a branch create, a rebase, a release publish — runs only on the user's explicit imperative invocation of a verb whose polarity says apply. Every other path shows the proposal and the exact apply command and lets the user run it, and inferred or conversational activation stops at the proposal under any flag: a verb is something the user typed, not an intent this skill read off the conversation. Outward-facing actions — anything that pushes, or that writes to a forge — take their own explicit step regardless of verb form and are never bundled into a verb that did not name them. The grammar, the per-surface polarity, and the guards that override it are in [Arguments](#arguments).
 - **Never auto-add trailers.** `Co-authored-by:`, `Signed-off-by:`, `Reviewed-by:`, and any other attribution trailer is added only when the user explicitly requests it. The skill never adds trailers programmatically — including to commit messages, PR bodies, release notes, or rebase-cleanup rewrites. See `references/trailer-semantics.md`. Trailers are CLAIMS (legal attestations, factual contributions, social endorsements); adding one without user consent falsifies the claim.
 - **Pre-publication secret scan.** Any text that will become a commit, PR body, release note, or posted review reply runs through `references/secret-patterns.md` first — before it is displayed and before it is written to a proposal file.
 - **Pre-publication audience check.** The same text runs through `references/publication-audience.md` in the same pass: published text must resolve for a reader who holds only the published artifact, so every artifact it names is diff-visible, publicly linkable, or defined in the text itself. The two catalogs stay separate because a secret is redacted on sight while private context is rewritten, and they grade differently for the same reason — audience findings are `WARN`, escalated only where a repository declares its own private surface.
@@ -120,6 +120,43 @@ Tier semantics: T1 is first-class — every operation, `gh` worked examples. T2 
 
 Within `pr-description`, the body's state picks the mode: a substantive existing body always takes the SYNC path (which may itself escalate to `MAJOR-REWRITE` and produce a full replacement). Only empty / WIP / one-liner / unfilled-template bodies take the WRITE path.
 
+## Arguments
+
+An invocation may name a verb: `/git-toolkit <verb> [options]`. Two options are defined here because they change what a verb does rather than what a capability decides: `--dry-run`, which rehearses an applying verb, and `--split`, which forces `commit`'s partition analysis to run at any confidence and on a pile the user has already curated. Anything else a verb accepts is the capability's and is documented there. **An option or positional the grammar does not recognise is refused before dispatch, never ignored and never guessed at.** That is a fail-closed rule because `commit` applies: `--dryrun` is one keystroke from `--dry-run`, and a verb that shrugs at the typo commits the work the user was asking to rehearse. Refusing by name also tells them which spelling was wrong, where silently proceeding tells them nothing until the commits exist. **`commit` is the only verb implemented today.** The outward row below states the polarity a future one inherits so it lands safe rather than re-deriving the rule, but an unimplemented verb has no dispatch and is refused by name rather than guessed at: `/git-toolkit pr --apply` is not a command this skill accepts yet, and answering it as though it were is how a flag reaches a surface nobody defined. The verb is the whole difference between the two activation paths. Both reach the same capabilities; only the typed one reaches their state-changing half, because a verb is evidence the user asked for the action and an inferred trigger is evidence of nothing but topic.
+
+### Verb polarity
+
+Polarity follows reversibility, and it is a property of the surface rather than of the capability behind it — the same `commit-message` capability proposes on one path and applies on the other.
+
+| Surface | Default | Escape or opt-in |
+| --- | --- | --- |
+| `/git-toolkit commit` | **applies** — creates the commit or the series | `--dry-run` runs the identical analysis, presents the full proposals and their apply commands, and executes nothing |
+| Conversational trigger — this skill firing on "about to commit staged work" mid-flow | **proposes**, always | none; no flag reaches this path |
+| Any outward verb (`pr`, `merge`, `release`, or anything implying `push`) — none implemented yet; this row is the default each will inherit | **proposes** | `--apply` per verb, never inherited from another verb on the same invocation |
+
+`commit` applies by default for two reasons that do not generalize: `git commit` itself commits, and spells its own rehearsal `--dry-run`, so the polarity and the flag are both already in the user's hands; and a local commit is undone by one local command, which is the reversibility the whole table is graded on. Nothing that leaves the machine has that property, so no outward verb takes the same default, and `commit` never bundles a push under any flag.
+
+### Guards outrank the verb
+
+A guard listed in the mode's veto table voids the apply default for that invocation — membership in that table, not a severity tier. Keying this on `error` was wrong in a way that mattered: the secret catalog surfaces every match as `WARN` by design, so the rule as written left the one veto nobody would argue about unable to fire. Severity grades a finding's confidence; whether a finding blocks an apply is a separate decision, and the table is where it is made. On a veto: the verb degrades to a proposal plus the warning, and what restores an apply is removing the condition, not invoking again. A standing veto — force-push territory, an unresolved `mixed-scope` — is still standing on the next run, so a re-invocation reaches it unchanged; the capability states the same rule beside the table that lists them. The vetoes and what each degrades to are listed with the mode that runs them, in `capabilities/commit-message/capability.md`; the rule the router owns is the precedence — a guard's veto beats a verb's polarity, never the reverse, and no flag overrides a veto.
+
+The harness's own permission layer sits outside all of this and stays the outer gate for every integrator. A verb's polarity describes what this skill will propose to run, never a claim about what it is permitted to run.
+
+### `commit` dispatch
+
+The verb's front end is state detection, so the same invocation means different things against different trees. Routing is the router's job, so the table lives here once rather than in each capability.
+
+**Rows are evaluated top to bottom and the first match wins**, because they are not mutually exclusive and an agent picking by resemblance would pick wrong: a detached HEAD or an interrupted rebase can carry perfectly ordinary staged changes, and a pile can be both mixed and fixup-shaped. Blocking states are therefore listed first — a tree mid-operation is refused whatever else is true of it — and the fixup row precedes the mixed row, so a pile that is both is offered the repair beside the alternatives rather than partitioned around a commit it belongs to.
+
+| Tree state | Route |
+| --- | --- |
+| An operation is in progress, or HEAD is detached | Report the blocking state and stop; propose nothing while the tree is mid-operation. Detect it from the sentinels git leaves in `$GIT_DIR` — `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `BISECT_LOG`, `rebase-merge/`, `rebase-apply/` — never from whether conflicts are unresolved: a merge whose conflicts are fixed has a clean index and staged changes, and reading only for conflicts drops it straight into an applying row where committing would write a merge nobody proposed |
+| Clean tree | Report that there is nothing to commit, and stop |
+| Staged, fixup-shaped (the change belongs to an earlier commit on the branch) | `commit-fixup`'s proposal, offered beside the WRITE alternative rather than instead of it. Two answers means the verb has none, so this state is **proposal-only**: both options are shown with their commands and the user runs the one they want. There is no selector flag and no follow-up that applies — a conversational reply cannot reach an applying path, and inventing a chooser here would be the one place this skill let an inferred answer execute |
+| Staged, one concern | `commit-message` WRITE — one commit, splitting never mentioned |
+| Staged, mixed concerns | `commit-message` SPLIT — an ordered series, WRITE per partition |
+| Nothing staged, tree dirty | `commit-message` SPLIT over the working tree: a staging plan first — the groups and their `git add` recipes — then WRITE per group. Proposal only, whatever the polarity above says; an empty index is the user not having chosen yet, and choosing for them is not the act this verb's default covers |
+
 ## Shared references
 
 Grouped by scope so capabilities can pull only what their side needs.
@@ -172,7 +209,7 @@ A typical end-to-end lifecycle for a change. Each step is independent and option
 | Phase | Capability | Side |
 | --- | --- | --- |
 | Starting a new branch | `branch-name` → optionally `worktree-setup` for parallel work | git |
-| Writing commits during work | `commit-message` (WRITE mode) | git |
+| Writing commits during work | `commit-message` — SPLIT mode via the `commit` verb, which degenerates to WRITE whenever the staged pile is one concern | git |
 | Quick mid-work fixes | `commit-fixup` for amending an earlier commit; `commit-message` (AMEND mode) for fixing the last commit's wording | git |
 | Before requesting review (clean history) | `rebase-cleanup` → `commit-message` (REVIEW mode) | git |
 | Before requesting review (PR body) | `pr-description` — SYNC mode; switches to WRITE mode when the body is empty / WIP / one-liner / unfilled-template | forge |
@@ -193,5 +230,5 @@ Each capability runs independently; this flow is a recommendation, not a hard se
 - **Don't add `Co-authored-by:`, `Signed-off-by:`, or any other trailer to commit messages, PR bodies, release notes, or rebased commit messages unless the user explicitly asks.** This is a hard rule across every capability — no exceptions for "helpful defaults."
 - Don't propose a commit-message rewrite when the only issue is body wrap and the user / repo configures `git log` for soft-wrap.
 - Don't conflate format with content. A perfectly-formatted commit message can still be wrong about what changed; a poorly-formatted one can still be accurate. The two capabilities exist precisely because format and accuracy are different concerns.
-- Don't auto-create branches, auto-rebase, or auto-publish releases. Every state-changing git or forge-CLI command is surfaced for the user to run.
+- Don't auto-create branches, auto-rebase, or auto-publish releases. Outside an applying verb, every state-changing git or forge-CLI command is surfaced for the user to run — and inside one, only what that verb names: an applying `commit` still creates no branch, rewrites no history, and reaches no forge.
 - **Don't propose mixed-scope capabilities.** A new capability is either git-side (works without a forge CLI) or forge-side (requires one). Don't author capabilities that depend on both as hard requirements. Optional enrichment is fine; hard cross-side dependency is not.
