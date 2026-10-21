@@ -22,8 +22,8 @@
   },
   "git-toolkit": {
     "discovery_bytes": 9590,
-    "skill_md_bytes": 22792,
-    "load_bytes": 350302,
+    "skill_md_bytes": 30711,
+    "load_bytes": 399744,
     "files": 37,
     "version": "1.0.0"
   },
